@@ -33,13 +33,13 @@ that shifts hue toward `shadow` instead of greying (`ao_strength`), edge highlig
 (`edge_strength`), cavity tint (`cavity_strength`), brush-stroke noise stretched along the longest axis
 (`noise_strength`, `noise_scale`, `stroke_stretch`). Tune by passing a different `palette`, or a different recipe.
 
-| Recipe | Base | Shadow | Edges |
-|---|---|---|---|
-| wood | warm browns | violet | soft |
-| stone | grey, cool and warm | blue-violet | medium, strong cavities |
-| metal | blue-grey | deep blue | strongest |
-| cloth | muted red, teal, tan | violet | weak, long strokes |
-| foliage | greens | blue-green | weak |
+| Recipe | Base | Shadow | Edges (`edge_strength`) | Cavities (`cavity_strength`) | Strokes (`stroke_stretch`) |
+|---|---|---|---|---|---|
+| wood | warm browns | violet | 0.6 | 0.6 | 6.0, long grain |
+| stone | grey, cool and warm | blue-violet | 0.55 | 0.7, strongest | 1.5, short |
+| metal | blue-grey | deep blue | 0.85, strongest | 0.6 | 4.0, long |
+| cloth | muted red, teal, tan | violet | 0.2, weakest | 0.5 | 1.0, unstretched |
+| foliage | greens | cool blue | 0.3 | 0.5 | 2.5 |
 
 ## Tier 2: Meshy images projected onto your UVs
 
@@ -54,8 +54,9 @@ that shifts hue toward `shadow` instead of greying (`ao_strength`), edge highlig
    `seam_blend` 0 takes only the best-facing view per texel; 0.2 cross-fades views within about 0.2 facing ratio.
 4. Live: `stylize.apply_albedo(obj, "<projected path>", material_name="M_<name>")`.
 
-Meshy's own retexture (`…meshy_retexture`) is an alternative for a whole model, but its UVs are its own: bake its
-result onto your UVs (import it as `high`, `bake_maps` with an emission setup) instead of shipping its layout.
+Meshy's own retexture (`…meshy_retexture`) textures a whole model, but on its own UVs, and `bake_maps` has no colour
+map to carry that texture across (it bakes normal, ao, curvature, thickness and id). For colour on your UVs, use the
+Tier 2 steps above.
 
 ## Seam checklist (review every Tier 2 result)
 
@@ -72,7 +73,7 @@ result onto your UVs (import it as `high`, `bake_maps` with an emission setup) i
 - Projection blends in the images' sRGB encoding, not linear light; slight darkening at cross-fades.
 - Tier 1 is one albedo: no roughness, metal or emission maps are painted; the material gets one roughness value.
 - On the rock stress test, Tier 1 `stone` rendered almost flat grey at review distance; pass a palette with more
-  value spread between `base` colours, or raise `top_light`, for stone.
+  value spread between `base` colours for stone.
 - Two Tier-2 views saw 41% of the rock cluster's texels; the other 59% were filled from the nearest seen texel and
   show as smeared patches on the back. Use at least front, back, left, right and top for an asset seen all round.
 - Tier 1 paints light, shade and edges, not motifs. On the treasure-chest test the independent reviewer scored

@@ -1,0 +1,23 @@
+schema_version: "1.1"
+name: organic-skeleton-branches
+description: 'Wolf stress test (2026-11-08): features made by pushing vertices on a coarse skin blockout did not show; ears and tail must be skeleton branches, and a Skin modifier needs a root vertex per part or its output is non-manifold.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 10
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Blender 5.2 Python, for a game: block out a stylized wolf (ears, tail, four legs) as one mesh with a Skin-modifier
+    skeleton, about 1.1 m tall and 1.7 m long. Reply with the script only.
+graders:
+  - name: branches-and-root
+    type: llm
+    criteria: |
+      PASS requires all three:
+      1. Both ears and the tail are their own branches (vertices joined by edges) in the skeleton, not shapes pushed or
+         sculpted afterwards.
+      2. Each leg has at least two segments (a middle joint such as an elbow, knee or hock, then a paw or foot).
+      3. The skin root is set (a skin vertex with use_root = True, or bmesh skin layer root flag), or the script builds
+         the skeleton through a library function documented to set it (for example forge.blockout.skin_from_skeleton).
+      FAIL if ears or tail are missing from the skeleton, legs are single segments, or no root is set.
+      Not graded: exact proportions, modifiers after the skin, code style.

@@ -1,6 +1,6 @@
 ---
 name: art-reviewer
-description: Use PROACTIVELY when an asset-forge contact sheet of a game asset needs an independent critique (after blockout or texturing). Returns a verdict, six 1–5 scores and spatial issues with concrete fixes.
+description: Use PROACTIVELY when review renders or a contact sheet of a game asset, prop or creature need critique (blockout or textured). Returns a verdict, six 1–5 scores and spatial issues with concrete fixes.
 tools: Read, Glob, mcp__plugin_asset-forge_forge__validate_asset
 model: inherit
 effort: high

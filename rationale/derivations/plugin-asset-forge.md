@@ -18,5 +18,5 @@ fires only when the context used asset-forge (a forge tool, or `forge` imported 
 so plain Blender work in other sessions is never blocked. It blocks once per change cycle: the cycle starts at the
 first execute call after a review and ends at the next successful `render_review_set` (one whose result names a
 `contact_sheet`). Read-only execute calls also mark a change; the pipeline skill sends read-only inspection to the
-summary tools for that reason. Harness: `scripts/__tests__/review-state.test.sh`, 14 cases with the host's payload
+summary tools for that reason. Harness: `scripts/__tests__/review-state.test.sh`, 16 cases with the host's payload
 shapes.

@@ -2,11 +2,13 @@
 Units are Blender units (metres at the default Unit Scale 1.0) unless a name says otherwise."""
 import json
 import math
+import numbers
 from contextlib import contextmanager
 from pathlib import Path
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Matrix, Vector
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[2]
@@ -24,6 +26,13 @@ class ForgeError(Exception):
 def ok(**fields):
     """The summary dict every public forge function returns."""
     return {"ok": True, **fields}
+
+
+def positive(value, what):
+    """Return float(value) for a real number > 0, else raise ForgeError naming `what` (booleans and NaN refused)."""
+    if isinstance(value, bool) or not isinstance(value, numbers.Real) or not value > 0:
+        raise ForgeError(f"{what} must be a number > 0, got {value!r}")
+    return float(value)
 
 
 def blender_at_least(major, minor=0):
@@ -65,6 +74,39 @@ def select_only(*objects, active=None):
 
 
 @contextmanager
+def kept_state(objects=(), stage="context"):
+    """Unhide `objects` for the block, then restore their hide flags, the selection, the active object and its mode.
+    Raises ForgeError(stage) before changing anything when one of `objects` is not in the view layer."""
+    view_layer = bpy.context.view_layer
+    for o in objects:
+        was = o.select_get()
+        try:
+            o.select_set(True)
+        except RuntimeError as exc:
+            raise ForgeError(str(exc), stage=stage) from exc
+        o.select_set(was)
+    prev_active = view_layer.objects.active
+    prev_mode = prev_active.mode if prev_active else "OBJECT"
+    prev_selected = [o for o in view_layer.objects if o.select_get()]
+    hidden = {o: (o.hide_get(), o.hide_viewport) for o in objects}
+    try:
+        for o in objects:
+            o.hide_viewport = False
+            o.hide_set(False)
+        yield
+    finally:
+        ensure_object_mode()
+        for o, (hide, hide_viewport) in hidden.items():
+            o.hide_viewport = hide_viewport
+            o.hide_set(hide)
+        for o in view_layer.objects:
+            o.select_set(o in prev_selected)
+        view_layer.objects.active = prev_active
+        if prev_active is not None and prev_mode != "OBJECT":
+            bpy.ops.object.mode_set(mode=prev_mode)
+
+
+@contextmanager
 def edit_bmesh(obj):
     """Yield a bmesh of obj's base mesh (no modifiers); written back and freed on exit. Object mode only."""
     ensure_object_mode()
@@ -99,6 +141,50 @@ def tri_count(obj, evaluated=True):
     return sum(p.loop_total - 2 for p in obj.data.polygons)
 
 
+def measure_texel_density(obj, texture_px):
+    """Texel density of obj's active UV map on a texture_px square, in texture pixels per Blender unit (per metre at
+    the default Unit Scale 1.0; the scene's Unit Scale is ignored, as the budgets assume 1 unit = 1 m). Measured on the
+    evaluated mesh (modifiers applied) in world space. Returns (mean, min, max): mean is
+    texture_px * sqrt(total UV area / total world area), min and max are per face. None without a UV map or area."""
+    bpy.context.view_layer.update()
+    eval_obj = obj.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    mesh = eval_obj.to_mesh()
+    try:
+        layer = mesh.uv_layers.active
+        if layer is None:
+            return None
+        mesh.calc_loop_triangles()
+        tris = mesh.loop_triangles
+        loops = np.empty(len(tris) * 3, np.int64)
+        tris.foreach_get("loops", loops)
+        face = np.empty(len(tris), np.int64)
+        tris.foreach_get("polygon_index", face)
+        loop_vert = np.empty(len(mesh.loops), np.int64)
+        mesh.loops.foreach_get("vertex_index", loop_vert)
+        co = np.empty(len(mesh.vertices) * 3, np.float64)
+        mesh.vertices.foreach_get("co", co)
+        uv = np.empty(len(mesh.loops) * 2, np.float64)
+        layer.data.foreach_get("uv", uv)
+        n_faces = len(mesh.polygons)
+    finally:
+        eval_obj.to_mesh_clear()
+    world = np.array(obj.matrix_world)
+    co = co.reshape(-1, 3) @ world[:3, :3].T + world[:3, 3]
+    xyz = co[loop_vert[loops]].reshape(-1, 3, 3)
+    st = uv.reshape(-1, 2)[loops].reshape(-1, 3, 2)
+    area = np.linalg.norm(np.cross(xyz[:, 1] - xyz[:, 0], xyz[:, 2] - xyz[:, 0]), axis=1) / 2
+    e1, e2 = st[:, 1] - st[:, 0], st[:, 2] - st[:, 0]
+    uv_area = np.abs(e1[:, 0] * e2[:, 1] - e1[:, 1] * e2[:, 0]) / 2
+    face_area = np.bincount(face, area, n_faces)
+    face_uv = np.bincount(face, uv_area, n_faces)
+    used = face_area > 1e-12
+    if not used.any():
+        return None
+    per_face = texture_px * np.sqrt(face_uv[used] / face_area[used])
+    mean = texture_px * math.sqrt(face_uv.sum() / face_area.sum())
+    return float(mean), float(per_face.min()), float(per_face.max())
+
+
 def world_bbox(*objects):
     """(min Vector, max Vector) of the objects' evaluated bounding boxes in world space."""
     bpy.context.view_layer.update()  # matrix_world is stale after a location/rotation/scale write until this runs
@@ -126,14 +212,17 @@ def new_mesh_object(name, bm=None, collection=None):
 
 
 def apply_transforms(obj, location=False, rotation=True, scale=True):
-    """Bake scale, then rotation, then location into a mesh's data without bpy.ops; children keep their world pose.
-    Order is fixed (basis = T @ R @ S), so rotation needs scale and location needs both."""
+    """Bake scale, then rotation, then location into a mesh's data and shape keys without bpy.ops; children keep their
+    world pose. Order is fixed (basis = T @ R @ S), so rotation needs scale and location needs both. Leaves Edit Mode
+    first. Returns the object name and the baked parts."""
     if (rotation and not scale) or (location and not rotation):
         raise ForgeError("bake scale before rotation and rotation before location (basis = T @ R @ S)")
     if obj.type != "MESH":
         raise ForgeError(f"{obj.name} is a {obj.type}; only mesh data can absorb a transform")
     if obj.data.users > 1:
         raise ForgeError(f"{obj.name}'s mesh is shared by {obj.data.users} users; make it single-user first")
+    ensure_object_mode()
+    bpy.context.view_layer.update()
     loc, rot, scl = obj.matrix_basis.decompose()
     parts = [Matrix.Translation(loc), rot.to_matrix().to_4x4(), Matrix.Diagonal((*scl, 1.0))]
     n_baked = 1 + int(rotation) + int(location) if scale else 0
@@ -145,7 +234,7 @@ def apply_transforms(obj, location=False, rotation=True, scale=True):
         for m in parts[3 - n_baked:]:
             baked = baked @ m
     children = {c: c.matrix_world.copy() for c in obj.children}
-    obj.data.transform(baked)
+    obj.data.transform(baked, shape_keys=True)
     if baked.determinant() < 0:  # Mesh.transform keeps winding, so a mirror would leave the mesh inside-out
         bm = bmesh.new()
         bm.from_mesh(obj.data)

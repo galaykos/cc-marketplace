@@ -1,4 +1,6 @@
+import math
 import os
+import types
 from pathlib import Path
 
 import bmesh
@@ -151,9 +153,74 @@ def test_audit_export_catches_missing_and_extra_objects(tmp):
     files = [{"path": f["path"], "objects": f["objects"]} for f in out["files"]]
     good = export.audit_export(files, engine="unity")
     assert good["passed"], good
+    naming = {c["id"]: c for c in good["files"][0]["checks"]}["collision_naming"]
+    assert naming["detail"] == {"named": ["SM_Crate_LOD0_Collider"], "misnamed": []}, naming
     wrong = export.audit_export([{"path": files[0]["path"], "objects": files[0]["objects"][1:] + ["SM_Ghost"]}], engine="unity")
     ids = {c["id"]: c for c in wrong["files"][0]["checks"]}
     assert not wrong["passed"] and ids["objects_present"]["detail"]["missing"] == ["SM_Ghost"]
     assert ids["no_extra_meshes"]["detail"]["extra"] == [files[0]["objects"][0]]
     gone = export.audit_export([{"path": str(tmp / "nope.fbx"), "objects": []}])
     assert not gone["passed"]
+
+
+def test_export_restores_rotation_and_scale_channels_exactly(tmp):
+    crate = fixtures.crate()
+    crate.location = (2, 1, 0)
+    crate.rotation_euler = (0, 0, math.radians(270))
+    crate.scale = (-1, 1, 1)
+    quat = fixtures.crate("SM_Quat")
+    quat.location.x = 5
+    quat.rotation_mode = "QUATERNION"
+    quat.rotation_quaternion = (0.0, 0.0, 0.0, -1.0)
+    before = [(o.rotation_mode, tuple(o.location), tuple(o.rotation_euler), tuple(o.rotation_quaternion),
+               tuple(o.scale)) for o in (crate, quat)]
+    for obj in (crate, quat):
+        export.export_asset(obj, engine="unreal", out_dir=str(tmp / obj.name))
+    after = [(o.rotation_mode, tuple(o.location), tuple(o.rotation_euler), tuple(o.rotation_quaternion),
+              tuple(o.scale)) for o in (crate, quat)]
+    assert after == before, (before, after)
+
+
+def test_a_failed_write_is_a_forge_error_chained_to_the_exporter(tmp):
+    crate = fixtures.crate()
+    bystander = fixtures.rock_blockout("Bystander")
+    util.select_only(bystander)
+    locked = tmp / "locked"
+    locked.mkdir()
+    locked.chmod(0o500)
+    try:
+        export.export_asset(crate, engine="unity", out_dir=str(locked))
+    except ForgeError as exc:
+        assert exc.stage == "export" and "SM_Crate.fbx" in str(exc)
+        assert isinstance(exc.__cause__, RuntimeError) and "Permission" in str(exc.__cause__), exc.__cause__
+    else:
+        raise AssertionError("a write into a read-only folder passed")
+    finally:
+        locked.chmod(0o700)
+    assert bpy.context.view_layer.objects.active == bystander and not crate.select_get()
+
+
+def test_audit_export_fails_a_mesh_with_a_collision_token_off_the_pattern(tmp):
+    crate = fixtures.crate()
+    collision.make_collision(crate, kind="convex", engine="unreal")
+    stray = fixtures.crate("UCX_SM_Crate_1", size=0.5)
+    out = export.export_asset([crate.name, stray.name], engine="unreal", out_dir=str(tmp))
+    (entry,) = out["files"]
+    assert entry["objects"] == ["SM_Crate", "UCX_SM_Crate_01", "UCX_SM_Crate_1"]
+    audit = export.audit_export([{"path": entry["path"], "objects": entry["objects"]}], engine="unreal")
+    check = {c["id"]: c for c in audit["files"][0]["checks"]}["collision_naming"]
+    assert not audit["passed"] and check["status"] == "fail"
+    assert check["detail"] == {"named": ["UCX_SM_Crate_01"], "misnamed": ["UCX_SM_Crate_1"]}, check
+
+
+def test_audit_export_refuses_a_live_session():
+    real = export.bpy
+    export.bpy = types.SimpleNamespace(app=types.SimpleNamespace(background=False))
+    try:
+        export.audit_export([{"path": "/nowhere.fbx", "objects": []}])
+    except ForgeError as exc:
+        assert exc.stage == "headless" and "live session" in str(exc)
+    else:
+        raise AssertionError("audit_export ran outside blender -b")
+    finally:
+        export.bpy = real

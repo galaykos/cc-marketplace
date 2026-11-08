@@ -46,6 +46,16 @@ def _world(obj):
     return _local(obj) @ m[:3, :3].T + m[:3, 3]
 
 
+def _polyline_distance(points, world):
+    points = np.asarray(points, float)
+    best = np.full(len(world), np.inf)
+    for a, b in zip(points[:-1], points[1:]):
+        d = b - a
+        u = np.clip((world - a) @ d / (d @ d), 0.0, 1.0)
+        best = np.minimum(best, np.linalg.norm(world - (a + u[:, None] * d), axis=1))
+    return best
+
+
 def _refuses(fn, *args, stage=None, **kwargs):
     try:
         fn(*args, **kwargs)
@@ -107,6 +117,27 @@ def test_symmetry_mirrors_about_the_local_plane():
     assert _mirror_error(lone, before, 0) > 0.05
 
 
+def test_symmetry_at_the_plane_moves_vertices_as_far_as_without_it():
+    def off_plane(points):
+        centred = points - points.mean(axis=0)
+        return np.abs(centred @ np.linalg.svd(centred)[2][2]).max()
+
+    edits = {"grab": lambda o, sym: deform.grab(o, (0, 0.2, 0), 0.5, (0, 0.1, 0.3), symmetry=sym),
+             "flatten": lambda o, sym: deform.flatten(o, (0, 0, 0), 0.6, falloff="constant", symmetry=sym)}
+    for name, edit in edits.items():
+        plain, mirrored = _grid(f"{name}_plain"), _grid(f"{name}_mirrored")
+        if name == "flatten":
+            for o in (plain, mirrored):
+                deform.noise_displace(o, 0.3, 0.05, seed=3)
+        start = _local(plain)
+        alone, both = edit(plain, None), edit(mirrored, "X")
+        assert np.abs(_local(mirrored) - _local(plain)).max() < 1e-6, name
+        assert alone["verts_moved"] == both["verts_moved"] > 100, (alone, both)
+        assert abs(alone["max_displacement"] - both["max_displacement"]) < 1e-6, (alone, both)
+    region = np.linalg.norm(start[:, :2], axis=1) < 0.55
+    assert off_plane(start[region]) > 0.01 and off_plane(_local(mirrored)[region]) < 1e-5
+
+
 def test_mask_weight_zero_blocks_motion():
     obj = _grid()
     group = obj.vertex_groups.new(name="paint")
@@ -152,7 +183,7 @@ def test_stroke_covers_the_path_and_nothing_beyond_the_radius():
     for p in samples:
         nearest = np.argmin(np.linalg.norm(before - p, axis=1))
         assert after[nearest, 2] > 0.005, p
-    dist, _ = deform._polyline(np.array(path, float), before)
+    dist = _polyline_distance(path, before)
     assert not moved[dist >= 0.2].any()
     assert moved[dist < 0.11].all()
 
@@ -174,7 +205,7 @@ def test_crease_cuts_in_and_bulge_follows_its_radius_profile():
     before = _world(obj)
     out = deform.crease_along_curve(obj, [(-0.8, 0, 0), (0.8, 0, 0)], 0.2, 0.05)
     after = _world(obj)
-    dist, _ = deform._polyline(np.array([(-0.8, 0, 0), (0.8, 0, 0)], float), before)
+    dist = _polyline_distance([(-0.8, 0, 0), (0.8, 0, 0)], before)
     assert not np.any(after[dist >= 0.2] != before[dist >= 0.2])
     on_line = dist < 1e-9
     assert np.allclose(after[on_line, 2], -0.05, atol=1e-6)
@@ -267,6 +298,7 @@ def test_refusals():
     assert "offset" in _refuses(deform.stroke, obj, [(0, 0, 0), (1, 0, 0)], "grab", [0.1], [1])
     assert "[0.0, 1.0]" in _refuses(deform.stroke, obj, [(0, 0, 0), (1, 0, 0)], "flatten", [0.1], [0.5, 2.0])
     assert "scale" in _refuses(deform.noise_displace, obj, 0, 0.1)
+    assert "limit" in _refuses(deform.stroke, obj, [(-1, 0, 0), (1, 0, 0)], "inflate", [0.001], [0.01])
     cam = bpy.data.objects.new("Cam", bpy.data.cameras.new("Cam"))
     assert "expected MESH" in _refuses(deform.grab, cam, (0, 0, 0), 1, (0, 0, 1))
     obj.shape_key_add(name="Basis")

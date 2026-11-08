@@ -1,5 +1,6 @@
-"""UV seams, unwrapping, packing and texel density. UV values are 0-1 texture space; lengths are metres (Blender
-units times the scene's Unit Scale); texel density is texture pixels per metre."""
+"""UV seams, unwrapping, packing and texel density. UV values are 0-1 texture space; lengths are Blender units
+(metres at the default Unit Scale 1.0; the scene's Unit Scale is not applied); texel density is texture pixels per
+Blender unit, measured by util.measure_texel_density as validate measures it."""
 import math
 from contextlib import contextmanager
 
@@ -7,7 +8,8 @@ import bmesh
 import bpy
 import numpy as np
 
-from .util import ForgeError, get_object, material, ok, select_only, settable_enum
+from .util import (ForgeError, ensure_object_mode, get_object, kept_state, material, measure_texel_density, ok,
+                   select_only, settable_enum)
 
 
 def _op_enum(op, prop, wanted):
@@ -26,43 +28,23 @@ def _mesh_with_faces(obj):
 @contextmanager
 def _edit_all_faces(obj):
     """obj alone, active and in Edit Mode with every face selected and UV sync selection on; all restored after."""
-    view_layer = bpy.context.view_layer
-    was_selected = obj.select_get()
-    try:
-        obj.select_set(True)
-    except RuntimeError as exc:
-        raise ForgeError(str(exc), stage="context") from None
-    obj.select_set(was_selected)
-    prev_active = view_layer.objects.active
-    prev_mode = prev_active.mode if prev_active else "OBJECT"
-    prev_selected = [o for o in view_layer.objects if o.select_get()]
-    hidden = (obj.hide_get(), obj.hide_viewport)
     tool_settings = bpy.context.scene.tool_settings
     sync = tool_settings.use_uv_select_sync
     me = obj.data
-    masks = [(seq, [e.select for e in seq]) for seq in (me.vertices, me.edges, me.polygons)]
-    obj.hide_viewport = False
-    obj.hide_set(False)
-    select_only(obj)
-    try:
-        bpy.ops.object.mode_set(mode="EDIT")
-        bpy.ops.mesh.select_all(action="SELECT")
-        tool_settings.use_uv_select_sync = True
-        yield
-    finally:
-        if obj.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        tool_settings.use_uv_select_sync = sync
-        for seq, mask in masks:
-            seq.foreach_set("select", mask)
-        me.update()
-        for o in view_layer.objects:
-            o.select_set(o in prev_selected)
-        obj.hide_viewport = hidden[1]
-        obj.hide_set(hidden[0])
-        view_layer.objects.active = prev_active
-        if prev_active is not None and prev_mode != "OBJECT":
-            bpy.ops.object.mode_set(mode=prev_mode)
+    with kept_state([obj], stage="context"):
+        masks = [(seq, [e.select for e in seq]) for seq in (me.vertices, me.edges, me.polygons)]
+        select_only(obj)
+        try:
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.mesh.select_all(action="SELECT")
+            tool_settings.use_uv_select_sync = True
+            yield
+        finally:
+            ensure_object_mode()
+            tool_settings.use_uv_select_sync = sync
+            for seq, mask in masks:
+                seq.foreach_set("select", mask)
+            me.update()
 
 
 def _uv_split(l1, l2, uv, eps=1e-5):
@@ -128,10 +110,12 @@ def smart_project(obj, angle_deg=66.0, margin=0.01):
 
 def seams_from_sharp(obj, angle_deg=30.0):
     """Mark a UV seam on every edge whose two faces meet at more than angle_deg (degrees between normals) and on
-    every edge already marked sharp. Adds seams, never clears one. Returns new and total seam counts."""
+    every edge already marked sharp. Adds seams, never clears one; leaves Edit Mode first. Returns new and total seam
+    counts."""
     obj = get_object(obj, "MESH")
     if not 0 < angle_deg < 180:
         raise ForgeError("angle_deg must be in (0, 180)")
+    ensure_object_mode()
     limit = math.radians(angle_deg)
     bm = bmesh.new()
     bm.from_mesh(obj.data)
@@ -187,39 +171,19 @@ def pack(obj, margin_px=4, texture_px=1024):
               **_uv_summary(obj))
 
 
-def _face_areas(obj):
-    """Per face: (world area in m², UV area in UV units²) for the active UV map."""
+def _density(obj, texture_px):
     if not obj.data.uv_layers:
         raise ForgeError(f"{obj.name} has no UV map; unwrap it first")
-    bpy.context.view_layer.update()
-    unit = bpy.context.scene.unit_settings.scale_length
-    bm = bmesh.new()
-    bm.from_mesh(obj.data)
-    bm.transform(obj.matrix_world)
-    uv = bm.loops.layers.uv.active
-    rows = []
-    for f in bm.faces:
-        pts = [l[uv].uv for l in f.loops]
-        shoelace = sum(a.x * b.y - b.x * a.y for a, b in zip(pts, pts[1:] + pts[:1]))
-        rows.append((f.calc_area() * unit * unit, abs(shoelace) / 2))
-    bm.free()
-    return np.array(rows, dtype=np.float64).reshape(-1, 2)
-
-
-def _density(obj, texture_px):
-    rows = _face_areas(obj)
-    world, uv_area = rows[:, 0], rows[:, 1]
-    used = world > 1e-12
-    if not used.any():
+    measured = measure_texel_density(obj, texture_px)
+    if measured is None:
         raise ForgeError(f"{obj.name} has no surface area")
-    per_face = texture_px * np.sqrt(uv_area[used] / world[used])
-    mean = float((per_face * world[used]).sum() / world[used].sum())
-    return mean, float(per_face.min()), float(per_face.max())
+    return measured
 
 
 def texel_density(obj, texture_px):
-    """Measured texel density of the active UV map in pixels per metre at texture_px square: per-face density
-    weighted by world-space face area. Returns the weighted mean and the per-face min and max."""
+    """Measured texel density of the active UV map in pixels per Blender unit (per metre at Unit Scale 1.0) at
+    texture_px square: texture_px * sqrt(total UV area / total world area) of the evaluated mesh. Returns that mean
+    and the per-face min and max."""
     obj = _mesh_with_faces(obj)
     if texture_px <= 0:
         raise ForgeError("texture_px must be > 0")
@@ -230,11 +194,13 @@ def texel_density(obj, texture_px):
 
 def set_texel_density(obj, px_per_m, texture_px):
     """Scale the active UV map uniformly about its bounding-box centre so the measured texel density becomes
-    px_per_m (pixels per metre) at texture_px square. Reports when the result leaves 0-1 and the texture size that
-    would hold it at this density, or tiling. Returns densities before and after, the scale and the new bounds."""
+    px_per_m (pixels per Blender unit, per metre at Unit Scale 1.0) at texture_px square; leaves Edit Mode first.
+    Reports when the result leaves 0-1 and the texture size that would hold it at this density, or tiling. Returns
+    densities before and after, the scale and the new bounds."""
     obj = _mesh_with_faces(obj)
     if px_per_m <= 0 or texture_px <= 0:
         raise ForgeError("px_per_m and texture_px must be > 0")
+    ensure_object_mode()
     before, _, _ = _density(obj, texture_px)
     if before <= 0:
         raise ForgeError(f"{obj.name}'s UVs have no area; unwrap it first")

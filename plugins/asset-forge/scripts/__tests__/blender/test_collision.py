@@ -94,13 +94,17 @@ def test_convex_hull_is_convex_and_named_per_engine():
         assert _is_convex(bpy.data.objects[name]) and abs(out["mesh_volume"] - 7.0) < 1e-5
 
 
-def test_hull_vertex_cap_keeps_the_shape():
+def test_hull_vertex_and_face_caps_keep_the_shape():
     ball = _sphere()
-    free = collision.make_collision(ball, kind="convex", engine="unreal", max_hull_verts=None)["hulls"][0]
+    free = collision.make_collision(ball, kind="convex", engine="unreal", max_hull_verts=None,
+                                    max_hull_faces=None)["hulls"][0]
+    verts_only = collision.make_collision(ball, kind="convex", engine="unreal", max_hull_faces=None)["hulls"][0]
     capped = collision.make_collision(ball, kind="convex", engine="unreal")["hulls"][0]
     assert free["verts"] > collision.HULL_VERT_CAP and free["capped_from"] is None
-    assert capped["verts"] <= collision.HULL_VERT_CAP and capped["capped_from"] == free["verts"]
-    assert capped["volume"] >= 0.95 * free["volume"]
+    assert verts_only["verts"] <= collision.HULL_VERT_CAP < verts_only["faces"], verts_only
+    assert capped["verts"] <= collision.HULL_VERT_CAP and capped["faces"] <= collision.HULL_FACE_CAP, capped
+    assert capped["capped_from"] == free["verts"]
+    assert capped["volume"] >= 0.95 * free["volume"], (capped, free)
     assert _is_convex(bpy.data.objects[capped["name"]])
 
 
@@ -142,6 +146,7 @@ def test_refusals():
     assert "kind must be" in _refused(collision.make_collision, crate, kind="sphere", engine="unreal")
     _refused(collision.make_collision, crate, max_hulls=0)
     _refused(collision.make_collision, crate, max_hull_verts=3)
+    assert "max_hull_faces" in _refused(collision.make_collision, crate, max_hull_faces=3)
     _refused(collision.make_collision, crate, engine="frostbite")
     rig = fixtures.armature("RIG")
     assert "expected MESH" in _refused(collision.make_collision, rig)

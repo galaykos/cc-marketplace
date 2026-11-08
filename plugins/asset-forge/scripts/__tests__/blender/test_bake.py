@@ -3,6 +3,7 @@ from pathlib import Path
 import bmesh
 import bpy
 import numpy as np
+from mathutils import Matrix
 
 import fixtures
 from forge import bake, util
@@ -88,14 +89,24 @@ def test_bake_all_maps_on_crate_measures_and_restores(tmp):
     assert abs(curv[centres].mean() - 0.5) < 0.03, curv[centres].mean()
     for poly in polys:
         assert curv[_band(crate, poly, 128)].mean() > curv[_face_mask(crate, poly, 128, shrink=0.5)].mean() + 0.05
-    thickness = _png(out["paths"]["thickness"])[..., 0]
-    assert 0.05 < thickness[centres].mean() < 0.95, thickness[centres].mean()
     ids = _png(out["paths"]["id"])[..., :3]
     assert np.abs(ids[centres] - out["id_colors"][0]["srgb"]).max() < 2 / 255
     assert scene.render.engine == engine and _rna_values(scene.render.bake) == bake_settings
     assert _rna_values(scene.cycles) == cycles
     assert len(crate.data.materials[0].node_tree.nodes) == nodes
     assert (len(bpy.data.images), len(bpy.data.materials)) == counts
+
+
+def test_thickness_is_dark_on_a_thin_slab_and_bright_on_a_block(tmp):
+    measured = {}
+    for name, height in (("SM_Block", 1.0), ("SM_Slab", 0.05)):
+        obj = fixtures.crate(name)
+        obj.data.transform(Matrix.Diagonal((1.0, 1.0, height, 1.0)))
+        out = bake.bake_maps(obj, tmp, maps="thickness", resolution=128)
+        broad = [p for p in obj.data.polygons if abs(p.normal.z) > 0.9]
+        mask = np.any([_face_mask(obj, p, 128, shrink=0.5) for p in broad], axis=0)
+        measured[name] = _png(out["paths"]["thickness"])[..., 0][mask].mean()
+    assert measured["SM_Slab"] < 0.1 and measured["SM_Block"] > 0.3, measured
 
 
 def test_curvature_is_signed_convex_rim_bright_concave_recess_dark(tmp):
@@ -154,6 +165,7 @@ def test_bake_refuses_bad_input(tmp):
              (lambda: bake.bake_maps(stacked, tmp), "zero area"),
              (lambda: bake.bake_maps(crate, tmp, maps=("albedo",)), "unknown maps"),
              (lambda: bake.bake_maps(crate, tmp, high=crate), "same object"),
+             (lambda: bake.bake_maps(crate, tmp, cage=rock), "pass high="),
              (lambda: bake.bake_maps(crate, tmp, resolution=0), "resolution"),
              (lambda: bake.bake_maps("SM_Missing", tmp), "no object")]
     for call, words in cases:

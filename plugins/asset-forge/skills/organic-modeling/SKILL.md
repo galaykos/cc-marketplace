@@ -36,7 +36,7 @@ All of this runs **live** through `execute_blender_code`, after the forge import
    - paths: `stroke(obj, path_points, "inflate", radius_profile, strength_profile)` for brush-like passes
 5. Review (silhouette first) before any detail; screenshot front, side and 3/4 between passes.
 6. Retopo for the budget: `retopo.decimate_to_budget(obj, target_tris)`, or `retopo.quadriflow(obj, target_faces)`
-   (manifold input only; it returns CANCELLED on a non-manifold mesh).
+   (manifold input only; a non-manifold mesh raises `ForgeError` with `stage="quadriflow"`).
 7. Details that did not survive retopo come back as a normal map: keep the dense version as `high`, bake with
    the `bake_maps` tool (`low`=the retopo, `high`=the dense mesh).
 

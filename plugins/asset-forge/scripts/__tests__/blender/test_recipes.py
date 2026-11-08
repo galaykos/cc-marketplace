@@ -1,10 +1,12 @@
-"""Every python block in the organic-modeling skill and its recipes runs as written and yields sane meshes."""
+"""Every python block in the organic-modeling skill and its recipes runs as written and yields sane meshes; the
+stylized-texturing recipe table states stylize.RECIPES' numbers."""
 import re
 from pathlib import Path
 
-from forge import blockout, util
+from forge import blockout, stylize, util
 
 SKILL = Path(__file__).resolve().parents[3] / "skills" / "organic-modeling"
+TEXTURING = SKILL.parent / "stylized-texturing" / "SKILL.md"
 
 
 def _blocks(path):
@@ -37,3 +39,13 @@ def test_rock_cluster_recipe():
     ns = {}
     exec(_blocks(SKILL / "references" / "recipes.md")[2], ns)
     assert ns["rocks"] == [f"SM_Rock_{i:02d}" for i in range(4)]
+
+
+def test_stylized_recipe_table_matches_the_recipes():
+    knobs = ("edge_strength", "cavity_strength", "stroke_stretch")
+    table = {}
+    for line in TEXTURING.read_text(encoding="utf-8").splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if cells[0] in stylize.RECIPES:
+            table[cells[0]] = [float(re.match(r"[\d.]+", c).group()) for c in cells[3:6]]
+    assert table == {name: [r[k] for k in knobs] for name, r in stylize.RECIPES.items()}, table

@@ -144,14 +144,34 @@ def test_decimate_lands_within_ten_percent_and_protects_uv_seams():
 
 
 def _uv_seam_positions(obj):
+    """Rounded positions of the vertices on an edge whose two faces give it different UVs."""
+    mesh = obj.data
+    uv = mesh.uv_layers.active.data
+    sides = {}
+    for poly in mesh.polygons:
+        loops = list(poly.loop_indices)
+        for li, lj in zip(loops, loops[1:] + loops[:1]):
+            a, b = mesh.loops[li].vertex_index, mesh.loops[lj].vertex_index
+            sides.setdefault(frozenset((a, b)), []).append({a: Vector(uv[li].uv), b: Vector(uv[lj].uv)})
+    found = set()
+    for edge, faces in sides.items():
+        if len(faces) == 2 and any((faces[0][v] - faces[1][v]).length > 1e-6 for v in edge):
+            found |= edge
+    return {tuple(round(c, 5) for c in mesh.vertices[i].co) for i in found}
+
+
+def test_bake_modifier_bakes_one_modifier_under_the_existing_stack():
     bm = bmesh.new()
-    bm.from_mesh(obj.data)
-    bm.verts.index_update()
-    found = retopo._uv_seam_verts(bm)
-    bm.verts.ensure_lookup_table()
-    positions = {tuple(round(c, 5) for c in bm.verts[i].co) for i in found}
-    bm.free()
-    return positions
+    bmesh.ops.create_cube(bm, size=1.0)
+    cube = _object("Cube", bm)
+    cube.modifiers.new("Keep", "BEVEL")
+    out = retopo.bake_modifier(cube.name, "SUBSURF", levels=1)
+    assert out == {"ok": True, "object": "Cube", "modifier": "SUBSURF", "verts": 26, "faces": 24}
+    assert len(cube.data.polygons) == 24 and [m.name for m in cube.modifiers] == ["Keep"]
+    assert cube.modifiers["Keep"].show_viewport
+    assert "no NOPE modifier" in _refuses(retopo.bake_modifier, cube, "NOPE", stage="blender")
+    assert "no setting 'level'" in _refuses(retopo.bake_modifier, cube, "SUBSURF", level=2)
+    assert [m.name for m in cube.modifiers] == ["Keep"] and len(cube.data.polygons) == 24
 
 
 def test_voxel_remesh_gives_quads_and_keeps_volume():

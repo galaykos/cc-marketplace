@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Harness for server/forge_server: the MCP stdio protocol, Blender discovery order and the headless launcher's error
-# contract, driven with fake blender executables; plus one real env_check when a Blender is found (skipped otherwise).
+# Harness for server/forge_server: the MCP stdio protocol, cancellation, Blender discovery, the launcher's error and
+# source-modified contract and batch_run's out_dir guards, driven with a fake blender; then, when a real Blender is
+# found (skipped otherwise), every tool on the fixtures.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 SRV="$here/../../server/forge_server"
@@ -17,10 +18,11 @@ tool_text() { jq -r 'select(.id==3) | .result.content[0].text'; }
 
 out=$(rpc "$INIT")
 [ "$(printf '%s' "$out" | jq -r '.result.protocolVersion')" = 2025-06-18 ] && ok "initialize echoes a known protocol version" || bad "initialize ($out)"
+[ "$(printf '%s' "$out" | jq -r '.result.serverInfo.version')" = "$(jq -r .version "$here/../../.claude-plugin/plugin.json")" ] && ok "initialize reports plugin.json's version" || bad "server version ($out)"
 out=$(rpc '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"1999-01-01"}}')
 [ "$(printf '%s' "$out" | jq -r '.result.protocolVersion')" = 2025-11-25 ] && ok "an unknown protocol version gets the newest known" || bad "unknown version ($out)"
-out=$(rpc "$INIT" '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')
-[ "$(printf '%s\n' "$out" | wc -l)" = 2 ] && ok "a notification gets no response line" || bad "notification answered ($out)"
+out=$(rpc "$INIT" '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","method":"ping"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}')
+[ "$(printf '%s\n' "$out" | wc -l)" = 2 ] && ok "a notification, even of a known method, gets no response line" || bad "notification answered ($out)"
 printf '%s' "$out" | jq -e 'select(.id==2) | .result.tools | map(.name) | index("env_check")' >/dev/null && ok "tools/list names env_check" || bad "tools/list ($out)"
 out=$(rpc '{"jsonrpc":"2.0","id":4,"method":"resources/list"}' '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"nope"}}' 'not json')
 [ "$(printf '%s\n' "$out" | jq -sc 'map(.error.code)')" = '[-32601,-32602,-32700]' ] && ok "unknown method, unknown tool and bad JSON get their JSON-RPC errors" || bad "errors ($out)"
@@ -28,6 +30,8 @@ out=$(rpc '{"jsonrpc":"2.0","id":4,"method":"resources/list"}' '{"jsonrpc":"2.0"
 out=$(rpc '{"jsonrpc":"2.0","id":6,"method":"tools/call","params":["not","an","object"]}' '{"jsonrpc":"2.0","id":7,"method":"ping"}' 2>/dev/null)
 [ "$(printf '%s\n' "$out" | jq -sc 'map(.error.code // "ok")')" = '[-32603,"ok"]' ] && ok "a malformed request gets an internal error and the server keeps answering" || bad "malformed params ($out)"
 
+out=$(jq -cn '{jsonrpc:"2.0",id:5,method:"tools/call",params:{name:"validate_asset",arguments:{blend_path:"/nonexistent/caf\u00e9.blend",object:"x"}}}' | PYTHONIOENCODING=latin-1 python3 "$SRV/main.py" | jq -r '.result.content[0].text')
+printf '%s' "$out" | jq -e '.error | contains("/nonexistent/caf\u00e9.blend")' >/dev/null && ok "stdin is read as UTF-8 whatever the locale says" || bad "stdin encoding ($out)"
 out=$(FORGE_BLENDER_PATH=/nonexistent/blender rpc "$CALL")
 printf '%s' "$out" | jq -e 'select(.id==3) | .result.isError == true' >/dev/null \
   && printf '%s' "$out" | tool_text | jq -e '.stage == "locate-blender" and (.error | contains("/nonexistent/blender"))' >/dev/null \
@@ -38,10 +42,13 @@ cat > "$FAKE" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "${FAKE_ARGS:-/dev/null}"
 req=""; seen=""; for a in "$@"; do [ -n "$seen" ] && req=$a; [ "$a" = -- ] && seen=1; done
+[ -z "${FAKE_REQ:-}" ] || cp "$req" "$FAKE_REQ"
+result() { python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); json.dump({"ok": True, "op": r["op"]}, open(r["result_path"], "w"))' "$req"; }
 case "${FAKE_MODE:-ok}" in
-  ok) python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); json.dump({"ok": True, "op": r["op"]}, open(r["result_path"], "w"))' "$req" ;;
+  ok) result ;;
+  modify) for a in "$@"; do case $a in *.blend) printf x >> "$a" ;; esac; done; result ;;
   silent) echo "Error: Python: Traceback (most recent call last)" >&2; exit 3 ;;
-  sleep) sleep 5 ;;
+  sleep) [ -z "${FAKE_PID:-}" ] || echo $$ > "$FAKE_PID"; exec sleep 30 ;;
 esac
 EOF
 chmod +x "$FAKE"
@@ -62,6 +69,51 @@ out=$(cd "$SRV" && FORGE_BLENDER_PATH="$FAKE" FAKE_MODE=sleep python3 -c 'import
 printf '%s' "$out" | jq -e '.stage == "timeout"' >/dev/null && ok "a job past its timeout is stopped and reported" || bad "timeout ($out)"
 out=$(cd "$SRV" && FORGE_BLENDER_PATH="$FAKE" python3 -c 'import json, headless; print(json.dumps(headless.run_job("env", blend_path="/nonexistent/x.blend")))')
 printf '%s' "$out" | jq -e '.stage == "input"' >/dev/null && ok "a missing blend_path is refused before Blender starts" || bad "missing blend ($out)"
+printf 'BLENDER' > "$T/src.blend"
+out=$(cd "$SRV" && FORGE_BLENDER_PATH="$FAKE" FAKE_MODE=modify python3 -c 'import json, sys, headless; print(json.dumps(headless.run_job("env", blend_path=sys.argv[1])))' "$T/src.blend")
+printf '%s' "$out" | jq -e '.stage == "source-modified" and .job_result.ok' >/dev/null && ok "a job that changes its .blend fails with source-modified" || bad "source-modified ($out)"
+
+png0="$T/home/v.png"; mkdir -p "$T/home"; printf x > "$png0"
+jq -cn --arg b "$T/src.blend" '{jsonrpc:"2.0",id:5,method:"tools/call",params:{name:"project_texture",arguments:{blend_path:$b,object:"x",view_images:{cam:"~/v.png"}}}}' \
+  | HOME="$T/home" FORGE_BLENDER_PATH="$FAKE" FAKE_REQ="$T/req.json" python3 "$SRV/main.py" >/dev/null
+jq -e --arg p "$png0" '.args.kwargs.view_images.cam == $p' "$T/req.json" >/dev/null 2>&1 && ok "project_texture hands Blender the expanded view image paths" || bad "view_images not expanded ($(cat "$T/req.json" 2>/dev/null))"
+
+mkfifo "$T/in"
+FORGE_BLENDER_PATH="$FAKE" FAKE_MODE=sleep FAKE_PID="$T/pid" python3 "$SRV/main.py" < "$T/in" > "$T/out" 2>/dev/null &
+srv=$!
+exec 3> "$T/in"
+printf '%s\n' "$CALL" >&3
+for _ in $(seq 50); do [ -s "$T/pid" ] && break; sleep 0.1; done
+printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":3,"reason":"t"}}' '{"jsonrpc":"2.0","id":8,"method":"ping"}' >&3
+for _ in $(seq 20); do grep -q '"id": 8' "$T/out" && break; sleep 0.1; done
+pinged=$(grep -c '"id": 8' "$T/out")
+fake=$(cat "$T/pid" 2>/dev/null); for _ in $(seq 20); do kill -0 "$fake" 2>/dev/null || break; sleep 0.1; done
+if kill -0 "$fake" 2>/dev/null; then gone=no; kill "$fake" 2>/dev/null; else gone=yes; fi
+exec 3>&-; wait "$srv"
+[ -n "$fake" ] && [ "$pinged" = 1 ] && [ "$gone" = yes ] && ! grep -q '"id": 3' "$T/out" \
+  && ok "a ping during a call answers within 2 s, and a cancel kills that call's Blender and sends no response" || bad "cancel (pid=$fake pinged=$pinged gone=$gone: $(cat "$T/out"))"
+
+batch() { # <files-json> <out_dir> [max_parallel] -> the batch_run payload, with no Blender to run
+  jq -cn --argjson f "$1" --arg o "$2" --argjson m "${3:-4}" '{jsonrpc:"2.0",id:9,method:"tools/call",params:{name:"batch_run",arguments:{files:$f, module:"validate", function:"validate_asset", out_dir:$o, max_parallel:$m}}}' \
+    | FORGE_BLENDER_PATH=/nonexistent/blender python3 "$SRV/main.py" | jq -r '.result.content[0].text'
+}
+mkdir -p "$T/src" "$T/src2" "$T/bind"; printf x > "$T/src/a.blend"; printf x > "$T/src2/A.blend"; ln -s "$T/src" "$T/alias"
+batch "[\"$T/src/a.blend\"]" "$T/alias" | jq -e '.stage == "input" and (.error | contains("holds a source"))' >/dev/null \
+  && ok "batch_run refuses an out_dir that is a symlink to a source folder" || bad "batch symlinked out_dir"
+if unshare -r -m true 2>/dev/null; then
+  jq -cn --arg f "$T/src/a.blend" --arg o "$T/bind" '{jsonrpc:"2.0",id:9,method:"tools/call",params:{name:"batch_run",arguments:{files:[$f], module:"validate", function:"validate_asset", out_dir:$o}}}' \
+    | FORGE_BLENDER_PATH=/nonexistent/blender unshare -r -m sh -c 'mount --bind "$1" "$2" && python3 "$3"' sh "$T/src" "$T/bind" "$SRV/main.py" \
+    | jq -r '.result.content[0].text' | jq -e '.stage == "input"' >/dev/null \
+    && ok "batch_run refuses an out_dir that reaches a source folder by another path (a bind mount, standing in for macOS case folding)" || bad "batch aliased out_dir"
+else
+  skp "unshare -r -m unavailable: the bind-mounted out_dir case not run"
+fi
+batch "[\"$T/src/a.blend\", \"$T/src2/A.blend\"]" "$T/bout" | jq -e '.stage == "input" and (.error | contains("share a name"))' >/dev/null \
+  && ok "batch_run refuses two files whose names differ only in case" || bad "batch case-folded stems"
+for i in $(seq 10); do printf x > "$T/src/n$i.blend"; done
+cap=$(python3 -c 'import os; print(min(os.cpu_count() or 1, 8))')
+batch "$(ls "$T"/src/n*.blend | jq -R . | jq -sc .)" "$T/bout" 100 | jq -e --argjson c "$cap" '.parallel == $c and (.results | length) == 10' >/dev/null \
+  && ok "batch_run caps parallel Blender processes at min(cpus, 8) ($cap here) and reports it" || bad "batch parallel cap"
 
 python3 "$here/../gen_forge_api.py" --check >/dev/null && ok "skills/pipeline/references/forge-api.md matches the forge sources" || bad "forge-api.md is stale: run python3 scripts/gen_forge_api.py"
 
@@ -106,6 +158,28 @@ if [ -n "$real" ]; then
     && ok "exporting the bad asset writes the file but returns an error naming the failed checks" || bad "bad export ($(printf '%s' "$r" | payload | head -c 400))"
   printf '%s' "$(tool export_asset "$(jq -cn --arg b "$F/crate.blend" --arg o "$T/export2" '{blend_path:$b, objects:["SM_Crate"], engine:"godot", out_dir:$o, asset_class:"prop_small"}')")" | payload \
     | jq -e '.ok and .post_export_audit.passed and .source_validation.passed' >/dev/null && ok "a clean export carries a passing source validation and post-export audit" || bad "clean export audit"
+  r=$(tool export_asset "$(jq -cn --arg b "$F/crate.blend" --arg o "$T/export3" '{blend_path:$b, objects:["SM_Crate"], engine:"unity", out_dir:$o, asset_class:"nope"}')")
+  printf '%s' "$r" | jq -e '.isError' >/dev/null && printf '%s' "$r" | payload | jq -e '.stage == "source-validation" and (.source_validation.error | contains("nope")) and (.files | length) == 1' >/dev/null \
+    && ok "a source validation that could not run fails the export" || bad "validation error export ($(printf '%s' "$r" | payload | head -c 400))"
+  cat > "$T/lods.py" <<'PY'
+import bpy, sys
+rig, mesh = bpy.data.objects["RIG_Hero"], bpy.data.objects["SK_Hero"]
+lod = mesh.copy(); lod.data = mesh.data.copy(); lod.name = "SK_Hero_LOD1"; mesh.users_collection[0].objects.link(lod)
+act = bpy.data.actions.new("A_Hero_Idle"); rig.animation_data_create().action = act
+rig.keyframe_insert("location", frame=1); rig.location.z = 0.1; rig.keyframe_insert("location", frame=12); rig.location.z = 0
+rig.animation_data.nla_tracks.new().strips.new("A_Hero_Idle", 1, act); rig.animation_data.action = None
+bpy.ops.wm.save_as_mainfile(filepath=sys.argv[-1])
+PY
+  WAYLAND_DISPLAY= "$real" -b --factory-startup "$F/humanoid.blend" --python "$T/lods.py" -- "$T/lods.blend" >/dev/null 2>&1
+  r=$(tool export_asset "$(jq -cn --arg b "$T/lods.blend" --arg o "$T/export-rig" '{blend_path:$b, objects:["RIG_Hero","SK_Hero"], engine:"unreal", out_dir:$o, asset_class:"character", clips:["A_Hero_Idle"]}')")
+  printf '%s' "$r" | payload | jq -e '.source_validation.object == "SK_Hero" and (.source_validation.passed | type) == "boolean"' >/dev/null \
+    && ok "export validates the first mesh among objects when an armature comes first" || bad "first-mesh validation ($(printf '%s' "$r" | payload | jq -c .source_validation))"
+  printf '%s' "$r" | payload | jq -e '.post_export_audit.files as $f | ($f | length) == 2 and ([$f[0].checks[] | select(.id == "clips") | .status] == ["pass"]) and ([$f[1].checks[].id] | index("clips") | not)' >/dev/null \
+    && ok "clips are audited on the main file only, not on Unreal's separate LOD file" || bad "clips per file ($(printf '%s' "$r" | payload | jq -c '[.post_export_audit.files[]? | {path, checks: [.checks[] | select(.id == "clips")]}]'))"
+
+  r=$(tool export_asset "$(jq -cn --arg b "$F/humanoid.blend" --arg o "$T/export-rig" '{blend_path:$b, objects:["mixamo_source"], engine:"unity", out_dir:$o, include_lods:false, include_collision:false}')")
+  printf '%s' "$r" | payload | jq -e '.ok and (.source_validation.skipped | contains("no mesh"))' >/dev/null \
+    && ok "an armature-only export skips source validation instead of failing" || bad "rig-only export ($(printf '%s' "$r" | payload | head -c 400))"
 
   r=$(tool bake_maps "$(jq -cn --arg b "$F/crate.blend" --arg o "$T/bake" '{blend_path:$b, low:"SM_Crate", out_dir:$o, maps:["ao"], resolution:128, samples:4}')")
   printf '%s' "$r" | payload | jq -e '.ok' >/dev/null && [ -s "$T/bake/SM_Crate_ao.png" ] && ok "bake_maps writes the AO map" || bad "bake ($(printf '%s' "$r" | payload | head -c 300))"
@@ -141,6 +215,12 @@ if [ -n "$real" ]; then
   printf '%s' "$r" | payload | jq -e '.stage == "input" and (.error | contains("engine"))' >/dev/null && ok "a missing required argument names itself" || bad "required arg"
   out=$(cd "$SRV" && FORGE_BLENDER_PATH="" python3 -c 'import json, sys, headless; print(json.dumps(headless.run_job("call", {"module": "util", "function": "get_object", "kwargs": {"name_or_obj": "SM_Crate"}, "save_copy_to": sys.argv[1]}, blend_path=sys.argv[1])))' "$F/crate.blend")
   printf '%s' "$out" | jq -e '(.ok | not) and (.error | contains("never saves over"))' >/dev/null && ok "the runner refuses to save over the file it opened" || bad "save-over guard ($out)"
+  mkdir -p "$T/guard"; cp "$F/crate.blend" "$T/guard/crate.blend"
+  out=$(cd "$SRV" && FORGE_BLENDER_PATH="" python3 -c 'import json, sys, headless; print(json.dumps(headless.run_job("call", {"module": "export", "function": "audit_export", "kwargs": {"files": [{"path": sys.argv[2], "objects": ["SM_Crate"]}]}, "save_copy_to": sys.argv[1]}, blend_path=sys.argv[1])))' "$T/guard/crate.blend" "$(ls "$T"/export/*.fbx | head -1)")
+  printf '%s' "$out" | jq -e '(.ok | not) and (.error | contains("save_copy_to is the opened file"))' >/dev/null && cmp -s "$F/crate.blend" "$T/guard/crate.blend" \
+    && ok "the runner refuses to save over its file even when the function reset the scene first" || bad "save-over guard after a reset ($(printf '%s' "$out" | head -c 300))"
+  r=$(tool batch_run "$(jq -cn --arg a "$F/crate.blend" --arg o "$T/batch2" '{files:[$a], module:"util", function:"get_object", kwargs:{name_or_obj:"SM_Crate"}, out_dir:$o, save_copies:false}')")
+  printf '%s' "$r" | payload | jq -e '.ok and (.results[0].value | contains("SM_Crate"))' >/dev/null && ok "a function returning a non-dict comes back as {ok, value}" || bad "non-dict result ($(printf '%s' "$r" | payload | head -c 300))"
   [ "$(sha256sum "$F/crate.blend" | cut -d' ' -f1)" = "$crate_sum" ] && ok "after every tool the source .blend is byte-identical" || bad "crate.blend changed"
 else
   skp "no Blender found: real env_check and the Blender-backed tool cases not run"

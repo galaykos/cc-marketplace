@@ -6,13 +6,16 @@ import bpy
 import numpy as np
 from mathutils import Matrix
 
-from .lod import _name_regex
+from .naming import format_name, pattern_regex
 from .util import ForgeError, evaluated_bmesh, get_object, load_preset, ok
 
-# PhysX (Unity, UE4) caps a cooked convex mesh at 255 vertices; UE5's Chaos limit not checked. Unverified here.
+# PhysX (Unity, UE4) caps a convex mesh at 255 vertices and faces: https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/Geometry.html
 HULL_VERT_CAP = 255
+HULL_FACE_CAP = 255
 KINDS = ("box", "convex", "multi")
 FIT_TOLERANCE = 0.1
+# dissolve_limit merges hull faces up to 1e-3 rad apart (its float32 cosine cannot go finer), which can bend a face
+PLANAR_EPS = 1e-6
 
 
 def _hull(points):
@@ -24,6 +27,12 @@ def _hull(points):
     junk = {g for g in out["geom_interior"] + out["geom_unused"] if isinstance(g, bmesh.types.BMVert)}
     bmesh.ops.delete(bm, geom=list(junk), context="VERTS")
     bmesh.ops.dissolve_limit(bm, angle_limit=1e-3, verts=bm.verts[:], edges=bm.edges[:], delimit=set())
+    bm.normal_update()
+    eps = PLANAR_EPS * max((max(c) - min(c) for c in zip(*(v.co for v in bm.verts))), default=0.0)
+    bent = [f for f in bm.faces if len(f.verts) > 3
+            and max(abs((v.co - f.verts[0].co).dot(f.normal)) for v in f.verts) > eps]
+    if bent:
+        bmesh.ops.triangulate(bm, faces=bent)
     return bm, bm.calc_volume(signed=False) if bm.faces else 0.0
 
 
@@ -44,15 +53,18 @@ def _farthest_points(points, count):
     return points[chosen]
 
 
-def _capped_hull(points, cap):
-    """Hull of points with at most `cap` vertices. Returns (bmesh, volume, uncapped vertex count or None)."""
+def _capped_hull(points, vert_cap, face_cap):
+    """Hull of points with at most vert_cap vertices and face_cap faces (None: no limit). Returns (bmesh, volume,
+    uncapped vertex count or None)."""
     bm, volume = _hull(points)
-    if not cap or len(bm.verts) <= cap:
-        return bm, volume, None
     before = len(bm.verts)
+    if (not vert_cap or before <= vert_cap) and (not face_cap or len(bm.faces) <= face_cap):
+        return bm, volume, None
     hull_points = np.array([v.co[:] for v in bm.verts])
     bm.free()
-    bm, volume = _hull(_farthest_points(hull_points, cap))
+    # Euler's formula: a convex hull of V points has at most 2V - 4 faces.
+    keep = min(vert_cap or before, (face_cap + 4) // 2 if face_cap else before)
+    bm, volume = _hull(_farthest_points(hull_points, keep))
     return bm, volume, before
 
 
@@ -125,17 +137,15 @@ def _slices(points, edges, mesh_volume, max_hulls):
     return best[1], best[2]
 
 
-def _collision_name(pattern, name, i):
-    return pattern.replace("{name}", name).replace("{nn}", f"{i:02d}")
-
-
-def make_collision(obj, kind="convex", engine="unity", max_hulls=8, max_hull_verts=HULL_VERT_CAP, parent=True):
+def make_collision(obj, kind="convex", engine="unity", max_hulls=8, max_hull_verts=HULL_VERT_CAP, parent=True,
+                   max_hull_faces=HULL_FACE_CAP):
     """Build collision for a render mesh from its evaluated geometry, in its object space.
     kind: 'box' (object-space bounding box), 'convex' (one hull) or 'multi' (one hull per loose part, else the fewest
-    equal axis slabs up to max_hulls whose hulls fit the mesh volume within 10%). Hulls over max_hull_verts are
-    reduced to that many spread-out hull points and re-hulled (None: no cap). Names follow the engine preset's
-    naming.collision[kind]; parent=True parents to the render mesh, False places them beside it with its transform.
-    No material, wire display; re-running replaces this kind's objects. Returns per-hull vertex counts and volumes."""
+    equal axis slabs up to max_hulls whose hulls fit the mesh volume within 10%). A hull over max_hull_verts vertices
+    or max_hull_faces faces is rebuilt from fewer spread-out hull points so it fits both (None: no cap). Names follow
+    the engine preset's naming.collision[kind]; parent=True parents to the render mesh, False places them beside it
+    with its transform. No material, wire display; re-running replaces this kind's objects. Returns per-hull vertex
+    and face counts and volumes."""
     obj = get_object(obj, "MESH")
     if kind not in KINDS:
         raise ForgeError(f"kind must be one of {KINDS}, got {kind!r}")
@@ -143,6 +153,8 @@ def make_collision(obj, kind="convex", engine="unity", max_hulls=8, max_hull_ver
         raise ForgeError("max_hulls must be >= 1")
     if max_hull_verts is not None and max_hull_verts < 4:
         raise ForgeError("max_hull_verts must be >= 4 or None")
+    if max_hull_faces is not None and max_hull_faces < 4:
+        raise ForgeError("max_hull_faces must be >= 4 or None")
     preset = load_preset("engines", engine)
     pattern = preset["naming"].get("collision", {}).get(kind)
     if pattern is None:
@@ -172,12 +184,13 @@ def make_collision(obj, kind="convex", engine="unity", max_hulls=8, max_hull_ver
             method = f"slices_{'XYZ'[axis]}"
     if len(pieces) > 1 and "{nn}" not in pattern:
         raise ForgeError(f"the {engine} preset's {kind!r} collision name {pattern!r} has no {{nn}} for several hulls")
-    built = [_capped_hull(piece, None if kind == "box" else max_hull_verts) for piece in pieces]
+    caps = (None, None) if kind == "box" else (max_hull_verts, max_hull_faces)
+    built = [_capped_hull(piece, *caps) for piece in pieces]
     if any(volume <= 1e-12 for _, volume, _ in built):
         for bm, _, _ in built:
             bm.free()
         raise ForgeError(f"{obj.name}'s {kind} collision would be flat (zero volume)")
-    stale = _name_regex(pattern, name=obj.name)
+    stale = pattern_regex(pattern, name=obj.name)
     removed = []
     for other in [o for o in bpy.data.objects if stale.fullmatch(o.name)]:
         data = other.data
@@ -187,7 +200,7 @@ def make_collision(obj, kind="convex", engine="unity", max_hulls=8, max_hull_ver
             bpy.data.meshes.remove(data)
     hulls = []
     for i, (bm, volume, capped_from) in enumerate(built, start=1):
-        name = _collision_name(pattern, obj.name, i)
+        name = format_name(pattern, obj.name, i)
         mesh = bpy.data.meshes.new(name)
         bm.to_mesh(mesh)
         bm.free()

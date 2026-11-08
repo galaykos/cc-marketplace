@@ -2,6 +2,7 @@
 runs the op, writes a JSON dict to result_path. Every op returns {"ok": bool, ...}."""
 import importlib
 import json
+import os
 import re
 import sys
 import traceback
@@ -53,22 +54,33 @@ LIB = Path(__file__).resolve().parents[2] / "blender_lib"
 
 def op_call(module, function, kwargs=None, save_copy_to=None):
     """Run forge.<module>.<function>(**kwargs) on the opened file. save_copy_to: write the result scene as a copy
-    (the opened snapshot itself is never saved over)."""
+    (the opened snapshot itself is never saved over). A result that is not a dict comes back as {"ok": True, "value"}."""
+    opened = bpy.data.filepath
+    if save_copy_to and opened and Path(save_copy_to).exists() and os.path.samefile(save_copy_to, opened):
+        raise ValueError("save_copy_to is the opened file; a headless job never saves over its source")
     if str(LIB) not in sys.path:
         sys.path.insert(0, str(LIB))
     if function.startswith("_") or not re.fullmatch(r"[a-z_]+", module):
         raise ValueError(f"not a public forge function: {module}.{function}")
     fn = getattr(importlib.import_module(f"forge.{module}"), function)
     result = fn(**(kwargs or {}))
+    if not isinstance(result, dict):
+        result = {"ok": True, "value": result}
     if save_copy_to:
-        if bpy.data.filepath and Path(save_copy_to).resolve() == Path(bpy.data.filepath).resolve():
-            raise ValueError("save_copy_to is the opened file; a headless job never saves over its source")
         bpy.ops.wm.save_as_mainfile(filepath=str(save_copy_to), copy=True)
         result["saved_copy"] = str(save_copy_to)
     return result
 
 
-OPS = {"env": op_env, "call": op_call}
+def op_validate_source(objects, **kwargs):
+    """forge.validate.validate_asset(**kwargs) on the first MESH among `objects` (names); "object" names it."""
+    mesh = next((n for n in objects if getattr(bpy.data.objects.get(n), "type", None) == "MESH"), None)
+    if mesh is None:  # an armature-only animation export has no mesh to validate; that is not a failure
+        return {"ok": True, "skipped": f"no mesh among {objects}: nothing to validate", "checks": []}
+    return {**op_call("validate", "validate_asset", {"obj": mesh, **kwargs}), "object": mesh}
+
+
+OPS = {"env": op_env, "call": op_call, "validate_source": op_validate_source}
 
 
 def main():
@@ -79,12 +91,12 @@ def main():
     try:
         if op not in OPS:
             raise KeyError(f"unknown op {op!r}; known: {sorted(OPS)}")
-        result = OPS[op](**request.get("args", {}))
+        text = json.dumps(OPS[op](**request.get("args", {})), default=repr)
     except Exception as exc:
-        result = {"ok": False, "stage": getattr(exc, "stage", f"op:{op}"), "error": f"{type(exc).__name__}: {exc}",
-                  "traceback": traceback.format_exc(limit=6)}
+        text = json.dumps({"ok": False, "stage": getattr(exc, "stage", f"op:{op}"),
+                           "error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc(limit=6)})
     with open(request["result_path"], "w", encoding="utf-8") as fh:
-        json.dump(result, fh)
+        fh.write(text)
 
 
 main()

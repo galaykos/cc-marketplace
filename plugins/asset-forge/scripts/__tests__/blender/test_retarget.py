@@ -1,4 +1,5 @@
 import math
+from contextlib import contextmanager
 
 import bpy
 from bpy_extras import anim_utils
@@ -35,6 +36,27 @@ def _angle_deg(a, b):
 def _curves(act, rig):
     cb = anim_utils.action_get_channelbag_for_slot(act, rig.animation_data.action_slot)
     return list(cb.fcurves)
+
+
+@contextmanager
+def _modifiers_off(curves):
+    mods = [m for fc in curves for m in fc.modifiers if not m.mute]
+    for m in mods:
+        m.mute = True
+    try:
+        yield
+    finally:
+        for m in mods:
+            m.mute = False
+
+
+def _pose_at(rig, frame):
+    bpy.context.scene.frame_set(frame)
+    return {pb.name: pb.matrix_basis.copy() for pb in rig.pose.bones}
+
+
+def _pose_gap(a, b):
+    return max(max(abs(x - y) for ra, rb in zip(a[n], b[n]) for x, y in zip(ra, rb)) for n in a)
 
 
 def _retargeted():
@@ -87,8 +109,38 @@ def test_retarget_keys_every_mapped_bone_and_removes_its_constraints():
         "mixamorig:Spine1", "mixamorig:LeftShoulder", "mixamorig:RightShoulder",
         "mixamorig:LeftToeBase", "mixamorig:RightToeBase"}
     assert out["location_bones"] == ["DEF-spine"] and out["unmapped_source"] == [] and out["warnings"] == []
+    pose = _pose_at(target, 13)
     again = rt.retarget(source, target, "mixamo_to_rigify")
-    assert again["action"] == out["action"] and len(_curves(act, target)) == len(curves)
+    assert again["action"] == out["action"] and target.animation_data.action == act
+    assert len(_curves(act, target)) == len(curves)
+    assert all(len(fc.keyframe_points) == 25 for fc in _curves(act, target))
+    assert _pose_gap(_pose_at(target, 13), pose) < 1e-5
+    assert sorted(bpy.data.actions.keys()) == sorted({walk.name, act.name})
+
+
+def test_a_failed_bake_leaves_the_target_and_its_action_as_they_were():
+    target, mesh, source = fixtures.humanoid()
+    act = bpy.data.actions[rt.retarget(source, target, "mixamo_to_rigify")["action"]]
+    keys = {(fc.data_path, fc.array_index): len(fc.keyframe_points) for fc in _curves(act, target)}
+    actions = sorted(bpy.data.actions.keys())
+    real = rt.anim_utils.bake_action
+
+    def interrupted(obj, *, action, frames, bake_options):
+        real(obj, action=action, frames=frames[:3], bake_options=bake_options)
+        raise RuntimeError("bake interrupted")
+
+    rt.anim_utils.bake_action = interrupted
+    try:
+        rt.retarget(source, target, "mixamo_to_rigify")
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("the interrupted bake did not raise")
+    finally:
+        rt.anim_utils.bake_action = real
+    assert target.animation_data.action == act and sorted(bpy.data.actions.keys()) == actions
+    assert {(fc.data_path, fc.array_index): len(fc.keyframe_points) for fc in _curves(act, target)} == keys
+    assert all(len(pb.constraints) == 0 for pb in target.pose.bones)
 
 
 def test_retarget_matches_world_directions_and_hip_travel():
@@ -188,22 +240,16 @@ def test_extract_root_motion_moves_travel_onto_a_new_root():
 
 def test_loop_cleanup_matches_first_and_last_pose():
     target, source, act, _ = _retargeted()
-    scene = bpy.context.scene
-
-    def pose_at(frame):
-        scene.frame_set(frame)
-        return {pb.name: pb.matrix_basis.copy() for pb in target.pose.bones}
 
     def gap():
-        first, last = pose_at(1), pose_at(25)
-        return max(max(abs(a - b) for ra, rb in zip(first[n], last[n]) for a, b in zip(ra, rb)) for n in first)
+        return _pose_gap(_pose_at(target, 1), _pose_at(target, 25))
 
     assert gap() > 0.5
     out = rt.loop_cleanup(act)
     assert out["curves_matched"] > 0 and out["cycles_added"] == out["curves"]
     curves = _curves(act, target)
     assert all(any(m.type == "CYCLES" for m in fc.modifiers) for fc in curves)
-    with rt._modifiers_muted(curves):
+    with _modifiers_off(curves):
         assert gap() < 1e-4
     _refuses(rt.loop_cleanup, act, blend_frames=-1, needle="blend_frames")
 
@@ -242,11 +288,13 @@ def test_push_to_nla_names_per_unity_and_godot():
     assert ad.nla_tracks[0].strips[0].action_slot == slot and out["frame_start"] == 1
     rt.push_to_nla(target, act, engine="unity", asset="Hero", clip="Walk")
     assert len(ad.nla_tracks) == 1 and len(ad.nla_tracks[0].strips) == 1
+    assert rt.push_to_nla(target, act, engine="unity", asset="Hero")["action"] == "Hero@Walk"
 
     looped = bpy.data.actions[rt.retarget(source, target, "mixamo_to_rigify")["action"]]
     rt.loop_cleanup(looped)
     out = rt.push_to_nla(target, looped, engine="godot", clip="Walk")
     assert out["action"] == "Walk-loop" and out["loop"] and len(ad.nla_tracks) == 2
+    assert rt.push_to_nla(target, looped, engine="godot")["action"] == "Walk-loop"
     once = bpy.data.actions[rt.retarget(source, target, "mixamo_to_rigify")["action"]]
     assert rt.push_to_nla(target, once, engine="godot", clip="Turn")["action"] == "Turn"
     clash = bpy.data.actions[rt.retarget(source, target, "mixamo_to_rigify")["action"]]

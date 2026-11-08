@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: review-structured-verdict
+description: 'A real contact sheet (the wolf stress test, round 1, flat grey blockout) to critique. With the plugin, the art-reviewer agent returns a strict verdict with spatial, numeric fixes. Needs --scaffold to copy the image into the workspace.'
+runs: 3
+context:
+  scaffold_script: scaffold.sh
+execution:
+  timeout_seconds: 600
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Skill, Agent]
+  prompt: |
+    contact_sheet.png in this folder is the review sheet of my creature blockout. Layout: 4 columns, row-major tiles:
+    a turntable at 8 angles (0-315 degrees), silhouettes front, side and three-quarter, the creature at in-game camera
+    distance (6 m, 60 degree FOV, 1080p), and two matcap views. Brief: a stylized wolf enemy for a Unity game, about
+    1.1 m tall at the head and 1.7 m nose to tail. It is a blockout: the flat grey material is expected. Review it and
+    tell me what to change.
+graders:
+  - name: verdict-line
+    type: regex
+    pattern: "VERDICT:\\s*(ship|revise|rework)"
+    flags: i
+  - name: spatial-numeric-fixes
+    type: llm
+    criteria: |
+      PASS requires all three:
+      1. A verdict that the asset is not ready (revise, rework, or equivalent), since the blockout has no ears, no tail
+         and pillar legs.
+      2. At least three issues that each name where they are (a view, tile or body region).
+      3. At least three issues whose fix carries a concrete number (metres, a ratio, a count) or a named shape to add.
+      FAIL if the critique is generic ("add more detail", "improve proportions") or calls it ready to ship.
+  - name: art-reviewer-dispatched
+    type: tool_used
+    tool: Agent
+    input_match: "art-reviewer"
+    arm: with-only

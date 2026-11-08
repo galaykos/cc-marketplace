@@ -30,7 +30,7 @@ def _world_points(obj):
     return [obj.matrix_world @ v.co for v in obj.data.vertices]
 
 
-def test_chain_from_pc_budget_is_named_decimated_and_keeps_silhouette():
+def test_chain_from_pc_budget_is_named_decimated_and_surface_checked():
     crate = _dense_crate()
     crate.location = (3, 0, 0)
     out = lod.make_lod_chain(crate.name, engine="unity", platform="pc")
@@ -48,7 +48,23 @@ def test_chain_from_pc_budget_is_named_decimated_and_keeps_silhouette():
         assert (obj.matrix_world.translation - Vector((3, 0, 0))).length < 1e-6
     assert abs(out["lods"][1]["achieved_ratio"] - 0.5) <= 0.02
     assert abs(out["lods"][2]["achieved_ratio"] - 0.25) <= 0.02
-    assert out["silhouette_ok"] and 0 < out["protected_verts"] < out["total_verts"]
+    assert all(entry["surface_deviation"] <= lod.SILHOUETTE_TOLERANCE for entry in out["lods"][:3])
+    assert 0 < out["protected_verts"] < out["total_verts"]
+    caved = out["lods"][3]
+    assert caved["bbox_deviation"] == 0.0 and caved["surface_deviation"] > 0.1 and not out["silhouette_ok"], caved
+
+
+def test_edit_mode_edits_reach_the_lods():
+    crate = _dense_crate(cuts=4)
+    bpy.context.view_layer.objects.active = crate
+    bpy.ops.object.mode_set(mode="EDIT")
+    bm = bmesh.from_edit_mesh(crate.data)
+    bmesh.ops.translate(bm, vec=(0, 0, 5), verts=bm.verts[:])
+    bmesh.update_edit_mesh(crate.data)
+    out = lod.make_lod_chain(crate, ratios=[1.0, 0.5], engine="unity", protect=("boundary",))
+    assert crate.mode == "OBJECT"
+    lo, _ = util.world_bbox(bpy.data.objects[out["lods"][1]["name"]])
+    assert abs(lo.z - 5) < 1e-5 and out["lods"][1]["bbox_deviation"] < 1e-5, (lo, out["lods"][1])
 
 
 def test_protected_seam_vertices_survive_unmoved():
@@ -150,3 +166,7 @@ def test_all_seam_mesh_skips_identical_levels_and_boundary_protect_reduces():
         pass
     else:
         raise AssertionError("unknown protect accepted")
+    assert bpy.data.objects.get("SM_Ball_LOD1") is not None, "a refused call deleted the chain"
+    fresh = fixtures.crate("SM_Box")
+    assert "subset" in _refused(lod.make_lod_chain, fresh, ratios=[1.0, 0.5], protect=("uv",))
+    assert fresh.name == "SM_Box"

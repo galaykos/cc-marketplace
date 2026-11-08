@@ -29,33 +29,36 @@ cc_option() {
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
   [ "$(cc_option CC_FORGE_REVIEW on)" = off ] && exit 0
-  event=$(printf '%s' "$input" | jq -r '.hook_event_name // empty')
-  key=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty')
+  IFS=$'\x1f' read -r event key tool forge_code reviewed stop_active <<EOF
+$(printf '%s' "$input" | jq -r '[.hook_event_name // "", .transcript_path // .session_id // "", .tool_name // "",
+  ((.tool_input.code // "") | tostring | test("blender_lib|from forge|import forge")),
+  ([.tool_response | .. | if type == "string" and startswith("{") then (try fromjson catch null) else . end
+    | objects | select(.ok == true and (.contact_sheet | type) == "string")] | length > 0),
+  .stop_hook_active // false] | map(tostring) | join("\u001f")')
+EOF
   [ -n "$key" ] || exit 0
   base="${CLAUDE_PLUGIN_DATA:-${TMPDIR:-/tmp}/asset-forge}"
   dir="$base/review-$(printf '%s' "$key" | cksum | cut -d' ' -f1)"
-  mkdir -p "$dir" || exit 0
+  mkdir -p "$dir" && touch "$dir" || exit 0
   find "$base" -mindepth 1 -maxdepth 1 -type d -name 'review-*' -mmin +1440 -exec rm -rf {} + 2>/dev/null
 
   case "$event" in
     PostToolUse)
-      tool=$(printf '%s' "$input" | jq -r '.tool_name // empty')
       case "$tool" in
         mcp__*__execute_blender_code)
-          printf '%s' "$input" | jq -r '.tool_input.code // empty' | grep -q 'blender_lib\|from forge\|import forge' && : > "$dir/active"
+          [ "$forge_code" = true ] && : > "$dir/active"
           [ -f "$dir/dirty" ] || date +%s > "$dir/dirty"
           ;;
         mcp__plugin_asset-forge_forge__*)
           : > "$dir/active"
-          if [ "$tool" = mcp__plugin_asset-forge_forge__render_review_set ] \
-            && printf '%s' "$input" | jq -r '.tool_response | tostring' | grep -q 'contact_sheet'; then
+          if [ "$tool" = mcp__plugin_asset-forge_forge__render_review_set ] && [ "$reviewed" = true ]; then
             rm -f "$dir/dirty" "$dir"/blocked-*
           fi
           ;;
       esac
       ;;
-    Stop | SubagentStop)
-      [ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false')" = true ] && exit 0
+    Stop)
+      [ "$stop_active" = true ] && exit 0
       [ -f "$dir/active" ] && [ -f "$dir/dirty" ] || exit 0
       since=$(cat "$dir/dirty")
       [ -e "$dir/blocked-$since" ] && exit 0

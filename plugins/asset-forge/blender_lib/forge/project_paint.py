@@ -10,7 +10,7 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
-from . import bake
+from . import bakekit
 from .util import ForgeError, get_object, link_to_scene, ok, world_bbox
 
 VIEWS = {"front": ((0, 1, 0), (0, 0, 1)), "back": ((0, -1, 0), (0, 0, 1)), "left": ((1, 0, 0), (0, 0, 1)),
@@ -62,7 +62,7 @@ def setup_views(obj, views=("front", "back", "left", "right", "top"), resolution
             cam = link_to_scene(bpy.data.objects.new(name, bpy.data.cameras.new(name)))
         elif cam.name not in bpy.context.scene.objects:
             link_to_scene(cam)
-        bake._enum(cam.data, "type", "ORTHO")
+        bakekit.set_enum(cam.data, "type", "ORTHO")
         cam.data.ortho_scale = 1.1 * extent
         cam.data.clip_start = max(distance - 1.5 * radius, 1e-3)
         cam.data.clip_end = distance + 1.5 * radius
@@ -82,10 +82,10 @@ def _guide_material(diag):
     nt = mat.node_tree
     for n in [n for n in nt.nodes if n.type != "OUTPUT_MATERIAL"]:
         nt.nodes.remove(n)
-    out = nt.get_output_node("CYCLES") or bake._node(nt, "ShaderNodeOutputMaterial")
-    emission = bake._node(nt, "ShaderNodeEmission", {"Strength": 1.0})
+    out = nt.get_output_node("CYCLES") or bakekit.node(nt, "ShaderNodeOutputMaterial")
+    emission = bakekit.node(nt, "ShaderNodeEmission", {"Strength": 1.0})
     nt.links.new(emission.outputs["Emission"], out.inputs["Surface"])
-    node = bake._node
+    node = bakekit.node
     geo = node(nt, "ShaderNodeNewGeometry")
     in_camera = node(nt, "ShaderNodeVectorTransform", {"Vector": geo.outputs["Normal"]}, vector_type="NORMAL",
                      convert_from="WORLD", convert_to="CAMERA")
@@ -121,9 +121,9 @@ def render_guides(obj, out_dir, cameras):
     guides, depth_range = {}, {}
     start = time.perf_counter()
     with ExitStack() as stack:
-        stack.enter_context(bake._cycles_session(scene, 4))
-        stack.enter_context(bake._temp_attrs(scene.cycles, use_denoising=False))
-        stack.enter_context(bake._temp_attrs(
+        stack.enter_context(bakekit.cycles_session(scene, 4))
+        stack.enter_context(bakekit.temp_attrs(scene.cycles, use_denoising=False))
+        stack.enter_context(bakekit.temp_attrs(
             render, film_transparent=True, resolution_percentage=100, use_border=False, pixel_aspect_x=1.0,
             pixel_aspect_y=1.0, use_compositing=False, use_sequencer=False, filepath=render.filepath,
             resolution_x=render.resolution_x, resolution_y=render.resolution_y))
@@ -131,18 +131,18 @@ def render_guides(obj, out_dir, cameras):
         image_enums.update(file_format=("PNG",), color_mode=("RGBA",), color_depth=("8",))
         if hasattr(settings, "color_management"):
             image_enums["color_management"] = ("FOLLOW_SCENE",)
-        stack.enter_context(bake._temp_enums(settings, **image_enums))
-        stack.enter_context(bake._temp_enums(view, view_transform=("Raw", "Standard"), look=("None",)))
-        stack.enter_context(bake._temp_attrs(view, exposure=0.0, gamma=1.0, use_curve_mapping=False))
-        stack.enter_context(bake._temp_attrs(scene, camera=scene.camera))
+        stack.enter_context(bakekit.temp_enums(settings, **image_enums))
+        stack.enter_context(bakekit.temp_enums(view, view_transform=("Raw", "Standard"), look=("None",)))
+        stack.enter_context(bakekit.temp_attrs(view, exposure=0.0, gamma=1.0, use_curve_mapping=False))
+        stack.enter_context(bakekit.temp_attrs(scene, camera=scene.camera))
         hidden = [o for o in scene.objects if o is not obj and not o.hide_render]
         for o in hidden:
             o.hide_render = True
         stack.callback(lambda: [setattr(o, "hide_render", False) for o in hidden])
-        stack.enter_context(bake._temp_attrs(obj, hide_render=False))
+        stack.enter_context(bakekit.temp_attrs(obj, hide_render=False))
         mat, emission, depth_node, sockets = _guide_material(diag)
         stack.callback(bpy.data.materials.remove, mat)
-        stack.enter_context(bake._temp_attrs(bpy.context.view_layer, material_override=mat))
+        stack.enter_context(bakekit.temp_attrs(bpy.context.view_layer, material_override=mat))
         nt = mat.node_tree
         for cam in cams:
             res = int(cam.get("forge_resolution", 1024))
@@ -153,12 +153,12 @@ def render_guides(obj, out_dir, cameras):
             near, far = min(depths), max(depths)
             depth_node.inputs["From Min"].default_value = near
             depth_node.inputs["From Max"].default_value = far if far > near else near + 1e-6
-            label = bake._safe(str(cam.get("forge_view", cam.name)))
+            label = bakekit.safe_name(str(cam.get("forge_view", cam.name)))
             files = {}
             for guide in GUIDES:
                 nt.links.new(sockets[guide], emission.inputs["Color"])
                 scene.cycles.samples = 16 if guide == "ao" else 4
-                path = out / f"{bake._safe(obj.name)}_{label}_{guide}.png"
+                path = out / f"{bakekit.safe_name(obj.name)}_{label}_{guide}.png"
                 render.filepath = str(path)
                 bpy.ops.render.render(write_still=True)
                 files[guide] = str(path)
@@ -173,18 +173,18 @@ def _texel_geometry(obj, uv_name, resolution):
     scene = bpy.context.scene
     result = {}
     with ExitStack() as stack:
-        stack.enter_context(bake._keep_selection())
-        stack.enter_context(bake._cycles_session(scene, 1))
-        mats = stack.enter_context(bake._slot_materials(obj))
+        stack.enter_context(bakekit.keep_selection())
+        stack.enter_context(bakekit.cycles_session(scene, 1))
+        mats = stack.enter_context(bakekit.slot_materials(obj))
         for key in ("Position", "Normal"):
-            image = bake._new_image(f"forge_texel_{key}", resolution, data=True, fill=(0.0, 0.0, 0.0, 0.0),
-                                    float_buffer=True, alpha=True)
+            image = bakekit.new_image(f"forge_texel_{key}", resolution, data=True, fill=(0.0, 0.0, 0.0, 0.0),
+                                      float_buffer=True, alpha=True)
             try:
                 def build(nt, _index, key=key):
-                    return bake._emission(nt, bake._node(nt, "ShaderNodeNewGeometry").outputs[key])
-                with bake._surface(mats, build), bake._target_image(mats, image):
-                    bake._bake(obj, "EMIT", uv_name, margin=0)
-                result[key] = bake._pixels(image)
+                    return bakekit.emission(nt, bakekit.node(nt, "ShaderNodeNewGeometry").outputs[key])
+                with bakekit.surface(mats, build), bakekit.target_image(mats, image):
+                    bakekit.run_bake(obj, "EMIT", uv_name, margin=0)
+                result[key] = bakekit.pixels(image)
             finally:
                 bpy.data.images.remove(image)
     covered = result["Position"][..., 3] > 0.5
@@ -271,7 +271,7 @@ def _nearest_fill(rgb, known):
 def _load_rgba(path):
     image = bpy.data.images.load(str(path), check_existing=False)
     try:
-        return bake._pixels(image).astype(np.float64)
+        return bakekit.pixels(image).astype(np.float64)
     finally:
         bpy.data.images.remove(image)
 
@@ -299,8 +299,8 @@ def project_and_bake(obj, view_images, out_dir, resolution=1024, seam_blend=0.2)
     if int(resolution) < 1 or seam_blend < 0:
         raise ForgeError("resolution must be >= 1 and seam_blend >= 0")
     resolution = int(resolution)
-    uv_name = bake._render_uv(obj)
-    bake._texel_size(obj, uv_name, resolution)
+    uv_name = bakekit.render_uv(obj)
+    bakekit.texel_size(obj, uv_name, resolution)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     start = time.perf_counter()
@@ -328,11 +328,11 @@ def project_and_bake(obj, view_images, out_dir, resolution=1024, seam_blend=0.2)
     known[rows[hit], cols[hit]] = True
     filled = _nearest_fill(rgb, known)
     pixels = np.concatenate([filled, np.ones((resolution, resolution, 1))], axis=2).astype(np.float32)
-    path = out / f"{bake._safe(obj.name)}_projected.png"
+    path = out / f"{bakekit.safe_name(obj.name)}_projected.png"
     image = bpy.data.images.new("forge_projected", resolution, resolution, alpha=True)
     try:
         image.pixels.foreach_set(pixels.ravel())
-        bake._save_png(image, path)
+        bakekit.save_png(image, path)
     finally:
         bpy.data.images.remove(image)
     winner = np.where(hit, weight.argmax(axis=0), -1)

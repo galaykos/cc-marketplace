@@ -1,0 +1,25 @@
+schema_version: "1.1"
+name: export-preset-unity-clips
+description: 'Measured on the stress test (2026-11-08): Blender 5.2 FBX defaults shipped an NLA clip twice and leaked an imported source rig''s action. The Unity preset exports NLA strips only, selection only.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Blender 5.2, headless script. Export the skinned mesh SK_Hero and its armature RIG_Hero to one FBX for Unity, with
+    exactly one animation clip: SK_Hero@Walk, which is an NLA strip on RIG_Hero. The scene also holds an imported rig
+    `meshy_source` with its own action that must not ship. Write the script. Reply with the script only.
+graders:
+  - name: one-clip-selection-only
+    type: llm
+    criteria: |
+      Facts (Blender 5.2 FBX exporter): bake_anim_use_all_actions defaults to True and writes every action whose paths
+      resolve on an exported object, so the source rig's action or the walk can ship twice; add_leaf_bones defaults to
+      True and adds _end bones; use_selection defaults to False (whole scene).
+      PASS requires all three:
+      1. bake_anim_use_all_actions=False, with NLA strips exported (bake_anim_use_nla_strips left True or set True).
+      2. add_leaf_bones=False.
+      3. Only SK_Hero and RIG_Hero are exported (use_selection=True with those two selected, or the source rig deleted,
+         or an equivalent object filter).
+      FAIL if any one is missing. Not graded: axis or scale options, file path, code style.

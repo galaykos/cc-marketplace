@@ -23,15 +23,16 @@ through the forge MCP tools (`validate_asset`, `bake_maps`, …) or `batch_run`.
 - `smooth(obj, iterations=1, factor=0.5, mask=None)` — Laplacian smoothing over edge neighbours: each pass moves a vertex `factor` (0..1] of the way to the mean of its neighbours.
 - `noise_displace(obj, scale, strength, octaves=3, seed=0, mask=None)` — Displace every vertex along its normal by fractal Perlin noise (mathutils.noise.fractal) sampled at its world position.
 - `stroke(obj, path_points, op, radius_profile, strength_profile, spacing=None, **op_kwargs)` — Apply op ("grab", "inflate", "pinch" or "flatten") as dabs every `spacing` metres along a world-space path, like a sculpt stroke.
-- `experimental_brush_stroke(obj, path_points, pressure=1.0, mode='NORMAL')` — EXPERIMENTAL: run the active sculpt brush along a world-space path with a real sculpt-mode stroke (bpy.ops.sculpt.brush_stroke) in the first visible 3D View, then return to the previous mode.
+- `experimental_brush_stroke(obj, path_points, pressure=1.0, mode='NORMAL')` — EXPERIMENTAL: run the active sculpt brush along a world-space path with a real sculpt-mode stroke (bpy.ops.sculpt.brush_stroke) in the first visible 3D View, then give the active object back its mode from before the call.
 
 ## retopo (live)
 
+- `bake_modifier(obj, kind, **settings)` — Bake one new `kind` modifier (a Modifier type such as "SKIN" or "SUBSURF", `settings` its properties) into obj's mesh as if it were first in the stack; the existing modifiers stay as they are.
 - `voxel_remesh(obj, voxel_size)` — Rebuild the surface as an even quad grid (Remesh modifier, voxel mode) and bake it.
 - `quadriflow(obj, target_faces)` — Quad remesh with QuadriFlow (bpy.ops.object.quadriflow_remesh, mode FACES) toward `target_faces` quads.
 - `decimate_to_budget(obj, target_tris, protect_uv_seams=True)` — Collapse-decimate to `target_tris` triangles (within ±10%), searching the Decimate ratio by measuring each try.
 - `shrinkwrap_lowpoly(high, low, offset=0.0)` — Project `low`'s vertices onto `high`'s surface (Shrinkwrap modifier, nearest surface point) and bake it.
-- `clean_ai_mesh(obj, merge_distance=0.0001, min_island_fraction=0.002, max_hole_sides=8)` — Clean a generated (e.g.
+- `clean_ai_mesh(obj, merge_distance=0.0001, min_island_fraction=0.002, max_hole_sides=8)` — Clean a generated (e.g. Meshy) mesh in place.
 
 ## uv (live)
 
@@ -39,8 +40,8 @@ through the forge MCP tools (`validate_asset`, `bake_maps`, …) or `batch_run`.
 - `seams_from_sharp(obj, angle_deg=30.0)` — Mark a UV seam on every edge whose two faces meet at more than angle_deg (degrees between normals) and on every edge already marked sharp.
 - `unwrap(obj, method='ANGLE_BASED')` — Unwrap every face along the mesh's marked seams with the uv.unwrap operator.
 - `pack(obj, margin_px=4, texture_px=1024)` — Pack the active UV map's islands into 0-1 with a gap of margin_px texture pixels at texture_px square (margin in UV units = margin_px / texture_px).
-- `texel_density(obj, texture_px)` — Measured texel density of the active UV map in pixels per metre at texture_px square: per-face density weighted by world-space face area.
-- `set_texel_density(obj, px_per_m, texture_px)` — Scale the active UV map uniformly about its bounding-box centre so the measured texel density becomes px_per_m (pixels per metre) at texture_px square.
+- `texel_density(obj, texture_px)` — Measured texel density of the active UV map in pixels per Blender unit (per metre at Unit Scale 1.0) at texture_px square: texture_px * sqrt(total UV area / total world area) of the evaluated mesh.
+- `set_texel_density(obj, px_per_m, texture_px)` — Scale the active UV map uniformly about its bounding-box centre so the measured texel density becomes px_per_m (pixels per Blender unit, per metre at Unit Scale 1.0) at texture_px square; leaves Edit Mode first.
 - `checker_material(obj, texture_px=1024)` — Show a generated UV-grid checker on obj.
 
 ## lod (live)
@@ -49,7 +50,7 @@ through the forge MCP tools (`validate_asset`, `bake_maps`, …) or `batch_run`.
 
 ## collision (live)
 
-- `make_collision(obj, kind='convex', engine='unity', max_hulls=8, max_hull_verts=HULL_VERT_CAP, parent=True)` — Build collision for a render mesh from its evaluated geometry, in its object space.
+- `make_collision(obj, kind='convex', engine='unity', max_hulls=8, max_hull_verts=HULL_VERT_CAP, parent=True, max_hull_faces=HULL_FACE_CAP)` — Build collision for a render mesh from its evaluated geometry, in its object space.
 
 ## retarget (live)
 
@@ -59,23 +60,26 @@ through the forge MCP tools (`validate_asset`, `bake_maps`, …) or `batch_run`.
 - `extract_root_motion(rig, action, hips_bone, root_bone, create=False)` — Move the hips' horizontal (world X/Y) travel, in metres, onto root_bone: per whole frame of the action, the root gains the hips' horizontal offset from where the root carries the hips' rest position, and the hips lose it, so the hips' world path is unchanged.
 - `loop_cleanup(action, blend_frames=2, travel_bones=())` — Make the action's last frame equal its first and add a Cycles modifier to every F-curve.
 - `trim(action, start, end)` — Keep the keys between frames start and end (adding a key at each cut with the curve's value there) and shift them so the clip starts at frame 0, not 1: glTF writes time = frame / fps, so a clip at 0 exports from 0 s without export_anim_slide_to_zero (blender plugin's animation.md).
-- `push_to_nla(rig, action, track_name=None, engine='unity', asset=None, clip=None)` — Name the action per the engine preset's animation.clip_naming ({asset} defaults to the rig's name, {clip} to the action's), add the preset's loop_suffix when the action loops (a Cycles modifier from loop_cleanup), push it onto its own NLA track (once; a second call renames in place) with the rig's slot, and clear the active action as Push Down does: FBX with All Actions off ships strips only.
+- `push_to_nla(rig, action, track_name=None, engine='unity', asset=None, clip=None)` — Name the action per the engine preset's animation.clip_naming ({asset} defaults to the rig's name, {clip} to the action's, or to its clip part when the action already carries this preset's name for that asset, so a second call keeps Hero@Walk), add the preset's loop_suffix when the action loops (a Cycles modifier from loop_cleanup), push it onto its own NLA track (once; a second call renames in place) with the rig's slot, and clear the active action as Push Down does: FBX with All Actions off ships strips only.
 
 ## util (live)
 
 - `ok(**fields)` — The summary dict every public forge function returns.
-- `blender_at_least(major, minor=0)` — .
+- `positive(value, what)` — Return float(value) for a real number > 0, else raise ForgeError naming `what` (booleans and NaN refused).
+- `blender_at_least(major, minor=0)`
 - `get_object(name_or_obj, kind=None)` — Return the object, or raise ForgeError.
 - `load_preset(kind, name)` — kind: 'engines', 'budgets' or 'bonemaps'.
-- `ensure_object_mode()` — .
+- `ensure_object_mode()`
 - `select_only(*objects, active=None)` — Deselect everything, select `objects`, make `active` (default: the first) active.
+- `kept_state(objects=(), stage='context')` — Unhide `objects` for the block, then restore their hide flags, the selection, the active object and its mode.
 - `edit_bmesh(obj)` — Yield a bmesh of obj's base mesh (no modifiers); written back and freed on exit.
 - `evaluated_bmesh(obj)` — A bmesh of obj with modifiers applied, in object space.
 - `tri_count(obj, evaluated=True)` — Triangles the engine will receive: sum of (corners - 2) per face.
+- `measure_texel_density(obj, texture_px)` — Texel density of obj's active UV map on a texture_px square, in texture pixels per Blender unit (per metre at the default Unit Scale 1.0; the scene's Unit Scale is ignored, as the budgets assume 1 unit = 1 m).
 - `world_bbox(*objects)` — (min Vector, max Vector) of the objects' evaluated bounding boxes in world space.
-- `link_to_scene(obj, collection=None)` — .
+- `link_to_scene(obj, collection=None)`
 - `new_mesh_object(name, bm=None, collection=None)` — Create a mesh object (from a bmesh when given, which is not freed) and link it.
-- `apply_transforms(obj, location=False, rotation=True, scale=True)` — Bake scale, then rotation, then location into a mesh's data without bpy.ops; children keep their world pose.
+- `apply_transforms(obj, location=False, rotation=True, scale=True)` — Bake scale, then rotation, then location into a mesh's data and shape keys without bpy.ops; children keep their world pose.
 - `material(name, color=(0.8, 0.8, 0.8, 1.0))` — Get or create a node material whose Principled BSDF base colour is `color` (linear RGBA).
 - `settable_enum(owner, prop, wanted)` — Return the first identifier in `wanted` that `owner.prop` accepts at run time, else None.
 
@@ -86,7 +90,7 @@ through the forge MCP tools (`validate_asset`, `bake_maps`, …) or `batch_run`.
 ## stylize (headless, via the MCP tools)
 
 - `stylize(obj, out_dir, palette=None, recipe='stone', resolution=1024, maps=None)` — Paint a hand-painted albedo for `obj` (object or name) and assign it as one simple material on every slot.
-- `apply_albedo(obj, albedo_path, material_name=None, roughness=0.85)` — Live step after a headless stylize or projection: merge `obj` to ONE slot holding one material whose base colour is the PNG at `albedo_path` (sRGB) — the per-slot colours are already in the albedo, and one slot is one draw call.
+- `apply_albedo(obj, albedo_path, material_name=None, roughness=0.85)` (live) — Live step after a headless stylize or projection: merge `obj` to ONE slot holding one material whose base colour is the PNG at `albedo_path` (sRGB) — the per-slot colours are already in the albedo, and one slot is one draw call.
 
 ## project_paint (headless, via the MCP tools)
 

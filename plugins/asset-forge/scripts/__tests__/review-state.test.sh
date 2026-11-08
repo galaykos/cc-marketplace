@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Harness for hooks/review-state.sh with the payload shapes the host sends: a forge-using context that changed the
 # scene is blocked once per change cycle; a review clears it; neighbours stay silent (no forge in use, the _for_cli
-# headless call, a failed review, stop_hook_active, another transcript, the off switch, a malformed payload).
+# headless call, a failed review, one whose traceback names contact_sheet, stop_hook_active, another transcript,
+# the off switch, a malformed payload); the 24 h sweep never deletes the current context's state.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 H="$here/../../hooks/review-state.sh"
@@ -37,6 +38,9 @@ post /t/c.jsonl "$EXEC" 'import forge' >/dev/null
 post /t/d.jsonl "$EXEC" 'import forge' >/dev/null
 post /t/d.jsonl "$REVIEW" '{"ok": false, "stage": "input", "error": "no object"}' >/dev/null
 out=$(stop /t/d.jsonl); blocks "$out" && ok "a failed review does not clear the change" || bad "failed review cleared ($out)"
+post /t/h.jsonl "$EXEC" 'import forge' >/dev/null
+post /t/h.jsonl "$REVIEW" '{"ok": false, "stage": "op:call", "traceback": "File review_renders.py, in _contact_sheet"}' >/dev/null
+out=$(stop /t/h.jsonl); blocks "$out" && ok "a failed review whose traceback names contact_sheet does not clear it" || bad "traceback cleared ($out)"
 post /t/d.jsonl "$REVIEW" '{"ok": true, "contact_sheet": "/tmp/x/contact_sheet.png"}' >/dev/null
 [ -z "$(stop /t/d.jsonl)" ] && ok "a successful review clears the change" || bad "review did not clear"
 post /t/d.jsonl "$EXEC" 'deform.inflate(...)' >/dev/null
@@ -50,6 +54,10 @@ post /t/f.jsonl "$EXEC" 'import forge' >/dev/null
 [ -z "$(CC_FORGE_REVIEW=off stop /t/f.jsonl)" ] && ok "CC_FORGE_REVIEW=off silences it" || bad "env off"
 [ -z "$(CLAUDE_PLUGIN_OPTION_CC_FORGE_REVIEW=false stop /t/f.jsonl)" ] && ok "the /config option set to false silences it" || bad "option off"
 out=$(stop /t/f.jsonl); blocks "$out" && ok "another transcript keeps its own state" || bad "per-transcript ($out)"
+
+post /t/g.jsonl "$EXEC" 'import forge' >/dev/null
+touch -t 200001010000 "$CLAUDE_PLUGIN_DATA/review-$(printf '%s' /t/g.jsonl | cksum | cut -d' ' -f1)"
+out=$(stop /t/g.jsonl); blocks "$out" && ok "the 24 h sweep keeps the state of the context that is firing" || bad "own state swept ($out)"
 
 out=$(printf 'not json' | bash "$H"); rc=$?
 [ -z "$out" ] && [ "$rc" = 0 ] && ok "a malformed payload fails open" || bad "malformed (rc=$rc)"

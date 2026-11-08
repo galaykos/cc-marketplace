@@ -28,6 +28,9 @@ WORLD_GREY = 0.18
 # (azimuth offset from the camera, elevation, sun strength in W/m^2) for key, fill and rim
 LIGHT_RIG = ((-45.0, 45.0, 4.0), (60.0, 15.0, 1.5), (180.0, 50.0, 3.0))
 MATCAP_PREFERENCE = ("clay_studio.exr", "basic_grey.exr", "basic_1.exr")
+KNOWN_ENGINES = ("BLENDER_EEVEE", "BLENDER_WORKBENCH", "CYCLES")
+# a pixel further than this from the corner (background) colour in any channel is object; PNG steps are 1/255
+BACKGROUND_EPS = 1.5 / 255
 
 
 def render_review_set(obj, out_dir, angles=8, include=KINDS, game_camera=None, tile_px=512):
@@ -38,7 +41,8 @@ def render_review_set(obj, out_dir, angles=8, include=KINDS, game_camera=None, t
     "screen_height_px"} or {"type": "ortho", "ortho_height_m", "screen_height_px"}; both take optional
     "elevation_deg" (default 30, 90 is top-down) and "azimuth_deg" (default 45). Without it game_distance is skipped.
     Returns images {kind: [paths]}, contact_sheet (path), layout ([kind, view] per tile, row-major, `columns` wide),
-    notes, seconds, and game_distance {screen_px_height, render_px, raw} when that view was rendered."""
+    notes, seconds, and game_distance {screen_px_height, render_px, raw} when that view was rendered: screen_px_height
+    is the object's height on the game screen in pixels, from its top to its bottom pixel row in the raw render."""
     started = time.monotonic()
     obj = util.get_object(obj, "MESH")
     kinds = _check_args(obj, include, angles, tile_px)
@@ -169,9 +173,12 @@ def _game_distance(stage, game, corners, out, notes):
     else:
         stage.aim(azimuth, elevation, distance, ortho_scale=frame / px_per_m)
     raw = stage.render(out / "game_distance_raw.png", size=size)
+    pixels = _read_png(raw)
     path = out / "game_distance_game_camera.png"
-    _write_png(_nearest(_read_png(raw), stage.tile_px), path)
-    return str(path), {"screen_px_height": round(max(ys) - min(ys), 1), "render_px": size, "raw": raw}
+    _write_png(_nearest(pixels, stage.tile_px), path)
+    rows = np.nonzero((np.abs(pixels[..., :3] - pixels[0, 0, :3]) > BACKGROUND_EPS).any(axis=(1, 2)))[0]
+    height = (rows[-1] - rows[0] + 1) * frame / size if len(rows) else 0.0
+    return str(path), {"screen_px_height": round(float(height), 1), "render_px": size, "raw": raw}
 
 
 def _direction(azimuth_deg, elevation_deg):
@@ -197,6 +204,7 @@ def _set_enum(owner, prop, *wanted):
 def _engine_ids(render):
     ids = [item.identifier for item in render.bl_rna.properties["engine"].enum_items]
     ids += [cls.bl_idname for cls in bpy.types.RenderEngine.__subclasses__() if getattr(cls, "bl_idname", "")]
+    ids += KNOWN_ENGINES
     # The static enum omits built-in engines such as Workbench; the refusal message lists the live set.
     try:
         render.engine = "__forge_probe__"

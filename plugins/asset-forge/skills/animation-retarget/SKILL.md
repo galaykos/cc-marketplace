@@ -31,9 +31,9 @@ clips that go missing on export stay with `blender:blender-rig-anim` and its `an
    - root motion: `retarget.extract_root_motion(rig, action, hips_bone, root_bone, create=True)`.
    Unity and Unreal take either (Animator "Apply Root Motion" / per-sequence Root Motion); Godot uses a root
    motion track in the AnimationTree. Ask which the game uses.
-5. `retarget.loop_cleanup(action, blend_frames=2, travel_bones=(root_bone,) if root motion else ())` for cycles.
-6. `retarget.trim(action, start, end)` → starts at frame 0 (glTF time is frame / fps; a clip starting late in an
-   engine is this).
+5. `retarget.trim(action, start, end)` → starts at frame 0 (glTF time is frame / fps; a clip starting late in an
+   engine is this). Trim before the loop cleanup: a trim after it cuts the matched end key and the cycle pops.
+6. `retarget.loop_cleanup(action, blend_frames=2, travel_bones=(root_bone,) if root motion else ())` for cycles.
 7. `retarget.push_to_nla(rig, action, engine=..., asset=..., clip=...)` names it per the preset (`{asset}@{clip}`
    for Unity, `A_{asset}_{clip}` for Unreal, Godot `-loop` suffix on cycled clips). The FBX presets export NLA strips
    only (`bake_anim_use_all_actions: False`): with Blender's defaults the stress test shipped its clip twice and
@@ -60,4 +60,6 @@ clips that go missing on export stay with `blender:blender-rig-anim` and its `an
 - Mixamo bone names in the shipped maps are not yet checked against a real Mixamo download; `mixamo_to_ue5`'s
   `spine_04`, `spine_05` and `neck_02` are unverified. Missing pairs are skipped and listed, not errors.
 - Quality depends on rest-pose match: fingers and toes with different counts or rolls need hand fixes.
-- Armatures with object-level rotation or 0.01 scale (raw FBX imports) are untested: apply transforms first.
+- A source armature's 0.01 object scale needs no fix: retarget reads both rigs in world space (measured on the
+  Meshy stress test's glTF walk). Object-level rotation on the source, which some raw FBX imports carry, is untested.
+  Apply the target rig's transforms first (step 1).

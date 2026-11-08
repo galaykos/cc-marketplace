@@ -58,12 +58,28 @@ project's `asset-forge.json`, written by the `pipeline` skill on first use.
 |---|---|
 | Every python block in the organic-modeling skill and its recipes runs as written and yields a manifold mesh of the stated size | gate where run: `scripts/__tests__/blender/test_recipes.py` |
 | `skills/pipeline/references/forge-api.md` matches the library's signatures | gate: `scripts/gen_forge_api.py --check`, run by `forge-server.test.sh` (no Blender needed) |
-| The server speaks MCP over stdio and every tool works on the fixtures | gate where run: `scripts/__tests__/forge-server.test.sh`, 27 cases (the 15 Blender cases skip when no Blender is found) |
+| The server speaks MCP over stdio and every tool works on the fixtures | gate where run: `scripts/__tests__/forge-server.test.sh`, 44 cases (the 22 Blender cases skip when no Blender is found, the bind-mount case when `unshare -r -m` is refused) |
 | Each forge function does what its docstring says (verts outside a deform radius never move, retargeted limbs within 5° of the source, exports re-import with the expected names and triangle counts, the bad-asset fixture fails validation) | gate where run: `scripts/__tests__/forge-lib.test.sh`, 105 cases inside Blender 5.2.3. CI has no Blender, so it prints SKIP there: the cases run on a developer machine only |
-| An asset that changed since its last review is not called done silently | gate: `hooks/review-state.sh` at Stop, once per change cycle; `scripts/__tests__/review-state.test.sh`, 14 cases with the host's payloads. Misses: edits made by hand in Blender, and reviews done without `render_review_set` |
-| An export reports what failed | gate: `export_asset` runs `validate_asset` on the source and re-imports what it wrote (`post_export_audit`: expected objects, no extras, faces, n-gons, UVs, materials); a failure in either returns an error naming the checks, with the written files listed |
-| A headless job never writes the `.blend` it opened | gate: the runner refuses `save_copy_to` equal to the opened file, and the server compares the file's size and modification time before and after every job, failing with `stage: source-modified`; harness case "after every tool the source .blend is byte-identical" |
+| An asset that changed since its last review is not called done silently | gate: `hooks/review-state.sh` at Stop, once per change cycle; `scripts/__tests__/review-state.test.sh`, 16 cases with the host's payloads. Misses: edits made by hand in Blender, and reviews done without `render_review_set` |
+| An export reports what failed | gate: `export_asset` runs `validate_asset` on the first mesh among `objects` and re-imports what it wrote (`post_export_audit`: expected objects, no extras, faces, n-gons, UVs, materials, clips in the main file); a failure in either, or a validation that could not run, returns an error naming the checks, with the written files listed |
+| A headless job never writes the `.blend` it opened | gate: the runner refuses a `save_copy_to` that is the opened file (by file identity, path recorded before the function runs), `batch_run` refuses an `out_dir` that is a source folder (by identity), and the server compares the file's size and modification time before and after every job, failing with `stage: source-modified`; harness cases "a job that changes its .blend fails with source-modified" and "after every tool the source .blend is byte-identical" |
 | Headless jobs open a snapshot, not the user's working file | recorded: the server cannot see which file the live session has open; the snapshot step is the skills' job |
+
+## Evals
+
+Six cases under `evals/`, run with `claude plugin eval plugins/asset-forge --scaffold` (`--scaffold` is needed by
+`review-structured-verdict`, which copies a contact sheet into the workspace; without it that case runs on an empty
+folder). Measured 2026-11-08, 3 runs per arm, haiku judge, $5.67 in total:
+
+| Case | With plugin | Without | Reading |
+|---|---|---|---|
+| `pipeline-asks-engine` | 3/3 | 1/3 | the plugin's one clear lift: asks the engine, plans a visual review and a budget check |
+| `review-structured-verdict` | 0.5, 0.5, 1 (agent dispatched 2/3) | 0.5 ×3 | the art-reviewer runs, but the main thread paraphrases its verdict instead of quoting it |
+| `export-preset-unity-clips`, `organic-skeleton-branches`, `snapshot-not-working-file`, `validator-catches-bad-asset` | 3/3 | 3/3 | the control arm passes, so these are regression guards and cannot show the plugin helping |
+
+Three runs cannot separate a small delta from noise. The delta comes from behaviour the base model skips
+unprompted (asking before guessing, planning review and validation), not from facts it lacks when the prompt names
+the problem.
 
 ## Limitations
 

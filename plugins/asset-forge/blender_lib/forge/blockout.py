@@ -10,8 +10,8 @@ import bmesh
 import bpy
 from mathutils import Vector, noise
 
-from .retopo import _bake_modifier
-from .util import ForgeError, new_mesh_object, ok, settable_enum
+from .retopo import bake_modifier
+from .util import ForgeError, new_mesh_object, ok, positive, settable_enum
 
 ROCK_STYLES = {
     "boulder": {"shape": (1.0, 0.9, 0.75), "cuts": 6, "cut_depth": (0.55, 0.85), "bumps": 0.12, "taper": 0.0},
@@ -28,12 +28,6 @@ def _vec3(value, what):
     if len(co) != 3 or not all(math.isfinite(c) for c in co):
         raise ForgeError(f"{what} must be three finite numbers, got {value!r}")
     return co
-
-
-def _radius(value, what):
-    if not isinstance(value, (int, float)) or not value > 0:
-        raise ForgeError(f"{what} must be a number > 0, got {value!r}")
-    return float(value)
 
 
 def _summary(obj):
@@ -67,7 +61,7 @@ def skin_from_skeleton(spec, name="Blockout", subdivisions=1):
         if not isinstance(joint, dict):
             raise ForgeError(f"joint {key!r} must be {{'co': [x, y, z], 'radius': r}}")
         placed[key] = (_vec3(joint.get("co"), f"joint {key!r} co"),
-                       _radius(joint.get("radius"), f"joint {key!r} radius"))
+                       positive(joint.get("radius"), f"joint {key!r} radius"))
     pairs = set()
     for bone in bones:
         if not isinstance(bone, (list, tuple)) or len(bone) != 2 or bone[0] == bone[1]:
@@ -106,9 +100,9 @@ def skin_from_skeleton(spec, name="Blockout", subdivisions=1):
                     stack.append(other)
     obj = new_mesh_object(name, bm)
     bm.free()
-    _bake_modifier(obj, "SKIN")
+    bake_modifier(obj, "SKIN")
     if subdivisions:
-        _bake_modifier(obj, "SUBSURF", levels=int(subdivisions))
+        bake_modifier(obj, "SUBSURF", levels=int(subdivisions))
     return ok(**_summary(obj), parts=roots)
 
 
@@ -119,7 +113,7 @@ def metaball_blob(spec, name="Blob", resolution=0.1):
     metres. The temporary metaball is removed. Returns ok(object, verts, faces, tris, manifold, bbox_min, bbox_max)."""
     if not isinstance(spec, (list, tuple)) or not spec:
         raise ForgeError("spec must be a non-empty list of {'co': [x, y, z], 'radius': r, 'type': ...} elements")
-    resolution = _radius(resolution, "resolution")
+    resolution = positive(resolution, "resolution")
     temp = f"forgemball{uuid.uuid4().hex}"
     data = bpy.data.metaballs.new(temp)
     ball = None
@@ -135,7 +129,7 @@ def metaball_blob(spec, name="Blob", resolution=0.1):
                 raise ForgeError(f"element {i} type {kind!r} is not one of {choices}")
             item.type = kind
             item.co = _vec3(element.get("co"), f"element {i} co")
-            item.radius = _radius(element.get("radius"), f"element {i} radius")
+            item.radius = positive(element.get("radius"), f"element {i} radius")
         ball = bpy.data.objects.new(temp, data)
         bpy.context.scene.collection.objects.link(ball)
         depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -161,7 +155,7 @@ def rock(seed=0, size=1.0, style="boulder", name="SM_Rock"):
     ok(object, seed, style, verts, faces, tris, manifold, bbox_min, bbox_max)."""
     if style not in ROCK_STYLES:
         raise ForgeError(f"style {style!r} is not one of {sorted(ROCK_STYLES)}")
-    size = _radius(size, "size")
+    size = positive(size, "size")
     params = ROCK_STYLES[style]
     rng = random.Random(seed)
     stretch = [axis * rng.uniform(0.85, 1.15) for axis in params["shape"]]

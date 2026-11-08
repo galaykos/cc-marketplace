@@ -2,6 +2,24 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.0 — 2026-11-08
+
+- **Evals.** Six cases under `evals/` (run with `--scaffold`). Three runs per arm: `pipeline-asks-engine` 3/3 with the plugin against 1/3 without. `review-structured-verdict` scores 0.67 with against 0.5 without; the art-reviewer was dispatched in 2 of 3 runs once its description named review renders. The other four cases pass without the plugin too, so they are regression guards. Standing: recorded (nothing runs evals in CI).
+- **Full review, 59 findings fixed.** Highlights:
+  - `batch_run` and the runner compare files by identity, so a case-insensitive disk can no longer overwrite a source.
+  - `apply_transforms` bakes shape keys and leaves Edit Mode first.
+  - Symmetric deforms no longer double an edit on the mirror plane.
+  - `apply_albedo` writes to its own named node and creates a BSDF when the material has none.
+  - The validator accepts only the colliders that export will collect.
+  - `audit_export` checks collider naming and refuses to run outside `blender -b`.
+  - LOD `silhouette_ok` measures surface distance. It caught a caved-in LOD3 that the old bounding-box test passed.
+  - `export_asset` fails when its source validation cannot run, and skips validation (with a note) when the export has no mesh.
+  - The server runs each call on its own thread and kills Blender when a call is cancelled.
+  - Other fixes: stdin and stdout are UTF-8; parallel Blender processes are capped; the inline image limit is 3.7 MB.
+  - Preset naming lives in one module, `forge/naming.py`, and the bake helpers are public in `forge/bakekit.py`.
+  - Standing: the library suite (136), the server harness (45) and the review-state harness (16).
+- `apply_albedo`'s default material name is now `M_<object>_Stylized`, the same as `stylize`.
+
 ## 0.6.0 — 2026-11-08
 
 - **Stress tests: a wolf, a rock cluster, an animated Meshy humanoid.** Fixes and skill changes from what they exposed:

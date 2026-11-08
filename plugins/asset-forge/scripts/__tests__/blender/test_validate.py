@@ -121,12 +121,14 @@ def test_rotation_and_mirrored_scale():
     checks = _checks(validate.validate_asset(crate, asset_class="prop_small"))
     assert checks["rotation"]["status"] == "fail" and abs(checks["rotation"]["measured"] - 30) < 1e-3
     assert checks["scale"]["status"] == "pass"
-    crate.rotation_euler = (0.0, 0.0, 0.0)
-    crate.scale = (-1.0, 1.0, 1.0)
-    bpy.context.view_layer.update()
-    checks = _checks(validate.validate_asset(crate, asset_class="prop_small"))
-    assert checks["rotation"]["status"] == "pass" and checks["scale"]["status"] == "fail"
-    assert "negative" in checks["scale"]["hint"] and checks["normals"]["measured"]["inside_out"] is True
+    for scale, turn in (((-1.0, 1.0, 1.0), 0), ((1.0, -1.0, 1.0), 0), ((1.0, 1.0, -1.0), 0), ((1.0, -1.0, 1.0), 30)):
+        crate.rotation_euler = (0.0, 0.0, math.radians(turn))
+        crate.scale = scale
+        bpy.context.view_layer.update()
+        checks = _checks(validate.validate_asset(crate, asset_class="prop_small"))
+        assert abs(checks["rotation"]["measured"] - turn) < 1e-3, (scale, turn, checks["rotation"])
+        assert checks["scale"]["status"] == "fail" and "negative" in checks["scale"]["hint"], scale
+        assert checks["normals"]["measured"]["inside_out"] is True and "negative scale" in checks["normals"]["hint"]
 
 
 def test_inside_out_mesh_fails_normals():
@@ -260,6 +262,37 @@ def test_collision_named_from_the_lod0_mesh_passes():
     checks = {c["id"]: c for c in validate.validate_asset(crate, engine="unity", platform="pc", asset_class="prop_small")["checks"]}
     assert checks["collision_naming"]["status"] == "pass", checks["collision_naming"]
     assert checks["collision_naming"]["measured"]["named"] == ["SM_Crate_LOD0_Collider"]
+
+
+def test_base_named_hull_left_behind_by_the_lod_chain_is_misnamed(tmp):
+    from forge import collision, export, lod
+    crate = fixtures.crate()
+    collision.make_collision(crate, kind="convex", engine="unreal")
+    lod.make_lod_chain(crate, ratios=[1.0, 0.5], engine="unreal", protect=("boundary",))
+    assert crate.name == "SM_Crate_LOD0" and "UCX_SM_Crate_01" in bpy.data.objects
+    check = _checks(validate.validate_asset(crate, engine="unreal", asset_class="prop_small"))["collision_naming"]
+    assert check["status"] == "fail" and check["measured"] == {"named": [], "misnamed": ["UCX_SM_Crate_01"]}, check
+    assert "make_collision on SM_Crate_LOD0" in check["hint"], check["hint"]
+    shipped = export.export_asset(crate, engine="unreal", out_dir=str(tmp))["files"][0]["objects"]
+    assert "UCX_SM_Crate_01" not in shipped, shipped
+    collision.make_collision(crate, kind="convex", engine="unreal")
+    check = _checks(validate.validate_asset(crate, engine="unreal", asset_class="prop_small"))["collision_naming"]
+    assert check["measured"]["named"] == ["UCX_SM_Crate_LOD0_01"] and check["measured"]["misnamed"] == ["UCX_SM_Crate_01"]
+
+
+def test_texel_density_matches_uv_at_any_unit_scale():
+    from forge import uv
+    texture_px = util.load_preset("budgets", "pc")["texture_max_px"]["prop_small"]
+    for unit_scale in (1.0, 0.01):
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        bpy.context.scene.unit_settings.scale_length = unit_scale
+        crate = fixtures.crate()
+        crate.scale = (2.0, 2.0, 2.0)
+        set_to = uv.set_texel_density(crate, 512, texture_px)
+        assert abs(set_to["after_px_per_m"] - 512) < 1e-2, set_to
+        measured = uv.texel_density(crate, texture_px)["px_per_m"]
+        check = _checks(validate.validate_asset(crate, asset_class="prop_small"))["texel_density"]
+        assert abs(check["measured"] - 512) <= 0.05 and abs(measured - 512) < 1e-2, (unit_scale, check, measured)
 
 
 def test_skinned_mesh_pivot_is_ground_inside_footprint_not_bbox_centre():

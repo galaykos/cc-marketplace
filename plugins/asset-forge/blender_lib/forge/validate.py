@@ -1,5 +1,6 @@
 """Technical QA of one mesh object against a platform budget and an engine preset. Read-only: neither the object nor
-the scene is changed. Units: metres, square metres, pixels, degrees."""
+the scene is changed. Units: metres, square metres, pixels, degrees; a metre is one Blender unit (the scene's Unit
+Scale is not applied), and texel density is texture pixels per Blender unit."""
 import math
 import re
 from pathlib import Path
@@ -8,7 +9,8 @@ import bpy
 import numpy as np
 from mathutils import Matrix, Vector
 
-from . import util
+from . import naming, util
+from .naming import COLLISION_TOKEN
 
 SCALE_EPS = 1e-4
 ROTATION_EPS_DEG = 0.01
@@ -18,7 +20,6 @@ DEGENERATE_UV_AREA = 1e-9
 UV_GRID = 512
 SIZE_RANGE_M = (0.01, 500.0)
 EXPECTED_SIZE_TOLERANCE = 0.25
-COLLISION_TOKEN = re.compile(r"(?i)(^|[_\-.])((ucx|ubx|usp|ucp)|(conv)?col(lider|lision|only)?)(?=$|[_\-.\d])")
 
 
 def validate_asset(obj, engine="unity", platform="pc", asset_class="prop_medium", overrides=None,
@@ -49,14 +50,15 @@ def validate_asset(obj, engine="unity", platform="pc", asset_class="prop_medium"
 
     mesh = _measure(obj)
     images = _material_images(obj)
-    naming = preset.get("naming", {})
-    base = _base_name(obj.name, naming.get("lod"))
+    preset_naming = preset.get("naming", {})
+    base, level = naming.split_lod(obj.name, preset_naming.get("lod"))
+    base = base if level == 0 else obj.name
 
     tri_limit = budget["tris"][asset_class]
     add("tris", mesh["tris"] <= tri_limit, mesh["tris"], tri_limit,
         "over the triangle budget: decimate or retopologise, or pick the right asset_class")
     ratios = budget.get("lod_ratios", [1.0])
-    for n, lod in _lods(obj, base, naming.get("lod")):
+    for n, lod in _lods(obj, base, preset_naming.get("lod")):
         count = util.tri_count(lod)
         if n >= len(ratios):
             add(f"tris_lod{n}", "warn", count, None, f"{lod.name}: the budget lists no LOD ratio for LOD{n}")
@@ -70,8 +72,7 @@ def validate_asset(obj, engine="unity", platform="pc", asset_class="prop_medium"
     world3 = obj.matrix_world.to_3x3()
     scale = [round(world3.col[i].length, 4) for i in range(3)]
     mirrored = world3.determinant() < 0
-    unmirrored = world3 @ Matrix.Diagonal((-1.0 if mirrored else 1.0, 1.0, 1.0))
-    rotation = round(math.degrees(unmirrored.to_quaternion().angle), 4)
+    rotation = round(math.degrees(_rotation_angle(world3)), 4)
     parent = f" (or on its parent {obj.parent.name})" if obj.parent else ""
     add("rotation", rotation <= ROTATION_EPS_DEG, rotation, 0.0,
         f"apply rotation{parent}: forge.util.apply_transforms(obj)")
@@ -87,16 +88,22 @@ def validate_asset(obj, engine="unity", platform="pc", asset_class="prop_medium"
         "edges with more than two faces or none break baking and tangents; open boundaries are fine for cards")
     add("loose_verts", mesh["loose_verts"] == 0, mesh["loose_verts"], 0, "delete vertices that belong to no edge")
     normals = {"inconsistent_edges": mesh["inconsistent_edges"], "inside_out": mesh["inside_out"]}
+    flipped_by_scale = mirrored and mesh["inside_out"]
     add("normals", not mesh["inconsistent_edges"] and not mesh["inside_out"], normals,
-        {"inconsistent_edges": 0, "inside_out": False}, "recalculate normals outside")
-    _uv_checks(add, mesh, budget, asset_class, images)
+        {"inconsistent_edges": 0, "inside_out": False},
+        f"the negative scale turns the mesh inside out: apply it{parent} with forge.util.apply_transforms(obj), "
+        "which also flips the winding" if flipped_by_scale else "recalculate normals outside")
+    _uv_checks(add, obj, mesh, budget, asset_class, images)
 
-    pattern = naming.get("mesh")
+    pattern = preset_naming.get("mesh")
     add("name", bool(pattern and re.match(pattern, obj.name)), obj.name, pattern,
         f"rename to match the {engine} mesh pattern")
-    named, misnamed = _collision(obj, base, naming.get("collision", {}))
+    collision_patterns = preset_naming.get("collision", {})
+    named, misnamed = _collision(obj, base, collision_patterns)
     add("collision_naming", not misnamed, {"named": named, "misnamed": misnamed},
-        sorted(set(naming.get("collision", {}).values())), f"rename collision meshes to the {engine} pattern")
+        sorted(set(collision_patterns.values())),
+        f"export pairs only collision named from the exact mesh name {obj.name!r} with the {engine} pattern: "
+        f"rename them, or re-run forge.collision.make_collision on {obj.name} (after make_lod_chain, that is LOD0)")
 
     size = round(max(mesh["hi"] - mesh["lo"]), 4) if mesh["verts"] else 0.0
     if expected_size_m is not None:
@@ -130,47 +137,30 @@ def _merge(base, over):
     return merged
 
 
-def _pattern_regex(pattern, name=None):
-    """A regex for a preset pattern such as '{name}_LOD{n}' or 'UCX_{name}_{nn}'; name=None captures the name."""
-    rx = re.escape(pattern)
-    rx = rx.replace(re.escape("{name}"), re.escape(name) if name is not None else "(?P<name>.+?)")
-    rx = rx.replace(re.escape("{nn}"), r"(?P<nn>\d{2})").replace(re.escape("{n}"), r"(?P<n>\d+)")
-    return re.compile(f"^{rx}$")
-
-
-def _base_name(name, lod_pattern):
-    if lod_pattern:
-        match = _pattern_regex(lod_pattern).match(name)
-        if match and "n" in match.groupdict() and int(match["n"]) == 0:
-            return match["name"]
-    return name
+def _rotation_angle(world3):
+    """Rotation angle in radians of a 3x3 world matrix; a mirrored one is unmirrored along whichever axis leaves the
+    smallest rotation, so a negative scale on any axis does not read as a 180 degree turn."""
+    if world3.determinant() >= 0:
+        return world3.to_quaternion().angle
+    flips = (Matrix.Diagonal(tuple(-1.0 if i == axis else 1.0 for i in range(3))) for axis in range(3))
+    return min((world3 @ flip).to_quaternion().angle for flip in flips)
 
 
 def _lods(obj, base, lod_pattern):
     if not lod_pattern:
         return []
-    rx = _pattern_regex(lod_pattern, base)
-    found = []
-    for other in bpy.data.objects:
-        match = rx.match(other.name) if other is not obj and other.type == "MESH" else None
-        if match and "n" in match.groupdict():
-            found.append((int(match["n"]), other))
-    return sorted(found, key=lambda pair: pair[0])
+    found = naming.lod_objects(base, lod_pattern)
+    return sorted((n, o) for n, o in found.items() if o is not obj and o.type == "MESH")
 
 
 def _collision(obj, base, patterns):
-    # collision.make_collision names hulls from the exact render-mesh name (Unreal requires it), LOD0 suffix included
-    rxs = [_pattern_regex(p, name) for p in patterns.values() for name in dict.fromkeys((base, obj.name))]
+    # Unreal pairs a hull with its render mesh by the exact name, LOD0 suffix included, and so does export
+    named = {o.name for o in naming.collision_objects(obj.name, patterns.values()) if o.type == "MESH"}
     candidates = {o for o in obj.children if o.type == "MESH"}
     candidates |= {o for o in bpy.data.objects
                    if o.type == "MESH" and o is not obj and base.lower() in o.name.lower()}
-    named, misnamed = [], []
-    for other in sorted(candidates, key=lambda o: o.name):
-        if any(rx.match(other.name) for rx in rxs):
-            named.append(other.name)
-        elif COLLISION_TOKEN.search(other.name):
-            misnamed.append(other.name)
-    return named, misnamed
+    misnamed = sorted(o.name for o in candidates if o.name not in named and COLLISION_TOKEN.search(o.name))
+    return sorted(named), misnamed
 
 
 def _pivot(rule, origin, lo, hi, skinned=False):
@@ -232,7 +222,7 @@ def _measure(obj):
     return mesh
 
 
-def _uv_checks(add, mesh, budget, asset_class, images):
+def _uv_checks(add, obj, mesh, budget, asset_class, images):
     tri_uv = mesh["tri_uv"]
     if tri_uv is None:
         add("uv_missing", "fail", mesh["uv_maps"], 1, "unwrap the mesh: it has no UV map")
@@ -259,8 +249,8 @@ def _uv_checks(add, mesh, budget, asset_class, images):
     target = budget["texel_density_px_per_m"]
     tolerance = budget.get("texel_density_tolerance", 0.25)
     span = [round(target * (1 - tolerance), 1), round(target * (1 + tolerance), 1)]
-    area = float(mesh["tri_area"].sum())
-    density = round(tex_px * math.sqrt(float(uv_area.sum()) / area), 1) if area > 0 else 0.0
+    measured = util.measure_texel_density(obj, tex_px)
+    density = round(measured[0], 1) if measured else 0.0
     add("texel_density", "pass" if span[0] <= density <= span[1] else "warn", density, span,
         f"{density} px/m at a {tex_px} px texture: scale the UV islands or change the texture size")
 

@@ -9,7 +9,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 
-from . import bake
+from . import bake, bakekit
 from .util import ForgeError, get_object, material, ok
 
 RECIPES = {
@@ -35,6 +35,7 @@ RECIPES = {
                 "noise_strength": 0.2, "noise_scale": 5.0, "stroke_stretch": 2.5, "roughness": 0.9},
 }
 _NEEDED = ("ao", "curvature")
+ALBEDO_NODE = "forge_albedo"
 _HUE_TURN_MAX = 0.06
 
 
@@ -62,12 +63,12 @@ def _palette(recipe, palette):
 
 
 def _linear(rgb):
-    return (*[bake._to_linear(c) for c in rgb], 1.0)
+    return (*[bakekit.to_linear(c) for c in rgb], 1.0)
 
 
 def _paint(nt, base, pal, params, uv_name, ao_image, curv_image, mapping_scale):
     """The painted colour as an Emission socket; palette colours arrive as sRGB and are linearised here."""
-    node = bake._node
+    node = bakekit.node
     uv = node(nt, "ShaderNodeUVMap", uv_map=uv_name).outputs["UV"]
     ao = node(nt, "ShaderNodeTexImage", {"Vector": uv}, image=ao_image).outputs["Color"]
     curv = node(nt, "ShaderNodeTexImage", {"Vector": uv}, image=curv_image).outputs["Color"]
@@ -95,7 +96,7 @@ def _paint(nt, base, pal, params, uv_name, ao_image, curv_image, mapping_scale):
     tint = node(nt, "ShaderNodeMath", {"Value": shade, "Value_001": 0.35}, operation="MULTIPLY").outputs["Value"]
     mix = node(nt, "ShaderNodeMix", {"Factor_Float": tint, "A_Color": turned, "B_Color": shadow}, data_type="RGBA",
                blend_type="MIX")
-    color = bake._sock(mix.outputs, "Result_Color")
+    color = bakekit.socket(mix.outputs, "Result_Color")
     cavity = node(nt, "ShaderNodeMapRange", {"Value": curv, "From Min": 0.5, "From Max": 0.0, "To Min": 0.0,
                                              "To Max": params["cavity_strength"]}).outputs["Result"]
     edge = node(nt, "ShaderNodeMapRange", {"Value": curv, "From Min": 0.5, "From Max": 1.0, "To Min": 0.0,
@@ -104,7 +105,7 @@ def _paint(nt, base, pal, params, uv_name, ao_image, curv_image, mapping_scale):
     for blend, factor, value in (("MIX", cavity, dark), ("SCREEN", edge, _linear(pal["highlight"]))):
         mix = node(nt, "ShaderNodeMix", {"Factor_Float": factor, "A_Color": color, "B_Color": value},
                    data_type="RGBA", blend_type=blend)
-        color = bake._sock(mix.outputs, "Result_Color")
+        color = bakekit.socket(mix.outputs, "Result_Color")
     if params["noise_strength"] > 0:
         coords = node(nt, "ShaderNodeTexCoord").outputs["Object"]
         mapped = node(nt, "ShaderNodeMapping", {"Vector": coords, "Scale": mapping_scale}).outputs["Vector"]
@@ -114,7 +115,7 @@ def _paint(nt, base, pal, params, uv_name, ao_image, curv_image, mapping_scale):
                                                  "To Min": 1.0 - strength, "To Max": 1.0 + strength}).outputs["Result"]
         color = node(nt, "ShaderNodeVectorMath", {"Vector": color, "Scale": stroke},
                      operation="SCALE").outputs["Vector"]
-    return bake._emission(nt, color)
+    return bakekit.emission(nt, color)
 
 
 @contextmanager
@@ -136,7 +137,7 @@ def _painted_slots(obj, pal, params, uv_name, ao_image, curv_image):
             nt = temp.node_tree
             for n in [n for n in nt.nodes if n.type != "OUTPUT_MATERIAL"]:
                 nt.nodes.remove(n)
-            out = nt.get_output_node("CYCLES") or bake._node(nt, "ShaderNodeOutputMaterial")
+            out = nt.get_output_node("CYCLES") or bakekit.node(nt, "ShaderNodeOutputMaterial")
             base = pal["base"][index % len(pal["base"])]
             nt.links.new(_paint(nt, base, pal, params, uv_name, ao_image, curv_image, scale), out.inputs["Surface"])
             slot.material = temp
@@ -150,8 +151,13 @@ def _painted_slots(obj, pal, params, uv_name, ao_image, curv_image):
             bpy.data.materials.remove(temp)
 
 
-def _final_material(obj, albedo, roughness):
-    name = "M_" + re.sub(r"^(SM|SK)_", "", bake._safe(obj.name)) + "_Stylized"
+def _material_name(obj):
+    return "M_" + re.sub(r"^(SM|SK)_", "", bakekit.safe_name(obj.name)) + "_Stylized"
+
+
+def _albedo_material(name, albedo, roughness):
+    """Get or create material `name`; its Image Texture node ALBEDO_NODE (added once) holds the PNG at `albedo` and
+    feeds the Principled BSDF's Base Color (a BSDF wired to the output is added when missing). Other nodes stay."""
     mat = material(name)
     nt = mat.node_tree
     bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
@@ -159,13 +165,22 @@ def _final_material(obj, albedo, roughness):
         bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
         out = nt.get_output_node("CYCLES") or nt.nodes.new("ShaderNodeOutputMaterial")
         nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-    tex = nt.nodes.get("forge_albedo") or nt.nodes.new("ShaderNodeTexImage")
-    tex.name = "forge_albedo"
+    tex = nt.nodes.get(ALBEDO_NODE)
+    if tex is None:
+        tex = nt.nodes.new("ShaderNodeTexImage")
+        tex.name = ALBEDO_NODE
+    elif tex.type != "TEX_IMAGE":
+        raise ForgeError(f"{mat.name} has a {tex.type} node named {ALBEDO_NODE!r}; rename it")
     image = bpy.data.images.load(str(albedo), check_existing=True)
     image.reload()
     tex.image = image
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = roughness
+    return mat
+
+
+def _final_material(obj, albedo, roughness):
+    mat = _albedo_material(_material_name(obj), albedo, roughness)
     if not obj.material_slots:
         obj.data.materials.append(mat)
     for slot in obj.material_slots:
@@ -192,7 +207,7 @@ def stylize(obj, out_dir, palette=None, recipe="stone", resolution=1024, maps=No
     if int(resolution) < 1:
         raise ForgeError("resolution must be >= 1")
     resolution = int(resolution)
-    uv_name = bake._render_uv(obj)
+    uv_name = bakekit.render_uv(obj)
     given = dict(maps or {})
     absent = [k for k in _NEEDED if k in given and not Path(given[k]).is_file()]
     if absent:
@@ -205,23 +220,23 @@ def stylize(obj, out_dir, palette=None, recipe="stone", resolution=1024, maps=No
     if missing:
         map_paths.update(bake.bake_maps(obj, out, maps=missing, resolution=resolution)["paths"])
     maps_seconds = time.perf_counter() - start
-    albedo = out / f"{bake._safe(obj.name)}_albedo.png"
+    albedo = out / f"{bakekit.safe_name(obj.name)}_albedo.png"
     scene = bpy.context.scene
     with ExitStack() as stack:
-        stack.enter_context(bake._keep_selection())
-        stack.enter_context(bake._cycles_session(scene, 16))
+        stack.enter_context(bakekit.keep_selection())
+        stack.enter_context(bakekit.cycles_session(scene, 16))
         loaded = {}
         for key in _NEEDED:
             image = bpy.data.images.load(map_paths[key], check_existing=False)
             stack.callback(bpy.data.images.remove, image)
-            bake._enum(image.colorspace_settings, "name", "Non-Color")
+            bakekit.set_enum(image.colorspace_settings, "name", "Non-Color")
             loaded[key] = image
         temps = stack.enter_context(_painted_slots(obj, pal, params, uv_name, loaded["ao"], loaded["curvature"]))
-        target = bake._new_image("forge_albedo_bake", resolution, data=False, fill=(0.0, 0.0, 0.0, 1.0))
+        target = bakekit.new_image("forge_albedo_bake", resolution, data=False, fill=(0.0, 0.0, 0.0, 1.0))
         stack.callback(bpy.data.images.remove, target)
-        with bake._target_image(temps, target):
-            bake._bake(obj, "EMIT", uv_name, margin=8)
-        bake._save_png(target, albedo)
+        with bakekit.target_image(temps, target):
+            bakekit.run_bake(obj, "EMIT", uv_name, margin=8)
+        bakekit.save_png(target, albedo)
     mat = _final_material(obj, albedo, params["roughness"])
     return ok(object=obj.name, recipe=recipe, albedo=str(albedo), material=mat.name, maps=map_paths,
               baked_maps=missing, palette=pal, resolution=resolution,
@@ -231,22 +246,18 @@ def stylize(obj, out_dir, palette=None, recipe="stone", resolution=1024, maps=No
 def apply_albedo(obj, albedo_path, material_name=None, roughness=0.85):
     """Live step after a headless stylize or projection: merge `obj` to ONE slot holding one material whose base
     colour is the PNG at `albedo_path` (sRGB) — the per-slot colours are already in the albedo, and one slot is one
-    draw call. Re-running reuses the material. Returns the material and image names and how many slots merged."""
+    draw call. material_name defaults to stylize's (M_<name without SM_/SK_>_Stylized); an existing material keeps
+    its other nodes, the image goes into its node named forge_albedo. Re-running reuses both.
+    Returns the material and image names and how many slots merged."""
     obj = get_object(obj, "MESH")
     path = Path(albedo_path)
     if not path.is_file():
         raise ForgeError(f"albedo not found: {albedo_path}")
-    image = bpy.data.images.load(str(path), check_existing=True)
-    mat = material(material_name or f"M_{obj.name}_Stylized")
-    nt = mat.node_tree
-    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
-    tex = next((n for n in nt.nodes if n.type == "TEX_IMAGE"), None) or nt.nodes.new("ShaderNodeTexImage")
-    tex.image = image
-    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    bsdf.inputs["Roughness"].default_value = roughness
+    mat = _albedo_material(material_name or _material_name(obj), path, roughness)
     merged = len(obj.material_slots)
     for poly in obj.data.polygons:
         poly.material_index = 0
     obj.data.materials.clear()  # pop() leaves material_slots stale; clear() resyncs them
     obj.data.materials.append(mat)
-    return ok(object=obj.name, material=mat.name, image=image.name, slots_merged=merged)
+    return ok(object=obj.name, material=mat.name, image=mat.node_tree.nodes[ALBEDO_NODE].image.name,
+              slots_merged=merged)

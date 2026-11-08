@@ -141,3 +141,15 @@ def test_refusals():
     assert "no area" in _refused(uv.set_texel_density, stacked, 512, 1024)
     unlinked = bpy.data.objects.new("Unlinked", crate.data.copy())
     assert "View Layer" in _refused(uv.unwrap, unlinked)
+
+
+def test_seams_and_texel_density_leave_edit_mode_first():
+    crate = fixtures.crate()
+    bpy.context.view_layer.objects.active = crate
+    bpy.ops.object.mode_set(mode="EDIT")
+    assert uv.seams_from_sharp(crate)["seams_added"] == 12 and crate.mode == "OBJECT"
+    assert sum(e.use_seam for e in crate.data.edges) == 12
+    bpy.ops.object.mode_set(mode="EDIT")
+    out = uv.set_texel_density(crate, 300, 1024)
+    assert crate.mode == "OBJECT" and abs(out["after_px_per_m"] - 300) < 1e-2, out
+    assert abs(uv.texel_density(crate, 1024)["px_per_m"] - 300) < 1e-2

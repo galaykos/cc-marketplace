@@ -51,7 +51,7 @@ if LIB not in sys.path:
     sys.path.insert(0, LIB)
 for name in [m for m in sys.modules if m == "forge" or m.startswith("forge.")]:
     del sys.modules[name]
-from forge import blockout, deform, retopo, uv, lod, collision, retarget, util
+from forge import blockout, deform, retopo, uv, lod, collision, retarget, stylize, util
 result = {"forge": LIB}
 ```
 

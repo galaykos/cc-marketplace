@@ -94,26 +94,74 @@ def test_stylize_refuses_bad_input(tmp):
     assert not list(tmp.iterdir()) and crate.material_slots[0].material.name == "M_Crate"
 
 
-def test_apply_albedo_assigns_one_textured_material_and_is_rerunnable(tmp):
-    import bpy
-    import fixtures
-    from forge import stylize as st
-    crate = fixtures.crate()
-    crate.data.materials.append(bpy.data.materials.new("Second"))
+def _albedo_png(tmp):
     img = bpy.data.images.new("alb", 8, 8)
     img.filepath_raw = str(tmp / "alb.png")
     img.file_format = "PNG"
     img.save()
-    first = st.apply_albedo(crate, tmp / "alb.png")
-    again = st.apply_albedo(crate, tmp / "alb.png")
-    assert first["material"] == again["material"] == "M_SM_Crate_Stylized"
-    assert [s.material.name for s in crate.material_slots] == ["M_SM_Crate_Stylized"]
+    return tmp / "alb.png"
+
+
+def _base_color_source(mat):
+    bsdf = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+    return bsdf.inputs["Base Color"].links[0].from_node
+
+
+def test_apply_albedo_assigns_one_textured_material_and_is_rerunnable(tmp):
+    crate = fixtures.crate()
+    crate.data.materials.append(bpy.data.materials.new("Second"))
+    png = _albedo_png(tmp)
+    first = stylize.apply_albedo(crate, png)
+    again = stylize.apply_albedo(crate, png)
+    assert first["material"] == again["material"] == "M_Crate_Stylized"
+    assert [s.material.name for s in crate.material_slots] == ["M_Crate_Stylized"]
     assert first["slots_merged"] == 2 and {p.material_index for p in crate.data.polygons} == {0}
     tex = [n for n in crate.material_slots[0].material.node_tree.nodes if n.type == "TEX_IMAGE"]
-    assert len(tex) == 1 and tex[0].image.filepath.endswith("alb.png")
+    assert len(tex) == 1 and tex[0].name == "forge_albedo" and tex[0].image.filepath.endswith("alb.png")
     try:
-        st.apply_albedo(crate, tmp / "missing.png")
-    except st.ForgeError:
+        stylize.apply_albedo(crate, tmp / "missing.png")
+    except util.ForgeError:
         pass
     else:
         raise AssertionError("missing albedo accepted")
+
+
+def test_apply_albedo_leaves_other_image_nodes_alone_and_adds_a_missing_bsdf(tmp):
+    png = _albedo_png(tmp)
+    crate = fixtures.crate()
+    hero = bpy.data.materials.new("M_Hero")
+    nt = hero.node_tree
+    normal_img = bpy.data.images.new("hero_normal", 4, 4, is_data=True)
+    normal_tex = nt.nodes.new("ShaderNodeTexImage")
+    normal_tex.image = normal_img
+    normal_map = nt.nodes.new("ShaderNodeNormalMap")
+    nt.links.new(normal_tex.outputs["Color"], normal_map.inputs["Color"])
+    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    nt.links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
+    crate.material_slots[0].material = hero
+    out = stylize.apply_albedo(crate, png, material_name="M_Hero")
+    assert out["material"] == "M_Hero" and out["image"] != "hero_normal"
+    assert normal_tex.image == normal_img and [lk.to_node for lk in normal_tex.outputs["Color"].links] == [normal_map]
+    albedo = _base_color_source(hero)
+    assert albedo.name == "forge_albedo" and albedo.image.filepath.endswith("alb.png")
+    assert sum(n.type == "TEX_IMAGE" for n in nt.nodes) == 2
+
+    glow = bpy.data.materials.new("M_Glow")
+    nt = glow.node_tree
+    for n in [n for n in nt.nodes if n.type != "OUTPUT_MATERIAL"]:
+        nt.nodes.remove(n)
+    output = nt.get_output_node("CYCLES")
+    nt.links.new(nt.nodes.new("ShaderNodeEmission").outputs["Emission"], output.inputs["Surface"])
+    stylize.apply_albedo(crate, png, material_name="M_Glow")
+    assert sum(n.type == "BSDF_PRINCIPLED" for n in nt.nodes) == 1
+    assert output.inputs["Surface"].links[0].from_node.type == "BSDF_PRINCIPLED"
+    assert _base_color_source(glow).name == "forge_albedo"
+
+    odd = bpy.data.materials.new("M_Odd")
+    odd.node_tree.nodes.new("ShaderNodeMix").name = "forge_albedo"
+    try:
+        stylize.apply_albedo(crate, png, material_name="M_Odd")
+    except util.ForgeError as exc:
+        assert "rename it" in str(exc), exc
+    else:
+        raise AssertionError("a non-image forge_albedo node was accepted")

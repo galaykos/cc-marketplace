@@ -10,6 +10,23 @@ OUT = ROOT / "skills" / "pipeline" / "references" / "forge-api.md"
 ORDER = ["blockout", "deform", "retopo", "uv", "lod", "collision", "retarget", "util",
          "bake", "stylize", "project_paint", "review_renders", "validate", "export"]
 LIVE = {"blockout", "deform", "retopo", "uv", "lod", "collision", "retarget", "util"}
+LIVE_FUNCTIONS = {"stylize.apply_albedo"}
+ABBREVIATIONS = ("e.g.", "i.e.", "etc.", "vs.")
+
+
+def first_sentence(doc):
+    """The docstring's first sentence without its full stop: ends at '. ' outside brackets and abbreviations."""
+    text = doc.strip().split("\n\n")[0].replace("\n", " ")
+    depth = 0
+    for i, ch in enumerate(text):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth = max(0, depth - 1)
+        elif (ch == "." and depth == 0 and text[i + 1:i + 2] in ("", " ")
+              and not text[:i + 1].endswith(ABBREVIATIONS)):
+            return text[:i]
+    return text.rstrip(".")
 
 
 def render():
@@ -22,8 +39,11 @@ def render():
         out += [f"## {name} ({'live' if name in LIVE else 'headless, via the MCP tools'})", ""]
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and not node.name.startswith("_"):
-                doc = (ast.get_docstring(node) or "").strip().split("\n\n")[0].replace("\n", " ")
-                out.append(f"- `{node.name}({ast.unparse(node.args)})` — {doc.split('. ')[0].rstrip('.')}.")
+                line = f"- `{node.name}({ast.unparse(node.args)})`"
+                if f"{name}.{node.name}" in LIVE_FUNCTIONS:
+                    line += " (live)"
+                doc = first_sentence(ast.get_docstring(node) or "")
+                out.append(f"{line} — {doc}." if doc else line)
         out.append("")
     return "\n".join(out)
 

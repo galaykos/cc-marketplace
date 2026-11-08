@@ -10,16 +10,17 @@ Falloff kernels, with t = distance / radius; the weight is 0 wherever t >= 1:
     sharp     (1 - t)^2
     linear    1 - t
     constant  1
-symmetry "X" / "Y" / "Z" adds the same edit mirrored across the object's local YZ / XZ / XY plane. Both halves are
-computed from the same starting positions, so a symmetric mesh stays symmetric. mask names a vertex group whose weights
-multiply the effect; vertices outside the group do not move."""
+symmetry "X" / "Y" / "Z" mirrors the edit across the object's local YZ / XZ / XY plane: each vertex takes the edit from
+its own side (the original on the centre's side, the mirrored one on the other, their mean on the plane), so an edit
+at the plane moves vertices as far as without symmetry, and a symmetric mesh stays symmetric. mask names a vertex group
+whose weights multiply the effect; vertices outside the group do not move."""
 import random
 
 import bpy
 import numpy as np
 from mathutils import Vector, noise
 
-from .util import ForgeError, ensure_object_mode, get_object, ok
+from .util import ForgeError, ensure_object_mode, get_object, ok, positive
 
 FALLOFFS = {
     "smooth": lambda t: 1.0 - t * t * (3.0 - 2.0 * t),
@@ -29,6 +30,7 @@ FALLOFFS = {
     "constant": lambda t: np.ones_like(t),
 }
 SYMMETRY_AXES = {"X": 0, "Y": 1, "Z": 2}
+MAX_DABS = 1000
 
 
 class _Mesh:
@@ -134,12 +136,6 @@ def _points(value, what, minimum=2):
     return arr
 
 
-def _positive(value, what):
-    if not value > 0:
-        raise ForgeError(f"{what} must be > 0, got {value!r}")
-    return float(value)
-
-
 def _check_shared(falloff, symmetry):
     if falloff not in FALLOFFS:
         raise ForgeError(f"falloff {falloff!r} is not one of {sorted(FALLOFFS)}")
@@ -160,52 +156,58 @@ def _point_weights(state, center, radius, falloff):
     return _kernel(np.linalg.norm(state.world - center, axis=1), radius, falloff)
 
 
-def _symmetric(state, axis, field, *args):
-    """field(*values) plus, with symmetry, field on the mirrored values; each arg is (value, kind), kind one of
-    point / vector / normal / points / plane."""
-    total = field(*(value for value, _ in args))
+def _mirrored(state, axis, value, kind):
+    if kind == "point":
+        return state.mirror_point(value, axis)
+    if kind == "vector":
+        return state.mirror_vector(value, axis)
+    if kind == "normal":
+        return None if value is None else state.mirror_normal(value, axis)
+    if kind == "points":
+        return np.array([state.mirror_point(p, axis) for p in value])
+    return None if value is None else (state.mirror_point(value[0], axis), state.mirror_normal(value[1], axis))
+
+
+def _symmetric(state, axis, anchor, field, *args):
+    """field(*values), or with symmetry one field per vertex: field on the values for vertices on world point
+    `anchor`'s side of the local plane, field on the mirrored values on the other side, their mean on the plane.
+    Each arg is (value, kind), kind one of point / vector / normal / points / plane."""
+    direct = field(*(value for value, _ in args))
     if axis is None:
-        return total
-    mirrored = []
-    for value, kind in args:
-        if kind == "point":
-            value = state.mirror_point(value, axis)
-        elif kind == "vector":
-            value = state.mirror_vector(value, axis)
-        elif kind == "normal":
-            value = None if value is None else state.mirror_normal(value, axis)
-        elif kind == "points":
-            value = np.array([state.mirror_point(p, axis) for p in value])
-        elif kind == "plane":
-            value = None if value is None else (state.mirror_point(value[0], axis), state.mirror_normal(value[1], axis))
-        mirrored.append(value)
-    return total + field(*mirrored)
+        return direct
+    mirrored = field(*(_mirrored(state, axis, value, kind) for value, kind in args))
+    side = 1.0 if (state.inv @ (np.asarray(anchor, float) - state.trans))[axis] >= 0 else -1.0
+    offset = state.local[:, axis] * side
+    tolerance = 1e-6 * float(np.abs(state.local).max())
+    own = (offset > tolerance)[:, None]
+    other = (offset < -tolerance)[:, None]
+    return np.where(own, direct, np.where(other, mirrored, 0.5 * (direct + mirrored)))
 
 
 def grab(obj, center, radius, offset, falloff="smooth", symmetry=None, mask=None):
     """Move vertices within `radius` metres of world `center` by world `offset` (metres) scaled by the falloff.
     Returns ok(verts_moved, max_displacement)."""
     axis = _check_shared(falloff, symmetry)
-    center, offset, radius = _vec3(center, "center"), _vec3(offset, "offset"), _positive(radius, "radius")
+    center, offset, radius = _vec3(center, "center"), _vec3(offset, "offset"), positive(radius, "radius")
     state = _Mesh(obj, mask)
 
     def field(c, off):
         return _point_weights(state, c, radius, falloff)[:, None] * off
 
-    return state.commit(_symmetric(state, axis, field, (center, "point"), (offset, "vector")))
+    return state.commit(_symmetric(state, axis, center, field, (center, "point"), (offset, "vector")))
 
 
 def inflate(obj, center, radius, amount, falloff="smooth", symmetry=None, mask=None):
     """Push vertices within `radius` metres of world `center` along their normals by `amount` metres (negative
     deflates) scaled by the falloff. Returns ok(verts_moved, max_displacement)."""
     axis = _check_shared(falloff, symmetry)
-    center, radius = _vec3(center, "center"), _positive(radius, "radius")
+    center, radius = _vec3(center, "center"), positive(radius, "radius")
     state = _Mesh(obj, mask)
 
     def field(c):
         return (_point_weights(state, c, radius, falloff) * float(amount))[:, None] * state.normals
 
-    return state.commit(_symmetric(state, axis, field, (center, "point")))
+    return state.commit(_symmetric(state, axis, center, field, (center, "point")))
 
 
 def pinch(obj, center, radius, strength, falloff="smooth", symmetry=None, mask=None):
@@ -213,7 +215,7 @@ def pinch(obj, center, radius, strength, falloff="smooth", symmetry=None, mask=N
     the vertex normal is dropped). strength in [-1, 1]: the fraction of the tangential distance covered at full
     weight; negative pushes away. Returns ok(verts_moved, max_displacement)."""
     axis = _check_shared(falloff, symmetry)
-    center, radius = _vec3(center, "center"), _positive(radius, "radius")
+    center, radius = _vec3(center, "center"), positive(radius, "radius")
     if not -1.0 <= strength <= 1.0:
         raise ForgeError(f"strength must be in [-1, 1], got {strength!r}")
     state = _Mesh(obj, mask)
@@ -224,7 +226,7 @@ def pinch(obj, center, radius, strength, falloff="smooth", symmetry=None, mask=N
         tangent = pull - np.sum(pull * n, axis=1)[:, None] * n
         return (_point_weights(state, c, radius, falloff) * float(strength))[:, None] * tangent
 
-    return state.commit(_symmetric(state, axis, field, (center, "point")))
+    return state.commit(_symmetric(state, axis, center, field, (center, "point")))
 
 
 def flatten(obj, center, radius, plane=None, strength=1.0, falloff="smooth", symmetry=None, mask=None):
@@ -232,7 +234,7 @@ def flatten(obj, center, radius, plane=None, strength=1.0, falloff="smooth", sym
     scaled by the falloff. plane: (point, normal) in world space; None fits it to the affected vertices (weighted mean
     position, weighted mean normal). Returns ok(verts_moved, max_displacement)."""
     axis = _check_shared(falloff, symmetry)
-    center, radius = _vec3(center, "center"), _positive(radius, "radius")
+    center, radius = _vec3(center, "center"), positive(radius, "radius")
     if not 0.0 <= strength <= 1.0:
         raise ForgeError(f"strength must be in [0, 1], got {strength!r}")
     if plane is not None:
@@ -256,7 +258,7 @@ def flatten(obj, center, radius, plane=None, strength=1.0, falloff="smooth", sym
         height = (state.world - co) @ no
         return -(w * float(strength) * height)[:, None] * no
 
-    return state.commit(_symmetric(state, axis, field, (center, "point"), (plane, "plane")))
+    return state.commit(_symmetric(state, axis, center, field, (center, "point"), (plane, "plane")))
 
 
 def _polyline(points, world):
@@ -288,7 +290,7 @@ def crease_along_curve(obj, curve_points, width, depth, sharpness=2.0, falloff="
     narrows the V. Returns ok(verts_moved, max_displacement)."""
     axis = _check_shared(falloff, symmetry)
     points = _points(curve_points, "curve_points")
-    width, sharpness = _positive(width, "width"), _positive(sharpness, "sharpness")
+    width, sharpness = positive(width, "width"), positive(sharpness, "sharpness")
     state = _Mesh(obj, mask)
 
     def field(pts):
@@ -296,7 +298,7 @@ def crease_along_curve(obj, curve_points, width, depth, sharpness=2.0, falloff="
         w = _kernel(dist, width, falloff) ** sharpness
         return -(w * float(depth))[:, None] * state.normals
 
-    return state.commit(_symmetric(state, axis, field, (points, "points")))
+    return state.commit(_symmetric(state, axis, points.mean(axis=0), field, (points, "points")))
 
 
 def bulge_along_curve(obj, curve_points, radius_profile, amount, falloff="smooth", symmetry=None, mask=None):
@@ -315,7 +317,7 @@ def bulge_along_curve(obj, curve_points, radius_profile, amount, falloff="smooth
         w = _kernel(dist, _profile(radii, s, "radius_profile"), falloff)
         return (w * float(amount))[:, None] * state.normals
 
-    return state.commit(_symmetric(state, axis, field, (points, "points")))
+    return state.commit(_symmetric(state, axis, points.mean(axis=0), field, (points, "points")))
 
 
 def smooth(obj, iterations=1, factor=0.5, mask=None):
@@ -347,7 +349,7 @@ def noise_displace(obj, scale, strength, octaves=3, seed=0, mask=None):
     """Displace every vertex along its normal by fractal Perlin noise (mathutils.noise.fractal) sampled at its world
     position. scale: feature size in metres; strength: metres at a noise value of 1 (the sum is normalised by its
     octave weights, so values stay near [-1, 1]). Same seed, same result. Returns ok(verts_moved, max_displacement)."""
-    scale = _positive(scale, "scale")
+    scale = positive(scale, "scale")
     if int(octaves) != octaves or octaves < 1:
         raise ForgeError(f"octaves must be a whole number >= 1, got {octaves!r}")
     state = _Mesh(obj, mask)
@@ -369,8 +371,8 @@ def stroke(obj, path_points, op, radius_profile, strength_profile, spacing=None,
     like a sculpt stroke. radius_profile (metres) and strength_profile are interpolated by arc length; the strength
     value becomes inflate's amount (metres), pinch's or flatten's strength, or scales grab's `offset` (pass offset in
     op_kwargs). spacing None: a quarter of the smallest radius. Dabs accumulate, so a tighter spacing gives a stronger
-    stroke. Other op_kwargs (falloff, symmetry, mask, plane) pass through. Returns ok(verts_moved, max_displacement,
-    dabs) measured over the whole stroke."""
+    stroke; more than MAX_DABS dabs is refused. Other op_kwargs (falloff, symmetry, mask, plane) pass through. Returns
+    ok(verts_moved, max_displacement, dabs) measured over the whole stroke."""
     if op not in STROKE_OPS:
         raise ForgeError(f"op {op!r} is not one of {sorted(STROKE_OPS)}")
     fn, strength_key = STROKE_OPS[op]
@@ -389,11 +391,14 @@ def stroke(obj, path_points, op, radius_profile, strength_profile, spacing=None,
     low, high = STROKE_LIMITS.get(op, (-np.inf, np.inf))
     if strengths.min() < low or strengths.max() > high:
         raise ForgeError(f"{op} strength_profile values must be in [{low}, {high}]")
-    spacing = _positive(spacing, "spacing") if spacing is not None else 0.25 * float(radii.min())
+    spacing = positive(spacing, "spacing") if spacing is not None else 0.25 * float(radii.min())
     seg_len = np.linalg.norm(np.diff(points, axis=0), axis=1)
     start = np.concatenate([[0.0], np.cumsum(seg_len)])
     total = start[-1]
     n_dabs = int(np.floor(total / spacing)) + 1 if total > 0 else 1
+    if n_dabs > MAX_DABS:
+        raise ForgeError(f"a {total:.3g} m path at {spacing:.3g} m spacing needs {n_dabs} dabs (limit {MAX_DABS}); "
+                         f"pass a larger spacing or radius")
     distances = np.linspace(0.0, total, n_dabs) if n_dabs > 1 else np.zeros(1)
     s = distances / total if total > 0 else distances
     centers = np.stack([np.interp(distances, start, points[:, k]) for k in range(3)], axis=1)
@@ -412,14 +417,14 @@ def stroke(obj, path_points, op, radius_profile, strength_profile, spacing=None,
 
 def experimental_brush_stroke(obj, path_points, pressure=1.0, mode="NORMAL"):
     """EXPERIMENTAL: run the active sculpt brush along a world-space path with a real sculpt-mode stroke
-    (bpy.ops.sculpt.brush_stroke) in the first visible 3D View, then return to the previous mode. mode: the operator's
-    stroke mode ("NORMAL" or "INVERT", checked against the operator at run time). Needs a UI: raises
-    ForgeError(stage="headless") under `blender -b`; use stroke() there. Returns ok(verts_moved, max_displacement)."""
+    (bpy.ops.sculpt.brush_stroke) in the first visible 3D View, then give the active object back its mode from before
+    the call. mode: the operator's stroke mode ("NORMAL" or "INVERT", checked against the operator at run time).
+    Needs a UI: raises ForgeError(stage="headless") under `blender -b`; use stroke() there.
+    Returns ok(verts_moved, max_displacement)."""
     if bpy.app.background:
         raise ForgeError("sculpt brush strokes need a 3D View; use deform.stroke() under blender -b", stage="headless")
     from bpy_extras import view3d_utils
 
-    state = _Mesh(obj)
     points = _points(path_points, "path_points", minimum=1)
     modes = {i.identifier for i in bpy.ops.sculpt.brush_stroke.get_rna_type().properties["mode"].enum_items}
     if mode not in modes:
@@ -431,28 +436,34 @@ def experimental_brush_stroke(obj, path_points, pressure=1.0, mode="NORMAL"):
     window, area = view
     region = next(r for r in area.regions if r.type == "WINDOW")
     rv3d = area.spaces.active.region_3d
-    elements = []
-    for i, p in enumerate(points):
-        xy = view3d_utils.location_3d_to_region_2d(region, rv3d, Vector(p))
-        if xy is None:
-            raise ForgeError(f"path point {list(p)} is behind the view")
-        elements.append({"name": "", "location": tuple(p), "mouse": tuple(xy), "mouse_event": tuple(xy),
-                         "pressure": float(pressure), "x_tilt": 0.0, "y_tilt": 0.0, "time": float(i),
-                         "is_start": i == 0})
     view_layer = bpy.context.view_layer
-    previous_active, previous_mode = view_layer.objects.active, state.obj.mode
-    view_layer.objects.active = state.obj
+    previous_active = view_layer.objects.active
+    previous_mode = previous_active.mode if previous_active is not None else "OBJECT"
+    state = _Mesh(obj)
     try:
+        elements = []
+        for i, p in enumerate(points):
+            xy = view3d_utils.location_3d_to_region_2d(region, rv3d, Vector(p))
+            if xy is None:
+                raise ForgeError(f"path point {list(p)} is behind the view")
+            elements.append({"name": "", "location": tuple(p), "mouse": tuple(xy), "mouse_event": tuple(xy),
+                             "pressure": float(pressure), "x_tilt": 0.0, "y_tilt": 0.0, "time": float(i),
+                             "is_start": i == 0})
+        view_layer.objects.active = state.obj
         with bpy.context.temp_override(window=window, area=area, region=region, object=state.obj,
                                        active_object=state.obj):
             bpy.ops.object.mode_set(mode="SCULPT")
             try:
                 bpy.ops.sculpt.brush_stroke(stroke=elements, mode=mode)
             finally:
-                bpy.ops.object.mode_set(mode=previous_mode)
+                bpy.ops.object.mode_set(mode="OBJECT")
+        after = np.empty(len(state.local) * 3)
+        state.mesh.vertices.foreach_get("co", after)
+        delta = np.linalg.norm((after.reshape(-1, 3) - state.local) @ state.lin.T, axis=1)
     finally:
         view_layer.objects.active = previous_active
-    after = np.empty(len(state.local) * 3)
-    state.mesh.vertices.foreach_get("co", after)
-    delta = np.linalg.norm((after.reshape(-1, 3) - state.local) @ state.lin.T, axis=1)
+        if previous_active is not None and previous_mode != "OBJECT":
+            with bpy.context.temp_override(window=window, area=area, region=region, object=previous_active,
+                                           active_object=previous_active):
+                bpy.ops.object.mode_set(mode=previous_mode)
     return ok(verts_moved=int((delta > 0).sum()), max_displacement=float(delta.max()))

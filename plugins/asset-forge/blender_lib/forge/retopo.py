@@ -10,7 +10,8 @@ import numpy as np
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
-from .util import ForgeError, apply_transforms, ensure_object_mode, evaluated_bmesh, get_object, ok, settable_enum
+from .util import (ForgeError, apply_transforms, ensure_object_mode, evaluated_bmesh, get_object, ok, positive,
+                   settable_enum)
 
 MAX_VOXEL_FACES = 5_000_000
 DECIMATE_TOLERANCE = 0.10
@@ -32,7 +33,9 @@ def _solo_modifier(obj, kind, **settings):
     shown = [m for m in obj.modifiers if m != mod and m.show_viewport]
     try:
         for key, value in settings.items():
-            prop = mod.bl_rna.properties[key]
+            prop = mod.bl_rna.properties.get(key)
+            if prop is None:
+                raise ForgeError(f"the {kind} modifier has no setting {key!r}")
             if prop.type == "ENUM" and not prop.is_enum_flag and settable_enum(mod, key, [value]) is None:
                 raise ForgeError(f"the {kind} modifier has no {key} {value!r} here", stage="blender")
             setattr(mod, key, value)
@@ -52,22 +55,21 @@ def _write(obj, bm):
     bm.free()
 
 
-def _bake_modifier(obj, kind, **settings):
-    """Bake one new `kind` modifier into obj's mesh as if it were first in the stack; other modifiers stay put."""
-    with _solo_modifier(obj, kind, **settings):
-        bm = evaluated_bmesh(obj)
-    _write(obj, bm)
-
-
 def _counts(obj):
     mesh = obj.data
     return len(mesh.vertices), len(mesh.polygons), sum(p.loop_total - 2 for p in mesh.polygons)
 
 
-def _positive(value, what):
-    if not value > 0:
-        raise ForgeError(f"{what} must be > 0, got {value!r}")
-    return value
+def bake_modifier(obj, kind, **settings):
+    """Bake one new `kind` modifier (a Modifier type such as "SKIN" or "SUBSURF", `settings` its properties) into
+    obj's mesh as if it were first in the stack; the existing modifiers stay as they are. Distances in `settings` are
+    the modifier's own, in obj's local units. Returns ok(object, modifier, verts, faces) after the bake."""
+    obj = get_object(obj, "MESH")
+    with _solo_modifier(obj, kind, **settings):
+        bm = evaluated_bmesh(obj)
+    _write(obj, bm)
+    verts, faces, _ = _counts(obj)
+    return ok(object=obj.name, modifier=kind, verts=verts, faces=faces)
 
 
 def voxel_remesh(obj, voxel_size):
@@ -75,7 +77,7 @@ def voxel_remesh(obj, voxel_size):
     space, converted with the object's mean scale (non-uniform scale gives non-cubic voxels). UVs do not survive.
     Refuses when the estimated output exceeds MAX_VOXEL_FACES. Returns ok(verts/faces before and after)."""
     obj = get_object(obj, "MESH")
-    voxel_size = float(_positive(voxel_size, "voxel_size"))
+    voxel_size = positive(voxel_size, "voxel_size")
     bpy.context.view_layer.update()
     scale = abs(np.linalg.det(np.array(obj.matrix_world)[:3, :3])) ** (1.0 / 3.0)
     if scale == 0:
@@ -87,7 +89,7 @@ def voxel_remesh(obj, voxel_size):
         raise ForgeError(f"voxel_size {voxel_size} m would give about {int(estimate)} faces "
                          f"(limit {MAX_VOXEL_FACES}); use a larger voxel")
     verts, faces, _ = _counts(obj)
-    _bake_modifier(obj, "REMESH", mode="VOXEL", voxel_size=voxel_size / scale)
+    bake_modifier(obj, "REMESH", mode="VOXEL", voxel_size=voxel_size / scale)
     verts_after, faces_after, _ = _counts(obj)
     if faces_after == 0:
         raise ForgeError(f"voxel remesh of {obj.name} produced no faces; is the mesh closed and larger than "
@@ -210,7 +212,7 @@ def shrinkwrap_lowpoly(high, low, offset=0.0):
     bpy.context.view_layer.update()
     tree = _world_bvh(high)
     before = _distances(tree, low)
-    _bake_modifier(low, "SHRINKWRAP", target=high, offset=float(offset))
+    bake_modifier(low, "SHRINKWRAP", target=high, offset=float(offset))
     after = _distances(tree, low)
     return ok(object=low.name, target=high.name, verts=len(after), mean_distance_before=float(before.mean()),
               mean_distance_after=float(after.mean()), max_distance_after=float(after.max()))

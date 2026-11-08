@@ -1,51 +1,17 @@
 """Level-of-detail chains: collapse-decimated copies of a mesh at ratios of its triangle count, named per engine.
 Triangle counts are evaluated (modifiers applied); bounding boxes are world space, metres."""
-import re
-
 import bmesh
 import bpy
 
-from .util import ForgeError, get_object, load_preset, ok, settable_enum, tri_count, world_bbox
+from mathutils.bvhtree import BVHTree
+
+from .naming import format_name, lod0_base, lod_objects
+from .util import (ForgeError, ensure_object_mode, evaluated_bmesh, get_object, load_preset, ok, settable_enum,
+                   tri_count, world_bbox)
 from .uv import _uv_split
 
 PROTECT_GROUP = "FORGE_lod_protect"
 SILHOUETTE_TOLERANCE = 0.02
-
-
-def _name_regex(pattern, **fixed):
-    """Regex for a preset naming pattern; placeholders not in `fixed` become groups ({name} any text, {n} digits,
-    {nn} two or more digits)."""
-    groups = {"name": r"(?P<name>.+)", "n": r"(?P<n>\d+)", "nn": r"(?P<nn>\d{2,})"}
-    out = re.escape(pattern)
-    for key, group in groups.items():
-        out = out.replace(re.escape("{" + key + "}"), re.escape(str(fixed[key])) if key in fixed else group)
-    return re.compile(out)
-
-
-def _lod_name(pattern, name, n):
-    return pattern.replace("{name}", name).replace("{n}", str(n))
-
-
-def _base_name(obj_name, pattern):
-    match = _name_regex(pattern).fullmatch(obj_name)
-    if match is None:
-        return obj_name
-    if int(match["n"]) != 0:
-        raise ForgeError(f"{obj_name} is LOD{match['n']}; build the chain from LOD0")
-    return match["name"]
-
-
-def _lod_objects(base, pattern):
-    """{n: object} for every object named as a LOD of `base` under `pattern`."""
-    regex = _name_regex(pattern, name=base)
-    found = {}
-    for o in bpy.data.objects:
-        match = regex.fullmatch(o.name)
-        if match:
-            found[int(match["n"])] = o
-    return found
-
-
 PROTECT_ALL = ("seams", "sharp", "boundary")
 
 
@@ -123,13 +89,37 @@ def _bbox_deviation(ref_lo, ref_hi, obj):
     return max(max(abs(a - b) for a, b in zip(lo, ref_lo)), max(abs(a - b) for a, b in zip(hi, ref_hi))) / size
 
 
+def _world_surface(obj):
+    """(BVH tree, sample points) of obj's evaluated mesh in world space; the samples are its vertices and face centres."""
+    bm = evaluated_bmesh(obj)
+    bm.transform(obj.matrix_world)
+    tree = BVHTree.FromBMesh(bm)
+    samples = [v.co.copy() for v in bm.verts] + [f.calc_center_median() for f in bm.faces]
+    bm.free()
+    return tree, samples
+
+
+def _surface_deviation(ref, obj, size):
+    """Largest distance from either surface's samples to the other surface, as a fraction of `size`."""
+    if size <= 0:
+        return 0.0
+    ref_tree, ref_samples = ref
+    tree, samples = _world_surface(obj)
+    far = max([ref_tree.find_nearest(p)[3] for p in samples] + [tree.find_nearest(p)[3] for p in ref_samples],
+              default=0.0)
+    return far / size
+
+
 def make_lod_chain(obj, ratios=None, engine="unity", platform="pc", protect=PROTECT_ALL):
     """Build LOD1+ as collapse-decimated copies of obj at each ratio of LOD0's evaluated triangle count. obj becomes
     LOD0 and is renamed per the engine preset's naming.lod. Vertices on UV seams, sharp-marked and boundary edges
     are locked; `protect` narrows that to a subset of ("seams", "sharp", "boundary") — a hard-surface mesh whose every
     edge is a seam locks every vertex, so pass ("boundary",) there. A level that would not reduce the previous one is
     not built and is listed in `skipped`. ratios default to budgets/<platform>.json lod_ratios and must start at
-    1.0. Re-running replaces the chain. Returns per-LOD tris, achieved ratio and bbox deviation (fraction of LOD0's largest dimension)."""
+    1.0. Re-running replaces the chain; Edit Mode is left first. Returns per-LOD tris, achieved ratio, bbox deviation
+    and surface deviation (world space, fractions of LOD0's largest dimension; the surface one is the farthest vertex or
+    face centre of either mesh from the other's surface), and silhouette_ok when every surface deviation is within
+    SILHOUETTE_TOLERANCE."""
     obj = get_object(obj, "MESH")
     preset = load_preset("engines", engine)
     pattern = preset["naming"]["lod"]
@@ -137,16 +127,20 @@ def make_lod_chain(obj, ratios=None, engine="unity", platform="pc", protect=PROT
     if ratios is None:
         ratios, source = load_preset("budgets", platform)["lod_ratios"], f"budgets/{platform}.json"
     ratios = _check_ratios(ratios)
-    base = _base_name(obj.name, pattern)
-    lod0_name = _lod_name(pattern, base, 0)
+    unknown = set(protect) - set(PROTECT_ALL)
+    if unknown:
+        raise ForgeError(f"protect takes a subset of {PROTECT_ALL}, got {sorted(unknown)}")
+    base = lod0_base(obj.name, pattern)
+    lod0_name = format_name(pattern, base, 0)
     clash = bpy.data.objects.get(lod0_name)
     if clash is not None and clash is not obj:
         raise ForgeError(f"another object is already named {lod0_name}; rename it or pass it instead")
+    ensure_object_mode()
     lod0_tris = tri_count(obj)
     if lod0_tris == 0:
         raise ForgeError(f"{obj.name} has no faces to decimate")
     removed = []
-    for n, stale in sorted(_lod_objects(base, pattern).items()):
+    for n, stale in sorted(lod_objects(base, pattern).items()):
         if n == 0:
             continue
         removed.append(stale.name)
@@ -157,15 +151,15 @@ def make_lod_chain(obj, ratios=None, engine="unity", platform="pc", protect=PROT
     obj.name = lod0_name
     bpy.context.view_layer.update()
     ref_lo, ref_hi = world_bbox(obj)
-    unknown = set(protect) - set(PROTECT_ALL)
-    if unknown:
-        raise ForgeError(f"protect takes a subset of {PROTECT_ALL}, got {sorted(unknown)}")
+    size = max(ref_hi - ref_lo)
+    ref_surface = _world_surface(obj)
     protected, total = _protected_vertices(obj, tuple(protect))
-    lods = [{"name": obj.name, "ratio": 1.0, "tris": lod0_tris, "achieved_ratio": 1.0, "bbox_deviation": 0.0}]
+    lods = [{"name": obj.name, "ratio": 1.0, "tris": lod0_tris, "achieved_ratio": 1.0, "bbox_deviation": 0.0,
+             "surface_deviation": 0.0}]
     skipped = []
     n = 0
     for ratio in ratios[1:]:
-        lod = _decimated_copy(obj, _lod_name(pattern, base, n + 1), ratio, protected)
+        lod = _decimated_copy(obj, format_name(pattern, base, n + 1), ratio, protected)
         bpy.context.view_layer.update()
         tris = tri_count(lod)
         if tris >= lods[-1]["tris"]:
@@ -180,9 +174,10 @@ def make_lod_chain(obj, ratios=None, engine="unity", platform="pc", protect=PROT
         achieved = tris / lod0_tris
         lods.append({"name": lod.name, "ratio": ratio, "tris": tris, "achieved_ratio": round(achieved, 4),
                      "bbox_deviation": round(_bbox_deviation(ref_lo, ref_hi, lod), 5),
+                     "surface_deviation": round(_surface_deviation(ref_surface, lod, size), 5),
                      "limited_by_protection": achieved > ratio * 1.05 + 1 / lod0_tris})
     lod_rules = preset.get("lod", {})
     return ok(object=obj.name, base_name=base, engine=engine, ratios=ratios, ratios_from=source, lods=lods,
               protected_verts=len(protected), total_verts=total, protect=list(protect), skipped=skipped,
-              silhouette_ok=all(entry["bbox_deviation"] <= SILHOUETTE_TOLERANCE for entry in lods),
+              silhouette_ok=all(entry["surface_deviation"] <= SILHOUETTE_TOLERANCE for entry in lods),
               lod_export=lod_rules.get("export"), lod_note=lod_rules.get("note"), removed=removed)

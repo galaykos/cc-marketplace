@@ -2,6 +2,8 @@
 motion, loop, trim, NLA naming. Frames are scene frames; locations are Blender units (metres at Unit Scale 1.0);
 bonemap angles are degrees. Blender 5.x Actions keep F-curves in a channelbag per slot, read through anim_utils."""
 import math
+import re
+import string
 from collections import defaultdict
 from contextlib import contextmanager
 
@@ -71,8 +73,9 @@ def retarget(source_rig, target_rig, bonemap, action=None, frame_range=None, use
     Bones in use_location_for ("root" = the bonemap root pair, or a source/target bone name) also copy the source
     bone's world travel from its rest position, in metres, unscaled. Temporary constraints do the mapping; the pose
     is baked with visual keying, one key per whole frame over frame_range (default: the action's range), into the
-    action "<target>_<action>" (reused when it exists), which becomes the target's active action; the constraints
-    are removed. Pairs with a bone missing on either rig are skipped and listed.
+    action "<target>_<action>", which becomes the target's active action; the constraints are removed. An existing
+    action of that name keeps its users and gets the new keys only once the bake succeeds: a failed bake leaves the
+    target's action as it was. Pairs with a bone missing on either rig are skipped and listed.
     Returns ok(action, frame_range, frames, keyed_bones, skipped, unmapped_source, unmapped_target,
     rest_offset_deg, location_bones, constraints_removed, warnings)."""
     src = util.get_object(source_rig, "ARMATURE")
@@ -87,28 +90,8 @@ def retarget(source_rig, target_rig, bonemap, action=None, frame_range=None, use
     if clip is None:
         raise ForgeError(f"{src.name} has no active action; pass action=")
     start, end = _frames(clip, frame_range)
-
-    pairs, skipped = [], []
-    for s_name, entry in bm["bones"].items():
-        missing = [side for side, rig, name in (("source", src, s_name), ("target", tgt, entry["target"]))
-                   if name not in rig.pose.bones]
-        if missing:
-            skipped.append({"source": s_name, "target": entry["target"], "missing": missing})
-        else:
-            pairs.append((s_name, entry["target"], entry))
-    if not pairs:
-        raise ForgeError(f"no bonemap pair has both bones on {src.name} and {tgt.name}")
-    by_target = {e["target"]: s for s, e in bm["bones"].items()}
-    loc_sources = set()
-    for key in use_location_for:
-        if key == "root":
-            if bm["root"] is None:
-                raise ForgeError("use_location_for names 'root' but the bonemap has no root pair")
-            loc_sources.add(bm["root"]["source"])
-        elif key in bm["bones"] or key in by_target:
-            loc_sources.add(key if key in bm["bones"] else by_target[key])
-        else:
-            raise ForgeError(f"use_location_for: {key!r} is not 'root' or a bone in the bonemap")
+    pairs, skipped = _pairs(bm, src, tgt)
+    loc_sources = _location_sources(bm, use_location_for)
 
     bpy.context.view_layer.update()
     mapped = [t for _, t, _ in pairs]
@@ -122,35 +105,15 @@ def retarget(source_rig, target_rig, bonemap, action=None, frame_range=None, use
     src_ad = src.animation_data_create()
     src_before = (src_ad.action, src_ad.action_slot)
     selection = {pb.name: pb.select for pb in tgt.pose.bones}
-    rest_offsets, location_bones = {}, []
     try:
         if src_ad.action != clip:
             src_ad.action = clip
             if src_ad.action_slot is None:
                 src_ad.action_slot = _slot_for(clip, src)
-        for s_name, t_name, entry in pairs:
-            pb = tgt.pose.bones[t_name]
-            offset = _rest_offset(src, s_name, tgt, t_name, entry)
-            rest_offsets[t_name] = round(math.degrees(offset.angle), 3)
-            if s_name in loc_sources:
-                _constraint(pb, "COPY_LOCATION", "loc", src, s_name)
-                shift = tgt.matrix_world @ pb.bone.head_local - src.matrix_world @ src.data.bones[s_name].head_local
-                _constant(pb, "LOCATION", shift, src)
-                location_bones.append(t_name)
-            con = _constraint(pb, "COPY_ROTATION", "rot", src, s_name)
-            con.mix_mode = "REPLACE"
-            if offset.angle > 1e-6:
-                _constant(pb, "ROTATION", offset.to_euler("XYZ"), src)
+        rest_offsets, location_bones = _add_constraints(src, tgt, pairs, loc_sources)
         for pb in tgt.pose.bones:
             pb.select = pb.name in mapped
-
-        out = _fresh_action(f"{tgt.name}_{clip.name}", clip)
-        kept = _assign(tgt, out)
-        options = anim_utils.BakeOptions(
-            only_selected=True, do_pose=True, do_object=False, do_visual_keying=True, do_constraint_clear=False,
-            do_parents_clear=False, do_clean=False, do_location=True, do_rotation=True, do_scale=False,
-            do_bbone=False, do_custom_props=False)
-        anim_utils.bake_action(tgt, action=out, frames=range(start, end + 1), bake_options=options)
+        out, kept = _bake_clip(tgt, f"{tgt.name}_{clip.name}", clip, range(start, end + 1))
     finally:
         removed = _remove_constraints(tgt)
         for pb in tgt.pose.bones:
@@ -173,6 +136,112 @@ def retarget(source_rig, target_rig, bonemap, action=None, frame_range=None, use
               unmapped_target=sorted(b.name for b in tgt.data.bones if b.use_deform and b.name not in mapped),
               rest_offset_deg=rest_offsets, location_bones=location_bones, constraints_removed=removed,
               warnings=warnings)
+
+
+def _pairs(bm, src, tgt):
+    """[(source bone, target bone, entry)] for the bonemap pairs with both bones present, and the skipped ones."""
+    pairs, skipped = [], []
+    for s_name, entry in bm["bones"].items():
+        missing = [side for side, rig, name in (("source", src, s_name), ("target", tgt, entry["target"]))
+                   if name not in rig.pose.bones]
+        if missing:
+            skipped.append({"source": s_name, "target": entry["target"], "missing": missing})
+        else:
+            pairs.append((s_name, entry["target"], entry))
+    if not pairs:
+        raise ForgeError(f"no bonemap pair has both bones on {src.name} and {tgt.name}")
+    return pairs, skipped
+
+
+def _location_sources(bm, use_location_for):
+    by_target = {e["target"]: s for s, e in bm["bones"].items()}
+    sources = set()
+    for key in use_location_for:
+        if key == "root":
+            if bm["root"] is None:
+                raise ForgeError("use_location_for names 'root' but the bonemap has no root pair")
+            sources.add(bm["root"]["source"])
+        elif key in bm["bones"] or key in by_target:
+            sources.add(key if key in bm["bones"] else by_target[key])
+        else:
+            raise ForgeError(f"use_location_for: {key!r} is not 'root' or a bone in the bonemap")
+    return sources
+
+
+def _add_constraints(src, tgt, pairs, loc_sources):
+    """Constrain each target bone to its source bone (rotation, plus location for loc_sources) with the rest offset.
+    Returns ({target bone: rest offset in degrees}, [target bones that copy location])."""
+    rest_offsets, location_bones = {}, []
+    for s_name, t_name, entry in pairs:
+        pb = tgt.pose.bones[t_name]
+        offset = _rest_offset(src, s_name, tgt, t_name, entry)
+        rest_offsets[t_name] = round(math.degrees(offset.angle), 3)
+        if s_name in loc_sources:
+            _constraint(pb, "COPY_LOCATION", "loc", src, s_name)
+            shift = tgt.matrix_world @ pb.bone.head_local - src.matrix_world @ src.data.bones[s_name].head_local
+            _constant(pb, "LOCATION", shift, src)
+            location_bones.append(t_name)
+        con = _constraint(pb, "COPY_ROTATION", "rot", src, s_name)
+        con.mix_mode = "REPLACE"
+        if offset.angle > 1e-6:
+            _constant(pb, "ROTATION", offset.to_euler("XYZ"), src)
+    return rest_offsets, location_bones
+
+
+def _bake_clip(tgt, name, clip, frames):
+    """Visual-key tgt's selected bones over `frames` into a new action, active on tgt; on success an existing action
+    `name` (never the source `clip`) takes the keys instead and keeps its users. A failure restores tgt's action and
+    leaves the existing one untouched. Returns (action, name of a previous action given a fake user, or None)."""
+    ad = tgt.animation_data_create()
+    before = (ad.action, ad.action_slot)
+    reuse = bpy.data.actions.get(name)
+    if reuse == clip:
+        reuse = None
+    prev = before[0]
+    orphan = prev if prev is not None and prev != reuse and prev.users == 1 and not prev.use_fake_user else None
+    out = bpy.data.actions.new(name)
+    try:
+        ad.action = out
+        if ad.action_slot is None:
+            ad.action_slot = out.slots.new(id_type="OBJECT", name=tgt.name)
+        options = anim_utils.BakeOptions(
+            only_selected=True, do_pose=True, do_object=False, do_visual_keying=True, do_constraint_clear=False,
+            do_parents_clear=False, do_clean=False, do_location=True, do_rotation=True, do_scale=False,
+            do_bbone=False, do_custom_props=False)
+        anim_utils.bake_action(tgt, action=out, frames=frames, bake_options=options)
+    except BaseException:
+        ad.action = before[0]
+        if before[0] is not None:
+            ad.action_slot = before[1]
+        bpy.data.actions.remove(out)
+        raise
+    if orphan is not None:
+        orphan.use_fake_user = True
+    if reuse is not None:
+        _move_keys(out, reuse, tgt)
+        out = reuse
+    return out, orphan.name if orphan is not None else None
+
+
+def _move_keys(src, dst, obj):
+    """Replace every F-curve of `dst` with obj's baked curves from `src`, make `dst` obj's action, remove `src`."""
+    baked = _channelbag(src, obj)
+    for cb in _channelbags(dst):
+        cb.fcurves.clear()
+    ad = obj.animation_data
+    ad.action = dst
+    if ad.action_slot is None:
+        ad.action_slot = _slot_for(dst, obj) or dst.slots.new(id_type="OBJECT", name=obj.name)
+    into = anim_utils.action_ensure_channelbag_for_slot(dst, ad.action_slot)
+    for fc in baked.fcurves:
+        copy = into.fcurves.ensure(fc.data_path, index=fc.array_index, group_name=fc.group.name if fc.group else "")
+        copy.keyframe_points.add(len(fc.keyframe_points))
+        for kp, key in zip(copy.keyframe_points, fc.keyframe_points):
+            kp.co, kp.interpolation = key.co, key.interpolation
+            kp.handle_left_type, kp.handle_right_type = key.handle_left_type, key.handle_right_type
+            kp.handle_left, kp.handle_right = key.handle_left, key.handle_right
+        copy.update()
+    bpy.data.actions.remove(src)
 
 
 def make_in_place(action, root_bone, axes=("X", "Y"), rig=None):
@@ -327,8 +396,9 @@ def loop_cleanup(action, blend_frames=2, travel_bones=()):
 def trim(action, start, end):
     """Keep the keys between frames start and end (adding a key at each cut with the curve's value there) and shift
     them so the clip starts at frame 0, not 1: glTF writes time = frame / fps, so a clip at 0 exports from 0 s
-    without export_anim_slide_to_zero (blender plugin's animation.md). Run before push_to_nla; strips made earlier
-    keep their old range. Returns ok(action, frame_range, removed_keys, shifted_by)."""
+    without export_anim_slide_to_zero (blender plugin's animation.md). Run before loop_cleanup, whose matched end
+    key a later trim can cut, and before push_to_nla, whose strips keep their old range.
+    Returns ok(action, frame_range, removed_keys, shifted_by)."""
     act = _action(action)
     if end <= start:
         raise ForgeError(f"trim needs end > start, got {start}..{end}")
@@ -357,20 +427,23 @@ def trim(action, start, end):
 
 def push_to_nla(rig, action, track_name=None, engine="unity", asset=None, clip=None):
     """Name the action per the engine preset's animation.clip_naming ({asset} defaults to the rig's name, {clip} to
-    the action's), add the preset's loop_suffix when the action loops (a Cycles modifier from loop_cleanup), push it
-    onto its own NLA track (once; a second call renames in place) with the rig's slot, and clear the active action
-    as Push Down does: FBX with All Actions off ships strips only.
+    the action's, or to its clip part when the action already carries this preset's name for that asset, so a second
+    call keeps Hero@Walk), add the preset's loop_suffix when the action loops (a Cycles modifier from loop_cleanup),
+    push it onto its own NLA track (once; a second call renames in place) with the rig's slot, and clear the active
+    action as Push Down does: FBX with All Actions off ships strips only.
     Returns ok(action, track, strip, loop, frame_start)."""
     obj = util.get_object(rig)
     act = _action(action)
     anim = util.load_preset("engines", engine).get("animation") or {}
-    try:
-        name = (anim.get("clip_naming") or "{clip}").format(asset=asset or obj.name, clip=clip or act.name)
-    except (KeyError, IndexError) as exc:
-        raise ForgeError(f"engine preset {engine}: clip_naming uses an unknown field {exc}") from exc
+    pattern, suffix = anim.get("clip_naming") or "{clip}", anim.get("loop_suffix")
+    asset = asset or obj.name
     loops = any(m.type == "CYCLES" and not m.mute
                 for cb in _channelbags(act) for fc in cb.fcurves for m in fc.modifiers)
-    suffix = anim.get("loop_suffix")
+    try:
+        clip = clip or _clip_in(act.name, pattern, asset, suffix if loops else None) or act.name
+        name = pattern.format(asset=asset, clip=clip)
+    except (KeyError, IndexError) as exc:
+        raise ForgeError(f"engine preset {engine}: clip_naming uses an unknown field {exc}") from exc
     if suffix and loops and not name.endswith(suffix):
         name += suffix
     if act.name != name:
@@ -394,6 +467,24 @@ def push_to_nla(rig, action, track_name=None, engine="unity", asset=None, clip=N
     if ad.action == act:
         ad.action = None
     return ok(action=act.name, track=track.name, strip=strip.name, loop=loops, frame_start=strip.frame_start)
+
+
+def _clip_in(name, pattern, asset, suffix):
+    """The {clip} part of `name` when `pattern` rendered for `asset` (plus `suffix`) produced it, else None."""
+    if suffix and name.endswith(suffix):
+        name = name[:-len(suffix)]
+    regex, named = "", False
+    for literal, field, _, _ in string.Formatter().parse(pattern):
+        regex += re.escape(literal)
+        if field == "asset":
+            regex += re.escape(asset)
+        elif field == "clip":
+            regex += "(?P=clip)" if named else "(?P<clip>.+)"
+            named = True
+        elif field is not None:
+            return None
+    match = re.fullmatch(regex, name) if named else None
+    return match["clip"] if match else None
 
 
 def _action(action):
@@ -502,29 +593,6 @@ def _remove_constraints(rig):
             pb.constraints.remove(con)
             n += 1
     return n
-
-
-def _fresh_action(name, avoid):
-    act = bpy.data.actions.get(name)
-    if act is None or act == avoid:
-        return bpy.data.actions.new(name)
-    for cb in _channelbags(act):
-        cb.fcurves.clear()
-    return act
-
-
-def _assign(obj, act):
-    ad = obj.animation_data_create()
-    kept = None
-    prev = ad.action
-    if prev is not None and prev != act and prev.users == 1 and not prev.use_fake_user:
-        prev.use_fake_user = True
-        kept = prev.name
-    if ad.action != act:
-        ad.action = act
-    if ad.action_slot is None:
-        ad.action_slot = _slot_for(act, obj) or act.slots.new(id_type="OBJECT", name=obj.name)
-    return kept
 
 
 def _ensure_key(fc, frame, value):

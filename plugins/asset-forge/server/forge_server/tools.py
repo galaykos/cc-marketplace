@@ -1,6 +1,7 @@
 """The forge server's tools. Each runs one headless Blender job on a .blend the caller names (normally a snapshot
 saved from the live session with save_as_mainfile(copy=True)) and never saves over that file."""
 import base64
+import contextvars
 import os
 import platform
 import sys
@@ -11,7 +12,8 @@ from pathlib import Path
 
 import headless
 
-INLINE_MAX_BYTES = 6_000_000
+INLINE_MAX_BYTES = 3_700_000
+MAX_PARALLEL = min(os.cpu_count() or 1, 8)
 ENGINES = ["unity", "unreal", "godot", "generic"]
 PLATFORMS = ["pc", "console", "mobile"]
 ASSET_CLASSES = ["prop_small", "prop_medium", "prop_large", "hero_prop", "character", "environment_piece"]
@@ -140,16 +142,18 @@ def export_asset(args):
     for key in ("file_stem", "include_lods", "include_collision", "platform"):  # asset_class only feeds validation
         if args.get(key) is not None:
             kwargs[key] = args[key]
-    vkw = {"obj": objects[0], "engine": args["engine"], "platform": args.get("platform") or "pc",
+    vkw = {"engine": args["engine"], "platform": args.get("platform") or "pc",
            "asset_class": args.get("asset_class") or "prop_medium"}
-    validation = _call(blend, "validate", "validate_asset", vkw, timeout=180)
+    validation = headless.run_job("validate_source", {"objects": objects, **vkw}, blend_path=blend, timeout=180)
     result = _call(blend, "export", "export_asset", kwargs, timeout=600)
     failed = [c["id"] for c in validation.get("checks", []) if c.get("status") == "fail"]
-    result["source_validation"] = {"passed": validation.get("passed"), "failed": failed,
-                                   "asset_class": vkw["asset_class"], "error": validation.get("error")}
+    result["source_validation"] = {"object": validation.get("object"), "passed": validation.get("passed"),
+                                   "failed": failed, "asset_class": vkw["asset_class"], "error": validation.get("error"),
+                                   **({"skipped": validation["skipped"]} if validation.get("skipped") else {})}
     if result.get("ok"):
-        files = [{"path": f["path"], "objects": f["objects"], **({"clips": args["clips"]} if args.get("clips") else {})}
-                 for f in result.get("files", [])]
+        files = [{"path": f["path"], "objects": f["objects"]} for f in result.get("files", [])]
+        if files and args.get("clips"):
+            files[0]["clips"] = list(args["clips"])  # export lists the main file first; LOD files carry no animation
         audit = headless.run_job("call", {"module": "export", "function": "audit_export",
                                           "kwargs": {"files": files, "engine": args["engine"]}}, timeout=300)
         audit.pop("blender", None)
@@ -157,10 +161,13 @@ def export_asset(args):
         if not audit.get("ok") or not audit.get("passed"):
             result.update(ok=False, stage="post-export-audit",
                           error="the exported file does not hold what was meant to ship: see post_export_audit")
+        elif not validation.get("ok"):
+            result.update(ok=False, stage="source-validation", error="files were written, but the source validation "
+                          f"could not run: {validation.get('error')}")
         elif failed:
-            result.update(ok=False, stage="source-validation", error=f"files were written, but {objects[0]} fails "
-                          f"validation ({', '.join(failed)}): fix it live and export again, or tell the user why it "
-                          "ships as is")
+            result.update(ok=False, stage="source-validation", error=f"files were written, but {validation['object']} "
+                          f"fails validation ({', '.join(failed)}): fix it live and export again, or tell the user why "
+                          "it ships as is")
     return result
 
 
@@ -184,10 +191,11 @@ def texture_views(args):
 def project_texture(args):
     blend = _blend(args)
     _require(args, "object", "view_images")
-    missing = [p for p in args["view_images"].values() if not Path(os.path.expanduser(p)).is_file()]
+    views = {cam: str(Path(os.path.expanduser(p)).resolve()) for cam, p in args["view_images"].items()}
+    missing = [p for p in views.values() if not Path(p).is_file()]
     if missing:
         raise InputError(f"view image(s) not found: {missing}")
-    kwargs = {"obj": args["object"], "view_images": args["view_images"], "out_dir": _out_dir(args, "projected")}
+    kwargs = {"obj": args["object"], "view_images": views, "out_dir": _out_dir(args, "projected")}
     for key in ("resolution", "seam_blend"):
         if args.get(key) is not None:
             kwargs[key] = args[key]
@@ -199,25 +207,29 @@ def batch_run(args):
     _require(args, "files", "module", "function", "out_dir")
     files = [_blend({"blend_path": f}) for f in args["files"]]
     out = Path(_out_dir(args, "batch"))
-    sources = {Path(f).parent for f in files}
-    if out in sources:
+    if any(os.path.samefile(out, Path(f).parent) for f in files):
         raise InputError("out_dir holds a source file; batch copies go to a separate folder")
-    stems = [Path(f).stem for f in files]
+    stems = [Path(f).stem.casefold() for f in files]
     if len(set(stems)) != len(stems):
         raise InputError("two files share a name; their copies would overwrite each other in out_dir")
-    workers = max(1, min(int(args.get("max_parallel", 4)), len(files)))
+    workers = max(1, min(int(args.get("max_parallel", 4)), len(files), MAX_PARALLEL))
     started = time.time()
 
     def one(path):
-        result = _call(path, args["module"], args["function"], args.get("kwargs") or {}, timeout=int(args.get("timeout_s", 600)),
-                       save_copy_to=str(out / f"{Path(path).stem}.blend") if args.get("save_copies", True) else None)
+        try:
+            result = _call(path, args["module"], args["function"], args.get("kwargs") or {},
+                           timeout=int(args.get("timeout_s", 600)),
+                           save_copy_to=str(out / f"{Path(path).stem}.blend") if args.get("save_copies", True) else None)
+        except Exception as exc:
+            result = {"ok": False, "stage": "server", "error": f"{type(exc).__name__}: {exc}"}
         result.pop("traceback", None)
         return {"file": path, **result}
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(one, files))
+        jobs = [pool.submit(contextvars.copy_context().run, one, f) for f in files]  # carries the request's JobScope
+        results = [job.result() for job in jobs]
     failed = [r["file"] for r in results if not r.get("ok")]
-    return {"ok": not failed, "out_dir": str(out), "results": results, "failed": failed,
+    return {"ok": not failed, "out_dir": str(out), "parallel": workers, "results": results, "failed": failed,
             "seconds": round(time.time() - started, 2)}
 
 
