@@ -93,7 +93,7 @@ type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
 
 It asks on a Bash command that writes baseline entries too: `--generate-baseline` (and
 phpstan's `-b` after a `phpstan` word), psalm's `--set-baseline`, eslint's `--suppress-all`
-and `--suppress-rule`, read outside quotes, comments and heredoc bodies. Shrink-only runs
+and `--suppress-rule`, read outside quotes, comments and heredoc bodies no shell reads. Shrink-only runs
 pass: psalm's `--update-baseline` and eslint's `--prune-suppressions` only drop fixed
 entries. A new finding belongs in a fix or a one-line suppression with its reason, not
 in a regenerated baseline that turns the run green.

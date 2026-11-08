@@ -27,3 +27,10 @@ Builds a throwaway repository with dated commits (`GIT_AUTHOR_DATE` / `GIT_COMMI
 The metacharacter subject uses `touch pwned_*` canaries, not the `$(rm -rf /)` the roadmap brief named: a canary proves the text never ran without a regression being able to delete anything. The near-miss subjects (`prefix fixture`, `fixed-width font`, `Reverting is hard: notes`) are the input the score must stay silent on.
 
 Mutation check on 2026-11-08: seven broken copies of the script (revert weight 2, `-` splitting words, a subject passed to `sh -c`, no control-byte sanitizing, the walk started at HEAD, no follow-ups, a quoted name passed as a pathspec) each drew at least one FAIL. The harness also passed under busybox awk as well as mawk.
+
+Review fix, 2026-11-08: seven cases for branches no case reached. Exit 4 twice, through an empty `PATH` (git missing) and a
+`PATH` holding only a `git` symlink (awk missing), both run by bash's absolute path. The nothing-touched exit 0 with its
+`nothing to score` line. A conventional `revert: x` subject. A fix exactly 14 days and one 15 days after the file's
+previous commit, in a repository of its own so the main fixture's counts do not move. Mutations, one per case group, each
+drew a FAIL: `d <= WINDOW` as `<`, `FOLLOWUP_DAYS=15`, the `revert:` pattern removed, the awk check removed (exit 3, not
+4), the nothing-touched line unreachable.

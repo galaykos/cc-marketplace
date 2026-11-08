@@ -128,6 +128,12 @@ bash_allows "npx eslint . --prune-suppressions" "bash: eslint --prune-suppressio
 bash_allows "grep -b phpstan composer.json" "bash: a -b before any phpstan word is silent"
 bash_allows 'git commit -m "phpstan: stop running --generate-baseline in CI"' "bash: a regenerate flag inside quotes is silent"
 bash_allows $'cat > notes.txt <<\'EOF\'\nnpx eslint . --suppress-all\nEOF' "bash: a regenerate flag inside a heredoc body is silent"
+bash_allows "vendor/bin/phpstan analyse # add --generate-baseline later" "bash: a regenerate flag after a # comment is silent"
+bash_allows $'git commit -m "$(cat <<\'EOF\'\nci: stop running --generate-baseline\n\nIt hid new findings.\nEOF\n)"' "bash: a regenerate flag in a \$(cat <<'EOF') commit message is silent"
+bash_allows $'git commit -m "ci: lint\n\nStop running --generate-baseline in CI."' "bash: a regenerate flag on a later line of a quoted message is silent"
+bash_asks $'docker compose exec -T app sh <<\'EOF\'\nvendor/bin/phpstan analyse --generate-baseline\nEOF' "bash: a regenerate flag in a heredoc a shell reads asks" --generate-baseline
+bash_asks $'cat > notes.txt <<\'EOF\'\nnotes\nEOF\nnpx eslint . --suppress-all' "bash: a regenerate flag after a heredoc terminator asks" --suppress-all
+bash_asks $'# don\'t keep the old baseline\nnpx eslint . --suppress-all' "bash: a quote inside a # comment does not mask the next line" --suppress-all
 out=$(CC_CONFIG_GUARD=off fire_bash "npx eslint . --suppress-all")
 [ -z "$out" ] && ok "CC_CONFIG_GUARD=off silences the regenerate ask" || bad "CC_CONFIG_GUARD=off silences the regenerate ask" "$out"
 

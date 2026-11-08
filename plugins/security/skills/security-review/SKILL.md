@@ -149,7 +149,7 @@ not just `auth` middleware:
 
 - `composer audit` and `npm audit` in CI, failing the build — an advisory nobody
   sees is an advisory nobody fixes.
-- `semgrep scan --metrics off --config <the project's rules, else p/default> --json <files>` when semgrep is
+- `semgrep scan --metrics off --disable-version-check --config <the project's rules, else p/default> --json <files>` when semgrep is
   on PATH (never `--config auto`, which sends the repo URL; route details in `/security:review`).
 - Lockfiles committed and deployed from (`composer install`, `npm ci`); unpinned
   deploys are supply-chain roulette.

@@ -14,6 +14,8 @@ must carry an entry.
 - **Inform only.** It never blocks, never skips triage and never changes which rubrics load. Exit 0 scored, 2 usage or no base, 3 not a git work tree, 4 git or awk missing.
 - **Standing.** The scoring is a **gate** where run: `scripts/__tests__/diff-risk.test.sh` covers the formula, near-miss subjects (`prefix fixture`, `fixed-width font`), shell metacharacters in a subject, `--json` and the exit codes, and CI runs it. The reviewer's extra care on top-scored files is **recorded**. Unmeasured: whether it changes what a review finds.
 - README names the diff risk score and its standing.
+- **`--base` gets only a base.** `/resilience:review` passed `--base <ref>` whenever the target named a ref, so a branch under review became the base and the score covered nothing or the wrong commits. It now passes `--base` only with the base side of a `<ref>..HEAD` or `<ref>...HEAD` target, or a bare commit sha; on another branch, or a range ending at one, it skips the score and prints `Not checked: diff risk (target not checked out)`. Standing: recorded — no check reads the command text back.
+- `diff-risk.test.sh` 30 → 37 cases: exit 4 with git missing (an empty PATH) and with awk missing (a PATH holding only git), the nothing-touched exit 0 and its overall line, a `revert: x` subject, and fixes exactly 14 and 15 days after the previous commit on either side of the follow-up window. A copy with the window made exclusive, set to 15 days, the `revert:` pattern, the awk check or the nothing-touched line removed draws a FAIL from them.
 
 ## 0.8.3 — 2026-10-31
 

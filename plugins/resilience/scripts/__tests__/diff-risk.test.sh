@@ -116,7 +116,27 @@ git init -q -b trunk "$tmp/trunk" && (cd "$tmp/trunk" && c 1 a.txt "fix: a")
 expect_rc "no origin/HEAD, main or master exits 2" 2 --dir "$tmp/trunk"
 grep -q 'no base' <<<"$out" && pass "no-base message names the cause" || fail "no-base message" "$out"
 expect_rc "the same repo with --base exits 0" 0 --dir "$tmp/trunk" --base HEAD
+grep -q '^overall: no touched files vs [0-9a-f]*; nothing to score' <<<"$out" \
+  && pass "nothing touched exits 0 and says nothing to score" || fail "nothing-touched overall line" "$out"
 git init -q "$tmp/unborn"
 expect_rc "a repo with no commits exits 2" 2 --dir "$tmp/unborn"
+
+bash_bin=$(command -v bash)
+out=$(cd "$tmp/repo" && PATH= "$bash_bin" "$S" 2>&1); got=$?
+[ "$got" = 4 ] && grep -q 'git not found' <<<"$out" && pass "git missing (empty PATH) exits 4 (rc=$got)" \
+  || fail "git missing — want rc=4 and 'git not found', got $got" "$out"
+mkdir "$tmp/gitonly" && ln -s "$(command -v git)" "$tmp/gitonly/git"
+out=$(cd "$tmp/repo" && PATH="$tmp/gitonly" "$bash_bin" "$S" 2>&1); got=$?
+[ "$got" = 4 ] && grep -q 'awk not found' <<<"$out" && pass "awk missing (PATH holds only git) exits 4 (rc=$got)" \
+  || fail "awk missing — want rc=4 and 'awk not found', got $got" "$out"
+
+# A conventional revert subject, and a fix exactly 14 days (inside the window) and 15 days (outside) after the previous commit.
+mkdir "$tmp/window" && (cd "$tmp/window" && git init -q && c 200 rv.txt "add rv" && c 100 rv.txt "revert: x" \
+  && c 100 w14.txt "add w14" && c 86 w14.txt "fix: w14" && c 100 w15.txt "add w15" && c 85 w15.txt "fix: w15" \
+  && echo wip >>rv.txt && echo wip >>w14.txt && echo wip >>w15.txt) || fail "window fixture"
+expect_rc "window repo exits 0" 0 --dir "$tmp/window"
+expect_row rv.txt "3 1 0 0" "a 'revert: x' subject counts as a revert"
+expect_row w14.txt "3 0 1 1" "a fix exactly 14 days after the previous commit is a follow-up"
+expect_row w15.txt "2 0 1 0" "a fix 15 days after the previous commit is not"
 
 exit $rc

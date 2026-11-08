@@ -25,9 +25,13 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
 
    **Diff risk score, inform only.** When the scope is a diff (a branch, a ref, or the
    default recent changes), run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/diff-risk.sh"` from the
-   repository, adding `--base <ref>` when the target names one, and print its table before
-   the findings. It scores each touched file from its git history: reverts, fixes, and a
-   fix soon after a change. Read the top-scored files with extra care in the deep pass.
+   repository and print its table before the findings. It scores each touched file from
+   its git history: reverts, fixes, and a fix soon after a change. It reads the checked-out
+   HEAD and working tree, so add `--base <ref>` only with the base side of the target
+   (`<ref>` of `<ref>..HEAD` or `<ref>...HEAD`, or a bare commit sha); the checked-out
+   branch and the default take no flag. When the target is another branch, or a range
+   ending at one, skip the score and print `Not checked: diff risk (target not checked out)`.
+   Read the top-scored files with extra care in the deep pass.
    The score never blocks, never skips the triage below and never changes which rubrics
    step 3 loads; a non-zero exit prints its one line and the review goes on. Standing:
    **recorded** for the extra care, which no check reads back; the scoring itself is a

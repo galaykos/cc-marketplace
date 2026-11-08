@@ -684,12 +684,35 @@ tools was on PATH):
 - rector: no baseline file.
 
 The long flags match with no tool word, so `npm run lint -- --suppress-all` and `composer stan -- --generate-baseline`
-ask. Words are read on the masked line (quoted text and escapes become `_`, as in the targets block), with heredoc bodies
-skipped and a `#` comment dropped, so a commit message or a README written through a heredoc stays silent. Misses: a
-quoted flag (`"--suppress-all"`, which the shell still passes), `-b` behind a script name with no `phpstan` word, a flag
-inside a heredoc fed to a shell, a custom baseline file name, and a baseline file a Write creates (new files pass, as
-for every kind here; eslint reads `eslint-suppressions.json` with no config change, so that one hides findings).
+ask. Words are read on the masked line (quoted text and escapes become `_`), after `cc_strip_heredoc_bodies inert` has
+dropped the bodies no shell reads, and a `#` comment ends the line, so a commit message or a README written through a
+heredoc stays silent. Misses: a quoted flag (`"--suppress-all"`, which the shell still passes), `-b` behind a script
+name with no `phpstan` word, a flag in a body fed to `python3 -`, `node` or a script a later line runs, a custom
+baseline file name, and a baseline file a Write creates (new files pass, as for every kind here; eslint reads `eslint-suppressions.json` with no config change, so that one hides findings).
 Cost, 21 runs each on `git status && ls -la` through the hook, same machine: median 8.4 ms before, 9.0 ms after.
+
+### The shared heredoc scan and cross-line quotes (0.9.5, review fix)
+
+The first cut of `baseline_regen` carried its own copy of the targets block's `mask()` and its own heredoc skipper. The
+mask reset its quote state per line, and a `<<` inside quotes opened nothing, so the body of Claude Code's own
+`git commit -m "$(cat <<'EOF' … EOF )"` was read line by line as commands: a message naming `--generate-baseline` asked.
+The skipper dropped every body it found, so `docker compose exec -T app sh <<'EOF'` running the flag stayed silent. The
+hook now pastes `templates/blocks/heredoc-bodies.md` and runs `cc_strip_heredoc_bodies inert` when the command holds a
+`<<` (a command without one skips the extra awk). Inert mode drops a body nothing reads and keeps one a shell, `ssh`,
+`su`, `sudo -i`/`-s`, `xargs`, `eval` or `source` reads, or one a later line pipes into a shell.
+
+One mask remains in `baseline_regen`, and it is no longer a copy of the targets block's: its quote state `q` is global in
+the awk, so a string left open on one line masks the next (a multi-line `-m "…"` message, or the lines the scan keeps
+after a `<<` it cannot place). Sharing the block's `mask()` would mean changing the block, and re-pasting it into every
+hook that carries it, to carry state across lines; `hook-bash-writes` lists a quoted string spanning lines among what the
+blocks do not see. A `#` at a word start (line start, or after a blank or one of `;&|()<>`) ends the line inside the
+mask, so a `# don't …` comment opens no quote. Residual: a stray quote in a body the scan keeps (a body fed to a shell
+that would itself fail to parse, or a `<<` the scan cannot place) masks every line after it, a miss, never an ask.
+
+Cost, through the hook, 21 runs each, two interleaved rounds against a copy of the first cut on the same machine while
+other workers ran, round 1 / round 2: `git status && ls -la` median 9.4 / 9.0 ms before, 10.2 / 9.0 ms after; the
+commit message above 11.2 / 10.7 ms before (it asked, so it ran jq for the reply), 10.1 / 10.2 ms after; a 19,911-byte
+`python3 - <<'EOF'` body 9.8 / 10.3 ms before, 10.9 / 11.2 ms after.
 
 ## plugins/command-guard/scripts/__tests__/destructive-guard.test.sh
 
