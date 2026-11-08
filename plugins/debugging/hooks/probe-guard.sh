@@ -46,7 +46,7 @@ commits_all() {
         f=${t#-}
         while [ -n "$f" ]; do
           c=${f:0:1}; f=${f:1}
-          case "$c" in a) return 0 ;; [mFcCt]) break ;; esac
+          case "$c" in a) return 0 ;; [mFcCtuS]) break ;; esac
         done ;;
     esac
   done

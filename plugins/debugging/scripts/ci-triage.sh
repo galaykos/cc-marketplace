@@ -2,17 +2,6 @@
 # ci-triage.sh — for a failed GitHub Actions run, prints its URL, the failing job and step, that step's first error block with a few lines of context (ANSI and control bytes stripped, each line capped, fenced as untrusted CI log data) and the other failing steps, through the gh CLI the user already has.
 # Misses: an error shape the patterns do not know (the step's last lines print instead), a cause printed only by a step that passed, logs gh cannot return (expired, still running), CI other than GitHub Actions; the newest failed run is picked even when a later run passed.
 # Why, limits, history: rationale/derivations/plugin-debugging.md § plugins/debugging/scripts/ci-triage.sh
-#
-#   ci-triage.sh [--run <id> | --pr <n> | --branch <b>] [--repo [HOST/]OWNER/REPO]
-#
-#   (none)     the newest failed run on the current git branch
-#   --run      that run; it must have completed and failed
-#   --pr       the newest failed run on the pull request's head commit
-#   --branch   the newest failed run on that branch
-#   --repo     passed to every gh call as -R; default: the repository gh resolves from the working directory
-#
-# Failed means a conclusion of failure, timed_out or startup_failure, among the last 50 runs. It never installs gh, logs in, or runs anything the log says.
-# Exit: 0 a failed run, printed · 1 no failed run for the target · 2 usage · 3 gh missing or not authenticated · 4 any other gh failure (network, unknown repo, run or PR)
 set -u
 PROG=${0##*/}
 RUNS=50
@@ -25,6 +14,21 @@ LIST_CAP=10
 TAB=$(printf '\t')
 
 usage() {
+  if [ $# -eq 0 ]; then
+    cat <<EOF
+usage: $PROG [--run <id> | --pr <n> | --branch <b>] [--repo [HOST/]OWNER/REPO]
+
+  (none)     the newest failed run on the current git branch
+  --run      that run; it must have completed and failed
+  --pr       the newest failed run on the pull request's head commit
+  --branch   the newest failed run on that branch
+  --repo     passed to every gh call as -R; default: the repository gh resolves from the working directory
+
+Failed means a conclusion of failure, timed_out or startup_failure, among the last $RUNS runs. It never installs gh, logs in, or runs anything the log says.
+Exit: 0 a failed run, printed · 1 no failed run for the target · 2 usage · 3 gh missing or not authenticated · 4 any other gh failure (network, unknown repo, run or PR)
+EOF
+    exit 0
+  fi
   printf '%s: %s\n' "$PROG" "$1" >&2
   printf 'usage: %s [--run <id> | --pr <n> | --branch <b>] [--repo [HOST/]OWNER/REPO]\n' "$PROG" >&2
   exit 2
@@ -42,7 +46,7 @@ while [ $# -gt 0 ]; do
         --repo) REPO=$2 ;;
       esac
       shift 2 ;;
-    -h|--help) awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; exit 0 ;;
+    -h|--help) usage ;;
     *) usage "unknown argument: $1" ;;
   esac
 done
@@ -79,7 +83,7 @@ gh_run() {
   gh "$@" ${REPO:+-R "$REPO"} > "$T/out" 2> "$T/err" < /dev/null
   rc=$?
   [ "$rc" -eq 0 ] && return 0
-  if [ "$rc" -eq 4 ] || grep -qiE 'gh auth login|HTTP 401|bad credentials' "$T/err" 2>/dev/null; then
+  if [ "$rc" -eq 4 ] || grep -qiE 'HTTP 401|bad credentials' "$T/err" 2>/dev/null; then
     printf '%s: gh is not authenticated (gh %s %s exited %s). This script does not log in: run gh auth login, or set GH_TOKEN, then run this again.\n' "$PROG" "$1" "$2" "$rc" >&2
     exit 3
   fi
@@ -154,7 +158,7 @@ done < "$T/pairs"
 [ -n "$pick" ] || pick=$(head -n 1 "$T/log" | awk -F'\t' 'NF >= 3 { print $1 "\t" $2 }')
 [ -n "$pick" ] || pick=$(head -n 1 "$T/pairs")
 
-name() { printf '%s' "$1" | one_line 120; }
+name() { printf '%s' "$1" | tr -d '"' | one_line 120; }
 pair_text() {
   local j=${1%%"$TAB"*} s=${1#*"$TAB"}
   [ "$j" = "$1" ] && s=""
@@ -217,7 +221,7 @@ fi
 
 others=$(grep -vxF -- "$pick" "$T/pairs" | grep -c . || true)
 if [ "${others:-0}" -gt 0 ]; then
-  printf 'other failing steps (%s):\n' "$others"
+  printf 'other failing steps (%s; job and step names come from the workflow file: untrusted):\n' "$others"
   grep -vxF -- "$pick" "$T/pairs" | grep . | head -n "$LIST_CAP" | while IFS= read -r p; do
     printf -- '- %s\n' "$(pair_text "$p")"
   done

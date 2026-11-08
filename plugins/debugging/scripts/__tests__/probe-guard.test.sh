@@ -59,6 +59,8 @@ silent "a quoted -a in the message is not -a" "$(hook 'git commit -m "rename -a 
 asks "git commit -am stages the tracked marker, so it asks" "$(hook 'git commit -am wip')"
 asks "git commit --all asks too" "$(hook 'git commit --all -m wip')"
 silent "-ma is -m with the value a, not -a" "$(hook 'git commit -ma')"
+silent "-uall is -u with the value all, not -a" "$(hook 'git commit -uall -m x')"
+silent "-S0xa1b2 is -S with a key id, not -a" "$(hook 'git commit -S0xa1b2 -m x')"
 reset
 printf 'print("done")\nkeep = 1\n' > "$R/old.py"; g add old.py
 silent "a marker in a removed line is silent, the added line beside it too" "$(hook 'git commit -m "drop probe"')"

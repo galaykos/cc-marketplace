@@ -25,10 +25,13 @@ selection and the extraction, and nothing else: it neither reruns jobs nor fetch
   `--branch`, `--commit`, `-L`, `--json`, `--jq`, `--log-failed`, `-R`. `run list --json` offers `databaseId` and
   `conclusion`; `run view --json` adds `jobs`. With no token and an empty `GH_CONFIG_DIR`, `gh run list`, `gh run view`
   and `gh pr view` all exit 4 and print "To get started with GitHub CLI, please run: gh auth login" before any request
-  (probed offline the same day); the script maps that, `HTTP 401` and "Bad credentials" to its exit 3. NOT observed live:
-  the `jobs[].steps[]` JSON shape and the `--log-failed` line shape (`<job>\t<step>\t<timestamp> <text>`, a BOM on a
-  step's first line) come from gh's source and GitHub's log format, and the harness's stub encodes that reading. No real
-  repository was queried.
+  (probed offline the same day); the script maps gh's exit 4, `HTTP 401` and "Bad credentials" to its exit 3. Not the
+  text `gh auth login`: gh also prints it, with exit 1, in a checkout whose remotes name no GitHub host ("failed to
+  determine base repo: none of the git remotes … please use `gh auth login`"), where a logged-in user got exit 3 until a
+  review caught it; measured live 2026-11-08 in a scratch repository with a GitLab remote, that run now exits 4. NOT
+  observed live: the `jobs[].steps[]` JSON shape and the `--log-failed` line shape (`<job>\t<step>\t<timestamp> <text>`,
+  a BOM on a step's first line) come from gh's source and GitHub's log format, and the harness's stub encodes that
+  reading. No real repository was queried.
 - **Selection.** Failed means `failure`, `timed_out` or `startup_failure` (cancelled is not). The newest such run among
   the last 50 wins, even when a later run passed: the residual named in the header. `--pr` reads the head commit
   (`gh pr view --json headRefOid`) and lists runs on that commit, so a failure on an earlier push is not reported as
@@ -41,11 +44,13 @@ selection and the extraction, and nothing else: it neither reruns jobs nor fetch
   (PHPUnit and Jest print it below). No match prints the last 10 lines and says so. The harness covers seven formats;
   `● Console`, `npm ERR!`, tracebacks, `panic:`, `file.go:L:C:` and the pytest summary lines have no case of their own.
 - **Untrusted text.** Workflow authors (a fork's PR included) control the log, the job and step names and the commit
-  title. The title is never printed. Names are stripped and cut at 120 bytes, the log at 240 bytes per line and 8 MiB in
-  total. A NUL, a BOM, CSI and OSC escapes, C1 controls, bidi overrides and every other control byte but tab and newline
-  are stripped before anything is matched. The block prints inside a fence one backtick longer than the longest run in it,
-  so a fence in the log cannot close it, after a line saying it is data. Nothing from the log reaches `eval`, a command
-  substitution or an argument position; the harness plants `$(touch …)` and backticks and checks no file appears.
+  title. The title is never printed. Names lose control bytes and double quotes (a `"` closed the `job "…"` quoting) and
+  are cut at 120 bytes; the other-failing-steps list carries the same untrusted label as the failing pair. The log is
+  cut at 240 bytes per line and 8 MiB in total. A NUL, a BOM, CSI and OSC escapes, C1 controls, bidi overrides and every
+  other control byte but tab and newline are stripped before anything is matched. The block prints inside a fence one
+  backtick longer than the longest run in it, so a fence in the log cannot close it, after a line saying it is data.
+  Nothing from the log reaches `eval`, a command substitution or an argument position; the harness plants `$(touch …)`
+  and backticks and checks no file appears.
 - **Exit 4.** The roadmap named 0/1/2/3. A network error, an unknown repository, run or PR is none of them, and reporting
   it as "no failed run" would be false, so it has its own code.
 
@@ -56,11 +61,11 @@ so cleanup is one grep, and its verification step 3 is that grep. It was `record
 survivor is yours to find". This hook checks the one moment a survivor becomes history, the commit, and only that.
 
 - **What it reads.** The staged diff (`git diff --cached -U0 -G'\[DEBUG-'`), added lines only, with new-file line
-  numbers from the hunk headers. `-a`/`--all` (found in the commit's own options after quoted values are dropped; a short
-  cluster stops at `m F c C t`, which take a value) switches to `git diff HEAD`, the tracked changes `-a` would stage;
-  with no HEAD yet it stays on the index. Pathspec, `--only` and `--include` commits take working-tree content the hook
-  does not read: named in the header. `--amend` reads the same staged diff; a marker already in the commit being amended
-  is not seen.
+  numbers from the hunk headers. `-a`/`--all` (found in the commit's own options after quoted values are dropped; a
+  short cluster stops at `m F c C t u S`, which take a value; `-uall` and `-S0xa1b2` read as `-a` until a review caught
+  it) switches to `git diff HEAD`, the tracked changes `-a` would stage; with no HEAD yet it stays on the index.
+  Pathspec, `--only` and `--include` commits take working-tree content the hook does not read: named in the header.
+  `--amend` reads the same staged diff; a marker already in the commit being amended is not seen.
 - **Command position.** The anchor and wrapper tokens copy git-workflow's `no-ai-trailer.sh` `GIT_WRITE_RE` with the
   verb `commit` only, plus a `-C <dir>` / `-c <key>=<value>` pair between `git` and the verb. Matched case-insensitively
   so `GIT_AUTHOR_NAME=x git commit` counts. The diff is read in the payload's cwd, so a `cd` or `git -C` into ANOTHER
