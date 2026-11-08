@@ -1,0 +1,23 @@
+schema_version: "1.1"
+name: snapshot-not-working-file
+description: 'Headless work on a live scene must use a saved copy: running blender -b on the working file misses unsaved changes, and save_mainfile overwrites the user''s file. The pipeline skill''s snapshot rule.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    I have Blender open with /home/me/game/hero.blend and I've made changes I haven't saved yet. I want review renders
+    of the current state made in a background Blender (blender -b) so my session isn't blocked. Give me the exact steps
+    and code. Don't run anything.
+graders:
+  - name: copy-then-headless
+    type: llm
+    criteria: |
+      PASS requires both:
+      1. The current state is saved to a separate file first, without changing the user's file: for example
+         bpy.ops.wm.save_as_mainfile(filepath=<other path>, copy=True) run inside the open session.
+      2. The background Blender opens that copy, not hero.blend.
+      FAIL if it runs blender -b on hero.blend as is (it would render the last saved state), tells the user to save
+      hero.blend or calls save_mainfile / save_as_mainfile without copy=True on the working file, or skips the
+      unsaved changes entirely.

@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **42 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **43 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -140,6 +140,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 
 | Variable | Plugins | Default | What it does |
 |----------|---------|---------|--------------|
+| `BLENDER_PATH` | asset-forge |  | Full path to the Blender executable the headless server runs |
 | `CC_ALL_PLUGINS_HINT` | all-plugins | — | CC_ALL_PLUGINS_HINT=off hides the startup line naming all-plugins as the only plugin enabled |
 | `CC_ASK_LEDGER` | ask-ledger | on | Ledger what a prompt names and have the Stop gate ask for an accounting line for each: on or off |
 | `CC_AVERT` | candor | on | Ask before a write or dispatch that carries a hedge the user never raised: on, notify or off |
@@ -159,6 +160,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
+| `CC_FORGE_REVIEW` | asset-forge | on | Block a turn from ending once per change cycle when the Blender scene changed since the last asset-forge … |
 | `CC_GLB_CHECK` | meshy | on | Run inspect_glb.py at 15,000 triangles and 2,048 px on a .glb/.gltf a call wrote, and add what fails: on … |
 | `CC_HUD_HINT` | session-hud | off | Add the HUD segments to the dim hint line under the prompt: on or off |
 | `CC_HUD_PIN` | session-hud | off | Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal  … |
@@ -595,6 +597,7 @@ Nothing here is measured against a control arm.
 | **[pixijs](plugins/pixijs)** | PixiJS v7→v8 inversions (`await app.init`, the ticker argument, `globalpointermove`, `Assets.load` first) | `pixi.js` in the lockfile |
 | **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
 | **[blender](plugins/blender)** | Blender 5.x Python API removals and renames (`action.fcurves`, `scene.node_tree`, `BLENDER_EEVEE_NEXT`, `bgl`), headless runs that exit 0 on a Python error unless `--python-exit-code` comes before `--python`, FBX/glTF export rules for Unreal, Unity and Godot — and `check_bpy_scripts.py` (no Blender needed) plus `blender_qa.py` (mesh QA inside Blender) | A `.py` importing `bpy`, a `*.blend` in the repo, exporting assets to an engine |
+| **[asset-forge](plugins/asset-forge)** | Game-asset creation in Blender: a headless MCP server (Python standard library, nothing installed) that renders review contact sheets, validates against platform budgets and engine presets, bakes, stylizes, projects AI textures and exports — always on snapshots, never the working `.blend`; a pure-bpy library of deforms, blockouts, LODs, collision and retargeting; an independent art-reviewer agent; a review-after-change Stop gate | Building a prop, creature or character in Blender for Unity, Unreal or Godot |
 | **[meshy](plugins/meshy)** | Meshy AI 3D generation traps: an unknown create outcome is reconciled, never resubmitted; running tasks cannot be cancelled; files and signed URLs expire after 3 days; free-plan output is Meshy-owned under CC BY 4.0; rigging takes textured humanoids only — and `inspect_glb.py` for triangle, texture and required-extension budgets | Generating or importing a Meshy model, checking a GLB/glTF before engine import |
 | **[pixel-art](plugins/pixel-art)** | Aseprite CLI export (option order, the `json-hash` default, tag and trim drift), finishing AI-generated pixel art, Tiled GID flip bits and tilesets an engine skips, LDtk `__` fields and stale auto-layer tiles — and `check_sprite_sheet.py` + `check_tilemaps.py` | Sprite sheets, `*.aseprite`, Tiled `*.tmx`/`*.tmj`, LDtk `*.ldtk` |
 

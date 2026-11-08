@@ -626,6 +626,15 @@ this budget. Degrading dispatch quality across the catalogue to avoid a 200-toke
 line edit is precisely the ratio-chasing `lean:cost-model` and testing's
 proportionality.md both reject — the cheaper artifact would have been the more
 expensive decision. Spending it deliberately and saying so is the honest form.
+Raised 12800 -> 13600 on 2026-11-08 for asset-forge, the first plugin here with a local MCP server: its nine tool
+schemas measure 1,110 tokens after every description was cut to one line, property descriptions dropped and
+annotations kept on the two read-only tools only (from 2,182). The owner chose this over folding the nine tools
+into one untyped `forge_job` tool, which would fit but strip each operation's argument schema. The script counts a
+plugin's tools/list in full; Claude Code can defer MCP schemas behind tool search, which would make the real cost
+lower, but that was not measured for this plugin. Headroom left after the raise: about 25 tokens.
+Raised 13600 -> 13700 on 2026-11-08 for asset-forge's `pipeline` skill description (72 tokens), the one asset-forge
+skill the owner chose to leave model-invocable; its five other skills carry `disable-model-invocation: true` and are
+reached by path from it, which is what kept the raise at 100 rather than about 400.
 ```
 
 ### DYNAMIC_CEILING
@@ -2297,3 +2306,7 @@ started at 0.5, where no pair in the repo reaches it (a check that cannot fire).
 0.31, the two `ultra` boost skills, allow-listed with a reason. The motion pairs sit at 0.27. The corpus prompts were
 written by this session, not mined from user transcripts, so they encode its guesses about phrasing. Wired into
 `validate.sh`, not a new CI step, so the CI step count in CLAUDE.md does not change.
+
+Skills with `disable-model-invocation: true` are skipped since 2026-11-08 (asset-forge 0.4.0): they are not in the
+model's skill listing, so ranking them modelled nothing; asset-forge's five path-reached skills outranked its one
+listed skill on "make a low-poly stylized treasure chest". A corpus row that names a hidden skill now fails.

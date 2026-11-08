@@ -1,0 +1,36 @@
+{
+  "platform": "pc",
+  "note": "starting defaults, not a standard: override per class in asset-forge.json",
+  "tris": {
+    "prop_small": 1500,
+    "prop_medium": 5000,
+    "prop_large": 15000,
+    "hero_prop": 30000,
+    "character": 60000,
+    "environment_piece": 10000
+  },
+  "texture_max_px": {
+    "prop_small": 1024,
+    "prop_medium": 2048,
+    "prop_large": 2048,
+    "hero_prop": 4096,
+    "character": 4096,
+    "environment_piece": 2048
+  },
+  "texel_density_px_per_m": 512,
+  "texel_density_tolerance": 0.25,
+  "lod_ratios": [
+    1.0,
+    0.5,
+    0.25,
+    0.1
+  ],
+  "max_materials": {
+    "prop_small": 2,
+    "prop_medium": 2,
+    "prop_large": 3,
+    "hero_prop": 4,
+    "character": 4,
+    "environment_piece": 3
+  }
+}

@@ -1,0 +1,22 @@
+schema_version: "1.1"
+name: validator-catches-bad-asset
+description: 'The bad_asset fixture described in prose. A regression guard: the base model is expected to catch most of these unaided, so a passing control arm is expected and the delta is not a measure of the plugin.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Prop for our Unity game, made in Blender 5.2. Object named "crate final". Its scale is (2, 1, 1) and was never
+    applied. One face has 5 vertices. There is one loose vertex. One face's normal points inward. Every UV sits on the
+    same point (0.5, 0.5). It has 5 material slots. Its first material uses an image texture at
+    //textures/does_not_exist.png, which is not on disk. Is it ready to export to Unity? List every blocker with its fix.
+graders:
+  - name: names-the-blockers
+    type: llm
+    criteria: |
+      The eight problems: (a) the name has a space / does not follow an SM_ PascalCase convention, (b) unapplied scale,
+      (c) the 5-vertex n-gon, (d) the loose vertex, (e) the inward normal, (f) all UVs stacked on one point (degenerate,
+      no usable unwrap), (g) too many material slots / draw calls for a small prop, (h) the missing texture file.
+      PASS if the reply flags at least seven of the eight as problems and gives a fix for each it flags.
+      FAIL if it calls the asset ready, or flags six or fewer.

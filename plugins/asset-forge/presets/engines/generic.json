@@ -1,0 +1,39 @@
+{
+  "engine": "generic",
+  "format": "gltf",
+  "up_axis": "Y",
+  "gltf": {
+    "export_format": "GLB",
+    "export_apply": true,
+    "export_yup": true,
+    "use_selection": true,
+    "export_tangents": true,
+    "export_animation_mode": "ACTIONS"
+  },
+  "naming": {
+    "mesh": "^[A-Za-z][A-Za-z0-9_]*$",
+    "lod": "{name}_LOD{n}",
+    "collision": {
+      "box": "{name}_COL",
+      "convex": "{name}_COL",
+      "multi": "{name}_COL_{nn}"
+    },
+    "material": "^[A-Za-z][A-Za-z0-9_]*$",
+    "texture": "^[A-Za-z0-9_]+$"
+  },
+  "pivot": "bottom_center",
+  "lod": {
+    "export": "same_file"
+  },
+  "texture_packing": {
+    "name": "glTF metallicRoughness + occlusion",
+    "R": "ao",
+    "G": "roughness",
+    "B": "metallic"
+  },
+  "animation": {
+    "clip_naming": "{clip}",
+    "root_motion": "either",
+    "loop_suffix": null
+  }
+}

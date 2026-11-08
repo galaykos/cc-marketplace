@@ -1,0 +1,42 @@
+{
+  "source": "mixamo",
+  "target": "rigify",
+  "root": {
+    "source": "mixamorig:Hips",
+    "target": "DEF-spine"
+  },
+  "bones": {
+    "mixamorig:Hips": "DEF-spine",
+    "mixamorig:Spine": "DEF-spine.001",
+    "mixamorig:Spine1": "DEF-spine.002",
+    "mixamorig:Spine2": "DEF-spine.003",
+    "mixamorig:Neck": "DEF-spine.004",
+    "mixamorig:Head": "DEF-spine.006",
+    "mixamorig:LeftShoulder": "DEF-shoulder.L",
+    "mixamorig:RightShoulder": "DEF-shoulder.R",
+    "mixamorig:LeftArm": "DEF-upper_arm.L",
+    "mixamorig:RightArm": "DEF-upper_arm.R",
+    "mixamorig:LeftForeArm": "DEF-forearm.L",
+    "mixamorig:RightForeArm": "DEF-forearm.R",
+    "mixamorig:LeftHand": "DEF-hand.L",
+    "mixamorig:RightHand": "DEF-hand.R",
+    "mixamorig:LeftUpLeg": "DEF-thigh.L",
+    "mixamorig:RightUpLeg": "DEF-thigh.R",
+    "mixamorig:LeftLeg": "DEF-shin.L",
+    "mixamorig:RightLeg": "DEF-shin.R",
+    "mixamorig:LeftFoot": "DEF-foot.L",
+    "mixamorig:RightFoot": "DEF-foot.R",
+    "mixamorig:LeftToeBase": "DEF-toe.L",
+    "mixamorig:RightToeBase": "DEF-toe.R"
+  },
+  "notes": [
+    "Source names: the mixamorig: names this plugin's test fixture builds (scripts/__tests__/blender/fixtures.py: Hips, Spine, Spine2, Neck, Head, Left/Right Arm, ForeArm, Hand, UpLeg, Leg, Foot). The fixture was written for this plugin, not read from a Mixamo download, so every source name is unconfirmed against a real Mixamo FBX.",
+    "Unverified, in no source in this repo or in Blender: mixamorig:Spine1, Left/RightShoulder and Left/RightToeBase. A pair whose bone is missing is skipped and listed by retarget, not an error.",
+    "Unverified: Mixamo downloads are reported to use a numbered prefix (mixamorig1:) on some characters; such a rig matches no pair until its prefix is renamed or this map is copied with it.",
+    "Target names: DEF bones of a Rigify rig generated from the basic human metarig, probed in Blender 5.2.3 LTS (armature_basic_human_metarig_add + pose.rigify_generate, 35 DEF bones). Every target here is one of them.",
+    "Spine: Hips -> DEF-spine (pelvis segment), Spine -> DEF-spine.001, Spine1 -> DEF-spine.002, Spine2 -> DEF-spine.003 (chest), Neck -> DEF-spine.004, Head -> DEF-spine.006; DEF-spine.005 (upper neck) is unmapped and follows DEF-spine.004.",
+    "Unmapped DEF bones follow their parents: the .001 twist segments of upper_arm, forearm, thigh and shin, DEF-pelvis and DEF-breast.",
+    "On a generated Rigify rig every mapped DEF bone except DEF-shoulder.L/.R carries a COPY_TRANSFORMS constraint (most also STRETCH_TO) to ORG/tweak bones (probed, all 35 DEF bones read), which override keys baked onto DEF bones; retarget warns. Bake onto a deform-only skeleton with these names, as the blender plugin's rigging.md recommends for export.",
+    "roll_fix_deg and axis_fix are 0/null on every bone: retarget computes the rest-orientation offset between each pair itself. Write a bone as {\"target\": ..., \"roll_fix_deg\": 90} only when it twists wrong after retargeting."
+  ]
+}

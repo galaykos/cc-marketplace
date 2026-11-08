@@ -1,0 +1,60 @@
+{
+  "engine": "unreal",
+  "format": "fbx",
+  "up_axis": "Z",
+  "fbx": {
+    "add_leaf_bones": false,
+    "mesh_smooth_type": "FACE",
+    "use_armature_deform_only": true,
+    "use_tspace": true,
+    "use_triangles": true,
+    "use_mesh_modifiers": true,
+    "use_selection": true,
+    "object_types": [
+      "MESH",
+      "ARMATURE",
+      "EMPTY"
+    ],
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_unit_scale": true,
+    "apply_scale_options": "FBX_SCALE_UNITS",
+    "bake_anim_use_all_actions": false,
+    "bake_anim_use_nla_strips": true
+  },
+  "naming": {
+    "mesh": "^(SM|SK)_[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$",
+    "lod": "{name}_LOD{n}",
+    "collision": {
+      "box": "UBX_{name}_{nn}",
+      "convex": "UCX_{name}_{nn}",
+      "multi": "UCX_{name}_{nn}",
+      "sphere": "USP_{name}_{nn}",
+      "capsule": "UCP_{name}_{nn}"
+    },
+    "socket": "SOCKET_{name}_{nn}",
+    "material": "^M_[A-Za-z0-9_]+$",
+    "texture": "^T_[A-Za-z0-9_]+_(D|N|ORM|E)$"
+  },
+  "pivot": "world_origin",
+  "one_custom_collision_mesh_per_file": true,
+  "lod": {
+    "export": "separate_files",
+    "note": "import LOD1+ in the Static Mesh editor, or let Unreal reduce"
+  },
+  "texture_packing": {
+    "name": "ORM",
+    "R": "ao",
+    "G": "roughness",
+    "B": "metallic"
+  },
+  "animation": {
+    "clip_naming": "A_{asset}_{clip}",
+    "root_motion": "either: enable Root Motion per animation sequence",
+    "loop_suffix": null
+  },
+  "unverified": [
+    "FBX_SCALE_UNITS writes UnitScaleFactor 100; the editor import dialog honours it, a scripted legacy import may not (blender plugin export.md)",
+    "bake_anim_use_all_actions false + NLA strips true: clips ship once each, from NLA tracks only (measured 2026-11-08: the defaults shipped an NLA clip twice and leaked an unrelated rig's action)"
+  ]
+}

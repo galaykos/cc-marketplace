@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+asset-forge:art-reviewer	agent	review	game-asset-art-review	an asset-forge contact sheet of a game asset built in Blender exists (after a blockout or after texturing) and needs an independent visual critique against the brief, style and references	-
+asset-forge:review-state	hook	any	game-asset-review-after-change	a Stop in a context that used asset-forge and changed the Blender scene through execute_blender_code since its last successful render_review_set; blocks once per change cycle (JSON block), silent under stop_hook_active and CC_FORGE_REVIEW=off	-

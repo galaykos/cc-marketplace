@@ -1,0 +1,42 @@
+{
+  "source": "mixamo",
+  "target": "ue5",
+  "root": {
+    "source": "mixamorig:Hips",
+    "target": "pelvis"
+  },
+  "bones": {
+    "mixamorig:Hips": "pelvis",
+    "mixamorig:Spine": "spine_01",
+    "mixamorig:Spine1": "spine_03",
+    "mixamorig:Spine2": "spine_05",
+    "mixamorig:Neck": "neck_01",
+    "mixamorig:Head": "head",
+    "mixamorig:LeftShoulder": "clavicle_l",
+    "mixamorig:RightShoulder": "clavicle_r",
+    "mixamorig:LeftArm": "upperarm_l",
+    "mixamorig:RightArm": "upperarm_r",
+    "mixamorig:LeftForeArm": "lowerarm_l",
+    "mixamorig:RightForeArm": "lowerarm_r",
+    "mixamorig:LeftHand": "hand_l",
+    "mixamorig:RightHand": "hand_r",
+    "mixamorig:LeftUpLeg": "thigh_l",
+    "mixamorig:RightUpLeg": "thigh_r",
+    "mixamorig:LeftLeg": "calf_l",
+    "mixamorig:RightLeg": "calf_r",
+    "mixamorig:LeftFoot": "foot_l",
+    "mixamorig:RightFoot": "foot_r",
+    "mixamorig:LeftToeBase": "ball_l",
+    "mixamorig:RightToeBase": "ball_r"
+  },
+  "notes": [
+    "Source names: the mixamorig: names this plugin's test fixture builds (scripts/__tests__/blender/fixtures.py: Hips, Spine, Spine2, Neck, Head, Left/Right Arm, ForeArm, Hand, UpLeg, Leg, Foot). The fixture was written for this plugin, not read from a Mixamo download, so every source name is unconfirmed against a real Mixamo FBX.",
+    "Unverified, in no source in this repo or in Blender: mixamorig:Spine1, Left/RightShoulder and Left/RightToeBase. A pair whose bone is missing is skipped and listed by retarget, not an error.",
+    "Unverified: Mixamo downloads are reported to use a numbered prefix (mixamorig1:) on some characters; such a rig matches no pair until its prefix is renamed or this map is copied with it.",
+    "Target names root, pelvis, spine_01, spine_02, spine_03, neck_01, head, clavicle, upperarm, lowerarm, hand, thigh, calf, foot, ball (_l/_r) are the UE list in this repo's plugins/blender/scripts/rig_check.py (its unreal naming profile; that file is derived from EL4CTEO/blender-skills). Not checked against an Epic skeleton asset.",
+    "Unverified, in no source in this repo or in Blender: spine_04, spine_05 and neck_02, the UE5 Manny/Quinn additions over that list. On a skeleton without spine_05 the Spine2 pair is skipped; for a three-bone UE4-style spine copy this map with Spine -> spine_01, Spine1 -> spine_02, Spine2 -> spine_03.",
+    "Spine: Spine -> spine_01, Spine1 -> spine_03, Spine2 -> spine_05; spine_02, spine_04 and neck_02 are unmapped and follow their parents.",
+    "root is unmapped: Mixamo has no root bone and its Hips carry the travel. For root motion run extract_root_motion(rig, action, 'pelvis', 'root'); for in place, make_in_place on pelvis.",
+    "roll_fix_deg and axis_fix are 0/null on every bone: retarget computes the rest-orientation offset between each pair itself. Write a bone as {\"target\": ..., \"roll_fix_deg\": 90} only when it twists wrong after retargeting."
+  ]
+}

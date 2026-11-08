@@ -1,0 +1,28 @@
+schema_version: "1.1"
+name: pipeline-asks-engine
+description: 'A game-asset request in Blender with no engine named. The pipeline skill says never to guess the engine, to plan a visual review before export, and to validate against a budget. Grades the plan, not a build: no tools run.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 8
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Make a low-poly stylized treasure chest in Blender for my game. Before you build anything, write down exactly
+    what you will do, step by step, and what you need from me first. Don't run anything yet.
+graders:
+  - name: pipeline-skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: "asset-forge:pipeline"
+  - name: plan-asks-engine-reviews-validates
+    type: llm
+    criteria: |
+      PASS requires all four in the reply:
+      1. It asks which game engine (or engine and platform) the asset is for, or says it needs that before building.
+         Merely listing several engines as options to choose from counts as asking.
+      2. It plans a visual check of the built asset before export: renders or screenshots from several angles, a
+         silhouette check, or a check at in-game viewing distance.
+      3. It plans a check against a budget before export: a triangle count, a texture size or a texel density.
+      4. It names a real-world size in metres (or asks for one).
+      FAIL if it picks an engine without asking, or if any of the four is missing.
+      Not graded: tone, length, which modelling technique it proposes.
