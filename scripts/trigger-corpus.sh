@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # trigger-corpus.sh [--root DIR] [--corpus FILE] — ranks every SKILL.md description against labelled prompts (BM25, stdlib Python): a `gate` row whose expected skill falls out of the top 3 prints `FAIL trigger: …` (exit 1); a `known-miss` row prints `WARN` and, once it ranks top 3, a promote hint; skill pairs in different plugins with near-identical descriptions print `WARN collision: …`.
-# Misses: how the model actually routes (lexical ranking is a proxy: it catches a description edit that drops a trigger word, not a model choosing differently), commands (only skills are ranked), and prompts nobody added.
+# Misses: how the model actually routes (lexical ranking is a proxy: it catches a description edit that drops a trigger word, not a model choosing differently), commands and `disable-model-invocation: true` skills (neither is in the model's listing, so neither is ranked), and prompts nobody added.
 # Why, limits, history: rationale/derivations/scripts.md § scripts/trigger-corpus.sh
 set -uo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd); corpus=""
@@ -30,7 +30,7 @@ def toks(s):
             if len(w) > 4 and w.endswith(suf): w = w[:-len(suf)]; break
         out.append(w)
     return out
-docs = {}
+docs = {}; hidden = set()
 for p in sorted(glob.glob(root + "/plugins/*/skills/*/SKILL.md")):
     txt = open(p, encoding="utf-8").read()
     m = re.match(r"---\n(.*?)\n---", txt, re.S)
@@ -39,6 +39,8 @@ for p in sorted(glob.glob(root + "/plugins/*/skills/*/SKILL.md")):
     get = lambda k: (re.search(r"^%s:\s*(.+)$" % k, fm, re.M) or [None, ""])[1]
     plugin = p.split("/plugins/")[1].split("/")[0]
     key = "%s:%s" % (plugin, (get("name") or p.split("/")[-2]).strip())
+    if get("disable-model-invocation").strip().lower() == "true":
+        hidden.add(key); continue
     docs[key] = toks(get("description") + " " + get("when_to_use") + " " + key.replace(":", " "))
 N = len(docs); avg = sum(len(d) for d in docs.values()) / max(N, 1)
 df = collections.Counter(t for d in docs.values() for t in set(d))
@@ -63,6 +65,8 @@ for n, line in enumerate(open(corpus, encoding="utf-8"), 1):
     if len(cols) != 3 or cols[0] not in ("gate", "known-miss"):
         print("FAIL trigger: %s:%d is not `gate|known-miss<TAB>plugin:skill<TAB>prompt`" % (corpus, n)); fail = 1; continue
     status, want, prompt = cols
+    if want in hidden:
+        print("FAIL trigger: %s:%d names %s, which sets disable-model-invocation: the model never sees it to pick" % (corpus, n, want)); fail = 1; continue
     if want not in docs:
         print("FAIL trigger: %s:%d names %s, which is not a skill" % (corpus, n, want)); fail = 1; continue
     top = rank(prompt)[:3]

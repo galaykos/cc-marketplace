@@ -36,3 +36,5 @@ gate	code-architecture:yagni-check	is this over-engineered
 gate	approaches:approach-deliberation	compare two approaches for the cache layer
 known-miss	godot:godot-best-practices	write a Godot 4 script for a 2D platformer character controller
 known-miss	ui-ux:motion-best-practices	add a hover transition and reduced-motion fallback to this button
+gate	asset-forge:pipeline	make a low-poly stylized treasure chest in Blender for my Unity game
+gate	asset-forge:pipeline	model a rock cluster prop in blender with LODs and collision for Godot
