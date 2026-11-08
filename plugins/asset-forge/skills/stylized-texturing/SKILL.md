@@ -46,8 +46,10 @@ that shifts hue toward `shadow` instead of greying (`ao_strength`), edge highlig
 1. Snapshot. `texture_views` tool: `{blend_path, object, views: ["front","back","left","right","top"], resolution}`.
    It returns per-camera normal, depth and AO guides and `views_blend` (a copy that keeps the cameras).
 2. For each camera, generate one image with the same framing: the Meshy MCP's `…meshy_image_to_image` with the
-   camera's guide as the reference and the style prompt from `asset-forge.json`. Keep the background
-   transparent or the silhouette exact. Download each to a local PNG.
+   camera's **normal** guide as the reference (`reference_file_paths`, `remove_background: true`) and the style
+   prompt from `asset-forge.json`, asking for the same silhouettes and framing, flat unlit colour. The AO guide is
+   near-white on transparent and makes a poor reference. Download each to a local PNG (`save_to`) and look at it:
+   the generator can add or drop shapes (the rock test's front view gained a rock that is not in the mesh).
 3. `project_texture` tool: `{blend_path: views_blend, object, view_images: {camera: png}, resolution, seam_blend}`.
    `seam_blend` 0 takes only the best-facing view per texel; 0.2 cross-fades views within about 0.2 facing ratio.
 4. Live: `stylize.apply_albedo(obj, "<projected path>", material_name="M_<name>")`.
@@ -69,6 +71,10 @@ result onto your UVs (import it as `high`, `bake_maps` with an emission setup) i
 - The first GPU (OptiX) bake on a machine can stall about a minute compiling kernels; later bakes take under a second.
 - Projection blends in the images' sRGB encoding, not linear light; slight darkening at cross-fades.
 - Tier 1 is one albedo: no roughness, metal or emission maps are painted; the material gets one roughness value.
+- On the rock stress test, Tier 1 `stone` rendered almost flat grey at review distance; pass a palette with more
+  value spread between `base` colours, or raise `top_light`, for stone.
+- Two Tier-2 views saw 41% of the rock cluster's texels; the other 59% were filled from the nearest seen texel and
+  show as smeared patches on the back. Use at least front, back, left, right and top for an asset seen all round.
 - Tier 1 paints light, shade and edges, not motifs. On the treasure-chest test the independent reviewer scored
   surface detail 2/5: no plank seams, grain strokes, rivets or keyhole. Model those as geometry (a plank seam is a
   cut edge, a rivet a small box), or paint them with Tier 2. A material split per part (wood, iron, brass, each its

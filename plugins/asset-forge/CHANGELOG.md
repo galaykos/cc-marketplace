@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.0 — 2026-11-08
+
+- **Stress tests: a wolf, a rock cluster, an animated Meshy humanoid.** Fixes and skill changes from what they exposed:
+  - **New bone map `meshy_to_rigify`.** The names were read from a real Meshy auto-rig: Spine02 sits next to the hips; neck is lower-case. Meshy's walk retargeted onto a Rigify-named A-pose rig matched the source's bone directions to 0.0° (4 bones, 4 frames). Its 0.01-scale glTF armature needed nothing extra.
+  - **FBX presets export NLA strips only.** Blender's defaults shipped the retargeted clip twice and leaked the source rig's action, as `anim_audit.py` showed. Unity and Unreal now set `bake_anim_use_all_actions: False`.
+  - **`export_asset(clips=[…])`.** The post-export audit now lists the clips that shipped and fails unless they are exactly the ones named. It also accepts armatures among the expected objects; before, it wrongly failed any rigged export.
+  - **`validate_asset` pivot for skinned meshes.** Their origin must sit on the ground inside the footprint, not at the bounding-box centre, which feet and tails skew.
+  - **`organic-modeling`.** Silhouette features such as ears, tail, elbows, hocks and paws are skeleton branches: a deform-made ear moved 4 vertices and never showed. Never add a joint between two torso joints, because the Skin hull folds there. Fuse with `voxel_remesh(0.015)` and smooth. The quadruped spec is replaced by the wolf's round-3 spec, and the independent reviewer's verdict on it went from rework to revise.
+  - **`stylized-texturing`.** For Meshy image-to-image, send the normal guide, not the AO guide. Inspect generated views, since the generator can add shapes. Two views saw 41% of a rock cluster's texels. Tier-1 stone needs more value spread.
+  - Credits spent on Meshy: 26.
+
 ## 0.5.0 — 2026-11-08
 
 - **`art-reviewer` agent.** An independent critique from the contact sheet, references and validator alone. It returns a verdict, six 1–5 scores and spatial issues, each with a concrete fix. On a deliberately wrong blockout (a 1.44 m column briefed as a 0.8 m chest), dispatched from a fresh `claude -p` session, it returned `rework` with silhouette, proportions and readability at 1. It named the size miss in numbers (31% of the target width, 240% of the height) and gave target dimensions. Standing: agent-graded.

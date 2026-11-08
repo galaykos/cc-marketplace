@@ -148,7 +148,8 @@ def export_asset(args):
     result["source_validation"] = {"passed": validation.get("passed"), "failed": failed,
                                    "asset_class": vkw["asset_class"], "error": validation.get("error")}
     if result.get("ok"):
-        files = [{"path": f["path"], "objects": f["objects"]} for f in result.get("files", [])]
+        files = [{"path": f["path"], "objects": f["objects"], **({"clips": args["clips"]} if args.get("clips") else {})}
+                 for f in result.get("files", [])]
         audit = headless.run_job("call", {"module": "export", "function": "audit_export",
                                           "kwargs": {"files": files, "engine": args["engine"]}}, timeout=300)
         audit.pop("blender", None)
@@ -264,7 +265,8 @@ TOOLS = {
                      _schema({"blend_path": _BLEND, "objects": {"type": "array", "items": {"type": "string"}},
                               "engine": _enum(ENGINES), "out_dir": _OUT, "file_stem": {"type": "string"},
                               "include_lods": {"type": "boolean"}, "include_collision": {"type": "boolean"},
-                              "platform": _enum(PLATFORMS), "asset_class": _enum(ASSET_CLASSES)},
+                              "platform": _enum(PLATFORMS), "asset_class": _enum(ASSET_CLASSES),
+                              "clips": {"type": "array", "items": {"type": "string"}}},
                              ["blend_path", "objects", "engine", "out_dir"])),
     "texture_views": (texture_views, "AI texturing step 1: per-view cameras and guide renders; returns views_blend "
                       "for project_texture.",

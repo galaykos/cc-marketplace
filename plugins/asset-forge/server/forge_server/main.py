@@ -6,7 +6,7 @@ import traceback
 
 import tools
 
-SERVER_INFO = {"name": "asset-forge-forge", "version": "0.5.0"}
+SERVER_INFO = {"name": "asset-forge-forge", "version": "0.6.0"}
 KNOWN_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 
 

@@ -21,7 +21,7 @@ def _check(spec, name, height_range):
 def test_quadruped_spec_in_skill():
     ns = {}
     exec(_blocks(SKILL / "SKILL.md")[0], ns)
-    _check(ns["spec"], "SK_Wolf", (0.9, 1.3))
+    _check(ns["spec"], "SK_Wolf", (1.0, 1.35))
 
 
 def test_biped_and_tree_recipes():

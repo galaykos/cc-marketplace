@@ -14,7 +14,7 @@ clips that go missing on export stay with `blender:blender-rig-anim` and its `an
 | Source | How it arrives | Notes |
 |---|---|---|
 | Mixamo | The **user** downloads the FBX (FBX Binary, "Without Skin" for clips) — never automate their login | Imports at 0.01 object scale with `mixamorig:` names |
-| Meshy | `…meshy_rig` then `…meshy_animate`, or `…meshy_text_to_motion` through the Meshy MCP; confirm credits first | Meshy rigs only textured humanoids. No Meshy bone map ships yet: build one from the rig's real bone names |
+| Meshy | `…meshy_rig` (5 credits, includes a walk and a run) then `…meshy_animate` for more clips, through the Meshy MCP; confirm credits first | Meshy rigs only textured humanoids. Bone map `meshy_to_rigify` (names read from a real Meshy rig, 2026-11-08); its glTF imports at 0.01 object scale, which retarget handles in world space |
 | BVH mocap | `bpy.ops.import_anim.bvh(filepath=…)` | Name maps vary by library; write a bone map |
 
 ## Steps
@@ -35,9 +35,13 @@ clips that go missing on export stay with `blender:blender-rig-anim` and its `an
 6. `retarget.trim(action, start, end)` → starts at frame 0 (glTF time is frame / fps; a clip starting late in an
    engine is this).
 7. `retarget.push_to_nla(rig, action, engine=..., asset=..., clip=...)` names it per the preset (`{asset}@{clip}`
-   for Unity, `A_{asset}_{clip}` for Unreal, Godot `-loop` suffix on cycled clips).
-8. Screenshot frames 0, ¼, ½ of the cycle from the side; then run `blender`'s `anim_audit.py` on a snapshot
-   before export, and export with the animation through the `export_asset` tool.
+   for Unity, `A_{asset}_{clip}` for Unreal, Godot `-loop` suffix on cycled clips). The FBX presets export NLA strips
+   only (`bake_anim_use_all_actions: False`): with Blender's defaults the stress test shipped its clip twice and
+   leaked the source rig's action. Delete or unlink the imported source rig before export anyway.
+8. Export with `export_asset(..., clips=["<asset>@<clip>", ...])`: the post-export audit then fails unless exactly
+   those clips shipped.
+9. Screenshot frames 0, ¼, ½ of the cycle from the side; `blender`'s `anim_audit.py` on a snapshot cross-checks
+   FBX and glTF clip timing and loops.
 
 ## Rules
 
@@ -51,6 +55,8 @@ clips that go missing on export stay with `blender:blender-rig-anim` and its `an
 ## Limitations
 
 - Hips travel is copied in metres, not scaled by hip height: a rig with different leg length slides its feet.
+- Measured on the stress test: Meshy's walk retargeted onto a Rigify-named A-pose rig matched the source's thigh,
+  shin, upper-arm and chest directions to 0.0° at four frames; Meshy's walk is already in place and loops.
 - Mixamo bone names in the shipped maps are not yet checked against a real Mixamo download; `mixamo_to_ue5`'s
   `spine_04`, `spine_05` and `neck_02` are unverified. Missing pairs are skipped and listed, not errors.
 - Quality depends on rest-pose match: fingers and toes with different counts or rolls need hand fixes.

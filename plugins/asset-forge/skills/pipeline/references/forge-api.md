@@ -106,4 +106,4 @@ through the forge MCP tools (`validate_asset`, `bake_maps`, …) or `batch_run`.
 ## export (headless, via the MCP tools)
 
 - `export_asset(objects, engine='unity', out_dir=None, file_stem=None, include_lods=True, include_collision=True, platform='pc')` — Export objects (names or objects; the first is the asset) with their LODs and collision, found by the engine preset's naming patterns, through the preset's exporter (FBX or glTF).
-- `audit_export(files, engine='unity')` — Re-import exported files into an empty scene and check what actually shipped, per file: each `files` entry is {"path", "objects": [names the export meant to write]}.
+- `audit_export(files, engine='unity')` — Re-import exported files into an empty scene and check what actually shipped, per file: each `files` entry is {"path", "objects": [names the export meant to write], "clips": [clip names, optional]}.

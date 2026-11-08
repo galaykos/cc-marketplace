@@ -18,7 +18,9 @@
     "axis_forward": "-Z",
     "axis_up": "Y",
     "apply_unit_scale": true,
-    "apply_scale_options": "FBX_SCALE_UNITS"
+    "apply_scale_options": "FBX_SCALE_UNITS",
+    "bake_anim_use_all_actions": false,
+    "bake_anim_use_nla_strips": true
   },
   "naming": {
     "mesh": "^(SM|SK)_[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$",
@@ -52,6 +54,7 @@
     "loop_suffix": null
   },
   "unverified": [
-    "FBX_SCALE_UNITS writes UnitScaleFactor 100; the editor import dialog honours it, a scripted legacy import may not (blender plugin export.md)"
+    "FBX_SCALE_UNITS writes UnitScaleFactor 100; the editor import dialog honours it, a scripted legacy import may not (blender plugin export.md)",
+    "bake_anim_use_all_actions false + NLA strips true: clips ship once each, from NLA tracks only (measured 2026-11-08: the defaults shipped an NLA clip twice and leaked an unrelated rig's action)"
   ]
 }

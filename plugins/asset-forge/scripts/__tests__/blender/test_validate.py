@@ -260,3 +260,13 @@ def test_collision_named_from_the_lod0_mesh_passes():
     checks = {c["id"]: c for c in validate.validate_asset(crate, engine="unity", platform="pc", asset_class="prop_small")["checks"]}
     assert checks["collision_naming"]["status"] == "pass", checks["collision_naming"]
     assert checks["collision_naming"]["measured"]["named"] == ["SM_Crate_LOD0_Collider"]
+
+
+def test_skinned_mesh_pivot_is_ground_inside_footprint_not_bbox_centre():
+    rig, mesh, _ = fixtures.humanoid()
+    mesh.location.y = 0.0
+    checks = {c["id"]: c for c in validate.validate_asset(mesh, engine="unity", platform="pc", asset_class="character")["checks"]}
+    assert checks["pivot"]["status"] == "pass", checks["pivot"]
+    mesh.data.transform(Matrix.Translation((0, 0, 0.3)))
+    checks = {c["id"]: c for c in validate.validate_asset(mesh, engine="unity", platform="pc", asset_class="character")["checks"]}
+    assert checks["pivot"]["status"] == "fail", checks["pivot"]

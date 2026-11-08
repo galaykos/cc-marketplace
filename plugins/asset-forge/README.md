@@ -6,8 +6,9 @@ studio conventions. This plugin adds a headless MCP server that renders, validat
 **snapshots** of the live scene (never the working `.blend`), a pure-bpy library the live session imports, and
 pipeline skills with per-engine presets.
 
-**Status: 0.5.0 ships the library, the server tools, the skills, the art-reviewer agent and the review-after-change
-gate.** Evals and the organic, texture and animation stress tests are still to come.
+**Status: 0.6.0.** Library, server tools, skills, art-reviewer agent and review-after-change gate, exercised on three
+stress tests (a wolf from a skin blockout, a rock cluster textured both ways, a Meshy humanoid's walk retargeted
+and exported for Unity). An eval suite is still to come.
 
 ## Install
 
@@ -68,6 +69,9 @@ project's `asset-forge.json`, written by the `pipeline` skill on first use.
 
 - The skills' pauses, snapshot rule and "look before you claim" are prose; only "review after a change" has a gate.
 - The art-reviewer judges renders, so it cannot see engine lighting, shaders or the in-game view.
+- Skin-blockout creatures stay blocky: on the wolf stress test the independent reviewer still asked for a level
+  topline and shoulder and haunch masses after two revisions (silhouette 2 → 3).
+- Tier-2 texturing with fewer views than sides leaves nearest-filled smears on what no camera saw.
 - Tier-1 texturing paints light, shade and edges, not motifs: plank seams, grain, rivets and keyholes need geometry
   or Tier 2 (the treasure-chest test's reviewer scored surface detail 2/5 for this).
 

@@ -176,8 +176,9 @@ def export_asset(objects, engine="unity", out_dir=None, file_stem=None, include_
 
 def audit_export(files, engine="unity"):
     """Re-import exported files into an empty scene and check what actually shipped, per file: each `files` entry is
-    {"path", "objects": [names the export meant to write]}. Checks: the file exists and is non-empty, every expected
-    object arrived and nothing else did (the importer's own armature/empties aside), every mesh has faces, a UV map
+    {"path", "objects": [names the export meant to write], "clips": [clip names, optional]}. Checks: the file exists and
+    is non-empty, every expected mesh or armature arrived and no unexpected mesh did, the clips (when given) are exactly
+    those, by name after the importer's "<object>|" prefix (the importer's own armature/empties aside), every mesh has faces, a UV map
     and no n-gon, render meshes carry a material and collision meshes follow the preset's naming. Run it on a scene
     you can discard: it clears the current file. Returns per-file checks and `passed`."""
     preset = load_preset("engines", engine)
@@ -201,9 +202,16 @@ def audit_export(files, engine="unity"):
         else:
             bpy.ops.import_scene.gltf(filepath=str(path))
         meshes = {o.name: o for o in bpy.data.objects if o.type == "MESH"}
+        arrived = {o.name for o in bpy.data.objects if o.type in ("MESH", "ARMATURE")}
         expected = set(entry.get("objects", []))
-        add("objects_present", expected <= set(meshes), {"missing": sorted(expected - set(meshes))})
+        add("objects_present", expected <= arrived, {"missing": sorted(expected - arrived)})
         add("no_extra_meshes", set(meshes) <= expected, {"extra": sorted(set(meshes) - expected)})
+        clips = sorted(a.name for a in bpy.data.actions)
+        expected_clips = entry.get("clips")
+        if expected_clips is not None:
+            shipped = sorted({c.split("|")[-1] for c in clips})
+            add("clips", sorted(set(expected_clips)) == shipped,
+                {"expected": sorted(set(expected_clips)), "shipped": clips})
         tris = {}
         for name, obj in meshes.items():
             polys = obj.data.polygons
@@ -215,5 +223,5 @@ def audit_export(files, engine="unity"):
                 add(f"{name}:uv", len(obj.data.uv_layers) > 0, len(obj.data.uv_layers))
                 add(f"{name}:material", any(s.material for s in obj.material_slots), len(obj.material_slots))
         results.append({"path": str(path), "passed": all(c["status"] == "pass" for c in checks), "tris": tris,
-                        "checks": checks})
+                        "clips": clips, "checks": checks})
     return ok(engine=engine, passed=all(r["passed"] for r in results), files=results)

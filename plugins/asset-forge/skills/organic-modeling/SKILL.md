@@ -21,38 +21,47 @@ All of this runs **live** through `execute_blender_code`, after the forge import
 ## A. Skeleton blockout, then sculpt by vertex math
 
 1. Proportions from `references/proportions.md`, in metres. Write the skeleton spec: joints with radii, bones as pairs.
-2. `blockout.skin_from_skeleton(spec, name="SK_Wolf", subdivisions=1)` → manifold mesh. Ends stop about 13% of the
-   end radius short of their end joints: extend end joints slightly.
-3. Shape with `deform` (world-space centres and radii; `symmetry="X"` for bilateral creatures):
-   - mass: `grab`, `inflate`, `flatten` (cheeks, belly, chest plate)
+2. Every feature that must read in silhouette is a **skeleton branch**, not a deform: ears, tail, muzzle, elbows,
+   hocks, paws. Measured on the wolf stress test: a `grab` for an ear on the coarse skin moved 4 vertices and
+   nothing showed; the same ear as a branch read in every view.
+3. `blockout.skin_from_skeleton(spec, name="SK_Wolf", subdivisions=2)`, then fuse:
+   `retopo.voxel_remesh(obj, voxel_size=0.015)` and `deform.smooth(obj, iterations=2)`. Ends stop about 13% of
+   the end radius short of their end joints: extend end joints slightly. Never put an extra joint between two torso
+   joints (a "hump" between hips and chest): the Skin hull folds there and the fold survives remeshing as a
+   visible plate. Make humps with `deform.grab` after fusing.
+4. Shape with `deform` (world-space centres and radii; `symmetry="X"` for bilateral creatures):
+   - mass: `grab`, `inflate`, `flatten` (cheeks, belly, chest plate, shoulder hump)
    - lines: `crease_along_curve` (muscle separations, wrinkles, cracks), `bulge_along_curve` (muscles, veins, roots)
    - breakup: `noise_displace` (bark, rock), then `smooth(iterations=2)` to settle
    - paths: `stroke(obj, path_points, "inflate", radius_profile, strength_profile)` for brush-like passes
-4. Check every few ops: screenshot from front, side and 3/4. Undo by rerunning from a duplicate kept hidden.
-5. Retopo for the budget: `retopo.quadriflow(obj, target_faces)` (manifold input only; it returns CANCELLED
-   on a non-manifold mesh) or `retopo.decimate_to_budget(obj, target_tris)`.
-6. Details that did not survive retopo come back as a normal map: keep the dense version as `high`, bake with
+5. Review (silhouette first) before any detail; screenshot front, side and 3/4 between passes.
+6. Retopo for the budget: `retopo.decimate_to_budget(obj, target_tris)`, or `retopo.quadriflow(obj, target_faces)`
+   (manifold input only; it returns CANCELLED on a non-manifold mesh).
+7. Details that did not survive retopo come back as a normal map: keep the dense version as `high`, bake with
    the `bake_maps` tool (`low`=the retopo, `high`=the dense mesh).
 
-Spec shape (quadruped, metres, Z up, facing -Y):
+Spec (stylized wolf, about 1.2 m to the ear tips and 1.65 m nose to tail; metres, Z up, facing -Y). This is the
+second-round spec of the stress test; its review still asked for a level topline and thicker legs, so treat it as a
+start, not a finished design:
 
 ```python
-spec = {"joints": {
-    "hips": {"co": [0, 0.35, 0.75], "radius": 0.2}, "chest": {"co": [0, -0.35, 0.8], "radius": 0.24},
-    "neck": {"co": [0, -0.6, 1.0], "radius": 0.13}, "head": {"co": [0, -0.8, 1.05], "radius": 0.15},
-    "snout": {"co": [0, -1.02, 0.98], "radius": 0.07},
-    "fl_knee": {"co": [0.15, -0.38, 0.4], "radius": 0.07}, "fl_paw": {"co": [0.15, -0.4, 0.04], "radius": 0.06},
-    "bl_knee": {"co": [0.15, 0.4, 0.42], "radius": 0.08}, "bl_paw": {"co": [0.15, 0.45, 0.04], "radius": 0.06},
-    "fr_knee": {"co": [-0.15, -0.38, 0.4], "radius": 0.07}, "fr_paw": {"co": [-0.15, -0.4, 0.04], "radius": 0.06},
-    "br_knee": {"co": [-0.15, 0.4, 0.42], "radius": 0.08}, "br_paw": {"co": [-0.15, 0.45, 0.04], "radius": 0.06},
-    "tail": {"co": [0, 0.75, 0.85], "radius": 0.05}},
-  "bones": [["hips", "chest"], ["chest", "neck"], ["neck", "head"], ["head", "snout"], ["hips", "tail"],
-            ["chest", "fl_knee"], ["fl_knee", "fl_paw"], ["hips", "bl_knee"], ["bl_knee", "bl_paw"],
-            ["chest", "fr_knee"], ["fr_knee", "fr_paw"], ["hips", "br_knee"], ["br_knee", "br_paw"]]}
+J = {"hips": ((0, 0.28, 0.82), 0.16), "chest": ((0, -0.26, 0.86), 0.21), "neck": ((0, -0.46, 0.98), 0.12),
+     "skull": ((0, -0.6, 1.04), 0.13), "brow": ((0, -0.7, 1.04), 0.09), "muzzle": ((0, -0.84, 0.99), 0.055),
+     "ear_l": ((0.07, -0.58, 1.27), 0.015), "ear_r": ((-0.07, -0.58, 1.27), 0.015),
+     "tail_base": ((0, 0.46, 0.84), 0.06), "tail_mid": ((0, 0.64, 0.74), 0.09), "tail_tip": ((0, 0.8, 0.6), 0.03)}
+for s, x in (("l", 0.13), ("r", -0.13)):
+    J.update({f"f{s}_elbow": ((x, -0.3, 0.52), 0.075), f"f{s}_wrist": ((x, -0.32, 0.13), 0.045),
+              f"f{s}_paw": ((x, -0.4, 0.045), 0.06), f"b{s}_knee": ((x, 0.24, 0.55), 0.1),
+              f"b{s}_hock": ((x, 0.42, 0.25), 0.05), f"b{s}_paw": ((x, 0.36, 0.045), 0.06)})
+bones = [["hips", "chest"], ["chest", "neck"], ["neck", "skull"], ["skull", "brow"], ["brow", "muzzle"],
+         ["skull", "ear_l"], ["skull", "ear_r"], ["hips", "tail_base"], ["tail_base", "tail_mid"], ["tail_mid", "tail_tip"]]
+for s in "lr":
+    bones += [["chest", f"f{s}_elbow"], [f"f{s}_elbow", f"f{s}_wrist"], [f"f{s}_wrist", f"f{s}_paw"],
+              ["hips", f"b{s}_knee"], [f"b{s}_knee", f"b{s}_hock"], [f"b{s}_hock", f"b{s}_paw"]]
+spec = {"joints": {k: {"co": list(c), "radius": r} for k, (c, r) in J.items()}, "bones": bones}
 ```
 
-The spec lists both sides: the Skin modifier's own X symmetry does not add missing joints. Biped, tree and
-rock-cluster specs: `references/recipes.md`.
+Biped, tree and rock-cluster specs: `references/recipes.md`.
 
 ## B. Meshy generate → clean → retopo → rebake
 

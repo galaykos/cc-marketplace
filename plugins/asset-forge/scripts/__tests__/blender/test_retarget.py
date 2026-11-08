@@ -59,7 +59,9 @@ def test_bonemap_presets_load_and_refuse_bad_maps():
     _refuses(rt.load_bonemap, {"bones": {"a": {"roll_fix_deg": 3}}}, needle="target")
     _refuses(rt.load_bonemap, {"bones": {"a": {"target": "x", "axis_fix": [1, 2]}}}, needle="axis_fix")
     _refuses(rt.load_bonemap, {"bones": {}}, needle="non-empty")
-    _refuses(rt.load_bonemap, "meshy_to_rigify", needle="mixamo_to_rigify")
+    meshy = rt.load_bonemap("meshy_to_rigify")
+    assert meshy["pairs"] == 22 and meshy["bonemap"]["root"] == {"source": "Hips", "target": "DEF-spine"}
+    _refuses(rt.load_bonemap, "bvh_to_rigify", needle="mixamo_to_rigify")
 
 
 def test_retarget_keys_every_mapped_bone_and_removes_its_constraints():

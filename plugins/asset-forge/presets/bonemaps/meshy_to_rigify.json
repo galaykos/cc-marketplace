@@ -1,0 +1,37 @@
+{
+  "source": "meshy",
+  "target": "rigify",
+  "root": {
+    "source": "Hips",
+    "target": "DEF-spine"
+  },
+  "bones": {
+    "Hips": "DEF-spine",
+    "Spine02": "DEF-spine.001",
+    "Spine01": "DEF-spine.002",
+    "Spine": "DEF-spine.003",
+    "neck": "DEF-spine.004",
+    "Head": "DEF-spine.006",
+    "LeftShoulder": "DEF-shoulder.L",
+    "LeftArm": "DEF-upper_arm.L",
+    "LeftForeArm": "DEF-forearm.L",
+    "LeftHand": "DEF-hand.L",
+    "LeftUpLeg": "DEF-thigh.L",
+    "LeftLeg": "DEF-shin.L",
+    "LeftFoot": "DEF-foot.L",
+    "LeftToeBase": "DEF-toe.L",
+    "RightShoulder": "DEF-shoulder.R",
+    "RightArm": "DEF-upper_arm.R",
+    "RightForeArm": "DEF-forearm.R",
+    "RightHand": "DEF-hand.R",
+    "RightUpLeg": "DEF-thigh.R",
+    "RightLeg": "DEF-shin.R",
+    "RightFoot": "DEF-foot.R",
+    "RightToeBase": "DEF-toe.R"
+  },
+  "notes": [
+    "Source names read on 2026-11-08 from a real Meshy auto-rig (meshy_rig, rigging task output Character_output.glb and Animation_Walking_withSkin.glb), imported in Blender 5.2.3: Hips > Spine02 > Spine01 > Spine > neck > Head (+ head_end, headfront leaves), Left/Right Shoulder > Arm > ForeArm > Hand, Left/Right UpLeg > Leg > Foot > ToeBase. Note the spine order: Spine02 is next to the hips, Spine is the chest.",
+    "The glTF import gives the armature object a 0.01 scale (bone data in centimetres); retarget works in world space, so apply or keep it, but do not mix a 0.01 source with a target whose transforms were applied differently without checking a frame.",
+    "Target names: DEF bones of a Rigify rig generated from the basic human metarig (same set as mixamo_to_rigify.json). head_end and headfront are leaves with no target and are listed as unmapped."
+  ]
+}

@@ -78,7 +78,8 @@ def validate_asset(obj, engine="unity", platform="pc", asset_class="prop_medium"
     add("scale", not mirrored and all(abs(s - 1) <= SCALE_EPS for s in scale), scale, [1.0, 1.0, 1.0],
         f"apply {'the negative ' if mirrored else ''}scale{parent}: forge.util.apply_transforms(obj)")
 
-    add(*_pivot(preset.get("pivot"), obj.matrix_world.translation, mesh["lo"], mesh["hi"]))
+    skinned = any(m.type == "ARMATURE" for m in obj.modifiers)
+    add(*_pivot(preset.get("pivot"), obj.matrix_world.translation, mesh["lo"], mesh["hi"], skinned))
     add("ngons", mesh["ngons"] == 0, mesh["ngons"], 0, "triangulate or quad the faces with more than 4 corners")
     edges = mesh["edges"]
     status = "fail" if edges["multi_face"] or edges["wire"] else "warn" if edges["boundary"] else "pass"
@@ -172,8 +173,14 @@ def _collision(obj, base, patterns):
     return named, misnamed
 
 
-def _pivot(rule, origin, lo, hi):
+def _pivot(rule, origin, lo, hi, skinned=False):
     tolerance = round(max(1e-3, PIVOT_TOLERANCE * max(hi - lo)), 4)
+    if rule == "bottom_center" and skinned:
+        # a character's origin is the ground under the hips, not its bbox centre (feet, tails and weapons skew it)
+        inside = lo.x - tolerance <= origin.x <= hi.x + tolerance and lo.y - tolerance <= origin.y <= hi.y + tolerance
+        offset = round(abs(origin.z - lo.z), 4)
+        return ("pivot", inside and offset <= tolerance, offset, tolerance,
+                "skinned mesh: put the origin on the ground (lowest point) inside the footprint")
     if rule == "bottom_center":
         target = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
         hint = "set the origin to the bottom centre of the bounding box"

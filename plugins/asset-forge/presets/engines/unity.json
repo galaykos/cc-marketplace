@@ -18,7 +18,9 @@
     "axis_forward": "-Z",
     "axis_up": "Y",
     "apply_unit_scale": true,
-    "apply_scale_options": "FBX_SCALE_ALL"
+    "apply_scale_options": "FBX_SCALE_ALL",
+    "bake_anim_use_all_actions": false,
+    "bake_anim_use_nla_strips": true
   },
   "fbx_static_only": {
     "bake_space_transform": true
@@ -37,7 +39,7 @@
   "pivot": "bottom_center",
   "lod": {
     "export": "same_file",
-    "note": "Unity builds a LODGroup from meshes suffixed _LOD0, _LOD1… in one FBX"
+    "note": "Unity builds a LODGroup from meshes suffixed _LOD0, _LOD1\u2026 in one FBX"
   },
   "collision_import": "none: Unity reads no collision convention from FBX; add a MeshCollider (convex for the hull) on import or in an AssetPostprocessor",
   "texture_packing": {
@@ -53,7 +55,8 @@
     "loop_suffix": null
   },
   "unverified": [
-    "bake_space_transform for static meshes removes the -90° X rotation Unity otherwise shows; broken with armatures (Blender tooltip)",
-    "FBX_SCALE_ALL gives Unity scale 1 with Unit Scale 1.0"
+    "bake_space_transform for static meshes removes the -90\u00b0 X rotation Unity otherwise shows; broken with armatures (Blender tooltip)",
+    "FBX_SCALE_ALL gives Unity scale 1 with Unit Scale 1.0",
+    "bake_anim_use_all_actions false + NLA strips true: clips ship once each, from NLA tracks only (measured 2026-11-08: the defaults shipped an NLA clip twice and leaked an unrelated rig's action)"
   ]
 }
