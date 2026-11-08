@@ -192,6 +192,126 @@ expect deny "bash -c 'git commit -m \"x $TRAILER\"'"      # must stay denied: th
 expect deny "sh -c 'git commit -m \"x $TRAILER\"'"
 expect deny "eval 'git commit -m \"x $TRAILER\"'"
 
+printf '== classification: allow — the trailer sits outside the git write (retro #22)\n'
+# Each was denied through 0.13.7, which matched the trailer and the verb anywhere in the command: a heredoc body's
+# `- git commit` bullet read as a command, and a trailer in a grep, echo or heredoc lent itself to a clean commit.
+# The first two replay the retro's findings.md firing (f5ffe3b6, 2026-11-05): its visible head, plus a reconstructed
+# bullet and the clean commit chained after it, since the extract clipped the input at 300 characters.
+expect allow "cat >> .claude/overseer/milestones/m5/findings.md <<'EOF'
+# m5 findings / backlog
+- card 01 review (medium): Opponents.cs:41 RoyalFuryFirstTurn defaults to 4
+- low: the template still adds $TRAILER
+EOF
+git add -A && git commit -q -F - <<'EOF'
+m5 card 01: tunables and the Royal Fury formula
+EOF"
+expect allow "cat >> findings.md <<'EOF'
+- git commit -m x used to carry $TRAILER
+EOF"
+expect allow "cat > probe.sh <<'EOF'
+probe \"git commit -q -F - <<'X'
+$TRAILER
+X\"
+EOF"
+expect allow "git commit -m \"card 01\" && git log -1 --format=%B | grep -ci \"co-authored-by: claude\""
+expect allow "grep -l \"$TRAILER\" .git/COMMIT_EDITMSG; git commit -m clean"
+expect allow "printf '%s\n' \"$TRAILER\" > /tmp/t.txt; git tag v1 -m release"
+expect allow "python3 - <<'EOF'
+TRAILER = '$TRAILER'
+EOF
+git commit -m 'feat: scrubber'"
+expect allow "git commit -m x 2>&1 | tee log; echo '$TRAILER' >> notes"
+expect allow "git commit -m \"x\" & echo '$TRAILER'"
+expect allow "cat <<'EOF' > .claude/notes.md
+gh pr create --body \"$GEN\"
+EOF"
+expect allow "git commit -q -F - <<'EOF'
+Code review since fe42cc2: 21 fixes to spell rules, the Shop chest and spell looks
+
+- Legendary and Frost/Grass gates read a new bestCheckpoint that Molt keeps
+EOF"
+
+printf '== classification: deny — the message reaches the git write another way\n'
+# The same split must keep these: the message comes through a pipe, a here-string, a variable, a substitution,
+# a file written earlier in the same command, or a shell reading a heredoc. Each was denied before the split too.
+expect deny "git add -A && git commit -q -F - <<'EOF'
+Code review since fe42cc2: 21 fixes to spell rules
+
+$TRAILER
+EOF"
+expect deny "cat >> findings.md <<'EOF'
+- card 01 committed
+EOF
+git add -A && git commit -F - <<'EOF'
+card 01
+
+$TRAILER
+EOF"
+expect deny "cat <<'EOF' | git commit -F -
+x
+
+$TRAILER
+EOF"
+expect deny "printf 'x\n\n%s\n' '$TRAILER' | git commit -F -"
+expect deny "git commit -F - <<< \"x
+
+$TRAILER\""
+expect deny "msg='x
+
+$TRAILER'; git commit -m \"\$msg\""
+expect deny "cat > /tmp/m <<'EOF'
+x
+
+$TRAILER
+EOF
+git commit -F /tmp/m"
+expect deny "printf '%s\n' '$GEN' > body.md && gh pr edit 12 --body-file body.md"
+expect deny "git commit -m \"\$(cat /tmp/msg)\" && echo '$TRAILER'"
+expect deny "git commit -F <(printf 'x\n\n%s' '$TRAILER')"
+expect deny "git commit -m \"\$(cat <<'EOF'
+fix: don't \"quote\" this; really
+
+$TRAILER
+EOF
+)\""
+expect deny "gh pr create --title t --body \"\$(cat <<'EOF'
+## Summary
+- a; b | c (twice)
+
+$GEN
+EOF
+)\""
+expect deny "git commit -F - <<-EOF
+	x
+
+	$TRAILER
+	EOF"
+expect deny "git commit -F - <<EOF && git push
+x
+
+$TRAILER
+EOF"
+expect deny "bash <<'EOF'
+git commit -m \"x
+
+$TRAILER\"
+EOF"
+expect deny "(cd /repo && git commit -m \"x
+
+$TRAILER\")"
+expect deny "# don't forget
+git commit -m \"x
+
+$TRAILER\""
+expect deny "git commit -m \"x\" \\
+  -m \"$TRAILER\""
+expect deny "git commit -m \"feat: a) b
+
+$TRAILER\""
+expect deny "echo \$((1<<2)); git commit -m \"x $TRAILER\""          # unsplittable: judged whole
+expect deny "git notes add -m \"$TRAILER\" HEAD"
+expect deny "gh release create v1 --notes \"$GEN\""
+
 printf '== hook protocol\n'
 payload() { # tool_name command
   jq -cn --arg t "$1" --arg c "$2" '{session_id:"s1",transcript_path:"/tmp/t.jsonl",hook_event_name:"PreToolUse",tool_name:$t,tool_input:{command:$c}}'
@@ -208,6 +328,12 @@ printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason' | grep
 
 out=$(payload Bash 'git commit -m "fix: y"' | "$BASH_BIN" "$GUARD"); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok || bad "clean commit must be silent" "rc=$rc out=$out"
+
+out=$(payload Bash "cat >> .claude/overseer/milestones/m5/findings.md <<'EOF'
+- low: the template still adds $TRAILER
+EOF
+git add -A && git commit -q -m \"m5 card 01\"" | "$BASH_BIN" "$GUARD"); rc=$?
+[ "$rc" -eq 0 ] && [ -z "$out" ] && ok || bad "retro #22 replay: an append beside a clean commit must be silent" "rc=$rc out=$out"
 
 out=$(payload mcp__phpstorm__execute_terminal_command "git commit -m \"x
 

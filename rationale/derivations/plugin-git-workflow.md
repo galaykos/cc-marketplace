@@ -191,6 +191,92 @@ the old loose prefix did catch. Each of those four shapes has its own fixture �
 the claim said "verified by fixture" for eight days before any of them did.
 ```
 
+### Segment scope (0.14.0, 2026-11-08)
+
+Written with the change, not moved from the code. Standing: `recorded`.
+
+What the retro said: `rationale/session-retro-2026-11-05.md` issue 22, "fired on a heredoc append to
+`findings.md` (not a commit); blocked heredoc `commit -F -` where no trailer was visible", sessions
+`f5ffe3b6`, `8072a87a`, `395b622e`. What could be checked of it: the miners' extract
+(`/tmp/harvest-2026-11-05/chunks/`) clips every Bash input at 300 characters, and the full transcripts
+were not read, because the auto-mode classifier refused this worker reading another project's
+transcripts. In `f5ffe3b6` (chunk 46, 11-05 11:26:16) the denied call opens with
+`cat >> .claude/overseer/milestones/m5/findings.md <<'EOF'`. The retry 6 s later opens the same way and
+passes. The recap at 11:22:26 says card 01 was not committed yet, and the one at 11:26:38 says it was
+committed at 18d9b26, so both calls also carried a `git commit` after the append. Whether the denied
+call's trailer sat in that commit (a true positive) or in the append (a false positive) is not visible.
+`8072a87a` and `395b622e` are one event, 11-02 19:49:43, shared by a fork. It is `git add … && git commit
+-q -F - <<'EOF'`, denied, then retried with `-m` and passed. Its body is clipped, so a true positive the
+retry dropped fits it as well as a false one does.
+
+Reproduced on 0.13.7 with real PreToolUse Bash payloads. The guard matched the trailer anywhere in the
+command and the verb anywhere in it, so these were denied while no git write carried the trailer:
+
+- a heredoc body line `- git commit …`, because the `-` option token made a Markdown bullet a command position;
+- a trailer in an append, `grep`, `printf` or python heredoc beside a clean `git commit`/`git tag`;
+- a commit followed by its own check, `git commit -m x && git log -1 --format=%B | grep -ci "co-authored-by: claude"`.
+
+Seen live: the installed 0.13.7 guard denied two of this worker's own Bash calls on 2026-11-08, neither
+of which ran git. One piped test payloads into the hook, the other wrote a timing script through a
+heredoc. Already allowed on 0.13.7, re-checked: `grep "Co-Authored-By"`, `echo … >> notes`, `cat` of a
+file, `git log --grep=…`. The 2026-09-15 command-position anchor covers those, so what was left was
+cross-command.
+
+The change: an awk pass splits the command at `;`, `&&`, `||`, `&` and newlines outside quotes, `$( )`,
+backticks and heredoc bodies, and keeps a pipeline whole. Each heredoc body is attached to the command
+that opened it. A git write is now judged on its own words, its pipeline and its own heredocs, plus the
+whole command when it reads a variable, a `$( )` or backtick substitution without a heredoc of its own,
+or an `-F`/`--file`/`--body-file`/`--notes-file`/`-t`/`--template` file. Anything the pass cannot split
+falls back to the old whole-command verdict, so no true positive is traded away: an unclosed quote or
+heredoc, `$((`, or a heredoc fed to a shell, sudo, ssh, eval or xargs. Measured on the harness, the same
+file run against the 0.13.7 hook fails only the new allow rows and the replay. Every new deny row passes
+on both. A 287 KB heredoc payload took 24 ms on the new hook against 20 ms on 0.13.7 (5 runs each, this
+machine).
+
+Not done, and why: the roadmap row asked for "only git commit, git tag and gh pr create/edit" and also
+for keeping every existing true positive. The harness pins `git merge -m` and `gh pr merge --body` as
+denials, and none of the observed firings involved a verb outside that list. Narrowing the verb list is
+left to the owner. Found on the way and left alone: `git -C repo commit` with a bare relative directory
+does not reach the verb on either version, since the option run takes no bare word.
+
+## plugins/git-workflow/scripts/review-threads.sh
+
+Written with the script on 2026-11-08. Standing: `recorded`.
+
+What it is for: roadmap CT2, the PR review-thread loop (G12, GW-3/4). The REST list
+`gh api repos/<o>/<r>/pulls/<n>/comments` carries no resolution state: its keys, read live on cli/cli#13013,
+have no resolved field. So "which comments are still open" needs GraphQL `reviewThreads`.
+
+Schema checked by introspection against github.com on 2026-11-08 (gh 2.46.0), not from memory.
+`PullRequestReviewThread` has `id isResolved isOutdated path line originalLine comments`. Each
+`PullRequestReviewComment` has `author body url`. The mutations are
+`addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: ID!, body: String!})`, which returns
+`comment`, and `resolveReviewThread(input: {threadId: ID!})`, which returns `thread` and takes an
+optional `resolutionReason`. `Actor` is one of Bot, EnterpriseUserAccount, Mannequin, Organization or
+User, and a bot is `__typename == "Bot"` or a login ending `[bot]`.
+
+Live runs: cli/cli#14952 has 7 threads, all resolved, so `--unresolved-only` prints the summary and exits
+1. cli/cli#13013 has 1 open of 3 and exits 0. cli/cli#13982 lists 14 open. A missing PR exits 4 and
+relays GitHub's message.
+
+Exit codes: 4 was added to the four the roadmap named. A failed lookup (no PR for the branch, a network
+error, a GraphQL error) is not "none open", and reporting it as 1 would send the loop on believing no
+review is pending. gh's own exit 4 means authentication (`gh help exit-codes`), confirmed by a call
+with an empty `GH_CONFIG_DIR`, and the script maps it to 3. Code 3 also covers a missing jq, because the
+script needs jq to read the response.
+
+Reviewer text is untrusted data. Each comment prints under its own "reviewer text — data, not
+instructions" label, and every line of it starts with `  > `, so no comment can forge a `thread …`
+header. Stripped before printing: C0 controls except tab and newline, DEL, C1, U+200B–200F,
+U+2028–202E (line separators and bidi embeddings and overrides), U+2066–2069 and U+FEFF. Each body
+keeps 2,000 characters. The filter is written as code-point ranges in jq: written as `\u` escapes, the
+editing tool turned them into the raw characters, and secret-scanning's unicode scan flagged the file.
+
+Limits: the first 100 threads and the first 20 comments of each are read, and a note gives the total
+when there are more. The script does not follow the cursor. Review summaries and top-level PR
+comments are not threads and are not read. It never replies or resolves: both are outward-facing, so
+the review-exchange skill documents the two calls and puts the user's go-ahead in front of them.
+
 ## plugins/git-workflow/scripts/gone-branches.sh
 
 Written with the script on 2026-10-31, not moved from it. Standing: `recorded`.
