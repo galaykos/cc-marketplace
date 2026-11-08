@@ -25,7 +25,7 @@ the Skill tool (never the `/security-review` slash form), report-only, and take 
 findings as the generic injection/XSS/authz/secrets pass. Everything this command
 carries that the built-in does not stays here and runs on top: the version pin
 against the installed framework, `composer audit` / `npm audit` folding (or the
-`/stack-scan:audit` citation), the `/secret-scanning:scan` fold, the threat-model
+`/stack-scan:audit` citation), the `/secret-scanning:scan` fold, the semgrep fold, the threat-model
 disposition audit, the data-privacy and api-auth lenses, the coverage inventory and
 the self-refute pass. Filter the built-in's findings through
 `security:security-review`'s exploitability triage before reporting — an
@@ -48,6 +48,23 @@ its write-time hook cannot see secrets already committed, and this review's Secr
 section is the one place that looks back. Report findings as `path:line — problem — fix`, ordered by severity
 (critical, high, medium, low), each with a one-line note on who can exploit it and how.
 Skip theoretical issues with no reachable input path unless nothing else is found.
+
+**Semgrep, when the user already has it.** On a full audit, when `command -v semgrep`
+finds it, run it over the files in scope. With the project's own rules (a
+`.semgrep.yml` or `.semgrep/` at the root) the run is offline:
+`semgrep scan --config <those rules> --metrics off --disable-version-check --json <files>`.
+Without them, pass `--config p/default` instead: it downloads that public ruleset from
+semgrep.dev, sends no code, needs no login, and fails with no network. Never
+`--config auto` (it sends the project URL to the registry and refuses `--metrics off`),
+never `--autofix`. Exit 0 is a finished scan, hits or none; any other exit is a failed
+run, and `errors[]` names files it could not parse. Each `results[]` entry is a finding
+at `path:start.line`, problem from `check_id` and `extra.message`, ranked by this
+review's exploitability triage, not `extra.severity`, and dropped when unreachable under
+the same rule as a manual finding. A hit at the same line and class as a manual finding
+merges into it, citing the `check_id`. On a diff scope, fold hits on changed lines and
+count the rest in `Checked:` as pre-existing. Not on PATH, or the run failed:
+`Not checked: semgrep (not installed | exit N: <first error>)`, and go on — never
+install it. Standing: recorded — nothing checks the run happened.
 
 When the scope includes a design doc or threat model, audit its dispositions: every
 threat marked Accept must name who accepted it and why — an acceptance with no owner
