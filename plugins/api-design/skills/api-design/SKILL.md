@@ -82,6 +82,8 @@ and stop. Every other code is a trivia question for your consumers.
   making optional required. Any of these behind the same `/v1/` is a silent
   contract violation — bump or don't ship.
 - Two live versions max, with a published sunset date for the old one.
+- A changed OpenAPI spec: when `oasdiff` is on PATH, `oasdiff breaking --format json <base-ref>:<spec> <spec>`
+  lists the breaking changes (route details in `/api-design:review`); not installed → say it was not checked.
 
 ## Idempotency
 

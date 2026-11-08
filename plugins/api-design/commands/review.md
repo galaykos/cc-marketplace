@@ -32,6 +32,24 @@ Review branch:
    9457 for problem details) instead of answering from memory. Report findings as
    `path:line — problem — fix`, ordered by severity. Skip naming nits unless they leak
    into the public contract.
+
+   **A changed OpenAPI spec, when the user already has oasdiff.** When the scope changes
+   a spec that also exists at the base ref and `command -v oasdiff` finds it, run from
+   the repository root, with `<base>` the ref the diff was resolved against and `<spec>`
+   the spec's path from the root: `oasdiff breaking --format json <base>:<spec> <spec>`.
+   The `<ref>:<path>` form reads the base through `git show` (oasdiff 1.11.11+, `$ref`s
+   across files from 1.15.0); for an older oasdiff, write `git show <base>:<spec>` to a
+   temp file and compare that, single-file specs only. No network unless the spec
+   `$ref`s a URL. Never pass `--fetch` (it fetches into the user's repository) or
+   `--open` (it uploads the comparison to oasdiff.com). Exit 0 with or without breaks;
+   non-zero means a spec did not load, and its first line goes under `Not checked`. Each
+   change is a finding: locator `revisionSource` `file:line` (`baseSource`, marked
+   `(base)`, for a removed element), problem its `text` and `[id]`, fix per the skill's
+   Versioning section. `level` 3 (ERR, a definite break) ranks above 2 (WARN, the spec
+   cannot decide); merge with your own finding on the same operation. A spec absent at
+   `<base>` is new and has nothing to break. Not on PATH: `Not checked: oasdiff (not
+   installed)`, and go on — never install it. Standing: recorded — nothing checks the
+   run happened.
 4. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit what was covered, what was clean, and what
    was skipped — not only what broke. Then run one adversarial self-refute pass over
