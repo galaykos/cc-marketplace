@@ -58,6 +58,12 @@ check "a second configured analyzer is reported too" "$php" 0 \
   "analyzer php psalm psalm.xml" "strictness psalm errorLevel 4"
 check "CI names which analyzer is authoritative" "$php" 0 \
   "ci .github/workflows/qa.yml phpstan"
+phpb="$tmp/phpb"; mkdir -p "$phpb"
+echo '{"require-dev":{"phpstan/phpstan":"^2"}}' > "$phpb/composer.json"
+printf 'parameters:\n    level: 8\n' > "$phpb/phpstan.neon"
+echo '<?php return [];' > "$phpb/phpstan-baseline.php"
+check "a PHP-format phpstan baseline is reported" "$phpb" 0 \
+  "analyzer php phpstan phpstan.neon phpstan-baseline.php"
 refute "CI cross-check does not claim an unrun tool" "$php" "workflows/qa.yml psalm"
 
 # --- phpstan level: `max` and an unreadable value still print a line -----------

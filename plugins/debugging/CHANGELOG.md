@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.10.1 — 2026-11-08
+
+- **`systematic-debugging` says how to prove the regression test guards the fix.** With the fix reverted the test must fail, with it restored it must pass. When the testing plugin is installed, its `scripts/red-proof.sh` does this and checks the restored working tree is byte-identical; without it, revert by hand. Standing: gate where run; nothing makes it run.
+- **The red-proof step says where the script is and what exit 5 means.** The script ships in the testing plugin, so this plugin's root does not reach it: the skill names the lookup, the `installPath` of the `testing@…` entry in `claude plugin list --json`, else the newest copy in the plugins cache. Exit 5 means red-proof could not restore the fix: run the restore commands it prints first. Standing: recorded.
+
 ## 0.10.0 — 2026-11-07
 
 - **A chain of fix commits now triggers the debugging discipline.** New UserPromptSubmit hook `hooks/fix-chain.sh`: once this session has made two fix commits (subject `fix`, `fixes`, `fixed`, `hotfix` or `bugfix`, or a merged `*fix*` branch) that touch a common file, the next prompt gets one advisory line, and again at four. The line says the diagnosis is likely wrong and to reproduce the original symptom before another fix. In one recorded session, five fix PRs each exposed the next failure and the keyword reminder did not fire until the user's outburst. `CC_REMIND=off` silences it. Standing: advisory; `scripts/__tests__/fix-chain.test.sh`, 10 cases.

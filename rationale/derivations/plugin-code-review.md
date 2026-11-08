@@ -632,8 +632,12 @@ missing field cannot silently disable both halves.
 ### State file formats
 
 ```text
-base_f is "<base commit> <branch>"; seen_f is "<last HEAD evaluated> <count that last
-fired> <count the last ship line named>".
+base_f is "<base commit> <branch>"; seen_f is "<last HEAD evaluated>"; fired_f holds one
+"<base> <count a line named> <cksum of the sorted paths it counted>" per line; credit_f holds
+one "<blob> <path>" per file content a review was handed ("-" for a path gone from the tree).
+Until 0.35.0 seen_f also held "<count that last fired> <count the last ship line named>";
+0.35.0 reads only its first word. A fired_f line written before the path cksum has no third
+field, so it never matches a set and only its count is read.
 ```
 
 ### Where the switch landed
@@ -652,10 +656,80 @@ cc_prompt_auth_surface; taskmaster's reminder reads the block's narrower cc_prom
 
 ### The ship line's count
 
-```text
-A ship line answers to the last ship line, so a ship prompt still speaks after a plain
-nudge at the same count; it also raises the plain count, so the next commit stays quiet.
-```
+Until 0.35.0: "A ship line answers to the last ship line, so a ship prompt still speaks after a
+plain nudge at the same count; it also raises the plain count, so the next commit stays quiet."
+Since 0.35.0 both kinds answer to one count per base (next section).
+
+### Review credit and once per range (0.35.0)
+
+Measured 2026-11-08 in session 18499add of this repository: of the 15 nudges the transcript
+holds, five repeated work already nudged or reviewed, and the reflog shows why each time.
+
+- A PR merged on the host, then `git switch master` (reflog `checkout:`, landing on the old
+  master tip) and `git pull --ff-only` (reflog `pull -q --ff-only: Fast-forward`). The switch
+  rule moved the base to the landing point, the pull put the merged branch on top of it, and
+  the next prompt charged the whole branch: "18 files since 760ec357" after a
+  `code-review:review` of that range, "20 since e9cd99f7" after another, "75 since b8a77cb6"
+  after a review and three `code-review:code-reviewer` agents, and "20 since 1663de75" for
+  work nudged twice already.
+- A ship prompt ("Turn on Auto-fix", which names a PR) repeated "20 since 1663de75" at the
+  same base and count as the plain line before it.
+
+The review credit was a commit, the base, so it held only on the branch it was recorded on.
+Now a review also writes the blob of every file in the range current at that moment (since
+the base, uncommitted and untracked included, after the same code filter), and a judged diff
+drops a file whose content matches a credited blob. That survives a switch, a pull, a merge
+commit, a squash merge and committing reviewed work that was uncommitted, and still counts a
+file edited after the review. `--no-filters` keeps a clean filter (Git LFS) from running per
+file; past 2000 files, or when `hash-object` fails, a file is marked `?` and never credited,
+so the error is a nudge, not silence.
+
+Once per range: fired_f keys the largest count a line named on the base, plain and ship
+alike. A switch back to the same landing point, or a ship prompt after a plain line at the
+same count, repeats nothing; uncommitted work that raises the count still speaks.
+
+An Agent PostToolUse arrives at launch on this host even when `run_in_background` was not set
+(every Agent result in that session was `status: async_launched`), so the credit is the content
+handed to the reviewer, not the content at its hand-back. Crediting at the hand-back would
+credit edits made while the reviewer ran.
+
+Residual: a review is still recognised by name, so a reviewer handed one file credits every
+file in the range. Work nudged on a branch and then merged is named once more against the
+trunk's landing point when its count there tops every line already given for that base. A
+context upgraded from 0.34.x may repeat one line it already gave, since its counts were not
+carried into fired_f. A reviewer killed after launch keeps its credit.
+
+### Review fixes to the credit and the once-per-range record (0.35.0, before release)
+
+A review of the 0.35.0 branch on 2026-11-08 found four defects; each is pinned by a harness case
+that is red against the branch's first 0.35.0 commit (84e64af6) and green after.
+
+- A review at HEAD == base (uncommitted work reviewed) kept the base, so fired_f still held the
+  count already named, and a later small auth change from that base stayed silent; 0.34.5 reset
+  its counts on every review and fired. A review now deletes fired_f and keeps credit_f. Case: "a
+  review at HEAD == base: the file edited since speaks again, the one unchanged stays credited".
+- fired_f was keyed on base and count, so different unreviewed work of the same size from the
+  same base (branch A nudged, back to trunk, branch B off the same commit) was silenced. Each
+  line now also carries a cksum of the sorted counted paths: a set already named from the base
+  repeats nothing, and so does a count below the largest named there; an equal count with a
+  different set speaks. Case: "9 other files from the same base, the same count". Residual: work
+  SMALLER than the largest count named from the same base, a disjoint set included, stays silent
+  until it tops that count or a review clears the record. A cksum cannot tell a subset (a ship
+  line's untracked files, then a plain line without them) from new work, and repeating the subset
+  is the noise 0.35.0 removed.
+- blobs() wrote "-" for every path that was not a regular file, and "-" is credited without a
+  hash, so a C-quoted name (git quotes `"`, `\` and control characters even under
+  core.quotepath=off, and the quoted form names no file) or a gitlink stayed credited after it
+  changed. Those, and a symlink, are now "?" (never credited); "-" is only a path gone from the
+  tree, which is what a reviewed deletion should match. Case: "a C-quoted name and a moved gitlink
+  count after a review; the reviewed deletion does not".
+- record() truncated base_f and seen_f, then wrote them. The refute pass launches one
+  code-reviewer per critical or high finding in one message, so their PostToolUse runs overlap,
+  and a reader between truncate and write sees no base (a prompt then records a fresh base and
+  drops the debt). Both are now written to `<file>.<pid>` and renamed. Cases: "a review replaces
+  base_f and seen_f by rename (new inodes)", "six concurrent review launches leave base_f whole".
+  The burst cannot prove the race is gone, only that the state comes out whole; the inode case is
+  the deterministic one.
 
 ## plugins/code-review/hooks/scan.sh
 
@@ -1203,6 +1277,34 @@ Machine-local, never inside the project tree — same placement reasoning as
 hindsight/hooks/collect.sh. One compact row per scan, capped so an old ledger
 cannot grow without bound. Nothing reads this automatically; it is a dataset for
 a future evaluation, and saying that is the honest scope.
+```
+
+## plugins/code-review/scripts/__tests__/review-debt.test.sh
+
+Moved verbatim on 2026-11-08, when the harness header was cut to three lines and the pointer.
+
+```text
+Fixtures for plugins/code-review/hooks/review-debt.sh — the advisory review-debt nudge.
+
+One temp git repo, one scenario run in order, because the hook's whole contract is a
+SEQUENCE: a first prompt that only records a base, a diff that grows commit by commit, a
+review that moves the base, a HEAD that must not be nudged twice. Every payload carries
+transcript_path, the key the hook actually uses (pc_harness_payload).
+
+WHAT THIS DOES NOT CATCH: whether the host really delivers `.tool_input.subagent_type` /
+`.tool_input.skill` under those names on PostToolUse, and whether a typed slash command
+reaches UserPromptSubmit as `/name args`. Both shapes are copied from sibling hooks in
+this marketplace (candor/hooks/avert.sh, taskmaster/hooks/ultra.sh), not re-measured here.
+agent_bg's and skill_as's tool_response are a 2026-11-08 session transcript's toolUseResult
+records, not a captured hook payload; the hook reads neither field.
+```
+
+The comment above the review-credit case, deleted the same day because "Review credit and once
+per range (0.35.0)" under review-debt.sh tells the story in full:
+
+```text
+The 2026-11-08 session: a PR merged on the host, then `git switch master` and a fast-forward
+pull, charged the whole reviewed branch to the switch's landing point.
 ```
 
 ## plugins/code-review/scripts/debt-scan.sh

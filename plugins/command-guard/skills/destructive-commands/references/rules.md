@@ -254,5 +254,6 @@ string cannot reach it): `CLAUDE_DESTRUCTIVE_GUARD=ask` turns every deny into a
 prompt, `=deny-only` keeps every hard stop and drops the ask tier, `=off` disables
 the guard entirely. The plugin's other hook — `config-guard.sh`, an `ask` on a write
 to an existing settings / `hooks.json` / hook-script / plugin-manifest / lint, test,
-CI or git-hook config file — is silenced by `CC_CONFIG_GUARD=off` and by either of the two values above
+CI or git-hook config file or an analyzer baseline (`phpstan-baseline.neon`, `psalm-baseline.xml`,
+`eslint-suppressions.json`), and on a command that regenerates one — is silenced by `CC_CONFIG_GUARD=off` and by either of the two values above
 that mean "no ask tier" (`off`, `deny-only`).

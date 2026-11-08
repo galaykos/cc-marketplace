@@ -69,7 +69,7 @@ Config is code; check it before shipping and paste the output:
 | k8s manifest | `kubectl apply --dry-run=client -f` (or `kubeconform`) |
 | Helm chart | `helm template \| kubeconform`, `helm lint` |
 | CI workflow | the CI system's lint/dry-run (`actionlint`, `gitlab-ci lint`) |
-| GitHub Actions trust boundary | `bash "${CLAUDE_PLUGIN_ROOT}/scripts/workflow-audit.sh"` |
+| GitHub Actions trust boundary | `bash "${CLAUDE_PLUGIN_ROOT}/scripts/workflow-audit.sh"`, plus `zizmor --offline --format=plain <workflows>` when zizmor is on PATH (never `--fix`; route details in `/devops:review`) |
 | Terraform/OpenTofu plan | `bash "${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh" plan.json` |
 
 "The manifest looks right" is not evidence; the dry-run's output is. If no mechanical

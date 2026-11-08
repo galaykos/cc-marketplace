@@ -114,7 +114,7 @@ smells it raises outside the diff collapse to the one summary note. Its conventi
 findings are judged against CLAUDE.md, the linters and the repo's contributing or
 coding-standards doc when present — that doc for naming, structure and idiom only
 (item 4) — and one drawn from a stated rule names its file and the rule. Everything
-after the pass — fan-in merge, self-refute, `Checked:`, verdict, apply offer — is
+after the pass — fan-in merge, refute pass, `Checked:`, verdict, apply offer — is
 this command's, and **this command emits `ReportFindings` once**; the built-in's
 own emission, if any, is consumed as input, never forwarded. When the skill is
 absent (older host, disabled, a headless run without it), run items 1–5 inline
@@ -171,13 +171,13 @@ Output rules:
   `failure_scenario` field carries below; the prose line must not be the poorer copy.
 - **Also emit through `ReportFindings` when that tool is available.** This command
   is the active code-review instruction the tool's own usage rule waits for, so
-  the condition is met here. Emit once, after the self-refute pass and the quote check,
+  the condition is met here. Emit once, after the refute pass and the quote check,
   with the surviving findings ranked most-severe first (an empty array when none survived),
   and keep the prose lines as well — the prose is what the stack fan-in merges on,
   and dropping it would break every plugin that reads this format. Map the
   marketplace scale onto the tool's fields: `category` takes the kebab-case kind
-  (`correctness`, `simplification`, `efficiency`, `test-coverage`), `verdict` is
-  `CONFIRMED` for anything re-read or re-run and `PLAUSIBLE` for the rest,
+  (`correctness`, `simplification`, `efficiency`, `test-coverage`), `verdict` is the
+  finding's refute label below, `CONFIRMED` or `PLAUSIBLE`,
   `short_summary` is at most 60 characters (the tool rejects a longer one with an
   InputValidationError), and `failure_scenario` carries the concrete
   inputs-to-wrong-output line rather than a restatement of the summary. When the
@@ -208,10 +208,18 @@ Output rules:
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
     agent; security-deep issues → `/security:review`.
 
-Before the verdict, run one adversarial self-refute pass over every `critical` and `high`
-finding; if a finding does not survive it, drop or downgrade it with a note. The
-refutation checklist is the false-positive taxonomy — a finding matching any row is
-dropped, not downgraded:
+**Refute pass**, before the verdict. Dispatch `code-review:code-reviewer` once per `critical` and
+`high` finding, all in one message, each in its own fresh context, with a prompt that opens with
+the phrase that puts the agent in its refute mode, then the finding, the patch file above and the
+checklist below: "Refute check: <finding line>. Try to prove this finding wrong against the working
+file. Reply with one line, CONFIRMED — <evidence> or REFUTED — <reason>." A REFUTED finding is
+dropped, or downgraded with a one-line note when only its severity fails; a CONFIRMED one opens
+its problem clause with `[CONFIRMED]`. Anything not re-checked, or downgraded — `medium` and `low`,
+every finding when the agent or the Agent tool is absent (headless) — gets the checklist here and
+opens with `[PLAUSIBLE]`. A refuter whose reply opens with neither word, or that returns nothing,
+leaves its finding to that same checklist and `[PLAUSIBLE]`; it never makes the review
+`incomplete`. Standing: agent-graded. The checklist is the false-positive taxonomy; a finding
+matching any row is dropped, not downgraded:
 
 - pre-existing: the problem is on a line the diff did not touch, or existed before it
 - silenced: the code carries a lint-ignore / suppression comment for exactly this
@@ -245,9 +253,9 @@ covered, what was clean, and what was skipped — not only what broke.
 
 Close with a one-line verdict: merge-ready, merge-after-criticals, rework, or
 **incomplete** — naming what is missing — when a pass `Checked:` names as applied did not
-run, a dispatched reviewer returned nothing, or the quote check could not run (its last run
-exited other than 0 or 1, or there was no shell). `incomplete` may carry the findings so far
-but never sits beside merge-ready.
+run, a dispatched reviewer other than a refuter returned nothing, or the quote check could
+not run (its last run exited other than 0 or 1, or there was no shell). `incomplete` may
+carry the findings so far but never sits beside merge-ready.
 
 After the verdict, if findings exist, offer the next step as a selectable choice
 (AskUserQuestion): "Fix all findings" / "Apply critical+high only" / "Report only". On an

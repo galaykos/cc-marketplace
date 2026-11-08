@@ -87,5 +87,63 @@ else echo "FAIL: baseline did not record the flake"; rc=1; fi
 : > "$FX/c"
 ec "known flake passes against baseline" 0 bash "$S" --cmd "SOMETIMES=1 bash $FX/runner.sh $FX/c" --runs 6 --baseline "$FX/flakes.txt"
 
+# --- replayable seed: the runner's own seed flag, printed on failure, replayed by --seed ---
+# This runner logs its arguments and fails under any shuffle, so every shuffled run fails.
+cat > "$FX/seedrunner.sh" <<'EOF'
+#!/bin/bash
+log="$1"; shift
+printf '%s\n' "$*" >> "$log"
+case " $* " in *" --randomize "*|*"--order-by=random"*|*"-p randomly"*|*"-shuffle="*|*"--sequence.shuffle"*) echo "FAIL  order_dependent" ;; esac
+exit 0
+EOF
+: > "$FX/seedlog"
+out=$(bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 2 --shuffle "--randomize" 2>&1)
+first=$(sed -n 's/^--randomize --seed=\([0-9][0-9]*\)$/\1/p' "$FX/seedlog" | head -1)
+if [ -n "$first" ] && printf '%s' "$out" | grep -q "shuffled #1 .*seed=$first"; then
+  echo "PASS: each shuffled run gets a seed through the runner's flag, and the run line shows it"
+else echo "FAIL: shuffled run seed not passed or not shown"; rc=1; fi
+if printf '%s' "$out" | grep -A1 'replay a failing shuffled order' | grep -q -- "--seed $first"; then
+  echo "PASS: a failing shuffled run prints its replay command"
+else echo "FAIL: no replay line for the failing seed"; rc=1; fi
+
+: > "$FX/seedlog"
+out=$(bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 3 --shuffle "--randomize" --seed 12345 2>&1)
+# Fixed-order runs log an empty line; only the shuffled ones carry flags.
+if [ "$(grep . "$FX/seedlog" | sort -u)" = "--randomize --seed=12345" ] && [ "$(grep -c . "$FX/seedlog")" = 3 ]; then
+  echo "PASS: --seed 12345 replays that seed in every shuffled run"
+else echo "FAIL: --seed did not replay the seed: $(grep . "$FX/seedlog" | sort -u | tr '\n' '|')"; rc=1; fi
+
+for pair in "--order-by=random|--order-by=random --random-order-seed=12345" \
+            "-p randomly|-p randomly --randomly-seed=12345" \
+            "-shuffle=on|-shuffle=12345" \
+            "--sequence.shuffle|--sequence.shuffle --sequence.seed=12345"; do
+  flag=${pair%%|*}; want=${pair#*|}; : > "$FX/seedlog"
+  bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 2 --shuffle "$flag" --seed 12345 >/dev/null 2>&1
+  if [ "$(grep . "$FX/seedlog" | sort -u)" = "$want" ]; then echo "PASS: --shuffle \"$flag\" replays as \"$want\""
+  else echo "FAIL: --shuffle \"$flag\" sent \"$(grep . "$FX/seedlog" | sort -u | tr '\n' '|')\", want \"$want\""; rc=1; fi
+done
+
+# Every printed seed replays through --seed. Sixty shuffled runs: a generator reaching past --seed's range shows up.
+: > "$FX/seedlog"
+out=$(bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 60 --shuffle "--randomize" 2>&1)
+max=$(printf '%s\n' "$out" | sed -n 's/.*seed=\([0-9][0-9]*\)$/\1/p' | sort -n | tail -1)
+: > "$FX/seedlog"
+bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 2 --shuffle "--randomize" --seed "$max" >/dev/null 2>&1; got=$?
+if [ -n "$max" ] && [ "$got" != 3 ] && [ "$(grep . "$FX/seedlog" | sort -u)" = "--randomize --seed=$max" ]; then
+  echo "PASS: the largest of 60 generated seeds ($max) replays through --seed"
+else echo "FAIL: generated seed ${max:-none} did not replay through --seed (rc=$got)"; rc=1; fi
+ec "--seed 999999999, the top of its range, is accepted (rc 2 is the flake, 3 would be a refusal)" 2 bash "$S" --cmd "bash $FX/seedrunner.sh $FX/seedlog" --runs 2 --shuffle "--randomize" --seed 999999999
+
+# Nearest silent input: a shuffle flag flake-hunt does not know keeps its old behaviour, no seed claimed.
+: > "$FX/c"
+out=$(bash "$S" --cmd "bash $FX/runner.sh $FX/c" --runs 2 --shuffle "; true" 2>&1)
+if printf '%s' "$out" | grep -qE 'seed=|replay a failing'; then
+  echo "FAIL: an unknown shuffle flag was given a seed"; rc=1
+else echo "PASS: an unknown shuffle flag runs verbatim, with no seed claimed"; fi
+
+ec "--seed without --shuffle is a usage error" 3 bash "$S" --cmd "true" --seed 5
+ec "a non-integer --seed is a usage error" 3 bash "$S" --cmd "true" --shuffle "--randomize" --seed abc
+ec "--seed with an unknown shuffle flag is a usage error" 3 bash "$S" --cmd "true" --shuffle "--mystery" --seed 5
+
 [ "$rc" -eq 0 ] && echo "All flake-hunt fixtures passed."
 exit "$rc"

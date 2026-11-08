@@ -3,6 +3,18 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.11.9 — 2026-11-08
+
+### Added
+- **The `sql-best-practices` migration rules run squawk when it is already installed.** For changed
+  Postgres `.sql` migrations, the skill gives the command `squawk --reporter gcc --pg-version
+  <detected>`. squawk runs offline and reads the project's `.squawk.toml`. Each output line becomes a
+  finding. A Rails app with `strong_migrations` is pointed at its own `bin/rails db:migrate`, where
+  those checks run, and the review never runs a migration itself. The `/code-review:review` fan-in
+  and the `database-engineer` worker both read this section. When squawk is not installed, the review
+  says it was not run and goes on. It never installs squawk. Standing: recorded — nothing checks the
+  run happened.
+
 ## 0.11.8 — 2026-10-31
 
 ### Fixed

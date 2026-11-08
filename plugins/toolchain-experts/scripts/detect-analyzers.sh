@@ -30,7 +30,7 @@ if [ -f "$root/composer.json" ]; then
   if cfg=$(first_file phpstan.neon phpstan.neon.dist phpstan.dist.neon) \
      || manifest_has composer.json phpstan; then
     cfg="${cfg:--}"
-    base=$(first_file phpstan-baseline.neon phpstan-baseline.neon.dist) || base='-'
+    base=$(first_file phpstan-baseline.neon phpstan-baseline.neon.dist phpstan-baseline.php) || base='-'
     emit "analyzer php phpstan ${cfg} ${base} 'vendor/bin/phpstan analyse --no-progress --error-format=raw'"
     if [ "$cfg" != '-' ] && lvl=$(grep -m1 -E '^[[:space:]]*level:' "$root/$cfg" 2>/dev/null); then
       lvl=$(printf '%s' "$lvl" | tr -d '\r' | sed -E "s/^[[:space:]]*level:[[:space:]]*//; s/[[:space:]]*(#.*)?\$//; s/^['\"]//; s/['\"]\$//")

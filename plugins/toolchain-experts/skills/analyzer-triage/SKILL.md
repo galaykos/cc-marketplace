@@ -90,9 +90,19 @@ use it — some tools truncate details until `-v` is passed.
 
 | Bucket | Meaning | What the reader owes it |
 |---|---|---|
-| **new defect** | The tool flags it and no baseline forgives it | Fix, or add to baseline with a reason |
+| **new defect** | The tool flags it and no baseline forgives it | Fix, or suppress that one line with a reason |
 | **baselined debt** | Already suppressed | Nothing now — name the count, not the lines |
 | **config gap** | The tool CANNOT see this class because a rule is off | The highest-value finding; see below |
+
+**Never regenerate or extend a baseline to make findings disappear.** A baseline records
+debt the project already decided to carry; a new finding in code under review is not debt
+yet. Fix it, or suppress that one line with its reason. Writing entries is the user's
+decision, so ask instead of running: phpstan `--generate-baseline` or `-b`
+(`phpstan-baseline.neon`, or `.php`), psalm `--set-baseline` (`psalm-baseline.xml`), eslint
+`--suppress-all` or `--suppress-rule` (`eslint-suppressions.json`), or a hand edit of any of
+them. Shrink-only runs drop fixed entries and add none: psalm `--update-baseline`, eslint
+`--prune-suppressions`. rector and biome keep no baseline file; biome's `lint --suppress`
+writes ignore comments in bulk, the same move.
 
 ### 6. Report the config gaps last, and loudest
 
@@ -146,3 +156,8 @@ the baseline before running the tool, or that it labelled an unenforced config's
 findings as suggestions. Saying so is the point: the order is enforced by the
 reader, not by the build. That includes the CI-green skip in step 4: no script checks
 that an agent confirmed the run before skipping its own.
+
+The never-regenerate rule in step 5 is agent-graded here too, and a **gate, with a human in
+it,** where the command-guard plugin is installed: its `config-guard.sh` asks before an edit
+to an existing baseline file named there, or a Bash command passing `--generate-baseline`,
+`--set-baseline`, `--suppress-all`, `--suppress-rule` or phpstan's `-b`.

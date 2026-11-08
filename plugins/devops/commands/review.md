@@ -42,6 +42,21 @@ Before reporting, validate mechanically against the artifact where a tool exists
    `--list-types` prints what the reader treats as stateful. This plugin carries no other
    Terraform rubric — do not write terraform advice into the report from memory.
 
+   **GitHub Actions in scope, when the user already has zizmor.** When the scope has
+   files under `.github/workflows/` and `command -v zizmor` finds it, run it on those
+   files: `zizmor --offline --format=plain <workflow files>`. `--offline` keeps the run
+   local even when `GH_TOKEN` or `GITHUB_TOKEN` is set, which would otherwise switch it
+   to the GitHub API; its four online audits (`impostor-commit`,
+   `known-vulnerable-actions`, `ref-confusion`, `stale-action-refs`) then go under
+   `Not checked`. Never pass `--fix`: it rewrites the files in place. Exit 0 is clean and
+   11–14 means findings (14 when one is high); 1, 2 or 3 is a failed run (3: nothing
+   collected). Each finding's `-->` line is the locator, and its level is the severity:
+   `error` high, `warning` medium, `help` and `info` low. A hit noted `audit confidence →
+   High` is an executed check, so CONFIRMED; lower confidence stays PLAUSIBLE until
+   traced. When `workflow-audit.sh` flags the same line and class, report one finding at
+   the higher severity, citing both. Not on PATH: `Not checked: zizmor (not installed)`,
+   and go on — never install it. Standing: recorded — nothing checks the run happened.
+
    For the Docker rubric, read the project manifests (composer.json, package.json,
    .env.example) first and pin findings to the actual stack — flag image tags that
    contradict the manifests' version floors, missing `ext-*` requirements, and a compose

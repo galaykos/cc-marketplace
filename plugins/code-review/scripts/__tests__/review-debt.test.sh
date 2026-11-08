@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
-# Fixtures for plugins/code-review/hooks/review-debt.sh — the advisory review-debt nudge.
-#
-# One temp git repo, one scenario run in order, because the hook's whole contract is a
-# SEQUENCE: a first prompt that only records a base, a diff that grows commit by commit, a
-# review that moves the base, a HEAD that must not be nudged twice. Every payload carries
-# transcript_path, the key the hook actually uses (pc_harness_payload).
-#
-# WHAT THIS DOES NOT CATCH: whether the host really delivers `.tool_input.subagent_type` /
-# `.tool_input.skill` under those names on PostToolUse, and whether a typed slash command
-# reaches UserPromptSubmit as `/name args`. Both shapes are copied from sibling hooks in
-# this marketplace (candor/hooks/avert.sh, taskmaster/hooks/ultra.sh), not re-measured here.
+# review-debt.test.sh — drives hooks/review-debt.sh through one ordered scenario in a temp git repo: base, growth, reviews and their
+#   content credit, once per range, switches, ship prompts, harness frames, off switches, fail-open; every payload carries transcript_path.
+# Misses: whether the host names `.tool_input.subagent_type` / `.tool_input.skill` so on PostToolUse; whether a typed slash command arrives as `/name args`.
+# Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/scripts/__tests__/review-debt.test.sh
 set -u
 cd "$(dirname "$0")/../../../.." || exit 1
 H="$PWD/plugins/code-review/hooks/review-debt.sh"
@@ -37,6 +30,12 @@ TP3='/Users/x/.claude/projects/-Users-x-proj/33333333-cccc.jsonl'
 TP4='/Users/x/.claude/projects/-Users-x-proj/44444444-dddd.jsonl'
 TP5='/Users/x/.claude/projects/-Users-x-proj/55555555-eeee.jsonl'
 TP6='/Users/x/.claude/projects/-Users-x-proj/66666666-ffff.jsonl'
+TP7='/Users/x/.claude/projects/-Users-x-proj/77777777-aaaa.jsonl'
+TP8='/Users/x/.claude/projects/-Users-x-proj/88888888-bbbb.jsonl'
+TP9='/Users/x/.claude/projects/-Users-x-proj/99999999-cccc.jsonl'
+TP10='/Users/x/.claude/projects/-Users-x-proj/10101010-dddd.jsonl'
+TP11='/Users/x/.claude/projects/-Users-x-proj/11011011-eeee.jsonl'
+TP12='/Users/x/.claude/projects/-Users-x-proj/12121212-ffff.jsonl'
 
 say() { # cwd prompt transcript -> additionalContext ('' when silent)
   jq -nc --arg c "$1" --arg p "$2" --arg t "$3" \
@@ -53,6 +52,19 @@ skill() { # skill name
   jq -nc --arg c "$R" --arg s "$1" --arg t "$TP1" \
     '{hook_event_name:"PostToolUse",tool_name:"Skill",session_id:"sid-1",transcript_path:$t,cwd:$c,
       tool_input:{skill:$s},tool_response:{}}' | bash "$H" >/dev/null 2>&1
+}
+agent_bg() { # subagent_type transcript — an Agent call the host ran in the background, as PostToolUse sees it
+  jq -nc --arg c "$R" --arg a "$1" --arg t "$2" \
+    '{hook_event_name:"PostToolUse",tool_name:"Agent",session_id:"sid-1",transcript_path:$t,cwd:$c,
+      tool_input:{subagent_type:$a,description:"Review the branch",prompt:"x",run_in_background:true},
+      tool_response:{isAsync:true,status:"async_launched",agentId:"a41def590cfbd9bc0",description:"Review the branch",
+        prompt:"x",outputFile:"/tmp/a41def590cfbd9bc0.output",canReadOutputFile:true,canContinueAgent:true}}' \
+    | bash "$H" >/dev/null 2>&1
+}
+skill_as() { # skill transcript — a Skill call with the tool_response the host records for it
+  jq -nc --arg c "$R" --arg s "$1" --arg t "$2" \
+    '{hook_event_name:"PostToolUse",tool_name:"Skill",session_id:"sid-1",transcript_path:$t,cwd:$c,
+      tool_input:{skill:$s,args:"HEAD"},tool_response:{success:true,commandName:$s}}' | bash "$H" >/dev/null 2>&1
 }
 commit() { # msg path... — writes fresh content to each path, commits
   local m="$1" f; shift
@@ -98,10 +110,8 @@ printf '%s' "$out" | grep -q 'touches auth' && { echo "FAIL: no auth path, yet a
 printf '%s\n' "$out" > "$FX/nudge-count.txt"
 silent "same HEAD, second prompt" "$(prompt)"
 
-# ---- a ship verb speaks at the same HEAD, even after the plain nudge; once per count ---
-fires "ship prompt after the plain nudge, same HEAD" "$(say "$R" "commit this and push" "$TP1")" \
-  "Before this ships: 9 changed files have had no review in this session since $short1" \
-  "uncommitted and untracked files included" "/code-review:review $short1 now"
+# ---- a ship prompt after the plain nudge, same base and count: once per range -----------
+silent "ship prompt after the plain nudge, same HEAD and count" "$(say "$R" "commit this and push" "$TP1")"
 silent "second ship prompt, same count" "$(say "$R" "open the PR" "$TP1")"
 
 # ---- HEAD moves but the count does not grow: silent ---------------------------------
@@ -277,6 +287,102 @@ fires "the slash form /commit is a ship verb" "$(say "$R" "/commit" "$TP6")" "Be
 printf 'new\n' > "$R/ft/y.ts"
 fires "a hand-back marker quoted mid-sentence is the user's ship prompt" \
   "$(say "$R" "merge it once the relay prints [Subagent hand-back] for card 3" "$TP6")" "Before this ships: 4 changed files"
+
+# ---- a review credits the content it was handed: a merge and a pull do not charge it again --
+g add -A && g commit -qm "the sixth context's work"
+g switch -q -c trunk
+silent "first prompt of a seventh context" "$(say "$R" go "$TP7")"
+t7=$(g rev-parse --short HEAD)
+g switch -q -c pr7
+commit "pr work" pr/a.ts pr/b.ts pr/c.ts pr/d.ts pr/e.ts pr/f.ts pr/g.ts pr/h.ts pr/i.ts
+agent_bg code-review:code-reviewer "$TP7"
+commit "review fix" pr/a.ts
+g switch -q -c gh-merge trunk && g merge -q --no-ff -m "Merge pull request #7" pr7 \
+  && g switch -q trunk && g merge -q --ff-only gh-merge
+silent "merged and pulled after a background reviewer: only the file changed since counts" "$(say "$R" go "$TP7")"
+commit "next" nx/a.ts nx/b.ts nx/c.ts nx/d.ts nx/e.ts nx/f.ts nx/g.ts nx/h.ts
+fires "the fixed file and 8 new ones count, the 8 reviewed and unchanged do not" "$(say "$R" go "$TP7")" \
+  "9 changed files have had no review in this session since $t7"
+
+# ---- work reviewed uncommitted, then committed, stays credited; an edit after it does not --
+silent "first prompt of an eighth context" "$(say "$R" go "$TP8")"
+t8=$(g rev-parse --short HEAD)
+mkdir -p "$R/wt"
+for f in a b c d e f g h i; do printf '%s %s\n' "$f" "$RANDOM" > "$R/wt/$f.ts"; done
+skill_as code-review "$TP8"
+g add -A && g commit -qm "reviewed work"
+silent "9 files reviewed by the host's code-review while untracked, then committed" "$(say "$R" go "$TP8")"
+for f in a b c d e f g h; do printf 'edited\n' >> "$R/wt/$f.ts"; done
+fires "8 of them edited after the review, at a ship prompt" "$(say "$R" "commit it" "$TP8")" \
+  "Before this ships: 8 changed files have had no review in this session since $t8"
+
+# ---- unreviewed work merged and pulled at the same base and count: once per range ---------
+g add -A && g commit -qm "the eighth context's edits"
+silent "first prompt of a ninth context" "$(say "$R" go "$TP9")"
+t9=$(g rev-parse --short HEAD)
+g switch -q -c pr9
+commit "unreviewed" q/a.ts q/b.ts q/c.ts q/d.ts q/e.ts q/f.ts q/g.ts q/h.ts q/i.ts
+fires "9 unreviewed files on a new branch" "$(say "$R" go "$TP9")" "9 changed files have had no review in this session since $t9"
+g switch -q -c gh9 trunk && g merge -q --no-ff -m "Merge pull request #9" pr9 \
+  && g switch -q trunk && g merge -q --ff-only gh9
+silent "merged and pulled: the same 9 files from the same base" "$(say "$R" go "$TP9")"
+silent "then a ship prompt at the same count" "$(say "$R" "push it" "$TP9")"
+
+# ---- a review at the base clears what was named and keeps its credit ----------------------
+silent "first prompt of a tenth context" "$(say "$R" go "$TP10")"
+t10=$(g rev-parse --short HEAD)
+mkdir -p "$R/app/Auth" && printf 'v1\n' > "$R/app/Auth/Reset.php" && printf 'v1\n' > "$R/app/Auth/Kept.php"
+fires "two untracked auth files at a ship prompt" "$(say "$R" "commit it" "$TP10")" \
+  "2 changed files have had no review" "touches auth: app/Auth/Kept.php, app/Auth/Reset.php"
+agent_bg code-review:code-reviewer "$TP10"
+printf 'v2\n' >> "$R/app/Auth/Reset.php"
+g add -A && g commit -qm "reset, edited after the review"
+fires "a review at HEAD == base: the file edited since speaks again, the one unchanged stays credited" "$(say "$R" go "$TP10")" \
+  "1 changed file has had no review in this session since $t10 (touches auth: app/Auth/Reset.php)"
+
+# ---- one base, a different set of files at the same count is named; the same set is not --
+silent "first prompt of an eleventh context" "$(say "$R" go "$TP11")"
+t11=$(g rev-parse --short HEAD)
+g switch -q -c fa
+commit "fa" fa/a.ts fa/b.ts fa/c.ts fa/d.ts fa/e.ts fa/f.ts fa/g.ts fa/h.ts fa/i.ts
+fires "9 files on a first branch" "$(say "$R" go "$TP11")" "9 changed files have had no review in this session since $t11"
+g switch -q trunk
+silent "back on trunk, the base is $t11 again" "$(say "$R" go "$TP11")"
+g switch -q -c fb
+commit "fb" fb/a.ts fb/b.ts fb/c.ts fb/d.ts fb/e.ts fb/f.ts fb/g.ts fb/h.ts fb/i.ts
+fires "9 other files from the same base, the same count" "$(say "$R" go "$TP11")" \
+  "9 changed files have had no review in this session since $t11"
+silent "a ship prompt over the same 9 files" "$(say "$R" "push it" "$TP11")"
+
+# ---- a C-quoted name or a gitlink a review saw is never credited; a path it saw deleted is --
+silent "first prompt of a twelfth context" "$(say "$R" go "$TP12")"
+mkdir -p "$R/libs/auth-sdk" && g -C libs/auth-sdk init -q && g -C libs/auth-sdk commit -q --allow-empty -m one
+g add libs/auth-sdk 2>/dev/null && g commit -qm "auth-sdk as a gitlink"
+printf 'v1\n' > "$R/app/Auth/Q\"uote.php"
+g rm -q app/Auth/Kept.php
+agent_bg code-review:code-reviewer "$TP12"
+g -C libs/auth-sdk commit -q --allow-empty -m two
+printf 'v2\n' >> "$R/app/Auth/Q\"uote.php"
+g add -A 2>/dev/null && g commit -qm "quoted name edited, gitlink moved, deletion committed"
+out=$(say "$R" go "$TP12")
+fires "a C-quoted name and a moved gitlink count after a review; the reviewed deletion does not" "$out" \
+  "2 changed files have had no review" 'touches auth: "app/Auth/Q\"uote.php", libs/auth-sdk'
+printf '%s' "$out" | grep -q 'Kept.php' && { echo "FAIL: a deletion the review saw was charged again: $out"; rc=1; }
+
+# ---- base_f and seen_f are renamed into place, so concurrent refuter launches never truncate them --
+sd="$R/.claude/code-review"; c12=$(printf '%s' "$TP12" | cksum | cut -d' ' -f1)
+ino() { ls -i "$1" 2>/dev/null | awk '{ print $1 }'; }
+b0=$(ino "$sd/review-base-$c12"); s0=$(ino "$sd/review-seen-$c12")
+agent_bg code-review:code-reviewer "$TP12"
+[ -n "$b0" ] && [ "$(ino "$sd/review-base-$c12")" != "$b0" ] && [ "$(ino "$sd/review-seen-$c12")" != "$s0" ] \
+  && echo "PASS: a review replaces base_f and seen_f by rename (new inodes)" \
+  || { echo "FAIL: a review rewrote base_f or seen_f in place"; rc=1; }
+for n in 1 2 3 4 5 6; do agent_bg code-review:code-reviewer "$TP12" & done; wait
+bl=$(cat "$sd/review-base-$c12" 2>/dev/null)
+[ "$bl" = "$(g rev-parse HEAD) fb" ] && echo "PASS: six concurrent review launches leave base_f whole" \
+  || { echo "FAIL: base_f after six concurrent review launches: '$bl'"; rc=1; }
+ls "$sd" | grep -qE '^review-(base|seen)-[0-9]+\.[0-9]+$' && { echo "FAIL: a temp state file was left behind"; rc=1; } \
+  || echo "PASS: no temp state file left behind"
 
 # ---- outside git: silent, and no state written -----------------------------------------
 mkdir -p "$FX/plain"

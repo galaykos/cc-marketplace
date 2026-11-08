@@ -87,8 +87,16 @@ type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
 `.golangci.y[a]ml`, `clippy.toml`, `tsconfig.json`, `mypy.ini`, `.stylelintrc*`,
 `phpunit.xml[.dist]`, `jest.config.*`, `vitest.config.*`, `.mocharc*`, `karma.conf.*`,
 `.coveragerc`, `.nycrc*`, `codecov.yml`), CI config (`.github/workflows/*.y[a]ml`,
-`.gitlab-ci.yml`) and git hooks (`.git/hooks/*`, `.husky/*`, `.pre-commit-config.yaml`,
-`lefthook.yml`).
+`.gitlab-ci.yml`), git hooks (`.git/hooks/*`, `.husky/*`, `.pre-commit-config.yaml`,
+`lefthook.yml`) and analyzer baselines (`phpstan-baseline.neon[.dist]`,
+`phpstan-baseline.php`, `psalm-baseline.xml`, `eslint-suppressions.json`).
+
+It asks on a Bash command that writes baseline entries too: `--generate-baseline` (and
+phpstan's `-b` after a `phpstan` word), psalm's `--set-baseline`, eslint's `--suppress-all`
+and `--suppress-rule`, read outside quotes, comments and heredoc bodies no shell reads. Shrink-only runs
+pass: psalm's `--update-baseline` and eslint's `--prune-suppressions` only drop fixed
+entries. A new finding belongs in a fix or a one-line suppression with its reason, not
+in a regenerated baseline that turns the run green.
 
 Why: given a gate it cannot satisfy, the cheapest path out is to edit the gate — turn
 off the rule, add an ignore, delete the hook — and in a diff summary that reads
@@ -287,7 +295,7 @@ Standing markers per the marketplace convention (see
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit`; a Bash command naming it passes only when every segment is a pure read (`cat`, `grep`, `git log`, …) |
-| agent writes to a settings / hooks / lint config file | **gate**, with a human in it — `config-guard.sh` | a permission prompt on an existing listed file; it reads the path, so whether the edit *weakens* anything is **agent-graded** |
+| agent writes to a settings / hooks / lint config or analyzer baseline file, or runs a baseline regenerate | **gate**, with a human in it — `config-guard.sh` | a permission prompt on an existing listed file or a listed flag; it reads the path or flag, so whether the change *weakens* anything is **agent-graded** |
 | the classification rules themselves | **gate**, tested | the assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness — recount: `bash plugins/command-guard/scripts/__tests__/destructive-guard.test.sh \| tail -1` |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |

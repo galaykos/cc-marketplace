@@ -12,19 +12,24 @@
 #   broken            failed in EVERY fixed run — red, not intermittent
 #                     → read the failure; this one is not a flake at all
 #
-#   flake-hunt.sh --cmd "<test command>" [--runs N] [--shuffle "<flag>"]
+#   flake-hunt.sh --cmd "<test command>" [--runs N] [--shuffle "<flag>"] [--seed N]
 #                 [--baseline FILE] [--update-baseline]
+#
+#   With a --shuffle flag it knows (PHPUnit/Pest, Jest, Vitest, pytest-randomly, go test,
+#   RSpec), each shuffled run gets its own seed through the runner's seed flag, a failing
+#   run prints that seed, and --seed N replays exactly that order in every shuffled run.
 #
 # Exit: 0 no flakes (or none new vs baseline) · 2 flake detected · 3 cannot run
 set -u
 PROG=${0##*/}
 
-cmd="" ; runs=5 ; shuffle="" ; baseline="" ; update=0
+cmd="" ; runs=5 ; shuffle="" ; seed="" ; baseline="" ; update=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --cmd) cmd="${2:-}"; shift 2 ;;
     --runs) runs="${2:-5}"; shift 2 ;;
     --shuffle) shuffle="${2:-}"; shift 2 ;;
+    --seed) seed="${2:-}"; shift 2 ;;
     --baseline) baseline="${2:-}"; shift 2 ;;
     --update-baseline) update=1; shift ;;
     -h|--help) grep -E '^#' "$0" | sed 's/^#!.*//; s/^# \{0,1\}//'; exit 0 ;;
@@ -35,6 +40,24 @@ done
 [ -n "$cmd" ] || { printf '%s: --cmd "<test command>" is required\n' "$PROG" >&2; exit 3; }
 printf '%s' "$runs" | grep -qE '^[0-9]+$' || { printf '%s: --runs must be an integer\n' "$PROG" >&2; exit 3; }
 [ "$runs" -ge 2 ] || { printf '%s: --runs must be at least 2 — one run cannot show variance\n' "$PROG" >&2; exit 3; }
+
+# The runner's own seed flag for each --shuffle value (read from each runner's CLI source, 2026-11).
+seeded() { # shuffle seed -> the order flags with that seed; returns 1 for a runner not listed
+  case "$1" in
+    --order-by=random|"--order-by random"|--random-order) printf '%s' "$1 --random-order-seed=$2" ;; # PHPUnit 9.6-13.4, Pest
+    --randomize) printf '%s' "--randomize --seed=$2" ;;                                               # Jest
+    --sequence.shuffle) printf '%s' "--sequence.shuffle --sequence.seed=$2" ;;                         # Vitest
+    "-p randomly") printf '%s' "-p randomly --randomly-seed=$2" ;;                                     # pytest-randomly
+    -shuffle=on|"-shuffle on") printf '%s' "-shuffle=$2" ;;                                            # go test
+    "--order random"|"--order rand"|--order=random|--order=rand) printf '%s' "--order rand:$2" ;;      # RSpec
+    *) return 1 ;;
+  esac
+}
+if [ -n "$seed" ]; then
+  printf '%s' "$seed" | grep -qE '^[1-9][0-9]{0,8}$' || { printf '%s: --seed must be a positive integer below 10^9\n' "$PROG" >&2; exit 3; }
+  [ -n "$shuffle" ] || { printf '%s: --seed replays a shuffled order, so it needs --shuffle\n' "$PROG" >&2; exit 3; }
+  seeded "$shuffle" 1 >/dev/null || { printf '%s: flake-hunt does not know the seed flag for --shuffle "%s"; put the seeded flag in --shuffle itself\n' "$PROG" "$shuffle" >&2; exit 3; }
+fi
 
 WORK=$(mktemp -d) || exit 3
 trap 'rm -rf "$WORK"' EXIT
@@ -49,12 +72,12 @@ extract_failures() { # file -> names, one per line
   } | sed 's/[[:space:]]*$//' | sort -u
 }
 
-run_once() { # label extra-args outfile -> writes rc to <outfile>.rc
+run_once() { # label extra-args outfile [note] -> writes rc to <outfile>.rc
   local label="$1" extra="$2" out="$3"
   # shellcheck disable=SC2086
   ( eval "$cmd $extra" ) > "$out" 2>&1
   printf '%s' "$?" > "$out.rc"
-  printf '  %-22s rc=%s  failures=%s\n' "$label" "$(cat "$out.rc")" "$(extract_failures "$out" | wc -l | tr -d ' ')"
+  printf '  %-22s rc=%s  failures=%s%s\n' "$label" "$(cat "$out.rc")" "$(extract_failures "$out" | wc -l | tr -d ' ')" "${4:+  $4}"
 }
 
 printf 'flake-hunt: %s run(s) fixed order' "$runs"
@@ -66,7 +89,16 @@ for i in $(seq 1 "$runs"); do run_once "fixed #$i" "" "$WORK/fixed.$i"; done
 
 if [ -n "$shuffle" ]; then
   printf '\nrandomized order:\n'
-  for i in $(seq 1 "$runs"); do run_once "shuffled #$i" "$shuffle" "$WORK/shuf.$i"; done
+  [ -n "$seed" ] && printf '  replaying seed %s in every shuffled run\n' "$seed"
+  for i in $(seq 1 "$runs"); do
+    s=${seed:-$(( (RANDOM << 15 | RANDOM) % 999999999 + 1 ))} # the range --seed accepts
+    if extra=$(seeded "$shuffle" "$s"); then
+      printf '%s\n' "$s" > "$WORK/shuf.$i.seed"
+      run_once "shuffled #$i" "$extra" "$WORK/shuf.$i" "seed=$s"
+    else
+      run_once "shuffled #$i" "$shuffle" "$WORK/shuf.$i"
+    fi
+  done
 fi
 
 cat "$WORK"/fixed.*[0-9] 2>/dev/null >/dev/null
@@ -99,6 +131,22 @@ emit "NON-DETERMINISTIC (fails in fixed order, not every time)" \
      "clock, network or concurrency — freeze time, stub the network, remove sleeps" "$nondet"
 emit "ORDER-DEPENDENT (only fails under shuffle)" \
      "shared state between tests — isolate per-test fixtures, reset globals in teardown" "$order_dep"
+
+if [ -n "$shuffle" ]; then
+  replay=""
+  for i in $(seq 1 "$runs"); do
+    { [ "$(cat "$WORK/shuf.$i.rc")" != 0 ] || [ -n "$(extract_failures "$WORK/shuf.$i")" ]; } || continue
+    if [ -f "$WORK/shuf.$i.seed" ]; then
+      s=$(cat "$WORK/shuf.$i.seed")
+      replay="$replay  shuffled #$i, seed $s: bash $(printf '%q' "$0") --cmd $(printf '%q' "$cmd") --shuffle $(printf '%q' "$shuffle") --seed $s"$'\n'
+      replay="$replay      or the runner alone: $cmd $(seeded "$shuffle" "$s")"$'\n'
+    else
+      replay="  a shuffled run failed, but flake-hunt does not know the seed flag for \"$shuffle\"; read the seed from the runner's output"$'\n'
+      break
+    fi
+  done
+  [ -n "$replay" ] && printf '\nreplay a failing shuffled order (same seed, same order):\n%s' "$replay"
+fi
 
 flaky=$(printf '%s\n%s\n' "$nondet" "$order_dep" | sed '/^$/d' | sort -u)
 count=$(printf '%s\n' "$flaky" | sed '/^$/d' | wc -l | tr -d ' ')

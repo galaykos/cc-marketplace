@@ -616,8 +616,8 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 
 - **What.** One line of context for the model on your next prompt: how many files changed
   since the last review, up to three auth-surface paths, and the exact command,
-  `/code-review:review <base>..HEAD`, "or say in one line why not", and that per-card reviews
-  do not cover cross-card changes. It never blocks and never runs a review itself.
+  `/code-review:review <base>..HEAD`, and "or say in one line why not". It never blocks and never runs a review
+  itself.
 - **When.** In a git repo, when the diff since this session's last review (or since its
   first prompt) has 8 or more changed files, or at least one path matching an auth-surface
   pattern (auth, login, password, token, secret, credential, policy, permission, role,
@@ -629,13 +629,18 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   binaries; a diff with only those says nothing.
   Once per commit: it speaks again only after HEAD moves and the count has grown. A reviewer
   agent, a `code-review:review` / `security:review` call, or typing one of those commands
-  resets the count. It stays silent during a task-runner run, which has its own reviewers,
-  and the run's changes are not counted afterwards.
+  resets the count. Since 0.35.0 the review also credits each file's content as it was then,
+  untracked and uncommitted files included: a reviewed file stays out of the count until its
+  content changes, and committing that same work, a branch switch, a pull or a merge does not
+  bring it back. It stays silent during a task-runner run, which has its own reviewers, and
+  the run's changes are not counted afterwards.
 - **At a ship prompt.** Since 0.33.0, a prompt whose first 400 characters (outside code
   fences) say commit, push, merge, PR or pull request is checked at once, without waiting
   for a commit, and untracked files count too. The line opens "Before this ships" and names
-  `/code-review:review <base>`, which covers the working tree. It repeats only when the count
-  has grown since the last such line.
+  `/code-review:review <base>`, which covers the working tree. Since 0.35.0 it names a set of
+  files at most once per base, plain or ship, and never fewer files than the most already named
+  there, so a ship prompt after a plain line over the same files, or a switch back to the same
+  base, says nothing. A review clears what was named.
 - **Branch switches.** Since 0.33.0 the base remembers its branch. After a `git switch` the
   count starts where the switch landed, so a branch's existing commits are not charged to
   your session; commits made after the switch, including on a branch created in the same

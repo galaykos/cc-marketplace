@@ -143,6 +143,17 @@ function the fix touched. When only a shallower seam is reachable, ship the test
 there and report the missing seam as a structural finding: the test cannot fail
 on the original path, so nothing guards that path yet. Standing: recorded.
 
+Prove that test guards the fix: with the fix reverted it must fail, with the fix restored
+it must pass. The testing plugin, when installed, makes this mechanical. Its script is not
+under this plugin's root: take the `installPath` of the `testing@…` entry in
+`claude plugin list --json` (this project's entry, else the user-scope one), else the newest
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/cache/*/testing/*/` that has the script, and run
+`bash "<installPath>/scripts/red-proof.sh" --test "<cmd>" --files <fix files>` (or `--commit <sha>`).
+It reverts, runs, restores byte-identical and runs again; exit 0 is proven, 1 means the test does not
+guard the fix, 5 means it could not restore: run the restore commands it prints before anything else.
+This skill works without it: revert by hand, run, restore, run.
+Standing: gate where run; nothing makes it run.
+
 ## Three failed fixes → question the level
 
 The task-runner park rule, applied to diagnosis: after three fix cycles that
