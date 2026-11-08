@@ -210,6 +210,11 @@
       "description": "Blender Python, rigging, animation and asset export as of Blender 5.x: a stdlib checker for bpy calls the target version removed or renamed (action.fcurves, bone layers, bake_action keywords, driver_add modifiers, Geometry Nodes Socket_N keys); anim_audit.py, which runs the real FBX/glTF exporters and reports dropped, cross-assigned, duplicated or late clips and loop pops; rig_check.py for export-breaking rigs and skins; an in-Blender mesh QA script with UV-damage compare; and FBX/glTF export rules for Unreal, Unity and Godot."
     },
     {
+      "name": "asset-forge",
+      "source": "./plugins/asset-forge",
+      "description": "Game-asset creation in Blender: a headless MCP server (Python standard library, no install) that renders review sets, validates, bakes and exports snapshots of the live scene, never the working .blend; a pure-bpy library of sculpt-like deforms, organic blockouts, stylized texture bakes, LODs, collision and retargeting; pipeline skills with per-engine presets; and an art-reviewer agent. Complements the Blender MCP server and the blender plugin's checkers."
+    },
+    {
       "name": "meshy",
       "source": "./plugins/meshy",
       "description": "Meshy AI text/image-to-3D traps a model gets wrong from memory: an unknown create outcome is reconciled, never resubmitted; a running task cannot be cancelled; files and signed URLs expire after 3 days; free-plan output is Meshy-owned under CC BY 4.0; rigging takes textured humanoids only. Plus a stdlib Python GLB/glTF checker for triangle, texture-size and required-extension budgets with an exit code."

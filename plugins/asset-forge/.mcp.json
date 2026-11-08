@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "forge": {
+      "command": "python3",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/forge_server/main.py"],
+      "env": {
+        "FORGE_BLENDER_PATH": "${user_config.blender_path}"
+      }
+    }
+  }
+}
