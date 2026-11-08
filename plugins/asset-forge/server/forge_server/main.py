@@ -8,7 +8,7 @@ import traceback
 
 import headless
 
-SERVER_INFO = {"name": "asset-forge-forge", "version": "0.1.0"}
+SERVER_INFO = {"name": "asset-forge-forge", "version": "0.2.0"}
 KNOWN_PROTOCOLS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 
 

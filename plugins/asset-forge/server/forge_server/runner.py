@@ -1,9 +1,11 @@
 """Executed inside Blender (blender -b ... --python runner.py -- <request.json>). Reads {op, args, result_path},
 runs the op, writes a JSON dict to result_path. Every op returns {"ok": bool, ...}."""
+import importlib
 import json
 import re
 import sys
 import traceback
+from pathlib import Path
 
 import bpy
 
@@ -46,7 +48,25 @@ def op_env():
     }
 
 
-OPS = {"env": op_env}
+LIB = Path(__file__).resolve().parents[2] / "blender_lib"
+
+
+def op_call(module, function, kwargs=None, save_copy_to=None):
+    """Run forge.<module>.<function>(**kwargs) on the opened file. save_copy_to: write the result scene as a copy
+    (the opened snapshot itself is never saved over)."""
+    if str(LIB) not in sys.path:
+        sys.path.insert(0, str(LIB))
+    if function.startswith("_") or not re.fullmatch(r"[a-z_]+", module):
+        raise ValueError(f"not a public forge function: {module}.{function}")
+    fn = getattr(importlib.import_module(f"forge.{module}"), function)
+    result = fn(**(kwargs or {}))
+    if save_copy_to:
+        bpy.ops.wm.save_as_mainfile(filepath=str(save_copy_to), copy=True)
+        result["saved_copy"] = str(save_copy_to)
+    return result
+
+
+OPS = {"env": op_env, "call": op_call}
 
 
 def main():
@@ -59,7 +79,7 @@ def main():
             raise KeyError(f"unknown op {op!r}; known: {sorted(OPS)}")
         result = OPS[op](**request.get("args", {}))
     except Exception as exc:
-        result = {"ok": False, "stage": f"op:{op}", "error": f"{type(exc).__name__}: {exc}",
+        result = {"ok": False, "stage": getattr(exc, "stage", f"op:{op}"), "error": f"{type(exc).__name__}: {exc}",
                   "traceback": traceback.format_exc(limit=6)}
     with open(request["result_path"], "w", encoding="utf-8") as fh:
         json.dump(result, fh)

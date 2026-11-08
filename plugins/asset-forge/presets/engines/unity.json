@@ -1,0 +1,59 @@
+{
+  "engine": "unity",
+  "format": "fbx",
+  "up_axis": "Y",
+  "fbx": {
+    "add_leaf_bones": false,
+    "mesh_smooth_type": "FACE",
+    "use_armature_deform_only": true,
+    "use_tspace": true,
+    "use_triangles": true,
+    "use_mesh_modifiers": true,
+    "use_selection": true,
+    "object_types": [
+      "MESH",
+      "ARMATURE",
+      "EMPTY"
+    ],
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_unit_scale": true,
+    "apply_scale_options": "FBX_SCALE_ALL"
+  },
+  "fbx_static_only": {
+    "bake_space_transform": true
+  },
+  "naming": {
+    "mesh": "^(SM|SK)_[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)*$",
+    "lod": "{name}_LOD{n}",
+    "collision": {
+      "box": "{name}_Collider",
+      "convex": "{name}_Collider",
+      "multi": "{name}_Collider_{nn}"
+    },
+    "material": "^M_[A-Za-z0-9_]+$",
+    "texture": "^T_[A-Za-z0-9_]+_(BaseColor|Normal|MaskMap|Emission)$"
+  },
+  "pivot": "bottom_center",
+  "lod": {
+    "export": "same_file",
+    "note": "Unity builds a LODGroup from meshes suffixed _LOD0, _LOD1… in one FBX"
+  },
+  "collision_import": "none: Unity reads no collision convention from FBX; add a MeshCollider (convex for the hull) on import or in an AssetPostprocessor",
+  "texture_packing": {
+    "name": "MaskMap (URP Lit metallic/smoothness, HDRP mask)",
+    "R": "metallic",
+    "G": "ao",
+    "B": "detail_mask",
+    "A": "smoothness"
+  },
+  "animation": {
+    "clip_naming": "{asset}@{clip}",
+    "root_motion": "either: Animator.applyRootMotion decides",
+    "loop_suffix": null
+  },
+  "unverified": [
+    "bake_space_transform for static meshes removes the -90° X rotation Unity otherwise shows; broken with armatures (Blender tooltip)",
+    "FBX_SCALE_ALL gives Unity scale 1 with Unit Scale 1.0"
+  ]
+}
