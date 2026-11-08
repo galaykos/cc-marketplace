@@ -221,7 +221,11 @@ class PhpArrayFile(object):
                 m = _DQ_NUM.match(s, j)
                 if m:
                     o, x, u = m.groups()
-                    buf.append(chr(int(o, 8) if o else int(x, 16) if x else int(u, 16)))
+                    try:
+                        buf.append(chr(int(o, 8) if o else int(x, 16) if x else int(u, 16)))
+                    except (ValueError, OverflowError):
+                        self.i = j
+                        self.fail('invalid \\u escape')
                     j = m.end()
                     continue
             if q == '"' and ((c == '$' and j + 1 < len(s) and (s[j + 1] == '_' or s[j + 1] == '{' or s[j + 1].isalpha()))
@@ -302,6 +306,8 @@ def scan(root, rel, fmt):
                         full = os.path.join(dirpath, fn)
                         units[os.path.relpath(full, p).replace(os.sep, '/')] = full
             found[name] = units
+        elif fmt == 'laravel' and name.startswith('php_'):
+            continue  # laravel-vue-i18n's Vite plugin writes lang/php_<locale>.json from the PHP files.
         elif os.path.isfile(p) and name.endswith('.json') and LOCALE_RE.match(name[:-5]):
             found.setdefault(name[:-5], {})[FILE_UNIT] = p
     return found if any(found.values()) else {}
@@ -356,6 +362,7 @@ def compare(rel, fmt, files, base):
                 findings.append({'kind': 'unparsed', 'locale': loc, 'unit': unit, 'file': unit_path(rel, loc, unit),
                                  'line': err[0], 'error': err[1]})
     base_units = files.get(base, {})
+    base_php = any(unit != FILE_UNIT for unit in base_units)
     others = [loc for loc in sorted(files) if loc != base]
 
     def add(kind, loc, unit, ck, members, **extra):
@@ -365,7 +372,7 @@ def compare(rel, fmt, files, base):
 
     for loc in others:
         for unit in sorted(set(base_units) | set(files[loc])):
-            if fmt == 'laravel' and unit == FILE_UNIT:
+            if fmt == 'laravel' and (unit == FILE_UNIT or not base_php):
                 continue
             if unit not in files[loc]:
                 b = data[(base, unit)]
@@ -472,7 +479,8 @@ def main(argv):
         if fmt != 'laravel' and override and override != fmt:
             fmt, source = override, 'package.json'
         lay = {'dir': rel, 'format': fmt, 'format_source': source, 'locales': sorted(files)}
-        has_base = base in files or (fmt == 'laravel' and any(FILE_UNIT in u for u in files.values()))
+        json_only = all(set(u) <= {FILE_UNIT} for u in files.values())
+        has_base = base in files or (fmt == 'laravel' and json_only)
         lay['findings'] = compare(rel, fmt, files, base) if has_base else [{'kind': 'base-missing'}]
         layouts.append(lay)
     report = {'root': root, 'base_locale': base, 'layouts': layouts}

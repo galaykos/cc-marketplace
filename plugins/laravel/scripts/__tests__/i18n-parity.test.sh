@@ -67,7 +67,7 @@ return [
     'long' => 'Teil eins :COUNT',
     'apples' => '{0} Keine Äpfel|{1} Ein Apfel|[2,19] :count Äpfel|[20,*] :count viele Äpfel',
     'pears' => 'eine Birne|viele Birnen',
-    'list' => ['a', 'b', 5 => 'c', 'd'],
+    'list' => ['a', 'b', 5 => 'c'],
     'min' => ['numeric' => 'Das Feld :attribute muss mindestens :min sein.'],
     'extra_one' => 'zusätzlich',
 ];
@@ -93,7 +93,7 @@ check "laravel JSON: a key one translation has is missing from another" "$L" 1 -
 refute "laravel: :Name and :COUNT are the same placeholder as :name and :count" "$L" 'auth.greeting'
 refute "laravel: :COUNT after a literal concatenation" "$L" 'auth.long'
 refute "laravel: a different plural interval set with the same placeholders is silent" "$L" 'auth.apples'
-refute "laravel: array() and [] lists with explicit and auto keys compare equal" "$L" 'auth.list'
+check "laravel: an auto key after an explicit int key continues from it, in array() and []" "$L" 1 -- '  de  missing  auth.list.6'
 refute "laravel: an unparsed file is not guessed into missing keys" "$L" '  fr  missing  auth.'
 refute "laravel: lang/vendor/ is not a locale" "$L" 'vendor'
 refute "laravel JSON: a translated key with the same placeholders is silent" "$L" '"Bye"'
@@ -104,6 +104,41 @@ printf "<?php\nreturn ['a' => ':Count apple|:count apples', 'b' => ['c' => 'Hi :
 printf "<?php\nreturn array('a' => ':count Apfel', 'b' => array('c' => 'Hallo :name',),);\n?>\n" > "$P/lang/de/m.php"
 printf '{"Hi :name": "Hallo :Name"}\n' > "$P/lang/de.json"
 check "laravel: parity exits 0 and says so" "$P" 0 -- '  parity' 'i18n_parity: 0 finding(s) in 1 layout(s); exit 0'
+
+# laravel-vue-i18n's Vite plugin writes lang/php_<locale>.json; they are not locales.
+X="$T/vuei18n"; mkdir -p "$X/lang/en" "$X/lang/de"
+printf "<?php return ['failed' => 'x'];\n" > "$X/lang/en/auth.php"; cp "$X/lang/en/auth.php" "$X/lang/de/auth.php"
+printf '{"auth.failed": "x"}\n' > "$X/lang/php_en.json"; cp "$X/lang/php_en.json" "$X/lang/php_de.json"
+check "laravel: generated lang/php_<locale>.json files are skipped" "$X" 0 -- 'base en  locales: de, en' '  parity'
+
+# Laravel 11+ ships en inside the framework: a tree with no base PHP file draws no extra-file per translation file.
+K="$T/l11"; mkdir -p "$K/lang/de"
+printf "<?php return ['required' => 'Das Feld :attribute ist erforderlich.'];\n" > "$K/lang/de/validation.php"
+printf '{"Log in": "Log in"}\n' > "$K/lang/en.json"; printf '{"Log in": "Anmelden"}\n' > "$K/lang/de.json"
+check "laravel: a base with lang/en.json and no PHP file compares the JSON and stays silent on PHP" "$K" 0 -- '  parity'
+rm "$K/lang/en.json"
+check "laravel: lang/de.json beside lang/de/*.php with no en is no base locale" "$K" 2 -- \
+  "  base-missing  no 'en' locale here; pass --base-locale with one of: de"
+
+# PHP escapes, cross-checked against PHP 8.5.12 on 2026-11-08: each decoded key exists only in de, so a wrong decode renames the finding.
+E="$T/escapes"; mkdir -p "$E/lang/en" "$E/lang/de"
+printf "<?php\nreturn ['plain' => 'x'];\n" > "$E/lang/en/esc.php"
+cat > "$E/lang/de/esc.php" <<'PHP'
+<?php
+return [
+    'plain' => 'x',
+    "hex\x41" => 'x',
+    "oct\102" => 'x',
+    "uni\u{43}" => 'x',
+    "dollar\$x" => 'x',
+    'quote\'s' => 'x',
+];
+PHP
+check 'laravel escape: "\x41" is A' "$E" 1 -- '  de  extra  esc.hexA'
+check 'laravel escape: "\102" is B' "$E" 1 -- '  de  extra  esc.octB'
+check 'laravel escape: "\u{43}" is C' "$E" 1 -- '  de  extra  esc.uniC'
+check 'laravel escape: "\$x" is $x, not interpolation' "$E" 1 -- '  de  extra  esc.dollar$x'
+check "laravel escape: 'quote\\'s' is quote's" "$E" 1 -- "  de  extra  esc.quote's"
 
 # Laravel JSON with a base file: the base value is the reference string, and a key outside it is not extra.
 J="$T/ljson"; mkdir -p "$J/lang"
@@ -122,14 +157,16 @@ printf '<?php\nreturn ["a" => "Hi $name"];\n' > "$U/lang/en/interp.php"
 printf '<?php\nreturn ["a" => __("x")];\n' > "$U/lang/en/call.php"
 printf '<?php\nreturn array_merge(require __DIR__."/x.php", []);\n' > "$U/lang/en/merge.php"
 printf '<?php\n$x = ["a" => "b"];\nreturn $x;\n' > "$U/lang/en/var.php"
-for f in heredoc interp call merge var; do cp "$U/lang/en/$f.php" "$U/lang/de/$f.php"; done
+printf '%s\n' '<?php' 'return ["a" => "\u{110000}"];' > "$U/lang/en/uesc.php"
+for f in heredoc interp call merge var uesc; do cp "$U/lang/en/$f.php" "$U/lang/de/$f.php"; done
 check "laravel: a heredoc is unparsed" "$U" 1 -- '  de  unparsed  lang/de/heredoc.php:2: ' '  en  unparsed  lang/en/heredoc.php:2: '
 check "laravel: interpolation in a double-quoted string is unparsed" "$U" 1 -- \
   '  en  unparsed  lang/en/interp.php:2: variable interpolation in a double-quoted string'
 check "laravel: a function call is unparsed" "$U" 1 -- '  en  unparsed  lang/en/call.php:2: unsupported expression'
 check "laravel: a computed return is unparsed" "$U" 1 -- '  en  unparsed  lang/en/merge.php:2: unsupported expression'
 check "laravel: a variable returned is unparsed" "$U" 1 -- '  en  unparsed  lang/en/var.php:2: expected `return [...]`'
-check "laravel: an identical parseable pair beside them stays silent" "$U" 1 -- 'i18n_parity: 10 finding(s) in 1 layout(s); exit 1'
+check "laravel: a \\u{} escape past U+10FFFF is unparsed, not a traceback" "$U" 1 -- '  en  unparsed  lang/en/uesc.php:2: invalid \u escape'
+check "laravel: an identical parseable pair beside them stays silent" "$U" 1 -- 'i18n_parity: 12 finding(s) in 1 layout(s); exit 1'
 
 # --- i18next: nested keys, _one/_other families, {{var}} forms, $t() nesting ---
 N="$T/i18next"; mkdir -p "$N/public/locales/en" "$N/public/locales/de" "$N/public/locales/ru" "$N/public/locales/fr"
@@ -144,7 +181,7 @@ cat > "$N/public/locales/ru/common.json" <<'J'
 J
 cat > "$N/public/locales/de/common.json" <<'J'
 {"greet": "Hallo {{user}}", "shout": "HEY {{name}}", "item_one": "ein Ding", "item_other": "{{count}} Dinge", "nav": {"home": "Start"},
- "link": "Siehe Start", "legacy": "alt", "button_one": "x"}
+ "link": "Siehe Start", "legacy": "alt", "button_one": "x", "button_few": "y"}
 J
 cat > "$N/public/locales/fr/common.json" <<'J'
 {"greet": "Salut {{name}}", "shout": "{{name}}", "item_one": "{{count}} truc", "nav": {"home": "Accueil", "about": "A propos"},
@@ -159,7 +196,7 @@ check "i18next: a family with no _other is missing, its lone form extra" "$N" 1 
 refute "i18next: ru's one/few/many/other is the same family as en's one/other" "$N" '  ru  '
 refute "i18next: {{- name, uppercase}} and {{ name }} are {{name}}" "$N" 'common:shout'
 refute "i18next: a placeholder in any family member satisfies the family" "$N" 'common:item_{one,other}  en:'
-refute "i18next: a _one key without its _other is a plain key" "$N" 'button'
+check "i18next: a _one key without its _other is a plain key, so a sibling _few is extra" "$N" 1 -- '  de  extra  common:button_few'
 
 # --- vue-i18n: {var}, {0} lists, @:linked, | plurals, {'literal'} ---
 V="$T/vue"; mkdir -p "$V/src/locales"
@@ -169,7 +206,7 @@ cat > "$V/src/locales/en.json" <<'J'
 J
 cat > "$V/src/locales/de.json" <<'J'
 {"hi": "Hallo {user}", "cars": "kein Auto | {count} Autos", "msg": {"dio": "DIO", "world": "die Welt", "linked": "@.upper:msg.dio @:msg.world"},
- "list": "{1} und {0}", "at": "{'@'} Zeichen", "ref": "siehe DIO"}
+ "list": "{1} und {0}", "at": "{'#'} Zeichen", "ref": "siehe DIO"}
 J
 check "vue-i18n: a missing key" "$V" 1 -- '  de  missing  gone'
 check "vue-i18n: a renamed {var} is a mismatch" "$V" 1 -- '  de  placeholder  hi  en: {name}  de: {user}'
@@ -198,7 +235,8 @@ check "no locale files: YAML is not read" "$T/yaml" 3
 check "no locale files: lang/vendor/ alone exits 3" "$T/vendoronly" 3
 B="$T/nobase"; mkdir -p "$B/lang/de" "$B/lang/fr"
 printf '<?php return ["a" => "x :n"];\n' > "$B/lang/de/m.php"; printf '<?php return ["a" => "y"];\n' > "$B/lang/fr/m.php"
-check "base locale absent everywhere exits 2 and names the locales" "$B" 2 -- \
+printf '{"Hi": "Salut"}\n' > "$B/lang/fr.json"
+check "base locale absent everywhere exits 2 and names the locales, a lang/<locale>.json beside the PHP included" "$B" 2 -- \
   "  base-missing  no 'en' locale here; pass --base-locale with one of: de, fr"
 check "--base-locale picks another base" "$B" 1 --base-locale de -- '  fr  placeholder  m.a  de: :n  fr: (none)'
 out=$(python3 -B "$IP" --bogus 2>&1); rc=$?

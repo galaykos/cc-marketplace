@@ -53,7 +53,7 @@ matching files are edited.
 
 | Script | Reach for it when |
 |---|---|
-| `scripts/i18n_parity.py [root] [--base-locale en] [--json]` | Checking translations before a merge: keys missing or extra per locale, placeholder mismatches (`:name`, pluralised `|` segments), files it could not parse (PHP is parsed, never executed). Exit 0 parity, 1 findings, 3 no locale files. Standing: gate where run; an identical copy ships in web-dev (`pc_twin_files` keeps them in step) |
+| `scripts/i18n_parity.py [root] [--base-locale en] [--json]` | Checking translations before a merge: keys missing or extra per locale, placeholder mismatches (`:name`, pluralised `\|` segments), files it could not parse (PHP is parsed, never executed). Exit 0 parity, 1 findings, 2 usage or no base locale, 3 no locale files. Standing: gate where run; an identical copy ships in web-dev (`pc_twin_files` keeps them in step) |
 
 ## Pairs well with
 

@@ -61,6 +61,9 @@ findings about rules that framework does not have.
    over boolean soup (TS files).
 5. **Build layer** — vite config correctness when the diff touches it (env handling
    chunking, aliases).
+6. **Locale JSON** — key and placeholder parity in next-i18next or react-i18next files
+   (`public/locales/`, `locales/`) is the job of `${CLAUDE_PLUGIN_ROOT}/scripts/i18n_parity.py`,
+   which you cannot run: name it in the coverage line as not run, so the caller runs it.
 
 Report every issue you find, including ones you are uncertain about or consider
 low-severity; the dispatcher filters, you do not. Say which you could not confirm.
