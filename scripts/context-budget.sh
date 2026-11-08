@@ -443,7 +443,7 @@ else
 fi
 
 # A declared budget --update-baseline never moves: pay for new surface with a deletion, or raise it in a reviewed commit.
-ALWAYS_ON_CEILING=12800
+ALWAYS_ON_CEILING=13600
 if [ "$leaf_tokens_total" -gt "$ALWAYS_ON_CEILING" ]; then
   warn_lines="${warn_lines}FAIL: always-on total $leaf_tokens_total exceeds the declared ceiling $ALWAYS_ON_CEILING — pay for the new surface with a deletion, or raise ALWAYS_ON_CEILING in scripts/context-budget.sh in a reviewed commit (--update-baseline does not move it)
 "

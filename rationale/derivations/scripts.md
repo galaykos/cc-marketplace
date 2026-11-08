@@ -626,6 +626,12 @@ this budget. Degrading dispatch quality across the catalogue to avoid a 200-toke
 line edit is precisely the ratio-chasing `lean:cost-model` and testing's
 proportionality.md both reject — the cheaper artifact would have been the more
 expensive decision. Spending it deliberately and saying so is the honest form.
+Raised 12800 -> 13600 on 2026-11-08 for asset-forge, the first plugin here with a local MCP server: its nine tool
+schemas measure 1,110 tokens after every description was cut to one line, property descriptions dropped and
+annotations kept on the two read-only tools only (from 2,182). The owner chose this over folding the nine tools
+into one untyped `forge_job` tool, which would fit but strip each operation's argument schema. The script counts a
+plugin's tools/list in full; Claude Code can defer MCP schemas behind tool search, which would make the real cost
+lower, but that was not measured for this plugin. Headroom left after the raise: about 25 tokens.
 ```
 
 ### DYNAMIC_CEILING
