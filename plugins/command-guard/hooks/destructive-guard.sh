@@ -25,7 +25,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.9.5
+GUARD_VERSION=0.9.6
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -423,6 +423,135 @@ is_temp_path() { # lowercased token -> 0 scratch, 1 not
   return 0
 }
 
+# "name<TAB>byte offset<TAB>guard" per variable whose every assignment is a lone mktemp substitution, one of them a top-level
+# unconditional command (not in ( ), $( ), { }, a block, a pipeline or after && ||); guard 1 when a failed mktemp exits instead of emptying it.
+mktemp_vars() { # raw command, heredoc bodies stripped
+  printf '%s' "$1" | LC_ALL=C awk '
+    { buf = (NR == 1 ? $0 : buf "\n" $0) }
+    # The $( ) or backtick opener at j holds only mktemp (|| mktemp fallbacks, 2>/dev/null), not -u: sets e past it and a closing " when q.
+    function lone(j, q,   o, k, c, s, p, np, x) {
+      o = substr(buf, j, 1) == "`" ? "`" : ")"; k = j + (o == "`" ? 1 : 2); s = ""
+      for (; k <= n; k++) { c = substr(buf, k, 1); if (c == o) break; if (c ~ /[(`\n]/) return 0; s = s c }
+      if (k > n) return 0
+      e = k + 1
+      if (q) { if (substr(buf, e, 1) != "\"") return 0; e++ }
+      gsub(/2>[ \t]*\/dev\/null/, " ", s)
+      np = split(s, p, /\|\|/)
+      for (x = 1; x <= np; x++) if (p[x] !~ /^[ \t]*mktemp([ \t][^;&|<>]*)?$/ || p[x] ~ /[ \t]-[A-Za-z]*u|--dr/) return 0
+      return 1
+    }
+    function kw(w, re) { return match(w, "^(" re ")") && substr(w, RLENGTH + 1, 1) ~ /^([ \t\n;&|)]|)$/ ? RLENGTH : 0 }
+    END {
+      n = length(buf)
+      if (buf ~ /(^|[;&|({\n \t])(eval|source)[ \t]|(^|[;&|({\n])[ \t]*\.[ \t]|mktemp[ \t]*\([ \t]*\)|(function|alias)[ \t]+mktemp/) exit
+      # A quoted-delimiter heredoc whose body survived the strip feeds another shell that never sees this one'"'"'s variables.
+      np = split(buf, p, "\n")
+      for (x = 1; x <= np; x++) if (match(p[x], /<<-?[ \t]*(\\|["\047])[A-Za-z0-9_.-]+/)) {
+        t = substr(p[x], RSTART, RLENGTH); sub(/^<<-?[ \t]*(\\|["\047])/, "", t)
+        for (k = x + 1; k <= np; k++) { s = p[k]; sub(/^\t+/, "", s); if (s == t) exit }
+      }
+      for (pos = 1; pos <= n && match(substr(buf, pos), /(^|[^A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*="?(\$\(|`)/); ) {
+        b = pos + RSTART - 1; if (substr(buf, b, 1) !~ /[A-Za-z_]/) b++
+        match(substr(buf, b), /^[A-Za-z_][A-Za-z0-9_]*=/); j = b + RLENGTH; q = substr(buf, j, 1) == "\""
+        if (lone(j + q, q)) { ns++; sn[ns] = substr(buf, b, RLENGTH - 1); sb[ns] = b; se[ns] = e; at[b] = ns; pos = e } else pos = j + 1
+      }
+      if (!ns) exit
+      sq = 0; dq = 0; bq = 0; ans = 0; st = ""; bd = 0; cs = 1; sp = ";"; sete = 0
+      for (i = 1; i <= n; i++) {
+        c = substr(buf, i, 1); nx = substr(buf, i + 1, 1)
+        if (sq) { if (c == "\\" && ans) i++; else if (c == "\047") sq = 0; continue }
+        if (c == "\\") { i++; cs = 0; continue }
+        if (dq) { if (c == "\"") dq = 0; else if (c == "$" && nx == "(") { st = st "q"; dq = 0; i++; cs = 1; sp = "(" }; continue }
+        if (c == " " || c == "\t") continue
+        if (c == "#" && (cs || substr(buf, i - 1, 1) ~ /[ \t]/)) { k = index(substr(buf, i), "\n"); if (!k) break; i += k - 2; continue }
+        if (c == "\047") { sq = 1; ans = substr(buf, i - 1, 1) == "$"; cs = 0; continue }
+        if (c == "\"") { dq = 1; cs = 0; continue }
+        if (c == "`") { bq = !bq; cs = bq; sp = "("; continue }
+        if (c == "\n" || c == ";") { cs = 1; sp = ";"; continue }
+        if (c == "&" || c == "|") {
+          if (c == "&" && (substr(buf, i - 1, 1) == ">" || nx == ">")) { cs = 0; continue }
+          if (nx == c) { i++; sp = c c } else sp = c
+          cs = 1; continue
+        }
+        if (c == "$" && nx == "{") { k = 1; for (i += 2; i <= n && k > 0; i++) { x = substr(buf, i, 1); k += (x == "{") - (x == "}") }; i--; cs = 0; continue }
+        if (c == "(" || c == "$" && nx == "(") {
+          if (substr(buf, i + 1 + (c == "$"), 1) == "(") { k = index(substr(buf, i), "))"); if (!k) break; i += k; cs = 0; continue }
+          i += (c == "$"); st = st "p"; cs = 1; sp = "("; continue
+        }
+        if (c == ")") { x = substr(st, length(st)); st = substr(st, 1, length(st) - (st != "")); if (x == "q") dq = 1; cs = 0; continue }
+        # A function body is a { } group that may never run, so { opens a block wherever it stands.
+        if (c == "{" && nx ~ /[ \t\n]/) { bd++; cs = 1; continue }
+        if (!cs) continue
+        w = substr(buf, i)
+        if ((k = kw(w, "if|while|until|case|for|select"))) { bd++; i += k - 1; continue }
+        if ((k = kw(w, "then|do|else|elif|!|time"))) { i += k - 1; continue }
+        if ((k = kw(w, "fi|done|esac|}"))) { bd -= (bd > 0); i += k - 1; cs = 0; continue }
+        cs = 0
+        if (st != "" || bq || bd || sp != ";") continue
+        if (match(w, /^set[ \t][^;&|\n]*/)) {
+          x = substr(w, 1, RLENGTH); sub(/[ \t]--([ \t].*)?$/, "", x)
+          if (x ~ /[ \t]-[A-Za-z]*e|[ \t]-o[ \t]+errexit/) sete = 1
+          if (x ~ /[ \t]\+[A-Za-z]*e|[ \t]\+o[ \t]+errexit/) sete = 0
+          continue
+        }
+        pre = match(w, /^(export|local|declare|typeset|readonly)([ \t]+-[A-Za-z]+)*[ \t]+/) ? RLENGTH : 0
+        if (!((x = at[i + pre]) > 0)) continue
+        t = substr(buf, se[x]); k = sub(/^[ \t]+/, "", t)
+        if (t != "" && t !~ /^(\n|;|&&|\|\|)/ && !(k && t ~ /^#/)) continue
+        # local/export/declare return 0 whatever mktemp did, so neither || exit nor set -e sees its failure.
+        ok[x] = 1; g[x] = !pre && (t ~ /^\|\|[ \t]*(\{[^}]*[^A-Za-z0-9_])?(exit|return)([^A-Za-z0-9_]|$)/ || sete && t !~ /^(&&|\|\|)/)
+        if (!(sn[x] in first)) first[sn[x]] = sb[x]
+        i = se[x] - 1
+      }
+      bl = buf
+      for (x = 1; x <= ns; x++) { bl = substr(bl, 1, sb[x] - 1) sprintf("%" (se[x] - sb[x]) "s", "") substr(bl, se[x]); if (!ok[x] || !g[x]) ng[sn[x]] = 1 }
+      for (v in first) {
+        if (v ~ /^(PWD|OLDPWD|REPLY|OPTARG|OPTIND|RANDOM|SECONDS|LINENO|MAPFILE|_|BASH.*)$/) continue
+        if (bl ~ ("(^|[^A-Za-z0-9_$.-])" v "[+]?=") || bl ~ ("[$][{]" v ":?=") || bl ~ ("-v[ \t]+" v "([^A-Za-z0-9_]|$)")) continue
+        bad = 0
+        for (s = bl; !bad && match(s, /(^|[^A-Za-z0-9_])(read|mapfile|readarray|unset|getopts|for|select|let|local|declare|typeset|readonly)[ \t][^;&|\n)]*/); s = substr(s, RSTART + RLENGTH))
+          bad = substr(s, RSTART, RLENGTH) ~ ("[ \t=]" v "([ \t]|$)")
+        for (s = bl; !bad && match(s, /[(][(][^)]*[)][)]/); s = substr(s, RSTART + RLENGTH))
+          bad = substr(s, RSTART, RLENGTH) ~ ("(^|[^A-Za-z0-9_])" v "([^A-Za-z0-9_]|$)")
+        if (!bad) printf "%s\t%d\t%d\n", v, first[v], !(v in ng)
+      }
+    }'
+}
+
+# The byte offsets become segment ordinals: split_segments on the prefix (plus a sentinel, so a trailing newline still counts) ends inside that segment.
+mktemp_ordinals() { # raw command, mktemp_vars output
+  local LC_ALL=C v o g
+  while IFS=$'\t' read -r v o g; do
+    [ -n "$v" ] || continue
+    printf '%s\t%s\t%s\n' "$v" "$(split_segments "${1:0:o-1}x" | wc -l | tr -d ' ')" "$g"
+  done <<EOF
+$2
+EOF
+}
+
+# 0 when an rm target is this command's own mktemp path, used after its assignment: $v or ${v} alone (empty is a no-op), or a path
+# under it with no `..` when a failed mktemp cannot leave it empty ($v/* would be /*): ${v:?}, or the assignment's guard.
+mktemp_target() { # case-preserved rm target, raw segment
+  local t="$1" v q rest n o g
+  [ -n "$MKTEMP_VARS" ] || return 1
+  case "$t" in *..*) return 1 ;; esac
+  # A single-quoted or escaped $ is expanded by whatever runs the text (bash -c, ssh, docker exec) in its own environment; trap runs it here.
+  case "${2:-}" in *"'"*|*'\$'*) [[ $2 =~ ^[[:space:]]*trap[[:space:]] ]] || return 1 ;; esac
+  if [[ $t =~ ^\$\{([A-Za-z_][A-Za-z0-9_]*)(:\?[^}]*)?\}(/.*)?$ ]]; then v=${BASH_REMATCH[1]}; q=${BASH_REMATCH[2]}; rest=${BASH_REMATCH[3]}
+  elif [[ $t =~ ^\$([A-Za-z_][A-Za-z0-9_]*)(/.*)?$ ]]; then v=${BASH_REMATCH[1]}; q=""; rest=${BASH_REMATCH[2]}
+  else return 1; fi
+  case "$rest" in *'$'*|*'`'*) return 1 ;; esac
+  while IFS=$'\t' read -r n o g; do
+    [ "$n" = "$v" ] || continue
+    [ "$SEG_I" -gt "$o" ] || return 1
+    [ -z "$rest" ] || [ -n "$q" ] || [ "$g" = 1 ]
+    return
+  done <<EOF
+$MKTEMP_VARS
+EOF
+  return 1
+}
+
 # Fails closed: a moved cwd, a glob, no git or repo, or untracked, modified or IGNORED content (a .env git has no copy of) asks.
 git_recoverable() { # path -> 0 recoverable, 1 ask
   local p="$1" st
@@ -570,6 +699,7 @@ check_rm() { # normalised segment (lowercased, padded), the same case-preserved,
     is_temp_path "$tok" && continue   # inside the OS temp dir: scratch, not a loss
     case "$tok" in
       *'$'*)
+        mktemp_target "${sp:-$tok}" "${3:-}" && continue
         set_verdict ask "recursively deletes ${tok}; if that variable is unset the path collapses (rm -rf \$X/ becomes rm -rf /)" \
           "expand the variable first and check it is non-empty, or use \${X:?} so the shell refuses when unset" "$seg"
         continue ;;
@@ -941,7 +1071,11 @@ classify() {
   case "$raw" in *'<<'*) body=$(cc_strip_heredoc_bodies inert "$raw" "$SQL_CLIENT_RE"); [ -n "$body" ] || body=$raw ;; esac
   [ "$sql_ctx" -eq 1 ] && body_lc=" $(norm_cmd "$body" | tr '[:upper:]' '[:lower:]') "
 
+  MKTEMP_VARS=""; SEG_I=0
+  case "$body" in *mktemp*) MKTEMP_VARS=$(mktemp_ordinals "$body" "$(mktemp_vars "$body")") ;; esac
+
   while IFS= read -r seg; do
+    SEG_I=$((SEG_I + 1))
     [ -n "$seg" ] || continue
     segn=$(norm_cmd "$seg")
     [ -n "$segn" ] || continue

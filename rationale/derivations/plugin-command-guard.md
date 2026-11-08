@@ -199,6 +199,71 @@ A glob may sit inside the scratch directory, but it must not BE the first
 component: `/tmp/*` is the root emptied under a different spelling.
 ```
 
+### mktemp_vars, mktemp_ordinals, mktemp_target: a same-command mktemp variable (0.9.6)
+
+```text
+Retro 2026-11-05 #23 (session 77972ccf, twice): a harness ran `o=$(mktemp -d); …;
+rm -rf "$o"` and the guard asked "if that variable is unset the path collapses".
+The command had just created the directory; the ask was friction. Reproduced on
+0.9.5 through --check and the PreToolUse payload: every spelling asked.
+
+What makes the variable provable, and why each condition exists:
+- Its value is a $( ) or backtick holding only mktemp (|| mktemp fallbacks and
+  2>/dev/null allowed). `$(mktemp -d; echo /)` puts `/` in an unquoted $tmp;
+  `>/dev/null` empties it; `-u`/`--dry-run` names a path nothing created.
+- The assignment is a top-level command of its own, so it ran and persisted:
+  in ( ), $( ), a pipeline or with & it runs in a subshell; after && or || it may
+  not run; in { }, a function, if/for/case it may not run either (a function body
+  is a { } group, so every { opens a block). An assignment that did not run
+  leaves the INHERITED value: `[ x ] && TMP=$(mktemp -d); rm -rf "$TMP"` with TMP
+  in the user's environment is `rm -rf /tmp`. A prefix assignment
+  (`tmp=$(mktemp -d) cmd`) sets it for cmd only, so a word after the value
+  disqualifies it.
+- No other write anywhere in the command: `tmp=`, `tmp+=`, read, mapfile,
+  unset, for, select, getopts, let, local/declare/typeset/readonly, printf -v,
+  `${tmp:=}`, (( )). Anywhere, not only before the rm: a trap string runs at
+  exit, after every later line. eval, source and `.` can write anything, so
+  any of them drops every variable; so does a mktemp function or alias.
+  Bash's own variables (PWD, REPLY, OPTARG, …) are never trusted: cd writes PWD.
+- The rm comes after the first such assignment, by segment ordinal. The walk
+  reports byte offsets; split_segments on the prefix (plus a sentinel, or a
+  trailing newline is lost to awk's record split) counts the segments before it,
+  under LC_ALL=C so bash's substring and awk agree on bytes.
+
+The failure case the item did not name: mktemp can fail (read-only or missing
+TMPDIR, full disk), and a failed `tmp=$(mktemp -d)` assigns the empty string.
+`rm -rf "$tmp"` is then `rm -rf ''`, a no-op, so the bare variable is always
+safe. `rm -rf "$tmp"/*` is `rm -rf /*`. So a path under the variable is exempt
+only when a failed mktemp stops the shell first: `${tmp:?}` in the target, a
+plain assignment's `|| exit|return` (or `|| { …; exit; }`), or `set -e` before
+a standalone assignment (not followed by && or ||, where errexit is ignored,
+and no later `set +e`). local/export/declare return 0 whatever the
+substitution did, so neither of the last two counts for them. Unguarded, the
+sub-path still asks with the variable-collapse reason, which is now exact.
+
+Another shell does not have the variable. Text it expands, a single-quoted
+argument (`bash -c '…'`, `ssh host '…'`, `docker exec c sh -c '…'`), an escaped
+`\$tmp`, or the body of a quoted-delimiter heredoc fed to a shell (`bash <<'EOF'`),
+reads an unset or inherited `$tmp` (a container's TMPDIR, say), and `"$tmp"/*` is
+`/*` there however well the outer assignment is guarded. Found in this change's own
+review, before release: six such cases passed on its first cut. So a raw segment
+holding `'` or `\$` gets no exemption unless it is a `trap` (which runs here), and
+a kept quoted heredoc turns the exemption off for the whole command. An unquoted
+heredoc and a double-quoted `bash -c "…$tmp…"` are expanded here and stay exempt.
+
+Residuals: a path through a symlink the command itself planted inside the
+directory (`ln -s ~ "$tmp/h"; rm -rf "$tmp/h/"*`); an assignment in
+`if tmp=$(mktemp -d); then` is inside a block and asks; an unquoted
+`rm -rf ${tmp}` asks, since split_segments cuts on the braces.
+Pre-existing and not changed here: is_temp_path lowercases the token, so a
+command's own `$tmp/x` is read as the hook's `$TMP/x`, and passes whenever TMP
+is set in the hook's environment; and a trap's signal name
+(`trap '…' EXIT`) is read as an rm target, which asks once the command cds.
+
+Cost: median on `git status && ls -la` and on a mktemp command, HEAD vs this
+change, in the 0.9.6 CHANGELOG entry.
+```
+
 ### git_recoverable
 
 ```text
@@ -819,6 +884,18 @@ recoverability section below, against a fixture whose state is controlled.
 ```text
 $TMPDIR is resolved from the hook's OWN environment and only from there: unset
 means `rm -rf $TMPDIR/build` is `rm -rf /build`, which must not go silent.
+```
+
+### A mktemp variable set in the same command (0.9.6)
+
+```text
+expect_mk runs --check with TMP and TMPDIR unset: is_temp_path reads `$tmp/x` as
+the hook's `$TMP/x`, so with TMP set a sub-path case would pass without the new
+code. The 21 allow cases ask against 0.9.5; the 48 ask/deny cases (true positives
+kept: reassigned, used before, escaping, other command, not persisting, not lone
+mktemp, unguarded sub-path, expanded by another shell) hold on both, and the six
+another-shell asks were allowed by this change's first cut. One case goes through
+the PreToolUse payload, the retro's own command.
 ```
 
 ### Allow-file: pure readers
