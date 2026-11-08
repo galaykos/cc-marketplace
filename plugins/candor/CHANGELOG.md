@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.4 — 2026-11-08
+
+- **No preamble for `asset-forge:art-reviewer`.** The new read-only reviewer joins the SubagentStart skip list, like every other agent with no Write or Edit. Standing: gate (`preamble-hook.test.sh` case 22 reads every marketplace agent).
+
 ## 0.12.3 — 2026-11-07
 
 - **The Stop gate runs about 4x faster on a long session.** `hooks/gate.sh` writes the transcript tail once to a temp file that every clause's jq reads. It used to hold the tail in a shell variable and pipe it through `printf` for each clause, which cost about 0.1 s per copy. On a 9.7 MB transcript one Stop went from 0.82 s to 0.21 s (3 runs each, this machine). Verdicts are unchanged: the gate harness (256 cases) and both completion-gate smoke suites pass, and the old and new gate agree on four slices of a real transcript. If no temp file can be made, the gate now sees no transcript and fails open. Standing: gate (unchanged clauses).
