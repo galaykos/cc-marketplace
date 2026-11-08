@@ -209,15 +209,17 @@ Output rules:
     agent; security-deep issues → `/security:review`.
 
 **Refute pass**, before the verdict. Dispatch `code-review:code-reviewer` once per `critical` and
-`high` finding, all in one message, each in its own fresh context, with the patch file above, the
-checklist below and: "Refute check, not a review. Try to prove this finding wrong against the
-working file: <finding line>. Reply CONFIRMED with the evidence or REFUTED with the reason." A
-REFUTED finding is dropped, or downgraded with a one-line note when only its severity fails; a
-CONFIRMED one opens its problem clause with `[CONFIRMED]`. Anything not re-checked, or downgraded
-— `medium` and `low`, a refuter answering neither word, every finding when the agent or the Agent
-tool is absent (headless) — gets the checklist here and opens with `[PLAUSIBLE]`. Standing:
-agent-graded. The checklist is the false-positive taxonomy; a finding matching any row is dropped,
-not downgraded:
+`high` finding, all in one message, each in its own fresh context, with a prompt that opens with
+the phrase that puts the agent in its refute mode, then the finding, the patch file above and the
+checklist below: "Refute check: <finding line>. Try to prove this finding wrong against the working
+file. Reply with one line, CONFIRMED — <evidence> or REFUTED — <reason>." A REFUTED finding is
+dropped, or downgraded with a one-line note when only its severity fails; a CONFIRMED one opens
+its problem clause with `[CONFIRMED]`. Anything not re-checked, or downgraded — `medium` and `low`,
+every finding when the agent or the Agent tool is absent (headless) — gets the checklist here and
+opens with `[PLAUSIBLE]`. A refuter whose reply opens with neither word, or that returns nothing,
+leaves its finding to that same checklist and `[PLAUSIBLE]`; it never makes the review
+`incomplete`. Standing: agent-graded. The checklist is the false-positive taxonomy; a finding
+matching any row is dropped, not downgraded:
 
 - pre-existing: the problem is on a line the diff did not touch, or existed before it
 - silenced: the code carries a lint-ignore / suppression comment for exactly this
@@ -251,9 +253,9 @@ covered, what was clean, and what was skipped — not only what broke.
 
 Close with a one-line verdict: merge-ready, merge-after-criticals, rework, or
 **incomplete** — naming what is missing — when a pass `Checked:` names as applied did not
-run, a dispatched reviewer returned nothing, or the quote check could not run (its last run
-exited other than 0 or 1, or there was no shell). `incomplete` may carry the findings so far
-but never sits beside merge-ready.
+run, a dispatched reviewer other than a refuter returned nothing, or the quote check could
+not run (its last run exited other than 0 or 1, or there was no shell). `incomplete` may
+carry the findings so far but never sits beside merge-ready.
 
 After the verdict, if findings exist, offer the next step as a selectable choice
 (AskUserQuestion): "Fix all findings" / "Apply critical+high only" / "Report only". On an

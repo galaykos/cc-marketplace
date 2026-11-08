@@ -637,9 +637,10 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 - **At a ship prompt.** Since 0.33.0, a prompt whose first 400 characters (outside code
   fences) say commit, push, merge, PR or pull request is checked at once, without waiting
   for a commit, and untracked files count too. The line opens "Before this ships" and names
-  `/code-review:review <base>`, which covers the working tree. Since 0.35.0 it speaks only when
-  the count has grown past every line already given since the same base, plain or ship, so a
-  ship prompt after a plain line at the same count, or a switch back to the same base, says nothing.
+  `/code-review:review <base>`, which covers the working tree. Since 0.35.0 it names a set of
+  files at most once per base, plain or ship, and never fewer files than the most already named
+  there, so a ship prompt after a plain line over the same files, or a switch back to the same
+  base, says nothing. A review clears what was named.
 - **Branch switches.** Since 0.33.0 the base remembers its branch. After a `git switch` the
   count starts where the switch landed, so a branch's existing commits are not charged to
   your session; commits made after the switch, including on a branch created in the same

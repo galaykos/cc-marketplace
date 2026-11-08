@@ -1,5 +1,5 @@
 #!/bin/bash
-# UserPromptSubmit, advisory: one line when 8+ code/config files or an auth path changed since this context's last review (a ship prompt: at once, untracked included), once per base and count; a review Agent/Task/Skill call (PostToolUse) moves the base and credits each file's content as it was then.
+# UserPromptSubmit, advisory: one line when 8+ code/config files or an auth path changed since this context's last review (a ship prompt: at once, untracked included), once per base and set of files; a review Agent/Task/Skill call (PostToolUse) moves the base, clears what was named and credits each file's content as it was then.
 # Skips docs, lockfiles, art, media, fonts and binaries; `guard` is auth only as a word (Guard.php, JwtGuard; not GuardPost). Misses: uncommitted work until a commit or ship verb; reviews by other names; what a review did not read; a rebase or branch switch resets the base; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
 # Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/review-debt.sh
 
@@ -196,13 +196,15 @@ cc_prompt_question() {
   seen_f="$dir/review-seen-$ctx"
   fired_f="$dir/review-fired-$ctx"
   credit_f="$dir/review-credit-$ctx"
-  # base_f: "<base commit> <branch>"; seen_f: "<last HEAD judged>"; fired_f: "<base> <count a line named>" per line;
-  # credit_f: "<blob> <path>" per file content a review was handed; blob "-" is no regular file there.
+  # base_f: "<base commit> <branch>"; seen_f: "<last HEAD judged>"; fired_f: "<base> <count a line named> <cksum of its paths>"
+  # per line; credit_f: "<blob> <path>" per file content a review was handed; blob "-" is a path gone from the tree.
+  # Renamed into place: refuters launched in one message run this concurrently, and a truncated base_f reads as no base.
+  put() { printf '%s\n' "$2" > "$1.$$" 2>/dev/null && mv -f "$1.$$" "$1" 2>/dev/null || rm -f "$1.$$" 2>/dev/null; }
   record() {
     mkdir -p "$dir" 2>/dev/null || exit 0
     [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
-    printf '%s %s\n' "$1" "$branch" > "$base_f" 2>/dev/null
-    printf '%s\n' "$1" > "$seen_f" 2>/dev/null
+    put "$base_f" "$1 $branch"
+    put "$seen_f" "$1"
     find "$dir" -maxdepth 1 -name 'review-*' -type f -mtime +14 -exec rm -f {} + 2>/dev/null
   }
   code_only() {
@@ -210,20 +212,23 @@ cc_prompt_question() {
     | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$' \
     | LC_ALL=C grep -viE '\.(png|jpe?g|gif|webp|bmp|tga|tiff?|psd|psb|ico|icns|svg|exr|hdr|dds|ktx2?|avif|heic|xcf|kra|aseprite|fbx|blend1?|glb|gltf|obj|mtl|dae|3ds|max|stl|ply|usd[acz]?|abc|vox|sbsar|spp|meta|mat|controller|overridecontroller|anim|prefab|unity|physicmaterial|mask|mixer|rendertexture|spriteatlas|playable|cubemap|lighting|terrainlayer|bytes|import|uasset|umap|wav|mp3|ogg|flac|aiff?|m4a|opus|bank|mp4|mov|webm|avi|mkv|ttf|otf|woff2?|eot|pdf|zip|gz|tgz|7z|rar|dll|so|dylib|exe|jar|class|pyc|wasm)$'
   }
-  # Order kept; "?" marks a file left unhashed (past 2000, or hash-object failed), so it is never credited.
+  # Order kept; "?" is never credited: a C-quoted name, a path present but not a regular file (a gitlink, a symlink),
+  # past 2000 files, or hash-object failed. "-" is only a path gone from the tree.
   blobs() {
     local all=() reg=() hs=() p i=0
     while IFS= read -r p; do
       [ -n "$p" ] || continue
       all+=("$p")
-      [ "${#reg[@]}" -lt 2000 ] && [ -f "$root/$p" ] && reg+=("$p")
+      case "$p" in '"'*) continue ;; esac
+      [ "${#reg[@]}" -lt 2000 ] && [ -f "$root/$p" ] && [ ! -L "$root/$p" ] && reg+=("$p")
     done
     [ "${#reg[@]}" -gt 0 ] && while IFS= read -r p; do hs+=("$p"); done \
       < <(printf '%s\n' "${reg[@]}" | git -C "$root" hash-object --no-filters --stdin-paths 2>/dev/null)
     [ "${#hs[@]}" = "${#reg[@]}" ] || hs=()
     for p in "${all[@]}"; do
+      case "$p" in '"'*) printf '? %s\n' "$p"; continue ;; esac
       if [ "$i" -lt "${#reg[@]}" ] && [ "${reg[$i]}" = "$p" ]; then printf '%s %s\n' "${hs[$i]:-?}" "$p"; i=$((i + 1))
-      elif [ -f "$root/$p" ]; then printf '? %s\n' "$p"
+      elif [ -e "$root/$p" ] || [ -L "$root/$p" ]; then printf '? %s\n' "$p"
       else printf -- '- %s\n' "$p"; fi
     done
   }
@@ -233,6 +238,7 @@ cc_prompt_question() {
   if [ "$reviewed" = 1 ]; then
     { [ -n "$base" ] && git -C "$root" merge-base --is-ancestor "$base" "$head" 2>/dev/null; } || base=$head
     record "$head"
+    rm -f "$fired_f" 2>/dev/null   # a review at HEAD == base keeps the base, so only this lets its range speak again
     { cat "$credit_f" 2>/dev/null
       { git -C "$root" -c core.quotepath=off diff --name-only "$base" -- 2>/dev/null
         git -C "$root" -c core.quotepath=off ls-files --others --exclude-standard 2>/dev/null; } | code_only | blobs | grep -v '^? '
@@ -243,7 +249,7 @@ cc_prompt_question() {
 
   [ -n "$base" ] || { record "$head"; exit 0; }               # first prompt: baseline, silent
   if [ -z "$bbranch" ]; then
-    printf '%s %s\n' "$base" "$branch" > "$base_f" 2>/dev/null  # recorded before 0.33.0: adopt
+    put "$base_f" "$base $branch"                               # recorded before 0.33.0: adopt
   elif [ "$bbranch" != "$branch" ]; then
     # Searched back only to the old base's own entry: an older checkout predates the base and would charge history.
     sw=$(git -C "$root" reflog -n 200 --format='%H %gs' 2>/dev/null \
@@ -273,12 +279,14 @@ cc_prompt_question() {
   auth=$(printf '%s\n' "$changed" | awk -v h=" $hits" 'index(h, " " NR " ")')
   nauth=$(printf '%s\n' "$auth" | grep -c .)
 
-  # Keyed on the base alone: a switch back to it, or a ship prompt after a plain line at the same count, repeats nothing.
-  last=$(awk -v b="$base" '$1 == b && $2 + 0 > m { m = $2 + 0 } END { print m + 0 }' "$fired_f" 2>/dev/null)
+  # Per base: a set of paths already named, or fewer files than the most named, repeats nothing (a switch back, a ship prompt after a plain line).
+  sum=$(printf '%s\n' "$changed" | grep . | LC_ALL=C sort | cksum | cut -d' ' -f1)
+  last=$(awk -v b="$base" -v s="$sum" '$1 == b { if ($3 == s) d = 1; if ($2 + 0 > m) m = $2 + 0 } END { print (d ? "named" : m + 0) }' "$fired_f" 2>/dev/null)
+  put "$seen_f" "$head"
+  [ "$last" = named ] && exit 0
   case "$last" in ''|*[!0-9]*) last=0 ;; esac
-  printf '%s\n' "$head" > "$seen_f" 2>/dev/null
-  { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -gt "$last" ] || exit 0
-  printf '%s %s\n' "$base" "$count" >> "$fired_f" 2>/dev/null || exit 0
+  { [ "$count" -ge 8 ] || [ "$nauth" -ge 1 ]; } && [ "$count" -ge "$last" ] || exit 0
+  printf '%s %s %s\n' "$base" "$count" "$sum" >> "$fired_f" 2>/dev/null || exit 0
 
   short=$(git -C "$root" rev-parse --short "$base" 2>/dev/null) || short="$base"
   paths=""
