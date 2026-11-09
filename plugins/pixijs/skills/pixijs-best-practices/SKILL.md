@@ -7,8 +7,11 @@ description: Use when writing, reviewing or porting PixiJS code — `pixi.js` in
 
 ## Why this is a pointer
 
-Measured 2026-11-09: 4 cases, 3 runs per arm, base 3/3 = with 3/3 on every case. The base model already wrote
-the v8 forms the old v7→v8 table taught, so the table was retired. Cases and run: the plugin README, "Evals".
+Measured 2026-11-09 on `opus` only: 4 cases, 3 runs per arm, base 3/3 = with 3/3 on every case. The cases cover
+the old v7→v8 table's rows judged most likely missed, and opus already wrote their v8 forms, so the table was
+retired. No case covers `Graphics`, `cacheAsTexture()`, children only on Containers, scale modes, `preference` or
+`releaseGlobalResources`. On any other model, or for those rows, read the v7 → v8 migration guide below before
+writing v8 code. Cases and run: the plugin README, "Evals".
 
 ## Read these instead
 

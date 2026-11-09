@@ -6,6 +6,7 @@ Consumer-facing changes only. Newest first.
 
 - **Retired to a pointer.** `pixijs-best-practices` no longer carries the v7→v8 table, the v8 footguns or `references/custom-filters.md`. It now links the v8 guides, the migration guide, the API reference, the release notes and `llms.txt`. It also names the PixiJS team's own MIT-licensed `pixijs/pixijs-skills` and its install lines, labelled third-party and unmeasured here. The description names a v7→v8 migration and drops the rows the body no longer carries.
 - **Why: four control-armed eval cases showed no lift.** `evals/` holds `filter-object-space-uv`, `particle-sparks-culled`, `contextmenu-per-card` and `drag-and-spin`. Each grades one fact from the retired table, checked this run against the 8.22.0 source, its release notes or the v8 migration guide. With `claude plugin eval --ablation with-without`, 3 runs per arm and a haiku judge, every case scored 3/3 both with and without the 0.1.0 skill ($2.22). The cases stay as regression guards. The README "Evals" section has the run.
+- **The measurement names its scope.** It ran on `opus` only and covers the rows judged most likely missed. The skill names the rows no case covers and tells other models to read the migration guide. Each case's `skill-fired` grader now runs only in the with-plugin arm (`arm: with-only`).
 
 ## 0.1.0 — 2026-10-26
 

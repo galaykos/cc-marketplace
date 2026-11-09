@@ -15,6 +15,7 @@ graders:
     type: tool_used
     tool: Skill
     input_match: "pixijs:pixijs-best-practices"
+    arm: with-only
   - name: v8-init-ticker-drag
     type: llm
     criteria: |

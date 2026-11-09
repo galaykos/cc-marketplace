@@ -3,8 +3,8 @@
 One pointer skill for PixiJS, the 2D WebGL/WebGPU renderer that browser games build on. It
 links the official v8 docs, the v7→v8 migration guide, the API reference and the release
 notes. It also names the PixiJS team's own agent skills, which are third party. Up to 0.1.0 it
-carried a v7→v8 table and the v8 footguns. A control-armed eval found the base model already
-writes every case that table covered, so 0.2.0 retired it (see Evals).
+carried a v7→v8 table and the v8 footguns. 4 control-armed cases on opus showed no lift on the
+rows judged most likely missed, so 0.2.0 retired it; the cases are now regression guards (see Evals).
 
 ## Install
 
@@ -35,7 +35,7 @@ rules.
 | Rule | Standing |
 |---|---|
 | The links and the vendor's install lines | recorded — true at the skill's `Last verified` stamp. `check-doc-staleness.sh --live` warns when npm ships a newer `pixi.js` minor and HEADs the stamped URL; it cannot say what changed |
-| "The base model needs no v7→v8 table" | recorded — measured once (Evals), on one model with a haiku judge; nothing re-runs it when the model changes |
+| "Opus passed the 4 cases without the v7→v8 table" | recorded — measured once (Evals), on opus only with a haiku judge; other models and the rows no case grades were not measured, and nothing re-runs it when the model changes |
 
 Credit: up to 0.1.0 the skill was adapted from [gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills) @184b72b (Apache-2.0, © 2026 Abhishek Barali and contributors). The 0.2.0 pointer carries none of that prose.
 

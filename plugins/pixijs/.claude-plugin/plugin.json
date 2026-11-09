@@ -1,7 +1,7 @@
 {
   "name": "pixijs",
   "version": "0.2.0",
-  "description": "PixiJS pointer skill: links the official v8 docs, the v7→v8 migration guide and the PixiJS team's own agent skills. Its v7→v8 table was retired on 2026-11-09, after a control-armed eval found the base model already passes every case the table covered.",
+  "description": "PixiJS pointer skill: links the official v8 docs, the v7→v8 migration guide and the PixiJS team's own agent skills. Its v7→v8 table was retired on 2026-11-09: 4 control-armed cases on opus showed no lift on the rows judged most likely missed (now regression guards).",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -16,6 +16,7 @@ graders:
     type: tool_used
     tool: Skill
     input_match: "pixijs:pixijs-best-practices"
+    arm: with-only
   - name: v8-particles-bounded
     type: llm
     criteria: |
