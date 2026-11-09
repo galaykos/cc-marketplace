@@ -4,8 +4,10 @@ Consumer-facing changes only. Newest first.
 
 ## 0.3.1 — 2026-11-09
 
-- **`blender-best-practices` names its near misses.** A model from an AI service goes to
-  `meshy:meshy-generation`, 2D art to `gamedev:game-assets` or `pixel-art:pixel-art-pipeline`.
+- **`blender-best-practices` names its near misses.** Generating a model through an AI service,
+  its credits and its GLB budget check go to `meshy:meshy-generation`; cleaning up or exporting
+  that model in Blender stays here. 2D art goes to `gamedev:game-assets` or
+  `pixel-art:pixel-art-pipeline`.
   Skill body only; scripts and hooks are unchanged. Standing: recorded.
 
 ## 0.3.0 — 2026-11-07
