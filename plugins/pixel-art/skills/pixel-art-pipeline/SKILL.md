@@ -8,6 +8,8 @@ description: Use when exporting or loading Aseprite sheets (aseprite -b, --sheet
 
 This skill is the authoring and export layer. Size, alpha and colour-count checks on the PNG are
 `gamedev`'s `asset_report.py`; texture filtering, mipmaps and pixels-per-unit belong to the engine plugin.
+Not this skill when the asset is 3D: `meshy:meshy-generation` generates and measures a model,
+`blender:blender-best-practices` models and exports one.
 
 ## The rules, and who enforces each
 

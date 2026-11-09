@@ -19,6 +19,7 @@ GUID_SPRITE = "11112222333344445555666677778888"
 GUID_FOLDER = "99990000aaaabbbbccccddddeeeeffff"
 GUID_GONE = "deadbeefdeadbeefdeadbeefdeadbeef"
 GUID_PACKAGE = "c0ffee00c0ffee00c0ffee00c0ffee00"
+CINEMACHINE = "com.unity.cinemachine"
 
 MODULES_ONLY = {"dependencies": {"com.unity.modules.physics": "1.0.0"}}
 
@@ -433,6 +434,126 @@ class CheckUnityProjectTests(unittest.TestCase):
         code, payload = self.check()
         self.assertEqual(code, 0, payload)
         self.assertEqual(payload["warnings"], [])
+
+    # version-windowed API names
+
+    def api(self, source: str, unity: str | None = None, cinemachine: str | None = None) -> tuple[int, list[tuple]]:
+        if unity:
+            self.write("ProjectSettings/ProjectVersion.txt", f"m_EditorVersion: {unity}\nm_EditorVersionWithRevision: x\n")
+        if cinemachine:
+            self.write("Packages/manifest.json", json.dumps({"dependencies": {"com.unity.cinemachine": cinemachine}}))
+        self.write("Assets/Scripts/Uses.cs", "using UnityEngine;\nusing UnityEditor;\n" + source)
+        self.write("Assets/Scripts/Uses.cs.meta", meta_text(GUID_ENEMY))
+        code, payload = self.check()
+        found = [(kind, i["code"], i["line"], i["message"]) for kind in ("errors", "warnings") for i in payload[kind]
+                 if i["code"].startswith("api-")]
+        return code, found
+
+    def test_get_instance_id_window(self) -> None:
+        body = "public class Uses { int Id(GameObject go) { return go.GetInstanceID(); } }\n"
+        self.assertEqual(self.api(body, unity="6000.3.2f1"), (0, []))
+        code, found = self.api(body, unity="6000.4.0f1")
+        self.assertEqual((code, [f[:3] for f in found]), (0, [("warnings", "api-deprecated", 3)]))
+        self.assertIn("GetInstanceID() is deprecated since Unity 6000.4, removed in 6000.5", found[0][3])
+        code, found = self.api(body, unity="6000.5.1f1")
+        self.assertEqual((code, [f[:3] for f in found]), (1, [("errors", "api-removed", 3)]))
+        self.assertIn("this project has 6000.5.1f1", found[0][3])
+
+    def test_instance_id_members_window(self) -> None:
+        body = ("public class Uses {\n  void A(int id) {\n    var o = EditorUtility.InstanceIDToObject(id);\n"
+                "    Selection.activeInstanceID = id;\n    var all = Selection.instanceIDs;\n  }\n}\n")
+        self.assertEqual(self.api(body, unity="6000.2.9f1"), (0, []))
+        code, found = self.api(body, unity="6000.3.0f1")
+        self.assertEqual((code, sorted(f[1:3] for f in found)),
+                         (0, [("api-deprecated", 5), ("api-deprecated", 6), ("api-deprecated", 7)]))
+        code, found = self.api(body, unity="6000.5.0f1")
+        self.assertEqual((code, sorted(f[1:3] for f in found)),
+                         (1, [("api-removed", 5), ("api-removed", 6), ("api-removed", 7)]))
+
+    def test_uxml_factory_traits_window(self) -> None:
+        body = ("using UnityEngine.UIElements;\npublic class Gauge : VisualElement {\n"
+                "  public new class UxmlFactory : UxmlFactory<Gauge, UxmlTraits> { }\n"
+                "  public new class UxmlTraits : VisualElement.UxmlTraits { }\n}\n")
+        self.assertEqual(self.api(body, unity="2023.2.20f1"), (0, []))
+        code, found = self.api(body, unity="6000.0.30f1")
+        self.assertEqual((code, [f[:3] for f in found]), (0, [("warnings", "api-deprecated", 5)]))
+        self.assertIn("(5 uses, first shown)", found[0][3])
+        code, found = self.api(body, unity="6000.5.3f1")
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        code, found = self.api(body, unity="6000.6.0f1")
+        self.assertEqual((code, [f[:3] for f in found]), (1, [("errors", "api-removed", 5)]))
+
+    def test_cinemachine_2_names_window(self) -> None:
+        body = ("using Cinemachine;\npublic class Uses {\n  CinemachineVirtualCamera cam;\n"
+                "  CinemachineBlendListCamera list;\n  CinemachineVirtualCameraBase any;\n"
+                "  int n = CinemachineCore.Instance.BrainCount;\n}\n")
+        self.assertEqual(self.api(body, unity="6000.0.30f1", cinemachine="2.10.1"), (0, []))
+        code, found = self.api(body, cinemachine="3.0.0")
+        self.assertEqual(code, 1)
+        self.assertEqual(sorted(f[1:3] for f in found),
+                         [("api-deprecated", 5), ("api-removed", 3), ("api-removed", 6), ("api-removed", 8)])
+        self.assertTrue(all("com.unity.cinemachine 3.0" in f[3] for f in found), found)
+
+    def test_git_cinemachine_version_comes_from_the_package_cache(self) -> None:
+        body = "public class Uses { CinemachineTransposer t; }\n"
+        url = "https://github.com/Unity-Technologies/com.unity.cinemachine.git#3.1.2"
+        # The lock shape UPM writes for a git package: "version" holds the URL, the commit is in "hash".
+        self.write("Packages/packages-lock.json", json.dumps({"dependencies": {CINEMACHINE: {
+            "version": url, "depth": 0, "source": "git", "dependencies": {}, "hash": "45728f3" + "0" * 33}}}))
+        self.assertEqual(self.api(body, cinemachine=url), (0, []))
+        self.write(f"Library/PackageCache/{CINEMACHINE}@45728f30a1b2/package.json",
+                   json.dumps({"name": CINEMACHINE, "version": "3.1.2"}))
+        code, found = self.api(body, cinemachine=url)
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        self.assertIn("this project has 3.1.2", found[0][3])
+        self.write(f"Library/PackageCache/{CINEMACHINE}@2.10.1/package.json",
+                   json.dumps({"name": CINEMACHINE, "version": "2.10.1"}))
+        self.assertEqual(self.api(body, cinemachine=url), (0, []))
+
+    def test_embedded_and_local_cinemachine_versions_come_from_their_package_json(self) -> None:
+        body = "public class Uses { CinemachineTransposer t; }\n"
+        self.write("Packages/packages-lock.json", json.dumps({"dependencies": {CINEMACHINE: {
+            "version": f"file:{CINEMACHINE}", "depth": 0, "source": "embedded", "dependencies": {}}}}))
+        self.write(f"Packages/{CINEMACHINE}/package.json", json.dumps({"name": CINEMACHINE, "version": "3.1.2"}))
+        code, found = self.api(body)
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        (self.root / "Packages" / CINEMACHINE / "package.json").unlink()
+        self.write("../Shared/Cinemachine/package.json", json.dumps({"name": CINEMACHINE, "version": "3.0.1"}))
+        code, found = self.api(body, cinemachine="file:../../Shared/Cinemachine")
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+
+    def test_transitive_registry_cinemachine_falls_back_to_the_lock_file(self) -> None:
+        body = "public class Uses { CinemachineTransposer t; }\n"
+        self.write("Packages/packages-lock.json", json.dumps({"dependencies": {CINEMACHINE: {
+            "version": "3.1.2", "depth": 1, "source": "registry", "dependencies": {},
+            "url": "https://packages.unity.com"}}}))
+        code, found = self.api(body)
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        self.assertEqual(self.api(body, cinemachine="https://github.com/example/cinemachine.git"), (0, []))
+
+    def test_api_names_in_comments_strings_guards_and_declarations_are_silent(self) -> None:
+        body = (
+            "using Unity.Cinemachine;\n"
+            "// go.GetInstanceID(); CinemachineVirtualCamera; UxmlTraits\n"
+            "/* Selection.instanceIDs and using Cinemachine; */\n"
+            "public class Uses {\n"
+            "  string a = \"go.GetInstanceID() CinemachineCore.Instance UxmlFactory<X>\";\n"
+            "  char c = 'U';\n"
+            "  public int GetInstanceID() { return 0; }\n"
+            "  Unity.Cinemachine.CinemachineCamera cam;\n"
+            "  CinemachineVirtualCameraBase any;\n"
+            "#if !UNITY_6000_5_OR_NEWER\n"
+            "  int Old(GameObject go) => go.GetInstanceID();\n"
+            "#else\n"
+            "  EntityId New(GameObject go) => go.GetEntityId();\n"
+            "#endif\n"
+            "}\n"
+        )
+        self.assertEqual(self.api(body, unity="6000.6.0f1", cinemachine="3.1.2"), (0, []))
+
+    def test_no_version_files_means_no_api_findings(self) -> None:
+        body = "public class Uses { int Id(GameObject go) { return go.GetInstanceID(); } CinemachinePOV p; }\n"
+        self.assertEqual(self.api(body), (0, []))
 
 
 if __name__ == "__main__":

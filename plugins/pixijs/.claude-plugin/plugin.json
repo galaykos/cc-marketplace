@@ -1,7 +1,7 @@
 {
   "name": "pixijs",
-  "version": "0.1.0",
-  "description": "PixiJS skill carrying only what changed from v7 to v8 and still gets written the v7 way: empty Application constructor plus await app.init, the Ticker passed to ticker callbacks, pointermove firing only over the object, passive default eventMode, Texture.from no longer loading URLs, children only on Containers, shape-first Graphics, cacheAsTexture, Particle-based ParticleContainer, the new Filter constructor; plus v8 footguns: particle bounds, renderer preference, the 8.22 contextmenu event, filter texture coordinates. Reads the lockfile before advising.",
+  "version": "0.2.0",
+  "description": "PixiJS pointer skill: links the official v8 docs, the v7→v8 migration guide and the PixiJS team's own agent skills. Its v7→v8 table was retired on 2026-11-09: 4 control-armed cases on opus showed no lift on the rows judged most likely missed (now regression guards).",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

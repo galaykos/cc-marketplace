@@ -11,6 +11,11 @@ import settings — filtering, mipmaps and pixels-per-unit are engine-major-spec
 belong to the engine plugin, not this skill. This skill covers what is true in every
 engine: the file itself, its licence, and the store disclosure.
 
+Not this skill for generating or measuring a 3D model (`meshy:meshy-generation`), or for
+modelling, cleaning up or exporting one (`blender:blender-best-practices`); a 3D model's licence
+record and Steam AI disclosure stay here. Nor when an Aseprite sheet is exported or generated art
+is turned into pixel art (`pixel-art:pixel-art-pipeline`).
+
 ## The rules, and who enforces each
 
 | Rule | Standing |

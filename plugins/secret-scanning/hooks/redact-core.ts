@@ -1,5 +1,8 @@
 export type Pattern = { kind: 'secret' | 'assigned' | 'placeholder'; label: string; re: RegExp }
 
+/** A line's ranges, `from` up to `to`, inside which a match of the row labelled `label` stays unmasked. */
+export type Kept = (line: string) => { from: number; to: number; label: string }[]
+
 type Span = { start: number; end: number; ranks: number[]; opensKey: boolean }
 
 // The break-delimited lines of one string, built once when a BEGIN there has no END after it. contentEnd drops trailing
@@ -154,12 +157,15 @@ export function isPlaceholder(s: string, pats: Pattern[]): boolean {
 }
 
 // grep matches line by line, so no match spans a newline; the masked span of a private key block can.
-function spansOf(text: string, pats: Pattern[]): Span[] {
+function spansOf(text: string, pats: Pattern[], kept: Kept | null): Span[] {
   const spans: Span[] = []
   let offset = 0
 
   for (const line of text.split('\n')) {
     const folded = line.replace(FOLDABLE, ch => FOLDS[ch] ?? ch)
+    const ranges = kept === null ? [] : kept(line)
+    const isKept = (label: string, start: number, end: number) =>
+      ranges.some(r => r.label === label && r.from <= start && end <= r.to)
 
     pats.forEach((pattern, rank) => {
       if (pattern.kind === 'placeholder') {
@@ -178,6 +184,11 @@ function spansOf(text: string, pats: Pattern[]): Span[] {
         const value = pattern.kind === 'assigned' ? match.replace(OPERATOR, '') : match
 
         if (isPlaceholder(value || match, pats)) {
+          continue
+        }
+
+        // An assigned row is judged on its matched value, not on the span to the quote its mask would cover.
+        if (isKept(pattern.label, end - value.length, end)) {
           continue
         }
 
@@ -404,9 +415,10 @@ function redactedText(
   text: string,
   pats: Pattern[],
   found: Set<number>,
-  carried: number[] | null = null,
+  carried: number[] | null,
+  kept: Kept | null,
 ): { text: string; open: number[] | null } {
-  const { spans, open } = merged(text, spansOf(text, pats), carried)
+  const { spans, open } = merged(text, spansOf(text, pats, kept), carried)
   let out = ''
   let at = 0
 
@@ -421,15 +433,15 @@ function redactedText(
 
 /** The `[start, end)` ranges of one string that `redact` would mask, in order and merged. */
 export function secretSpans(text: string, pats: Pattern[]): { start: number; end: number }[] {
-  return merged(text, spansOf(text, pats), null).spans.map(({ start, end }) => ({ start, end }))
+  return merged(text, spansOf(text, pats, null), null).spans.map(({ start, end }) => ({ start, end }))
 }
 
-function redactedError(error: Error, pats: Pattern[], found: Set<number>): Error {
+function redactedError(error: Error, pats: Pattern[], found: Set<number>, kept: Kept | null): Error {
   const copy: Error = Object.setPrototypeOf(new Error(), Object.getPrototypeOf(error))
 
   for (const key of new Set(['stack', ...Object.getOwnPropertyNames(error)])) {
     Object.defineProperty(copy, key, {
-      value: walked(Reflect.get(error, key), pats, found, NONE).value,
+      value: walked(Reflect.get(error, key), pats, found, NONE, kept).value,
       enumerable: Object.getOwnPropertyDescriptor(error, key)?.enumerable ?? false,
       writable: true,
       configurable: true,
@@ -471,9 +483,15 @@ function joinedOpen(first: Open, second: Open): Open {
 
 // Returns the value with its strings masked, and the key blocks it leaves open; a carried path it holds no string at
 // passes over it, still open.
-function walked(value: unknown, pats: Pattern[], found: Set<number>, carried: Open): { value: unknown; open: Open } {
+function walked(
+  value: unknown,
+  pats: Pattern[],
+  found: Set<number>,
+  carried: Open,
+  kept: Kept | null,
+): { value: unknown; open: Open } {
   if (typeof value === 'string') {
-    const redacted = redactedText(value, pats, found, carried.get('') ?? null)
+    const redacted = redactedText(value, pats, found, carried.get('') ?? null, kept)
 
     if (carried.size === 0 && !redacted.open) {
       return { value: redacted.text, open: NONE }
@@ -495,7 +513,7 @@ function walked(value: unknown, pats: Pattern[], found: Set<number>, carried: Op
     let previous = NONE
 
     const items = value.map((item, index) => {
-      const result = walked(item, pats, found, joinedOpen(under(carried, `[${index}]`), previous))
+      const result = walked(item, pats, found, joinedOpen(under(carried, `[${index}]`), previous), kept)
 
       previous = result.open
 
@@ -518,7 +536,7 @@ function walked(value: unknown, pats: Pattern[], found: Set<number>, carried: Op
   }
 
   if (value instanceof Error) {
-    return { value: redactedError(value, pats, found), open: carried }
+    return { value: redactedError(value, pats, found, kept), open: carried }
   }
 
   if (!isPlainObject(value)) {
@@ -531,7 +549,7 @@ function walked(value: unknown, pats: Pattern[], found: Set<number>, carried: Op
 
   for (const [key, item] of Object.entries(value)) {
     const segment = `.${JSON.stringify(key)}`
-    const result = walked(item, pats, found, under(carried, segment))
+    const result = walked(item, pats, found, under(carried, segment), kept)
 
     segments.push(segment)
     Object.defineProperty(copy, key, { value: result.value, enumerable: true, writable: true, configurable: true })
@@ -564,9 +582,11 @@ function walked(value: unknown, pats: Pattern[], found: Set<number>, carried: Op
  * Walks arrays, plain objects (prototype Object.prototype or null) and Errors (every own property: message, stack,
  * cause); keys are never redacted, and a Map, Set or any other object comes back as received.
  * Labels come back in pattern-file order, so the first is the one scan.sh's deny would name.
+ * With `kept`, a match of the row a range for its line names, lying inside that range, is left unmasked; for an
+ * assigned row that is the matched value, not the span to the quote its mask would cover.
  */
-export function redact(value: unknown, pats: Pattern[]): { value: unknown; labels: string[] } {
+export function redact(value: unknown, pats: Pattern[], kept: Kept | null = null): { value: unknown; labels: string[] } {
   const found = new Set<number>()
 
-  return { value: walked(value, pats, found, NONE).value, labels: labelsOf(found, pats) }
+  return { value: walked(value, pats, found, NONE, kept).value, labels: labelsOf(found, pats) }
 }

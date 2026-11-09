@@ -218,6 +218,11 @@ bash_deny  "printf > file"                            "printf '%s\\n' '$GH' > to
 bash_deny  "second heredoc names ITS file"            "$(printf "cat > a.txt <<'A'\nclean\nA\ncat > b.php <<'B'\nk = '%s'\nB" "$AWS")" b.php
 bash_allow "heredoc to stdout only"                   "$(printf "cat <<'EOF'\n%s\nEOF" "$AWS")"
 bash_allow "echo of a \$VAR into .env"                'echo "API_KEY=$API_KEY" >> .env'
+# A Higgsfield signed upload URL: the redaction mod leaves it in a media_upload result (0.16.0); written to a file it still denies.
+HF_URL="https://upload.higgsfield.ai/user_2abc/0b7e.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA""QRSTUVWXYZ234567%2F20261029%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Security-Token=IQoJb3JpZ2lu""X2VjEKz7aCmV1LW5vcnRoLTEiRzBF&X-Amz-Signature=9f86d081"
+deny_as    "Higgsfield upload URL written to a file" "an AWS access key ID" "UPLOAD_URL=$HF_URL"
+bash_deny  "Higgsfield upload URL echoed into a log"  "echo '$HF_URL' >> upload.log" upload.log
+bash_allow "the curl PUT a Higgsfield upload runs"    "curl -X PUT -H 'Content-Type: image/png' --data-binary @hero.png '$HF_URL'"
 marker_deny() { # marker_deny <name> <command> <expected file>
   out=$(bash_run "$2")
   if grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "redaction marker [REDACTED:…] to $3." <<<"$out" \

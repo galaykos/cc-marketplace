@@ -2,6 +2,32 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.0 — 2026-11-09
+
+- **`check_steam_build.py` flags two Steam test leftovers.** `steam-appid-txt-shipped` fires when
+  a depot uploads a `steam_appid.txt`; Valve's Steamworks API page says "You should not ship this
+  with your builds", and while the file is present `SteamAPI_RestartAppIfNecessary` returns false.
+  `appid-spacewar` fires on AppID 480, the SDK's Spacewar example. A `steam_appid.txt` that a
+  `FileExclusion` drops, or one outside the content root, stays silent. Standing: gate where run.
+- **New `scripts/check_itch_html5.py`.** Checks an HTML5 game zip against itch.io's ZIP rules
+  before upload: no `index.html` (missing, wrong case), more than 1,000 files, more than 500 MB
+  extracted, a file over 200 MB, a path over 240 characters, a non-UTF-8 name. An `index.html`
+  only inside a folder and a backslash in a name are warnings: itch's page states neither rule.
+  It reads the zip's directory and never extracts. Limits re-read from
+  https://itch.io/docs/creators/html5 on 2026-11-09. Exit 0/1/2. Standing: gate where run.
+- **New `scripts/loudness_meter.py`.** Integrated loudness and true peak per ITU-R BS.1770-5,
+  with `--target aswg-home` (−24 ±2 LUFS) or `aswg-portable` (−18 ±2), a true-peak ceiling of
+  −1 dBTP, or your own numbers. Integer PCM WAV, WAVE_FORMAT_EXTENSIBLE included, is parsed by
+  the script, not by Python's `wave` (which reads that format only from 3.12; 3.10 and 3.11 were
+  not run). OGG and float WAV go through ffmpeg, and exit 3 says when ffmpeg is missing. A
+  big-endian host exits 2. Its suite runs EBU Tech 3341 cases 1, 2, 4–6 and 15–19; where ffmpeg
+  is installed it also compares with ffmpeg's `ebur128`. Standing: gate where run.
+  `game-platform-floors` now points at it.
+- **`game-assets` names its near misses.** Generating or measuring a 3D model goes to `meshy`, and
+  modelling, cleaning up or exporting one to `blender`; a 3D model's licence record and Steam AI
+  disclosure stay here. An Aseprite sheet or a pixel-art conversion goes to `pixel-art`. Standing:
+  recorded.
+
 ## 0.2.0 — 2026-11-02
 
 - **New skill: `asset-pipeline`.** It takes a Higgsfield concept image through Meshy image-to-3D,

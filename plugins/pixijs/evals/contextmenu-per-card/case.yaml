@@ -1,0 +1,33 @@
+schema_version: "1.1"
+name: contextmenu-per-card
+description: 'A right-click menu on one kind of object. From 8.22.0 (released 2026-10-01) Containers receive a federated contextmenu event whose preventDefault keeps the browser menu closed; before it, only a native listener with a hit test could.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    PixiJS 8.22 card game. Right-clicking a card (a Sprite on the stage) must open my own HTML menu for that card by
+    calling openCardMenu(card, clientX, clientY). Right-clicking anywhere else on the canvas must still show the
+    browser's normal context menu. Reply with the TypeScript only.
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: "pixijs:pixijs-best-practices"
+    arm: with-only
+  - name: menu-only-over-cards
+    type: llm
+    criteria: |
+      Facts (PixiJS 8.22.0 release notes): Containers receive a federated contextmenu event, hit-tested and propagated
+      like pointerdown; calling event.preventDefault() in it keeps the browser menu closed. The default eventMode is
+      'passive', which gives the object no events.
+      PASS requires both:
+      1. The browser menu is suppressed only when the right-click hits a card. Either card.on('contextmenu', e =>
+         { e.preventDefault(); ... }), or a native contextmenu listener on the canvas that hit-tests the point (for
+         example app.renderer.events.rootBoundary.hitTest, or a card recorded on rightdown) and calls preventDefault
+         only on a hit.
+      2. Each card that receives PixiJS events has eventMode 'static' or 'dynamic', and openCardMenu gets that card.
+      FAIL if the browser menu is prevented on the whole canvas unconditionally, if a right-click on a card can still
+      open the browser menu, or if the cards never get an eventMode that emits events.
+      Not graded: the coordinate conversion, menu closing, code style.

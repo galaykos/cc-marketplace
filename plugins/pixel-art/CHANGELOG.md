@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1 — 2026-11-09
+
+- **`pixel-art-pipeline` names its near miss.** A 3D asset goes to `meshy:meshy-generation` or
+  `blender:blender-best-practices`. Skill body only; scripts and hooks are unchanged. Standing:
+  recorded.
+
 ## 0.2.0 — 2026-11-02
 
 - **Sheets and maps are checked when they change.** A new hook, `hooks/sheet-check.sh`, runs one

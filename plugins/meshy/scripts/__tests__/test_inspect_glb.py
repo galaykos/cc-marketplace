@@ -21,6 +21,22 @@ def jpeg(width, height):
     return b"\xff\xd8" + app0 + sof0 + b"\xff\xd9"
 
 
+def ktx2(width, height):
+    header = struct.pack("<9I", 0, 1, width, height, 0, 0, 1, 1, 1)
+    return b"\xabKTX 20\xbb\r\n\x1a\n" + header + bytes(32 + 24)
+
+
+def webp(fourcc, width, height):
+    if fourcc == b"VP8 ":
+        payload = b"\x50\x02\x00\x9d\x01\x2a" + struct.pack("<HH", width, height) + bytes(10)
+    elif fourcc == b"VP8L":
+        payload = b"\x2f" + ((width - 1) | (height - 1) << 14).to_bytes(4, "little") + bytes(10)
+    else:
+        payload = b"\x10\0\0\0" + (width - 1).to_bytes(3, "little") + (height - 1).to_bytes(3, "little")
+    chunk = fourcc + struct.pack("<I", len(payload)) + payload
+    return b"RIFF" + struct.pack("<I", 4 + len(chunk)) + b"WEBP" + chunk
+
+
 def glb(doc, binary=b"", version=2):
     text = json.dumps(doc).encode()
     text += b" " * (-len(text) % 4)
@@ -113,6 +129,34 @@ class InspectGlbTests(unittest.TestCase):
         uri = "data:image/jpeg;base64," + base64.b64encode(jpeg(640, 4096)).decode()
         code, out = self.report(self.write("scan.gltf", triangle_doc(images=[{"uri": uri}])), "--max-texture", 4096)
         self.assertEqual((code, out["files"][0]["images"]["sizes"][0]["width"], out["files"][0]["format"]), (0, 640, "gltf"))
+
+    def test_texture_budget_reads_a_ktx2_header_in_the_bin_chunk(self):
+        image = ktx2(2048, 1024)
+        doc = triangle_doc(buffers=[{"byteLength": len(image)}], bufferViews=[{"buffer": 0, "byteLength": len(image)}],
+                           images=[{"bufferView": 0, "mimeType": "image/ktx2"}],
+                           textures=[{"extensions": {"KHR_texture_basisu": {"source": 0}}}],
+                           extensionsUsed=["KHR_texture_basisu"], extensionsRequired=["KHR_texture_basisu"])
+        path = self.write("basisu.glb", glb(doc, image))
+        code, out = self.report(path, "--max-texture", 2048, "--allow-ext", "KHR_texture_basisu")
+        self.assertEqual((code, out["files"][0]["images"]["sizes"][0]["width"], out["files"][0]["failures"]), (0, 2048, []))
+        code, out = self.report(path, "--max-texture", 1024, "--allow-ext", "KHR_texture_basisu")
+        self.assertEqual((code, out["files"][0]["failures"]), (1, ["image 0 is 2048x1024 > --max-texture 1024"]))
+
+    def test_texture_budget_reads_webp_vp8_vp8l_and_vp8x_headers(self):
+        self.write("normal.webp", webp(b"VP8L", 640, 480))
+        lossy = "data:image/webp;base64," + base64.b64encode(webp(b"VP8 ", 0xC000 | 3000, 0x4000 | 2000)).decode()
+        extended = "data:image/webp;base64," + base64.b64encode(webp(b"VP8X", 4096, 16)).decode()
+        doc = triangle_doc(images=[{"uri": lossy}, {"uri": "normal.webp"}, {"uri": extended}],
+                           textures=[{"extensions": {"EXT_texture_webp": {"source": i}}} for i in range(3)],
+                           extensionsUsed=["EXT_texture_webp"])
+        path = self.write("webp-kit.gltf", doc)
+        code, out = self.report(path, "--max-texture", 4096)
+        sizes = [(i["width"], i["height"]) for i in out["files"][0]["images"]["sizes"]]
+        self.assertEqual((code, sizes, out["files"][0]["images"]["largest_px"]), (0, [(3000, 2000), (640, 480), (4096, 16)], 4096))
+        code, out = self.report(path, "--max-texture", 2048)
+        self.assertEqual((code, out["files"][0]["failures"]),
+                         (1, ["image 0 is 3000x2000 > --max-texture 2048", "image 2 is 4096x16 > --max-texture 2048"]))
+        self.assertIn("largest 4096 px", self.run_check(path).stdout)
 
     def test_unmeasured_image_fails_only_a_texture_budget(self):
         doc = triangle_doc(images=[{"uri": "data:image/webp;base64," + base64.b64encode(b"RIFF\0\0\0\0WEBP").decode()}])

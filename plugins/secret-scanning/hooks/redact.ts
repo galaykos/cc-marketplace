@@ -2,7 +2,7 @@ import type { EngineInterface, HookFailure, On, PluginOptions } from 'claude-cod
 
 import { isSupported, switchOn } from './cc-kit'
 import { parsePatterns, redact, secretSpans } from './redact-core'
-import type { Pattern } from './redact-core'
+import type { Kept, Pattern } from './redact-core'
 
 const MASK = '[REDACTED:'
 
@@ -26,6 +26,16 @@ const COMMAND = /^\/[^\s/]+(?:\s|$)/
 const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/
 
 const TEXT_MIME = /^text\/|json|xml|pem/i
+
+// Higgsfield's media_upload returns an upload URL whose X-Amz-Credential and X-Amz-Security-Token values match the AWS and
+// assigned rows, and the masked URL cannot take the PUT.
+// Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/redact.ts
+const UPLOAD_TOOL = /^mcp__.+__media_upload$/
+const SIGNED_UPLOAD = /https:\/\/upload\.higgsfield\.ai\/[A-Za-z0-9%._~\/-]+\?[A-Za-z0-9%._~=&-]+/g
+const KEPT_PARAMS = [
+  { param: /[?&]X-Amz-Credential=(ASIA[0-9A-Z]{16})/g, label: 'an AWS access key ID' },
+  { param: /[?&]X-Amz-Security-Token=([A-Za-z0-9%._~-]+)/g, label: 'an assigned secret literal' },
+]
 
 const WRITE_BACK_BAN =
   'Never write a [REDACTED:…] placeholder back to a file: it would replace the real value, and Write, Edit, ' +
@@ -82,6 +92,23 @@ function swappedMedia(value: unknown, swap: (data: string) => string): unknown {
   }
 
   return copy
+}
+
+const signedUploadValues: Kept = line => {
+  const ranges: ReturnType<Kept> = []
+
+  for (const url of line.matchAll(SIGNED_UPLOAD)) {
+    for (const { param, label } of KEPT_PARAMS) {
+      for (const found of url[0].matchAll(param)) {
+        const value = found[1] ?? ''
+        const from = url.index + found.index + found[0].length - value.length
+
+        ranges.push({ from, to: from + value.length, label })
+      }
+    }
+  }
+
+  return ranges
 }
 
 function maskCount(value: unknown): number {
@@ -407,7 +434,7 @@ export function register(on: On, options: PluginOptions) {
       return { deny: `${(withheld.value as typeof shown).text}\n${withheldNoteOf(e.tool, below.labels)}` }
     }
 
-    const found = redact(before, pats)
+    const found = redact(before, pats, UPLOAD_TOOL.test(e.tool) ? signedUploadValues : null)
 
     if (found.labels.length === 0) {
       return r

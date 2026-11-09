@@ -389,3 +389,14 @@ content	(butler[[:space:]]+push|BUTLER_API_KEY)	itch-release	gamedev	high
 glob	*.yarn	dialogue-scripting	gamedev	high
 glob	*.yarnproject	dialogue-scripting	gamedev	high
 glob	*.ink	dialogue-scripting	gamedev	high
+# gamedev pipeline rows (0.31.0, retro 2026-11-05 issue 8: Blender and Meshy work never drew a gamedev skill). A `tool` row matches
+# an MCP call's tool name (route.sh reads no path from the call); hooks.json's PostToolUse matcher must admit that name as well, and
+# route.test.sh case 29 checks both. game-assets routes on a licence file (.txt, .md or no extension) in an asset directory: its
+# other files are images, which stay dropped (0.30.2). The import/export row co-fires with the bpy row on one Blender script on purpose.
+# co-fire-ok: content blender-best-practices asset-pipeline
+tool	^mcp__.*[Bb]lender	asset-pipeline	gamedev	high
+tool	^mcp__.*[Mm]eshy	asset-pipeline	gamedev	high
+content	bpy\.ops\.(import|export)_scene\.(gltf|fbx)\(	asset-pipeline	gamedev	high
+glob	*licen[cs]e*	game-assets	gamedev	high	@path~(^|/)([Aa]ssets|art|sprites|textures)/(.*/)?[^/.]*(\.([Tt][Xx][Tt]|[Mm][Dd]))?$
+content	(\bRandom\.InitState\(|\bnew[[:space:]]+(System\.)?Random\([[:space:]]*[A-Za-z0-9_]|\brandom\.(seed|Random)\(|\.seed[[:space:]]*=[^=]|\bMathf\.PerlinNoise\(|\bFastNoiseLite\b|\bseedrandom\b)	seeded-generation	gamedev	high
+content	([Ll][Uu][Ff][Ss]|[Ll][Kk][Ff][Ss]|dBTP|\bloudnorm\b|\bebur128\b)	game-platform-floors	gamedev	high

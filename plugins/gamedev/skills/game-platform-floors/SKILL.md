@@ -17,7 +17,7 @@ floor is too small on a TV, and a PC game held to the console floor wastes the s
 |---|---|
 | Default text body height meets the XAG 101 floor for each target platform | **agent-graded** — measured on a screenshot; nothing in this plugin measures text |
 | Players can scale text to 200% of the floor without losing content | **agent-graded** |
-| The full mix sits at its platform class's loudness target, true peak at or below −1 dBTP | **agent-graded** — needs a BS.1770 meter on a capture; nothing here meters audio |
+| The full mix sits at its platform class's loudness target, true peak at or below −1 dBTP | **gate** where `loudness_meter.py --target aswg-home` (or `aswg-portable`) runs on a capture (exit 1); whether the capture is the whole mix, long and representative is **agent-graded** |
 
 XAG are Microsoft's accessibility guidelines and ASWG-R001 is a Sony recommendation; this
 skill states neither as a certification requirement.
@@ -59,8 +59,16 @@ phones is industry convention, not something the document says.
   mix, not dialogue, music or effects on their own, over at least 30 minutes of gameplay
   that represents the whole title, in stereo and in surround, and keep the two
   consistent.
-- In practice: record the game's output while playing (loopback), then run the capture
-  through a BS.1770 meter, such as ffmpeg's `ebur128` filter or a DAW loudness meter.
+- In practice: record the game's output while playing (loopback), then meter the capture:
+
+  ```bash
+  python3 "${CLAUDE_PLUGIN_ROOT}/scripts/loudness_meter.py" capture.wav --target aswg-home   # or aswg-portable
+  ```
+
+  It prints integrated LUFS and true peak per BS.1770-5. Exit 0 in target, 1 off target or
+  over −1 dBTP, 2 unreadable, 3 an OGG or float WAV with no ffmpeg on PATH. Integer PCM WAV
+  needs only Python; a 5-minute stereo capture took about 5 s. ffmpeg's `ebur128` filter or a
+  DAW meter reads the same quantities.
 - v1.10 moved the home target from −23 to −24 LKFS to match ATSC and ARIB broadcast.
   Sources quoting −23 predate it.
 - −14 LUFS is a music-streaming normalisation level, not a game target. A console game

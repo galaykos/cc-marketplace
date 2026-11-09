@@ -398,6 +398,146 @@ describe('redact', () => {
   })
 })
 
+// The hooks/patterns.tsv rows these cases trip, copied as they stand in 0.16.0.
+const UPLOAD_PATTERNS = [
+  ['secret', 'an AWS access key ID', '-', '(A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}'],
+  ['secret', 'a GitHub token', '-', 'gh[pousr]_[A-Za-z0-9]{36,}'],
+  ['secret', 'a credential embedded in a URL', '-', '(postgres|postgresql|mysql|mongodb(\\+srv)?|redis|rediss|amqp|amqps|https?)://[^:/@ ]+:[^@ /?#${][^@ /?#]{5,}@'],
+  ['assigned','an assigned secret literal', 'i', `(api[_-]?key|secret|token|passwd|password)([_-][A-Za-z0-9]{1,64}){0,12}["' ]*[:=]["' ]*[A-Za-z0-9/+=_-]{24,}`],
+  ['placeholder', 'a placeholder word', 'i', 'example|placeholder|changeme|change-me|your[_-]|dummy|redacted|sample|fake|todo|xxxx'],
+]
+  .map(row => row.join('\t'))
+  .join('\n')
+
+const ASSIGNED_MASK = AWS_MASK.replace('an AWS access key ID', 'an assigned secret literal')
+
+const UPLOAD = 'mcp__91037719-f36d-439c-a49c-805a84b65a0d__media_upload'
+const STS_ID = 'ASIA' + 'QRSTUVWXYZ234567'
+const STS = 'IQoJb3JpZ2lu' + 'X2VjEKz7aCmV1LW5vcnRoLTEiRzBF' + 'AiEA%2B9xQm%2FkV3pT0aLwZcN8uYrH5sDf'
+const SIG = '9f86d081884c7d659a2feaa0c55ad015' + 'a3bf4f1b2b0b822cd15d6c15b0f00a08'
+const HF_VALUE = 'hfs' + '9c1fA7d2Kq8LmZ0xV4bN6wR3tY5uP1sE'
+
+// The URL shape of the 2026-10-29 firing (session 5df215ae): host, path, parameter order; every value here is made up.
+const signedUrl = (host: string, extra = '') =>
+  `https://${host}/user_2abcDEF345ghiJKL678mnoPQR9s/0b7e5d1a-6c2f-4e8b-9a3d-5f1e2c4b6a70.png?${extra}` +
+  `X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=${STS_ID}%2F20261029%2Feu-north-1%2Fs3%2Faws4_request` +
+  '&X-Amz-Date=20261029T184109Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=content-type%3Bhost%3Bif-none-match' +
+  `&X-Amz-Security-${'Token'}=${STS}&X-Amz-Signature=${SIG}`
+
+const HF_URL = signedUrl('upload.higgsfield.ai')
+
+const uploadResult = (url: string, note = '') => ({
+  content: [
+    { type: 'text', text: JSON.stringify({ upload_url: url, media_id: '0b7e5d1a-6c2f-4e8b-9a3d-5f1e2c4b6a70', url: 'https://d2ol7oe51mr4n9.cloudfront.net/user_2abcDEF345ghiJKL678mnoPQR9s/0b7e5d1a-6c2f-4e8b-9a3d-5f1e2c4b6a70.png' }) },
+    { type: 'text', text: `${note}curl -X PUT -H 'Content-Type: image/png' --data-binary @hero.png '${url}'. Run that PUT where the bytes already are.` },
+  ],
+})
+
+const holdsNone = (value: unknown, ...secrets: string[]) => secrets.every(s => !(JSON.stringify(value) ?? '').includes(s))
+
+describe('Higgsfield upload URL', () => {
+  test('replays the 2026-10-29 media_upload firing: the signed upload URL reaches the model unmasked', async ($, on) => {
+    const answer = { result: uploadResult(HF_URL) }
+    const world = seat(on, () => answer, { patterns: UPLOAD_PATTERNS })
+
+    expect(await $.tool.call({ tool: UPLOAD, content_type: 'image/png' })).toEqual(answer)
+    expect(world.toasts).toEqual([])
+  })
+
+  test('masks the same URL in a Bash result, as a commit or a log echoes it', async ($, on) => {
+    const world = seat(on, () => stdout(`[main 1a2b3c4] upload hero via ${HF_URL}`), { patterns: UPLOAD_PATTERNS })
+
+    const r = await $.tool.call({ tool: 'Bash', command: 'git commit -F msg.txt' })
+
+    expect(holdsNone(r.result, STS_ID, STS)).toBe(true)
+    expect(world.toasts).toEqual(['Redacted 2 secrets from Bash: an AWS access key ID, an assigned secret literal'])
+  })
+
+  test('masks the same URL in another tool of the same server', async ($, on) => {
+    seat(on, () => ({ result: uploadResult(HF_URL) }), { patterns: UPLOAD_PATTERNS })
+
+    const r = await $.tool.call({ tool: 'mcp__91037719-f36d-439c-a49c-805a84b65a0d__show_generations' })
+
+    expect(holdsNone(r.result, STS_ID, STS)).toBe(true)
+  })
+
+  test('masks an AWS presigned URL in a media_upload result', async ($, on) => {
+    const world = seat(on, () => ({ result: uploadResult(signedUrl('hf-uploads.s3.eu-north-1.amazonaws.com')) }), { patterns: UPLOAD_PATTERNS })
+
+    const r = await $.tool.call({ tool: UPLOAD })
+
+    expect(holdsNone(r.result, STS_ID, STS)).toBe(true)
+    expect(world.toasts).toEqual([`Redacted 4 secrets from ${UPLOAD}: an AWS access key ID, an assigned secret literal`])
+  })
+
+  test('masks a Higgsfield API key beside the upload URL, and one a non-X-Amz parameter carries inside it', async ($, on) => {
+    const keyed = `export HF_API_KEY_SECRET=${HF_VALUE}\nhf-secret: ${HF_VALUE}\n`
+    const answers = [uploadResult(HF_URL, keyed), uploadResult(signedUrl('upload.higgsfield.ai', `hf_api_key=${HF_VALUE}&`))]
+    seat(on, () => ({ result: answers.shift() }), { patterns: UPLOAD_PATTERNS })
+
+    const beside = await $.tool.call({ tool: UPLOAD })
+    const inside = await $.tool.call({ tool: UPLOAD })
+
+    expect(beside.result).toEqual(uploadResult(HF_URL, keyed.replaceAll(HF_VALUE, ASSIGNED_MASK)))
+    expect(holdsNone(inside.result, HF_VALUE)).toBe(true)
+  })
+
+  test('masks a key a JSON-escaped newline puts after the URL, and keeps the URL', async ($, on) => {
+    const tokenLast = HF_URL.replace(`&X-Amz-Signature=${SIG}`, '')
+    const blocks = [
+      `${HF_URL}\nHF_API_KEY_SECRET=${HF_VALUE}`,
+      `${tokenLast}\nHF_API_KEY_SECRET=${HF_VALUE}`,
+      `${HF_URL}\nnext&X-Amz-Security-${'Token'}=${HF_VALUE}`,
+      `https://upload.higgsfield.ai/user_2abc\nnext?X-Amz-Security-${'Token'}=${HF_VALUE}`,
+    ].map(upload_url => JSON.stringify({ upload_url }))
+    const answers = blocks.map(text => ({ result: { content: [{ type: 'text', text }] } }))
+    seat(on, () => answers.shift() ?? stdout(''), { patterns: UPLOAD_PATTERNS })
+
+    for (const text of blocks) {
+      const r = await $.tool.call({ tool: UPLOAD })
+
+      expect(r.result).toEqual({ content: [{ type: 'text', text: text.replace(HF_VALUE, ASSIGNED_MASK) }] })
+    }
+  })
+
+  test('masks a match that begins in an X-Amz value and runs past its end', async ($, on) => {
+    const PW = 'Hunter2' + 'Pw9xQz'
+    const urls = [
+      HF_URL.replace('X-Amz-Date=20261029T184109Z', `X-Amz-Date=postgres://admin:${PW}&db=main@db.internal`),
+      HF_URL.replace(STS, `IQoJb3JpZ2lu=password=${PW}`),
+    ]
+    seat(on, () => ({ result: uploadResult(urls.shift() ?? '') }), { patterns: UPLOAD_PATTERNS })
+
+    const across = await $.tool.call({ tool: UPLOAD })
+    const pastValue = await $.tool.call({ tool: UPLOAD })
+
+    expect(holdsNone(across.result, PW), 'userinfo across &db=').toBe(true)
+    expect(holdsNone(pastValue.result, PW), 'assigned run past the token value').toBe(true)
+  })
+
+  test('keeps only a session key ID in X-Amz-Credential and the assigned row in X-Amz-Security-Token', async ($, on) => {
+    const urls = [
+      signedUrl('upload.higgsfield.ai', `X-Amz-Meta-Note=${GH}&`),
+      HF_URL.replace(STS, GH),
+      HF_URL.replace(STS_ID, AWS),
+    ]
+    seat(on, () => ({ result: uploadResult(urls.shift() ?? '') }), { patterns: UPLOAD_PATTERNS })
+
+    for (const name of ['a token in X-Amz-Meta-Note', 'a token as X-Amz-Security-Token', 'a long-term key ID in X-Amz-Credential']) {
+      expect(holdsNone((await $.tool.call({ tool: UPLOAD })).result, GH, AWS), name).toBe(true)
+    }
+  })
+
+  test('masks the URL in an errored media_upload result', async ($, on) => {
+    seat(on, () => ({ isError: true, result: `upload failed: ${HF_URL}`, text: `upload failed: ${HF_URL}` }), { patterns: UPLOAD_PATTERNS })
+
+    const r = await $.tool.call({ tool: UPLOAD })
+
+    expect(r.deny).toMatch(/^upload failed: https:\/\/upload\.higgsfield\.ai\//)
+    expect(holdsNone(r, STS_ID, STS)).toBe(true)
+  })
+})
+
 const ENV = '/work/.env'
 
 const mention = (path: string, more: { offset?: number; limit?: number } = {}) => ({ mention: path.replace('/work/', ''), path, ...more })

@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.0 — 2026-11-09
+
+- **The checker flags C# names your versions deprecated or removed.** `check_unity_project.py` reads the Unity version from `ProjectSettings/ProjectVersion.txt` and the Cinemachine version from `Packages/manifest.json`. For a git, local or embedded Cinemachine it reads the package's own `package.json` (in `Library/PackageCache` or `Packages/`), so a git Cinemachine gets no finding until Unity has filled `Library/PackageCache`. `packages-lock.json` is read only for a Cinemachine pulled in by another package. It reports only names in that version's window:
+  - `GetInstanceID()` is deprecated in 6000.4 and removed in 6000.5. `Resources`/`EditorUtility.InstanceIDToObject`, `Selection.activeInstanceID` and `Selection.instanceIDs` are deprecated in 6000.3 and removed in 6000.5. Use the `EntityId` members.
+  - UXML `UxmlFactory`/`UxmlTraits` are deprecated in 6000.0 and removed in 6000.6. Use `[UxmlElement]`/`[UxmlAttribute]`.
+  - On Cinemachine 3.x, the `Cinemachine` namespace, `CinemachineBlendListCamera` and `CinemachineCore.Instance` are removed. Sixteen 2.x component names, such as `CinemachineVirtualCamera`, are deprecated.
+
+  A removed name is an error (`api-removed`, exit 1). A deprecated name is a warning (`api-deprecated`), which fails `--strict`. The checker skips names in comments, in strings, in a method declaration and inside `#if UNITY_…`/`CINEMACHINE` version guards. Each window was read from Unity's docs on 2026-11-09. `Cinemachine3rdPersonAim` is left out, because its 3.x status could not be confirmed.
+- **The meta-check hook ignores these findings.** They are not move damage, so it still reports only `.meta` and GUID problems after a move.
+- **Standing:** gate where the checker runs. Nine new harness cases cover both sides of each window, the git, embedded, local and lock-file version sources, and the silent comment, string, guard and declaration cases. Whether Unity's compiler agrees is unverified, because no Editor runs in the tests.
+
 ## 0.5.1 — 2026-11-02
 
 - **Control-arm evals.** Three cases in `evals/`, run 5 times per arm on 2026-11-02:

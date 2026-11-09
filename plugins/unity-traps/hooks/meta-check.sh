@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostToolUse/PostToolUseFailure, a Bash call whose mv, cp, rm, rsync, ln, git mv|rm, find -delete or shutil/os/fs/File call names an Assets/ path or runs with cwd inside Assets/, or a Write/Edit of an Assets/*.meta: runs check_unity_project.py on the Unity project above it and adds errors anywhere plus warnings on the touched paths, each once per context.
-# Misses: a path in a variable, a relative path after an in-command cd (warnings filtered out), a move by a tool it does not name (make, an IDE), findings past MAX_SHOWN, projects past MAX_PROJECTS, a run past CHECK_TIMEOUT; a verb in a heredoc body triggers a run. Warn-only, fail-open. Off: CC_UNITY_META_CHECK=off, or /config.
+# Misses: a path in a variable, a relative path after an in-command cd (warnings filtered out), a move by a tool it does not name (make, an IDE), findings past MAX_SHOWN, projects past MAX_PROJECTS, a run past CHECK_TIMEOUT, api-* name findings (not move damage); a verb in a heredoc body triggers a run. Warn-only, fail-open. Off: CC_UNITY_META_CHECK=off, or /config.
 # Why, limits, history: rationale/derivations/plugin-unity-traps.md § plugins/unity-traps/hooks/meta-check.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -157,13 +157,13 @@ VERBS='(^|[;&|({[:space:]])(mv|cp|rm|rmdir|rsync|ln|install|unlink)[[:space:]]|(
     json=$($to python3 "$checker" "$proj" --json --max-issues 0 2>/dev/null)
     [ $? -le 1 ] || continue                     # 2: not a project or usage; 124: timed out
     rels=$(while IFS= read -r t; do case "$t" in "$proj"/*) printf '%s\n' "${t#"$proj"/}" ;; esac; done <<< "$touched")
-    # Errors anywhere; warnings only on a touched path, its .meta, or below a touched folder.
+    # Errors anywhere; warnings only on a touched path, its .meta, or below a touched folder. API names are not move damage.
     lines=$(printf '%s' "$json" | jq -r --arg rels "$rels" --argjson moved "$moved" '
       ($rels | split("\n") | map(select(length > 0) | sub("/+$"; ""))) as $t
       | def hit($f): any($t[]; . as $p | $f == $p or $f == ($p + ".meta") or ($f | startswith($p + "/")) or ($f | sub("\\.meta$"; "")) == $p);
         def row($lvl): "\($lvl) \(.code) \(.file)\(if .line then ":\(.line)" else "" end): \(.message)\t  fix: \(.fix)";
-        (.errors[]? | row("ERROR")),
-        (.warnings[]? | select(hit(.file) and ($moved == 1 or .code != "missing-meta")) | row("WARNING"))' 2>/dev/null)
+        (.errors[]? | select(.code | startswith("api-") | not) | row("ERROR")),
+        (.warnings[]? | select(hit(.file) and ($moved == 1 or .code != "missing-meta") and (.code | startswith("api-") | not)) | row("WARNING"))' 2>/dev/null)
     while IFS= read -r l; do
       [ -n "$l" ] || continue
       key=$(printf '%s|%s' "$proj" "${l%%$'\t'*}" | cksum | cut -d' ' -f1)

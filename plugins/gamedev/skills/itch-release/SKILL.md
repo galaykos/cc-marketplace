@@ -20,7 +20,8 @@ description: Use when publishing or updating a game on itch.io — butler push o
 | Rule | Standing |
 |---|---|
 | A browser build needs the page's Kind of project set to HTML AND the upload marked as played in the browser on Edit game. The channel name sets neither | **recorded** |
-| The HTML5 zip has `index.html` at its root and stays within ≤1,000 files, ≤500 MB extracted, ≤200 MB per file, ≤240 characters per path; names are case-sensitive UTF-8 | **recorded** — itch.io enforces it at upload or play time |
+| The HTML5 zip holds an `index.html` and stays within ≤1,000 files, ≤500 MB extracted, ≤200 MB per file, ≤240 characters per path; names are case-sensitive UTF-8 | **gate** where `check_itch_html5.py` runs (exit 1, below); these are the rules itch.io's HTML5 page states |
+| Put `index.html` at the zip's root, not in a folder | **recorded**, and unverified: itch's page states no root rule, so the checker only warns (exit 0) |
 | The game is served from a subfolder of itch's CDN: a path starting with `/` breaks, use relative paths. A folder URL returns 403, not 404. Requests to another domain must be HTTPS | **recorded** |
 | HTML5 pages take payment only as donations. To sell a web game, set Kind to Downloadable | **recorded** |
 | The channel name sets the platform tag by substring — `win`/`windows`, `mac`/`osx`, `linux`, `android` — several may share one name. There is no architecture tag: put `arm64` in the name to ship two | **recorded** — only the first guess; correct it on Edit game |
@@ -28,6 +29,18 @@ description: Use when publishing or updating a game on itch.io — butler push o
 | Builds over 30 GB uncompressed are rejected | **recorded** — itch's backend enforces it |
 | A folder holding exactly one `.zip` (and nothing else) is unzipped and its contents pushed; `--no-auto-unzip` uploads the zip as one file | **recorded** |
 | Push the portable folder, never an installer or a pre-compressed archive: patches diff files, and a compressed blob changes whole on any edit | **agent-graded** |
+
+## Check an HTML5 zip before it goes up
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_itch_html5.py" build/web.zip [--json]
+```
+
+It reads the zip's directory and never extracts. Exit 0 clean, 1 a zip rule broken
+(`index.html` missing or in the wrong case; too many files; too large; a long or non-UTF-8 name),
+2 not a zip. An `index.html` only inside a folder, or a backslash in a name, is a warning (exit 0):
+itch's page names neither. It does not read the game's code, so absolute `/` paths, wrong-case
+references and non-HTTPS requests still show only in the browser.
 
 ## Jam entries
 

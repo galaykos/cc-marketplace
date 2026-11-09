@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Read-only check of a Unity 6 project for .meta mistakes made outside the Editor: duplicate or malformed GUIDs,
-assets moved without their .meta, leftover .meta files, missing script references, class/file name mismatches.
-Does NOT read binary-serialized assets or DLL scripts; with no Library/PackageCache, missing-script is a warning."""
+"""Read-only check of a Unity 6 project for .meta mistakes made outside the Editor (duplicate or malformed GUIDs, moved assets
+without their .meta, leftover .meta, missing scripts, class/file name mismatches) and C# names its versions deprecate or removed.
+Does NOT read binary assets, DLL scripts, or names in #if version guards; with no Library/PackageCache, missing-script warns and git Cinemachine goes unchecked."""
 # Derived from gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0, see NOTICE); modified.
 # Why, limits, history: rationale/derivations/plugin-unity-traps.md § plugins/unity-traps/scripts/check_unity_project.py
 
@@ -62,6 +62,88 @@ CS_CLASS_RE = re.compile(
 )
 CS_BRACE_RE = re.compile(r"\bnamespace\s+[\w.]+\s*\{|\{|\}")
 CS_MAX_BYTES = 2 * 1024 * 1024
+CS_DIRECTIVE_RE = re.compile(r"^[ \t]*#[ \t]*(if|elif|else|endif)\b(.*)$", re.M)
+CS_VERSION_GUARD_RE = re.compile(r"\bUNITY_\d|CINEMACHINE")
+CS_WORD_BEFORE_RE = re.compile(r"([A-Za-z_]\w*)\s+$")
+CS_KEYWORDS_BEFORE_CALL = frozenset({"return", "await", "else", "in", "is", "as", "case", "throw", "yield", "when"})
+
+UNITY = "Unity"
+CINEMACHINE = "com.unity.cinemachine"
+
+
+@dataclass(frozen=True)
+class ApiRule:
+    owner: str  # UNITY, or the package name whose version opens the window
+    deprecated: tuple[int, int] | None
+    removed: tuple[int, int] | None
+    pattern: re.Pattern
+    old: str
+    new: str
+    source: str
+    needles: tuple[str, ...]  # literals every match contains: a file lacking one skips the regex
+    call: bool = False  # the pattern is a call; skip a match that is a method declaration
+
+
+def _rule(owner: str, deprecated, removed, pattern: str, old: str, new: str, source: str, needles: tuple[str, ...],
+          call: bool = False) -> ApiRule:
+    return ApiRule(owner, deprecated, removed, re.compile(pattern), old, new, source, needles, call)
+
+
+# Each window was read from Unity's docs on 2026-11-09; the deprecation pages are listed in the derivation file.
+API_RULES: tuple[ApiRule, ...] = (
+    _rule(UNITY, (6000, 4), (6000, 5), r"\bGetInstanceID\s*\(\s*\)", "GetInstanceID()",
+          "GetEntityId(), kept as EntityId (8 bytes; never through an int)",
+          "https://docs.unity.com/en-us/engine/6000.5/script-reference/unityengine/object/getinstanceid",
+          ("InstanceID", "GetInstanceID"), call=True),
+    _rule(UNITY, (6000, 3), (6000, 5), r"\b(?:Resources|EditorUtility)\s*\.\s*InstanceIDToObject\b", "InstanceIDToObject",
+          "EntityIdToObject(EntityId)",
+          "https://docs.unity.com/en-us/engine/6000.5/script-reference/unityengine/resources/instanceidtoobject",
+          ("InstanceID", "InstanceIDToObject")),
+    _rule(UNITY, (6000, 3), (6000, 5), r"\bSelection\s*\.\s*activeInstanceID\b", "Selection.activeInstanceID",
+          "Selection.activeEntityId",
+          "https://docs.unity.com/en-us/engine/6000.5/script-reference/unityeditor/selection/activeinstanceid",
+          ("InstanceID", "activeInstanceID")),
+    _rule(UNITY, (6000, 3), (6000, 5), r"\bSelection\s*\.\s*instanceIDs\b", "Selection.instanceIDs",
+          "Selection.entityIds",
+          "https://docs.unity.com/en-us/engine/6000.5/script-reference/unityeditor/selection/instanceids",
+          ("instanceIDs",)),
+    _rule(UNITY, (6000, 0), (6000, 6), r"\bUxmlFactory\b|\bUxmlTraits\b", "UXML Factory/Traits",
+          "[UxmlElement] on a partial class and [UxmlAttribute] on each property",
+          "https://docs.unity.com/en-us/engine/6000.6/manual/upgrade-guides/upgrade-guide-unity66", ("Uxml",)),
+    _rule(CINEMACHINE, None, (3, 0), r"Cinemachine(?<![\w.]Cinemachine)(?:\s*;|\s*\.\s*(?:Utility|Editor|Cinemachine\w*)\b)",
+          "the Cinemachine namespace", "Unity.Cinemachine (Cinemachine.Utility folded into it, Unity.Cinemachine.Editor)",
+          "https://docs.unity3d.com/Packages/com.unity.cinemachine@3.0/changelog/CHANGELOG.html", ("Cinemachine",)),
+    _rule(CINEMACHINE, None, (3, 0), r"\bCinemachineBlendListCamera\b", "CinemachineBlendListCamera",
+          "CinemachineSequencerCamera",
+          "https://docs.unity3d.com/Packages/com.unity.cinemachine@3.1/manual/whats-new.html",
+          ("Cinemachine", "CinemachineBlendListCamera")),
+    _rule(CINEMACHINE, None, (3, 0), r"\bCinemachineCore\s*\.\s*Instance\b", "CinemachineCore.Instance",
+          "the static members of CinemachineCore (ActiveBrainCount and GetActiveBrain() are on CinemachineBrain)",
+          "https://docs.unity3d.com/Packages/com.unity.cinemachine@3.1/manual/whats-new.html",
+          ("Cinemachine", "CinemachineCore")),
+) + tuple(
+    _rule(CINEMACHINE, (3, 0), None, rf"\b{old}\b", old, new,
+          f"https://docs.unity3d.com/Packages/com.unity.cinemachine@3.1/api/Unity.Cinemachine.{old}.html",
+          ("Cinemachine", old))
+    for old, new in (
+        ("CinemachineVirtualCamera", "CinemachineCamera (type references as CinemachineVirtualCameraBase)"),
+        ("CinemachineFreeLook", "CinemachineCamera with the FreeLook components (Create > Cinemachine > FreeLook Camera)"),
+        ("CinemachinePath", "a SplineContainer"),
+        ("CinemachineSmoothPath", "a SplineContainer"),
+        ("CinemachineDollyCart", "CinemachineSplineCart"),
+        ("CinemachineTransposer", "CinemachineFollow"),
+        ("CinemachineOrbitalTransposer", "CinemachineOrbitalFollow"),
+        ("CinemachineFramingTransposer", "CinemachinePositionComposer"),
+        ("CinemachineComposer", "CinemachineRotationComposer"),
+        ("CinemachinePOV", "CinemachinePanTilt"),
+        ("CinemachineTrackedDolly", "CinemachineSplineDolly"),
+        ("CinemachineGroupComposer", "CinemachineRotationComposer with CinemachineGroupFraming"),
+        ("CinemachineCollider", "CinemachineDeoccluder"),
+        ("CinemachineConfiner", "CinemachineConfiner2D or CinemachineConfiner3D"),
+        ("Cinemachine3rdPersonFollow", "CinemachineThirdPersonFollow"),
+        ("CinemachineSameAsFollowTarget", "CinemachineRotateWithFollowTarget"),
+    )
+)
 
 WINDOWS_HIDDEN = getattr(stat, "FILE_ATTRIBUTE_HIDDEN", 2)
 
@@ -701,8 +783,8 @@ def top_level_positions(code: str) -> Callable[[int], bool]:
     return is_top_level
 
 
-def check_class_names(scan: Scan) -> None:
-    """Warn when a MonoBehaviour/ScriptableObject class does not match its file name."""
+def check_cs_files(scan: Scan, rules: tuple[tuple[ApiRule, str, str], ...] = ()) -> None:
+    """Warn when a MonoBehaviour/ScriptableObject class does not match its file name; scan API names in the same pass."""
     for path in scan.cs_files:
         try:
             if path.stat().st_size > CS_MAX_BYTES:
@@ -711,6 +793,8 @@ def check_class_names(scan: Scan) -> None:
         except OSError:
             continue
         code = strip_cs_noise(text.replace("\r\n", "\n"))
+        if rules:
+            check_api_names(scan, path, code, rules)
         stem = path.stem
         is_top_level = top_level_positions(code)
         candidates = []
@@ -741,6 +825,124 @@ def check_class_names(scan: Scan) -> None:
         )
 
 
+def package_version(root: Path, name: str, embedded: dict[str, Path]) -> str | None:
+    """An embedded package's own version, a version the manifest pins, a transitive registry entry's locked version,
+    or else the package.json of the git, file: or cache copy; None when absent or the cache copies disagree."""
+    if name in embedded:
+        folders = [embedded[name]]
+    else:
+        deps = (load_json(root / "Packages" / "manifest.json") or {}).get("dependencies")
+        wanted = deps.get(name) if isinstance(deps, dict) else None
+        if isinstance(wanted, str) and re.match(r"\s*\d+\.\d+", wanted):
+            return wanted
+        if wanted is None:
+            # A git package's lock "version" is its URL; only registry and builtin entries hold a number.
+            locked = (load_json(root / "Packages" / "packages-lock.json") or {}).get("dependencies")
+            entry = locked.get(name) if isinstance(locked, dict) else None
+            if isinstance(entry, dict) and entry.get("source") in ("registry", "builtin"):
+                return entry.get("version")
+        local = root / "Packages" / wanted[len("file:"):] if isinstance(wanted, str) and wanted.startswith("file:") else None
+        if local is not None and local.is_dir():
+            folders = [local]
+        else:
+            folders = sorted((root / "Library" / "PackageCache").glob(f"{name}@*"))
+    versions = {str((load_json(folder / "package.json") or {}).get("version")) for folder in folders}
+    return versions.pop() if len(versions) == 1 else None
+
+
+def read_versions(root: Path, embedded: dict[str, Path]) -> dict[str, tuple[tuple[int, int], str]]:
+    """The Unity editor and Cinemachine versions as ((major, minor), as written); an unreadable one is left out."""
+    found: dict[str, tuple[tuple[int, int], str]] = {}
+    try:
+        text = (root / "ProjectSettings" / "ProjectVersion.txt").read_text(encoding="utf-8-sig", errors="replace")
+    except OSError:
+        text = ""
+    match = re.search(r"^m_EditorVersion:\s*((\d+)\.(\d+)\S*)", text, re.M)
+    if match:
+        found[UNITY] = ((int(match.group(2)), int(match.group(3))), match.group(1))
+    value = package_version(root, CINEMACHINE, embedded)
+    match = re.match(r"\s*(\d+)\.(\d+)", value) if isinstance(value, str) else None
+    if match:
+        found[CINEMACHINE] = ((int(match.group(1)), int(match.group(2))), value.strip())
+    return found
+
+
+def active_rules(versions: dict[str, tuple[tuple[int, int], str]]) -> tuple[tuple[ApiRule, str, str], ...]:
+    """Each rule whose window the project is in, with its level ("error" once removed) and the version that opened it."""
+    active = []
+    for rule in API_RULES:
+        if rule.owner not in versions:
+            continue
+        have = versions[rule.owner][0]
+        if rule.removed and have >= rule.removed:
+            active.append((rule, "error", versions[rule.owner][1]))
+        elif rule.deprecated and have >= rule.deprecated:
+            active.append((rule, "warning", versions[rule.owner][1]))
+    return tuple(active)
+
+
+def version_guarded_lines(code: str) -> set[int]:
+    """Line numbers inside an #if/#elif group whose condition names a UNITY_<version> or CINEMACHINE define."""
+    guarded: set[int] = set()
+    stack: list[bool] = []
+    open_from = 0
+    for match in CS_DIRECTIVE_RE.finditer(code):
+        line = code.count("\n", 0, match.start()) + 1
+        if any(stack):
+            guarded.update(range(open_from, line))
+        kind, condition = match.group(1), match.group(2)
+        if kind == "if":
+            stack.append(bool(CS_VERSION_GUARD_RE.search(condition)))
+        elif kind == "elif" and stack:
+            stack[-1] = stack[-1] or bool(CS_VERSION_GUARD_RE.search(condition))
+        elif kind == "endif" and stack:
+            stack.pop()
+        open_from = line + 1
+    return guarded
+
+
+def check_api_names(scan: Scan, path: Path, code: str, rules: tuple[tuple[ApiRule, str, str], ...]) -> None:
+    """Report each C# name the project's Unity or Cinemachine version deprecates or removed, once per file and rule."""
+    guarded: set[int] | None = None
+    present: dict[str, bool] = {}
+
+    def has(needle: str) -> bool:
+        if needle not in present:
+            present[needle] = needle in code
+        return present[needle]
+
+    for rule, level, have in rules:
+        if not all(has(needle) for needle in rule.needles):
+            continue
+        first = None
+        count = 0
+        for match in rule.pattern.finditer(code):
+            if rule.call:
+                word = CS_WORD_BEFORE_RE.search(code, code.rfind("\n", 0, match.start()) + 1, match.start())
+                if word and word.group(1) not in CS_KEYWORDS_BEFORE_CALL:
+                    continue  # a declaration such as `int GetInstanceID()`
+            line = code.count("\n", 0, match.start()) + 1
+            if guarded is None:
+                guarded = version_guarded_lines(code)
+            if line in guarded:
+                continue
+            count += 1
+            first = first or line
+        if not count:
+            continue
+        since = rule.removed if level == "error" else rule.deprecated
+        where = f"{rule.owner} {since[0]}.{since[1]}"
+        times = f" ({count} uses, first shown)" if count > 1 else ""
+        if level == "error":
+            message = f"{rule.old} was removed in {where} and no longer compiles; this project has {have}{times}"
+            code_name = "api-removed"
+        else:
+            later = f", removed in {rule.removed[0]}.{rule.removed[1]}" if rule.removed else ""
+            message = f"{rule.old} is deprecated since {where}{later}; this project has {have}{times}"
+            code_name = "api-deprecated"
+        scan.add(level, code_name, scan.rel(path), first, message, f"use {rule.new} ({rule.source})")
+
+
 def find_project_root(start: Path) -> Path | None:
     for candidate in (start, *start.parents):
         if (candidate / "Assets").is_dir() and (candidate / "ProjectSettings").is_dir():
@@ -757,7 +959,7 @@ def run(root: Path) -> Scan:
     known, orphan_guids = check_metas(scan, packages)
     known |= set(packages.external_guids)
     check_scripts(scan, known, orphan_guids, packages)
-    check_class_names(scan)
+    check_cs_files(scan, active_rules(read_versions(root, packages.embedded)))
     return scan
 
 
@@ -775,9 +977,13 @@ def build_parser() -> argparse.ArgumentParser:
             "MonoBehaviour/ScriptableObject classes whose name differs from the file name."
         ),
         epilog=(
-            "errors:   duplicate-guid, moved-without-meta, malformed-meta, missing-script\n"
+            "errors:   duplicate-guid, moved-without-meta, malformed-meta, missing-script, api-removed\n"
             "warnings: missing-meta (normal for a new file), orphan-meta, meta-name-case,\n"
-            "          class-name-mismatch\n"
+            "          class-name-mismatch, api-deprecated\n"
+            "api-*: a C# name the project's Unity version (ProjectSettings/ProjectVersion.txt) or\n"
+            "Cinemachine version deprecates or removed; no version, no finding. Cinemachine's version is the\n"
+            "one Packages/manifest.json pins, else its package.json (embedded, file: or Library/PackageCache),\n"
+            "so a git Cinemachine with no Library/PackageCache yet gets no api-* finding.\n"
             "missing-script is downgraded to a warning when package scripts could not be read\n"
             "(Library/PackageCache absent: a fresh clone or CI runner before Unity opened the project).\n"
             "Walks Assets/ and embedded Packages/ only; skips binary-serialized files and DLL scripts.\n\n"
