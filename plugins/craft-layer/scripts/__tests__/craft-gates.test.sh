@@ -464,6 +464,97 @@ if [ "$got" = "FAIL" ]; then ok; else
       "$(printf '%s\n' "$out" | grep -E 'utility-palette' | head -1)"
 fi
 
+# poster-first: the pair differs in the hero's two motion lines; a logo <img> is no still, a chart canvas outside the hero is no hero motion.
+for pair in "fixture-poster.html:FAIL" "fixture-poster-clean.html:PASS"; do
+  fx=${pair%%:*}; want=${pair##*:}
+  [ -f "$FIXTURES/$fx" ] || { bad "poster-first fixture missing" "$fx"; continue; }
+  d="$WS/poster-${fx%%.html}"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/$fx" "$d/page.html"
+  out=$(run_divergence "$d")
+  got=$(state_of "$out" poster-first)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "poster-first on $fx expected $want, got $got" "$(printf '%s\n' "$out" | grep -E 'poster-first' | head -1)"
+  fi
+  [ "$want" = FAIL ] || continue
+  line=$(printf '%s\n' "$out" | grep -E '^ +FAIL +poster-first ')
+  if printf '%s\n' "$line" | grep -q '<video>' && printf '%s\n' "$line" | grep -q '<canvas>' && ! printf '%s\n' "$line" | grep -q 'page.html:2[0-9]'; then ok; else
+    bad "poster-first names the hero <video> and <canvas> and not the chart canvas outside the hero" "$line"
+  fi
+done
+
+# The plain-what anchor finds a hero no class names; a Poster component is a still, a gradient fallback is not.
+for k in poster gradient; do
+  d="$WS/poster-anchor-$k"; mkdir -p "$d/src" "$d/craft"; write_tokens "$d"
+  printf 'Spine regions: plain-what=#opening, audience=#opening\n' > "$d/craft/build-task.md"
+  fb='<OpeningPoster />'; [ "$k" = gradient ] && fb='<div className="h-full bg-gradient-to-b from-teal-700 to-slate-900" />'
+  printf 'export default function Opening() {\n  return (\n    <section id="opening">\n      <h1>Tide tables for forty harbours</h1>\n      <Suspense fallback={%s}><Canvas camera={{ fov: 40 }}><Scene /></Canvas></Suspense>\n    </section>\n  )\n}\n' "$fb" > "$d/src/Opening.tsx"
+  out=$(run_divergence "$d")
+  want=PASS; [ "$k" = gradient ] && want=FAIL
+  got=$(state_of "$out" poster-first)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "poster-first via the plain-what anchor with a $k fallback expected $want, got $got" "$(printf '%s\n' "$out" | grep -E 'poster-first' | head -1)"
+  fi
+done
+
+# asset-manifest: three heavy assets (a video by kind, a 150 KB image, a 120 KB CSS texture); a 2 KB icon and a remote font are not heavy.
+asset_project() { # dir
+  mkdir -p "$1/public/media" "$1/public/img" "$1/src"; write_tokens "$1"
+  head -c 4096 /dev/zero > "$1/public/media/harbour.mp4"
+  head -c 153600 /dev/zero > "$1/public/img/hero.avif"
+  head -c 2048 /dev/zero > "$1/public/img/icon.png"
+  head -c 122880 /dev/zero > "$1/public/img/texture.jpg"
+  cat > "$1/page.html" <<'HTML'
+<!doctype html><html lang="en"><head><link rel="preload" href="https://fonts.example.com/tide.woff2" as="font"></head>
+<body><main><section><h1>Tideline</h1><video muted loop src="/media/harbour.mp4" poster="/img/hero.avif"></video>
+<img src="/img/icon.png" alt=""></section></main></body></html>
+HTML
+  printf '.band { background-image: url(/img/texture.jpg); }\n' > "$1/src/site.css"
+}
+d="$WS/assets-bad"; asset_project "$d"
+cat > "$d/ASSETS.md" <<'MD'
+# Assets
+- ref: public/media/harbour.mp4 · origin: third-party · licence-class: CC-BY · source: Pexels clip 4471
+- ref: public/img/hero.avif · origin: third-party · licence-class: unknown · source: found online
+MD
+out=$(run_divergence "$d")
+line=$(printf '%s\n' "$out" | grep -E '^ +[A-Z]+ +asset-manifest ')
+if [ "$(state_of "$out" asset-manifest)" = FAIL ] && printf '%s\n' "$line" | grep -q 'hero.avif.*no licence-class' \
+   && printf '%s\n' "$line" | grep -q 'texture.jpg.*has no manifest record' && ! printf '%s\n' "$line" | grep -qE 'icon\.png|harbour\.mp4 \('; then ok; else
+  bad "asset-manifest fails the unknown licence and the unlisted CSS texture, and leaves the listed video and the 2 KB icon alone" "$line"
+fi
+
+d="$WS/assets-ok"; asset_project "$d"
+cat > "$d/ASSETS.md" <<'MD'
+| ref | origin | licence-class | source |
+| --- | --- | --- | --- |
+| public/media/harbour.mp4 | third-party | CC-BY | Pexels clip 4471, credited in the footer |
+| public/img/hero.avif | third-party | permissive (MIT) | the harbour board's press kit |
+
+- ref: public/img/texture.jpg
+  origin: first-party
+  source: scanned in-house from the 1962 chart
+MD
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" asset-manifest)" = PASS ]; then ok; else
+  bad "asset-manifest passes a complete manifest (table rows and an indented first-party record)" "$(printf '%s\n' "$out" | grep -E 'asset-manifest' | head -1)"
+fi
+d="$WS/assets-json"; asset_project "$d"
+printf '[{"ref":"media/harbour.mp4","origin":"third-party","licence-class":"CC-BY","source":"Pexels"},{"ref":"img/hero.avif","origin":"commissioned","licence":"commissioned","source":"Ines Faria, 2026"},{"path":"img/texture.jpg","origin":"first-party","source":"in-house"}]\n' > "$d/public/CREDITS.json"
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" asset-manifest)" = PASS ]; then ok; else
+  bad "asset-manifest reads a CREDITS.json in the asset directory" "$(printf '%s\n' "$out" | grep -E 'asset-manifest' | head -1)"
+fi
+d="$WS/assets-none"; asset_project "$d"
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" asset-manifest)" = FAIL ] && printf '%s\n' "$out" | grep -q 'no manifest (ASSETS'; then ok; else
+  bad "asset-manifest fails heavy assets with no manifest at all" "$(printf '%s\n' "$out" | grep -E 'asset-manifest' | head -1)"
+fi
+d="$WS/assets-light"; mkdir -p "$d/public/img"; write_tokens "$d"; head -c 2048 /dev/zero > "$d/public/img/icon.png"
+printf '<!doctype html><html lang="en"><body><main><h1>Tideline</h1><img src="/img/icon.png" alt=""></main></body></html>\n' > "$d/page.html"
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" asset-manifest)" = SKIP ]; then ok; else
+  bad "asset-manifest SKIPs a page whose only asset is light" "$(printf '%s\n' "$out" | grep -E 'asset-manifest' | head -1)"
+fi
+
 d="$WS/coverage"; mkdir -p "$d/src"
 printf ':root { --primary: oklch(0.55 0.17 145); }\n' > "$d/src/index.css"
 cat > "$d/page.html" <<'HTML'

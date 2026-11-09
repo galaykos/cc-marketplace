@@ -89,12 +89,12 @@ this brief's alone. A sourced block declares itself with a greppable `component-
 marker keyed to a manifest record; an UNMARKED one is invisible to the gate, which that
 file states rather than papers over.
 
-## Cross-cutting checks (agent-graded)
+## Cross-cutting checks (agent-graded, two slices gated)
 
-**Standing: `agent-graded`, both of them.** Nothing in `template/craft-gates/` reads an
-asset manifest or a fallback path — `licence-discipline.md` says so itself ("Read-only, the
-reviewer verifies STRUCTURE + COMPLETENESS"). A run that never dispatches the audit ships
-unchecked. Both apply on top of the routed kind, on every asset:
+**Standing: `agent-graded`**, except two slices `template/craft-gates/divergence.mjs` reads (`gate`
+where run): `asset-manifest` (every HEAVY asset has a record with a source and licence-class) and
+`poster-first` (hero video, canvas or 3D arrives on a poster or still). The rest is the reviewer's,
+and a run that never dispatches the audit ships it unchecked. Both apply on top of the routed kind:
 
 - **Licence / provenance gate** (INDEX-THIN — the schema lives in
   `references/licence-discipline.md`). Every build that ships a non-code visual or

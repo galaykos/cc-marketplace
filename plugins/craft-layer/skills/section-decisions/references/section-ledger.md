@@ -32,6 +32,7 @@ One row per agenda item, in spine order:
 | `locks` | what the pick commits: a component, an instrument, a data need, a copy slot |
 | `why` | the one-line tradeoff that decided it |
 | `source` | `user` (picked) or `auto` (decided at the cap, or headless) |
+| `staged` | optional: where the option was drawn — a `/design-kit:design` board and artboard number, or a mockup path — so a later session can reopen the pick |
 
 A `long-scroll` run adds one `order-and-rhythm` row covering sequence, section-shape
 variety, CTA cadence, and where the heavy instruments sit.

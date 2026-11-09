@@ -89,7 +89,9 @@ it orchestrates existing surfaces:
 7. **`/craft-layer:audit`** — verify the craft gates (the signature interaction actually
    shipped, ambition conformance, offer contract, content depth, ledger
    conformance, per-tier + cumulative budget, reduced-motion, contrast, licence + asset-fit,
-   the newer-skill gates; delegating full a11y + performance). It measures asset and chunk
+   hero posters, frame time under a 4x CPU throttle, the finish pass (dead controls, placeholder
+   copy, bare empty states, invisible focus), the newer-skill gates; delegating full a11y +
+   performance). It measures asset and chunk
    sizes itself before dispatching, and any gate it cannot measure is reported
    `not measured` rather than guessed — then offers to route the findings to a worker.
    **The run is not complete until this step ran**, and its report leads with the coverage
@@ -192,7 +194,8 @@ source; when the rubric moves, fix and re-date it here first.
   offers 2–3 structurally different treatments per section, and records the picks in a
   section ledger the build task carries and the audit checks for conformance. Owns the
   agenda, the rounds, and the ledger; routes all option-drawing to `taskmaster:visual-decisions`,
-  the real-component rung of `taskmaster:visual-decisions` and `/ui-ux:theme`, each optional.
+  the real-component rung of `taskmaster:visual-decisions`, `/design-kit:design` artboards and
+  `/ui-ux:theme`, each optional.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **theming-system** — MOVED to the `ui-ux` plugin (2026-07-27); it sits beside

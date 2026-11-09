@@ -78,6 +78,11 @@ finding:
   blob is: the marker makes a declared block checkable, it does not detect an undeclared one.
   That residual hole is a DECLARED blind spot, stated wherever this gate is quoted. (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
+**Scripted slice (gate where run):** `template/craft-gates/divergence.mjs`'s `asset-manifest` checks
+items 1–3 for HEAVY assets only — a video, 3D, Lottie or Rive file, or a local image or font of 100 KB
+or more named in page source or a stylesheet; a `first-party` record owes the source alone. Lighter
+assets, inline blobs and `component:` records stay with the reviewer.
+
 It CANNOT confirm the declared licence is truthful — AND it is blind to refs that are not literal
 in source: a font/asset URL injected by a bundler or plugin, referenced through a framework
 component by NAME (a `<Font>`/`next/font` face), string-BUILT at runtime (`fetch(base + name)`), or

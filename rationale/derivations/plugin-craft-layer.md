@@ -1126,6 +1126,40 @@ A SKIP is still not a failure — the gate genuinely cannot grade an input it wa
 never given — but it can no longer be silently counted as a pass.
 ```
 
+### poster-first and asset-manifest (written 2026-11-09, roadmap items cl2 and cl9)
+
+Two source-only assertions, placed with the other source-only ones so their verdicts survive an
+exit-2 run on a missing token source.
+
+`poster-first` exists because the arrival contract (`motion-tiers/references/webgl-3d.md`,
+`hosted-runtimes.md` § Arrival) was prose with an agent-graded standing, and the 2026-09-26 probe
+recorded there had nine of ten runs put a CSS gradient where the poster belongs. The hero is found
+three ways, in order of how decided each is: the build task's `plain-what` anchor (the slot the
+hero answers), a `hero` id or class, a file named for the hero. A `<video>` must carry its own
+`poster` attribute; any other image in the hero does not stand in for it, because the poster is
+the video's LCP and failure frame (`video.md`). A canvas, R3F `<Canvas>`, Spline, Unicorn Studio
+or `<model-viewer>` passes on any still in the same hero: an `<img>`/`<picture>`/`<Image>`, a
+`poster` attribute, a `*Poster`/`*Still` component (the shape a Suspense fallback takes), or a
+`url()` background. A gradient matches none of those. An `<img>` whose tag says logo, icon, avatar
+or badge is not a still, so a hero logo cannot pass a bare canvas.
+Limits: region bounds are the tag-balance walk `regionFor` already uses (now `regionAt`, shared);
+only the first `hero` id/class per file is read; a still built at runtime, or a hero component
+imported from another file, is not seen; whether the still is a real frame of the scene stays
+agent-graded.
+
+`asset-manifest` gives the licence gate's completeness rule (`asset-sourcing/references/
+licence-discipline.md`, items 1-3) teeth for HEAVY assets, the ones an audit can least afford to
+miss: a video, 3D, Lottie or Rive file by kind, or a local image or font of 100 KB or more (the
+Vector tier's per-animation cap in `tier-budgets.md`, reused as the line). Refs are read from page
+source and stylesheets, resolved against `public/`, `static/`, the project root, `src/` for
+`@/`, and the citing file's directory. The manifest is any file at the accepted names in the
+project root or a heavy asset's directory; a record is matched by the ref as written, its path
+from the root or from `public/`, or its basename, in a markdown table, an indented key/value block
+or a one-line `key: value · …` record, or a JSON array. `origin: first-party` owes the source only;
+everything else owes a licence-class matching one of the fixed tokens or a licence they name (MIT,
+Apache, OFL, CC-BY). Limits: a basename shared by two assets matches either record; remote images
+and fonts have no size here and are counted in a note, not graded; legal truth is never checked.
+
 ## plugins/craft-layer/template/craft-gates/contrast.mjs
 
 Moved verbatim on 2026-10-28, leaders removed as above. `plugins/ui-ux/scripts/contrast.mjs` is the twin of this file, identical save its TWIN line (`pc_twin_files`), and points at this heading too. The header stays a `/* */` block in both copies because the twin's `# TWIN:` line must sit inside a comment.
@@ -1219,6 +1253,14 @@ Two paths, resolved against different roots on purpose:
    already go to `<cwd>/.craft-layer/shots`, where audit.md step 5 looks.
 ```
 
+### CRAFT_BROWSER_CHANNEL (written 2026-11-09)
+
+`use.channel` reads `CRAFT_BROWSER_CHANNEL`, empty by default, so the suite can run on an installed
+Chrome when the bundled Chromium revision is absent. Measured on the authoring machine: Playwright
+1.65 wanted `chromium_headless_shell-1252`, only 1234 and 1248 were cached, and every craft-gates
+browser harness SKIPped; with `CRAFT_BROWSER_CHANNEL=chrome` (Chrome 156) the reduced-motion
+controls gave the verdicts `craft-gates.test.sh` expects. Nothing is downloaded either way.
+
 ## plugins/craft-layer/scripts/technique-fingerprint.py
 
 Moved verbatim on 2026-10-28: the module docstring (quotes removed; `--help` prints argparse's own description, never this text) and one `#` block. The file keeps a docstring of a summary and three lines.
@@ -1270,3 +1312,69 @@ A page that SAYS "leaflet" does not load it. The homepage is matched as its tags
 (attributes, classes, URLs), comments and inline <script>/<style> bodies; the text
 between tags — the visible copy — is dropped, for every signature.
 ```
+
+## plugins/craft-layer/template/craft-gates/finish-lint.mjs
+
+Written 2026-11-09 with the code (roadmap item D1, from G9 and alirezarezvani `design-qa`).
+
+Why it exists: every craft gate before it judged design decisions (hue, family, register, motion
+under reduce). None looked for the plainly unfinished: a nav item that goes nowhere, lorem ipsum
+left in a card, a table that renders its header and nothing else, a button whose focus is
+invisible. Those reach review because they look finished in a screenshot.
+
+Decisions, each with its reason:
+- **The browser, not the source, for three rules.** Whether a control does anything is a runtime
+  fact. Own listeners come from CDP `DOMDebugger.getEventListeners`, which sees what
+  `addEventListener` bound (Vue, Svelte 4, Preact, Angular, Lit, Alpine, Stimulus, htmx). React 17+,
+  Svelte 5 and Solid delegate to a root and keep the handler on the node, so those are read from
+  `__reactProps$*`, `__click` and `$$click`. A React-managed node is judged by its props and own
+  listeners only, because its root listener would otherwise make every button inside it look live.
+  A listener on any other ancestor short of `body` counts as delegation.
+- **`#id` links are checked against the page.** `#top`, `#/` and `#!` are left alone: the first
+  scrolls to the top by the HTML spec, the others are hash routes.
+- **Placeholder copy is six named patterns.** TODO and TBD match upper case only, so "your todo
+  list" is copy; "Untitled" matches only as a chunk of three words or fewer; text inside
+  `code`/`pre`/`kbd`/`samp`/`var` is never read.
+- **Empty states are read as text.** A table with no `td` row, or a list with no children and no
+  text, passes when it or two ancestors say no/nothing/empty/loading/error, or it sits under
+  `aria-busy`. The source half adds the one case the DOM cannot see at load: a file that fetches
+  and maps a list with no empty, loading or error branch. It reads only fetching files because a
+  map over a literal array cannot be empty.
+- **Focus is compared, not assumed.** Each Tab stop's computed style (outline, borders, shadow,
+  background, colour, decoration, opacity, transform, filter, position, clip, visibility, both
+  pseudo-elements, two ancestors for `:focus-within`) is read focused and again after blur, with
+  transitions and animations forced off so the focused read is the settled one. An outline or
+  border with no style, no width or no alpha reads as none: measured 2026-11-09, Chrome's UA sheet
+  gives a focused link `outline-offset: 1px` under an author `outline: none`, and that alone had
+  read as a visible change.
+- **Exit codes keep a missing tool apart from a verdict.** 3 is no playwright package (resolved from
+  the project and `NODE_PATH`, never the plugin), 4 is no Chromium that launches (`CRAFT_BROWSER_CHANNEL`
+  when set, then the bundled build, then an installed Chrome). Neither installs anything. A not-measured
+  run still prints its source-half findings, as `divergence.mjs` prints its source-only verdicts.
+
+Limits: one 1280x800 viewport; a handler delegated to `document` or `body` (jQuery `.on`) reads as
+dead; closed shadow roots and iframe contents are not read; focus-indicator contrast and size are
+not judged; a phrase split across inline elements is missed; at most 200 Tab stops.
+
+## plugins/craft-layer/scripts/__tests__/finish-lint.test.sh
+
+Written 2026-11-09. One fixture, `fixture-finish.html`, carries every defect on a line ending in a
+`defect` comment, each beside the nearest neighbour that must stay silent; the harness derives the
+clean twin by deleting those lines, so the twins cannot drift apart. The DOM cases run when a
+Playwright whose Chromium launches is found, the static cases always. Measured 2026-11-09 on the
+authoring machine (Chrome 156 through the channel fallback): 17 findings on the fixture, 0 on the
+twin. Three mutations of `finish-lint.mjs` were each caught: delegation ignored (the clean twin
+gains a finding), the focus comparison disabled (two findings missing), the state-branch test
+removed (the neighbour with a loading branch is reported). The git-status check is scoped to
+`plugins/craft-layer` because other work may change the rest of the checkout during a run.
+
+## plugins/craft-layer/scripts/__tests__/frame-time.test.sh
+
+Written 2026-11-09 (roadmap item cl3). The fixture's rAF loop does `WORK_MS` of arithmetic per
+frame, calibrated at load on the machine running it, so the result does not depend on how fast the
+machine is. The calibration must keep each call's result live: measured 2026-11-09, a calibration
+loop whose result was discarded counted 223,215 calls in 100 ms, the JIT having deleted the work,
+and the "20 ms" frame took 874 ms. With the result kept, Chrome 156 measured p95 100 ms (38 frames)
+under the 4x throttle and 16.7 ms (211 frames) on the clean twin. The check allows up to 51 ms
+because rAF deltas land on 60 Hz vsyncs and a frame on the third reads 50.0 or 50.1. The first case
+needs no browser: the spec's `FRAME_BUDGET_MS` must equal the p95 figure in `tier-budgets.md`.

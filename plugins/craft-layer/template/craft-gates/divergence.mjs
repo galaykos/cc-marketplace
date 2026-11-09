@@ -1,5 +1,5 @@
-// divergence.mjs — craft-layer's anti-attractor gate: exit 1 when the build lands on the category default (hue, family, copy, layout) or repeats its last five runs, 0 clean, 2 not measured, a failure (as in contrast.mjs, a missing token source is never a pass). Run `node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs` from the project root.
-// Env: CRAFT_TOKEN_SOURCE, CRAFT_CONTRACT, CRAFT_DIVERGENCE_RECORD, CRAFT_BUILD_TASK, CRAFT_CONTENT_SOURCE set each input's path; CLAUDE_PLUGIN_ROOT reads the registries live. Misses: a chosen hue or face told from a default unless `Brand echo:` names it (else waive it with a reason), class lists built in variables or cn(), colours through props, arrangement beyond one measure, copy depth and the voice itself (agent-graded).
+// divergence.mjs — craft-layer's anti-attractor gate: exit 1 when the build lands on the category default (hue, family, copy, layout), repeats its last five runs, ships hero video/canvas/3D with no poster or still, or names a heavy asset the provenance manifest does not record with a source and licence; 0 clean, 2 not measured, a failure (as in contrast.mjs, a missing token source is never a pass). Run `node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs` from the project root.
+// Env: CRAFT_TOKEN_SOURCE, CRAFT_CONTRACT, CRAFT_DIVERGENCE_RECORD, CRAFT_BUILD_TASK, CRAFT_CONTENT_SOURCE set each input's path; CLAUDE_PLUGIN_ROOT reads the registries live. Misses: a chosen hue or face told from a default unless `Brand echo:` names it (else waive it with a reason), class lists built in variables or cn(), colours through props, arrangement beyond one measure, a hero or asset ref built at runtime, whether a still is a real frame, copy depth and the voice itself (agent-graded).
 // Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/template/craft-gates/divergence.mjs
 import { readFileSync, existsSync, statSync, readdirSync, realpathSync } from 'node:fs'
 import { join, dirname, basename, resolve, relative } from 'node:path'
@@ -432,14 +432,14 @@ const SKIP_DIR = /^(?:node_modules|dist|build|out|coverage|vendor|craft|taskmast
 const rel = (p) => relative(process.cwd(), p) || p
 
 /** Shipped source files, dot-directories and build output excluded. */
-function sourceFiles(dir, out = [], budget = { n: 0 }) {
+function sourceFiles(dir, out = [], budget = { n: 0 }, ext = SRC_EXT) {
   let entries
   try { entries = readdirSync(dir, { withFileTypes: true }) } catch { return out }
   for (const e of entries) {
     if (budget.n > 3000) return out
     if (e.name.startsWith('.')) continue
-    if (e.isDirectory()) { if (!SKIP_DIR.test(e.name)) sourceFiles(join(dir, e.name), out, budget) }
-    else if (SRC_EXT.test(e.name)) { budget.n++; out.push(join(dir, e.name)) }
+    if (e.isDirectory()) { if (!SKIP_DIR.test(e.name)) sourceFiles(join(dir, e.name), out, budget, ext) }
+    else if (ext.test(e.name)) { budget.n++; out.push(join(dir, e.name)) }
   }
   return out
 }
@@ -450,13 +450,17 @@ const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 function regionFor(src, anchor) {
   const a = esc(anchor)
   const m = new RegExp(`\\bid\\s*=\\s*(?:"${a}"|'${a}'|\\{\\s*(?:"${a}"|'${a}'|\`${a}\`)\\s*\\})`).exec(src)
-  if (!m) return null
-  const lt = src.lastIndexOf('<', m.index)
+  return m ? regionAt(src, m.index) : null
+}
+
+/** The element whose opening tag holds index `at`, bounded the same way. */
+function regionAt(src, at) {
+  const lt = src.lastIndexOf('<', at)
   if (lt < 0) return null
   const tagM = /^<([A-Za-z][\w.:-]*)/.exec(src.slice(lt, lt + 80))
   if (!tagM) return null
   const tag = tagM[1]
-  const gt = src.indexOf('>', m.index)
+  const gt = src.indexOf('>', at)
   if (gt < 0) return null
   if (src[gt - 1] === '/') return { start: gt + 1, end: gt + 1, tag, selfClosing: true }
   const re = new RegExp(`<${esc(tag)}(?=[\\s/>])|</${esc(tag)}\\s*>`, 'g')
@@ -946,6 +950,167 @@ function utilityFont(files, corpus, kept) {
       + `${corpus.kind} (${corpus.date})` + (echoed.length ? ` or echo the kept brand (${echoed.join(', ')})` : ''))
 }
 
+/* poster-first: in the hero (the build task's plain-what anchor, else a `hero` id or class, else a file named for it), a <video> owes a poster and a canvas, R3F <Canvas>, Spline, Unicorn Studio or <model-viewer> owes a still image. A CSS gradient is not one (motion-tiers/references/hosted-runtimes.md § Arrival). */
+const HERO_MOTION_RE = /<(video|canvas|Canvas|spline-viewer|Spline|model-viewer|UnicornScene)\b[^>]*>|<[A-Za-z][\w.-]*\b[^>]*\bdata-us-project\b[^>]*>/g
+const HERO_STILL_RE = /<(?:img|picture|Image)\b(?![^>]*\b(?:logo|icon|avatar|badge)\b)[^>]*>|\bposter\s*=|<\w*(?:Poster|Still)\b|background-image\s*:\s*url\(|\bbg-\[url\(/
+const HERO_ATTR_RE = /\b(?:id|class|className)\s*=\s*(?:"[^"]*\bhero\b[^"]*"|'[^']*\bhero\b[^']*'|\{\s*[`"'][^`"']*\bhero\b)/i
+
+function posterFirst(files, spine) {
+  const heroes = []
+  const seen = new Set()
+  const keep = (file, src, region, how) => {
+    if (!region || seen.has(`${file}|${region.start}`)) return
+    seen.add(`${file}|${region.start}`)
+    heroes.push({ file, src, slice: src.slice(region.start, region.end), at: region.start, how })
+  }
+  const anchors = (spine?.map?.['plain-what'] ?? []).map((a) => a.replace(/^#/, ''))
+  for (const { file, src } of files) {
+    for (const a of anchors) keep(file, src, regionFor(src, a), `plain-what #${a}`)
+    const m = HERO_ATTR_RE.exec(src)
+    if (m) keep(file, src, regionAt(src, m.index), 'a hero id or class')
+    if (/hero/i.test(basename(file))) keep(file, src, { start: 0, end: src.length }, 'a file named for the hero')
+  }
+  if (!heroes.length) {
+    return record('poster-first', 'SKIP', 'no hero region found — no plain-what anchor in the build task, no `hero` id or class, '
+      + 'no file named for it — so no hero motion was graded')
+  }
+  const bad = []
+  let graded = 0
+  for (const h of heroes) {
+    const still = HERO_STILL_RE.test(h.slice)
+    for (const m of h.slice.matchAll(HERO_MOTION_RE)) {
+      graded++
+      const kind = m[1] ?? 'data-us-project'
+      const own = /\bposter\s*=/.test(m[0])
+      const ok = kind === 'video' ? own : own || still
+      if (!ok) bad.push({ kind, file: rel(h.file), line: lineAt(h.src, h.at + m.index), how: h.how })
+    }
+  }
+  if (!graded) {
+    return record('poster-first', 'SKIP', `the hero (${heroes.map((h) => `${rel(h.file)}, ${h.how}`).join('; ')}) carries no video, canvas or 3D element`)
+  }
+  const shown = bad.slice(0, 6).map((b) => `<${b.kind}> at ${b.file}:${b.line} (${b.how})`).join('; ')
+  settle('poster-first', bad.length > 0, bad[0]?.kind ?? '',
+    `hero motion with no still to arrive on — ${shown}${bad.length > 6 ? ` (+${bad.length - 6} more)` : ''}. A hero <video> `
+      + 'owes a `poster`; a canvas, scene or embed owes an <img>/<picture> (or a `poster`) in the same hero, painted before the '
+      + 'scene and kept under it (motion-tiers/references/webgl-3d.md, the arrival contract). A gradient is not a poster. '
+      + `Reproduce: grep -n '<${bad[0]?.kind}' ${bad[0]?.file ?? ''}`,
+    `${graded} hero video/canvas/3D element(s) each arrive on a poster or a still image`)
+}
+
+/* asset-manifest: every HEAVY asset the page source names (video, 3D, Lottie/Rive, or a local image or font of 100 KB or more) has a record in the provenance manifest carrying a source and a licence-class; first-party records owe the source only. Names and fields: asset-sourcing/references/licence-discipline.md. */
+const HEAVY_BYTES = 100 * 1024
+const HEAVY_KIND = /\.(?:mp4|webm|mov|m4v|ogv|glb|gltf|usdz|riv|lottie|hdr|exr|ktx2)$/i
+const ASSET_REF_RE = /(?:https?:)?[^\s"'`()<>,=]*?[\w-]\.(?:mp4|webm|mov|m4v|ogv|glb|gltf|usdz|riv|lottie|hdr|exr|ktx2|woff2?|ttf|otf|avif|webp|png|jpe?g|gif|svg)(?=[?#"'`()\s<>,]|$)/gi
+const MANIFEST_NAME = /^(?:ASSETS|CREDITS|PROVENANCE|THIRD-PARTY-NOTICES)(?:\.(?:md|txt|json))?$/i
+const LICENCE_TOKEN = /\b(?:public[- ]domain|cc0|permissive|mit|apache|bsd|isc|ofl|sil|cc[- ]?by|commercial|commissioned|ai-assisted|first-party)\b/i
+const EMPTY_VALUE = /^(?:|unknown|\?+|tbd|todo|n\/a|none|-|—)$/i
+
+function resolveAsset(ref, file) {
+  if (/^(?:https?:)?\/\//i.test(ref)) return null
+  const cwd = process.cwd()
+  const r = ref.replace(/^\.\//, '')
+  const tries = ref.startsWith('/') ? ['public', 'static', '.', 'src'].map((d) => join(cwd, d, ref))
+    : /^[@~]\//.test(ref) ? ['src', '.', 'app'].map((d) => join(cwd, d, ref.slice(2)))
+      : [resolve(dirname(file), ref), join(cwd, r), join(cwd, 'public', r)]
+  for (const p of tries) { try { if (statSync(p).isFile()) return p } catch { /* next */ } }
+  return null
+}
+
+function manifestRecords(dirs) {
+  const out = []
+  for (const d of dirs) {
+    let names
+    try { names = readdirSync(d) } catch { continue }
+    for (const n of names.filter((x) => MANIFEST_NAME.test(x))) {
+      const p = join(d, n)
+      try { if (statSync(p).isFile()) out.push({ path: p, text: readFileSync(p, 'utf8') }) } catch { /* unreadable reads as absent */ }
+    }
+  }
+  return out
+}
+
+/** The record naming any of `keys` in one manifest: { licence, source, origin }, or null. */
+function findRecord(m, keys) {
+  const hits = (s) => keys.some((k) => String(s).toLowerCase().includes(k.toLowerCase()))
+  if (/\.json$/i.test(m.path)) {
+    let j
+    try { j = JSON.parse(m.text) } catch { return null }
+    const rows = Array.isArray(j) ? j : (j.assets ?? j.records ?? j.items ?? [])
+    const o = rows.find((x) => x && hits(x.ref ?? x.path ?? x.file ?? x.url ?? x.asset ?? ''))
+    return o ? { licence: String(o['licence-class'] ?? o.licenceClass ?? o.licence ?? o.license ?? o['license-class'] ?? '').trim(),
+      source: String(o.source ?? '').trim(), origin: String(o.origin ?? '') } : null
+  }
+  const lines = m.text.split('\n')
+  const i = lines.findIndex(hits)
+  if (i < 0) return null
+  if (lines[i].trim().startsWith('|')) {
+    let h = i
+    while (h > 0 && lines[h - 1].trim().startsWith('|')) h--
+    const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
+    const head = cells(lines[h]).map((c) => c.toLowerCase())
+    const row = cells(lines[i])
+    const col = (re) => { const k = head.findIndex((c) => re.test(c)); return k < 0 ? '' : (row[k] ?? '') }
+    return { licence: col(/licen[cs]e/), source: col(/source/), origin: col(/origin/) }
+  }
+  let block = lines[i]
+  for (let k = i + 1; k < lines.length && /^\s+\S/.test(lines[k]) && !/^\s*[-*]\s/.test(lines[k]); k++) block += `\n${lines[k]}`
+  const field = (re) => (block.match(re)?.[1] ?? '').replace(/[`*]/g, '').trim()
+  return { licence: field(/\blicen[cs]e(?:[- ]class)?\s*[:=]\s*([^·|\n;]+)/i), source: field(/\bsource\s*[:=]\s*([^·|\n;]+)/i),
+    origin: field(/\borigin\s*[:=]\s*([^·|\n;,]+)/i) }
+}
+
+function assetManifest(files) {
+  const cwd = process.cwd()
+  const css = sourceFiles(cwd, [], { n: 0 }, /\.(?:css|scss|sass|less)$/i).filter(isPage)
+    .flatMap((f) => { try { return statSync(f).size > 512 * 1024 ? [] : [{ file: f, src: readFileSync(f, 'utf8') }] } catch { return [] } })
+  const assets = new Map()
+  let remoteLight = 0
+  for (const { file, src } of [...files, ...css]) {
+    for (const m of src.matchAll(ASSET_REF_RE)) {
+      const ref = m[0]
+      const local = resolveAsset(ref, file)
+      const remote = /^(?:https?:)?\/\//i.test(ref)
+      let size = null
+      if (local) { try { size = statSync(local).size } catch { /* unmeasured */ } }
+      const heavy = HEAVY_KIND.test(ref) || (size !== null && size >= HEAVY_BYTES)
+      if (!heavy) { if (remote) remoteLight++; continue }
+      const key = local ?? ref
+      if (!assets.has(key)) assets.set(key, { ref, local, size, file: rel(file), line: lineAt(src, m.index) })
+    }
+  }
+  if (remoteLight) notes.push(`asset-manifest: ${remoteLight} remote image/font ref(s) of unknown size not graded`)
+  if (!assets.size) {
+    return record('asset-manifest', 'SKIP', 'no heavy asset (video, 3D, Lottie/Rive, or a local image or font of 100 KB or more) '
+      + 'named in page source or stylesheets')
+  }
+  const dirs = new Set([cwd])
+  for (const a of assets.values()) {
+    for (let d = a.local ? dirname(a.local) : null; d && d.startsWith(cwd) && d !== cwd; d = dirname(d)) dirs.add(d)
+  }
+  const manifests = manifestRecords([...dirs])
+  const problems = []
+  for (const a of assets.values()) {
+    const name = basename(a.ref)
+    const keys = [...new Set([a.ref.replace(/^\.?\//, ''), ...(a.local ? [relative(cwd, a.local), relative(join(cwd, 'public'), a.local)] : []), name])]
+      .filter((k) => k && !k.startsWith('..'))
+    const rec = manifests.map((m) => findRecord(m, keys)).find(Boolean)
+    const where = `${a.ref} (${a.size === null ? 'size not measured' : `${Math.round(a.size / 1024)} KB`}, ${a.file}:${a.line})`
+    if (!rec) { problems.push({ name, why: `${where} has no manifest record` }); continue }
+    if (EMPTY_VALUE.test(rec.source)) { problems.push({ name, why: `${where}: its record carries no source` }); continue }
+    if (/first-party/i.test(rec.origin)) continue
+    if (EMPTY_VALUE.test(rec.licence)) problems.push({ name, why: `${where}: its record carries no licence-class` })
+    else if (!LICENCE_TOKEN.test(rec.licence)) problems.push({ name, why: `${where}: licence-class "${rec.licence}" is not one of the fixed tokens` })
+  }
+  const found = manifests.length ? manifests.map((m) => rel(m.path)).join(', ') : 'no manifest (ASSETS, CREDITS, PROVENANCE or THIRD-PARTY-NOTICES)'
+  settle('asset-manifest', problems.length > 0, problems[0]?.name ?? '',
+    `${problems.slice(0, 6).map((p) => p.why).join('; ')}${problems.length > 6 ? ` (+${problems.length - 6} more)` : ''}. `
+      + `Read: ${found}. A heavy asset owes one record with a \`source\` and, unless \`origin: first-party\`, a licence-class token `
+      + '(asset-sourcing/references/licence-discipline.md); this checks declaration, never legal truth. '
+      + `Reproduce: grep -rn ${JSON.stringify(problems[0]?.name ?? '')} ${manifests.map((m) => rel(m.path)).join(' ') || '.'}`,
+    `${assets.size} heavy asset(s) each carry a manifest record with a source and a licence-class (${found})`)
+}
+
 const notes = []
 const results = []   // { check, state: 'PASS'|'FAIL'|'WAIVED'|'SKIP', detail }
 const record = (check, state, detail) => results.push({ check, state, detail })
@@ -1177,6 +1342,8 @@ const echo = brandEcho()
 const kept = echoNames(echo)
 utilityPalette(shippedCopy, kept)
 utilityFont(shippedCopy, anti, kept)
+posterFirst(shippedCopy, readSpineRegions())
+assetManifest(shippedCopy)
 
 /** Print what IS measured before a not-measured exit, so no verdict is swallowed by a missing token source. */
 const flushEarly = () => {
