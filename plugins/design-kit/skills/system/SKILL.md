@@ -62,8 +62,8 @@ those is an invented token, and an invented token in `DESIGN-SYSTEM.md` is worse
 a missing one — the host's artifact skill, `/design-kit:design` and every deck will
 build on it as if it were true. Therefore:
 
-- **Nothing enters `tokens.json` without a `path:line` source.** The script enforces
-  this (gate); do not hand-edit a value into it. If the source lacks a spacing scale,
+- **Nothing enters `tokens.json` without a source** — a `path:line`, or in rendered mode the
+  element it was read from. The script enforces this (gate); do not hand-edit a value into it. If the source lacks a spacing scale,
   the `## Not found` list says so — that is the deliverable, not a gap to fill.
 - **Two tiers stay two tiers.** `--primary` (semantic) and `--zinc-900` (primitive) are
   both emitted; do not collapse them into one "primary" line or drop the primitive.
@@ -80,7 +80,7 @@ build on it as if it were true. Therefore:
 ## Running it
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source repo|url|brand] [--out design-system] [--dry-run]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source repo|url|brand|rendered] [--out design-system] [--dry-run]
 ```
 
 - **repo** (default for a directory with `package.json`, `composer.json`, `src/` or a
@@ -92,6 +92,14 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source rep
 - **url**: the page plus its linked stylesheets, fetched without JavaScript. Runtime-
   injected styles are invisible and the output says so. Most-used literal colours are
   listed under `$extensions.design-kit.literalColors` — candidates, not tokens.
+- **rendered** (never guessed — pass `--source rendered`, or `dk.sh system <url|file> --source rendered`):
+  the page in the project's own Playwright Chromium after its JavaScript ran, through
+  `scripts/system-render.mjs` — computed colours, font families and sizes, spacing and radii of
+  every visible element, clustered. Use it when url mode's note says styles are runtime-injected
+  (an SPA, CSS-in-JS). Names are values (`color.1f2937`), never roles: which one is the primary
+  is the user's answer, named in the source. Exit 3 names a missing Playwright or Chromium;
+  nothing is installed. Gate where run: `scripts/__tests__/system-render.test.sh`. `dk.sh check`
+  re-reads the repo, not the page, so after a url or rendered run its `check:` lines are not drift.
 - **brand** (a directory with no manifest): `.css`, `.svg` fills and strokes, `.md`/`.txt`
   lines carrying a hex code or a "Typeface: X" phrase.
 

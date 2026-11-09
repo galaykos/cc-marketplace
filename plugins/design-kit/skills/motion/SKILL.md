@@ -86,9 +86,13 @@ the choreography kinds, the story table, accents and the cycle. Never invent ad 
 
 Recorder, page-side contract, checks and `ffmpeg` lines: `references/capture-export.md`.
 
-- **Never screen-record in real time.** Step Playwright's fake clock and screenshot every
-  frame. Load `?capture&static=1`: the preview server injects its live-reload snippet into
-  pages, and an open event stream keeps a capture from settling.
+- **Never screen-record in real time, and never write the recorder.** Record with
+  `node "${CLAUDE_PLUGIN_ROOT}/scripts/motion-check.mjs" "<page>?capture&static=1" --selector '#stage'
+  --ms <intro + cycle + 200> --frames .design-kit/motion/<slug>/.frames`: it steps Playwright's fake
+  clock, drives `__start`/`__tick`, writes the PNGs and `loop-time.json`, and exits 1 on an animated
+  layout property, a CSS duration outside 500–1100 ms, blur above 14 px, or motion left under reduced
+  motion; exit 3 names a missing Playwright or Chromium (it installs nothing). `static=1` keeps the
+  preview server's live-reload stream out, which would keep a capture from settling.
 - **Run the checks on the recorded frames before encoding:** overflow (nothing outside the
   containers changes), seam (first frame equals the frame one cycle later), empty beat, rest
   (the frame before the dissolve equals `?still`), and a contact sheet read by eye.
@@ -106,10 +110,10 @@ Recorder, page-side contract, checks and `ffmpeg` lines: `references/capture-exp
 | Seam, empty-beat, rest and overflow checks pass before encoding | agent-graded — the frame diffs are yours to run |
 | The background never changes in any frame | agent-graded — the overflow check is the evidence |
 | The Figma token is never printed, echoed or committed | agent-graded; the secret-scanning plugin's write guard catches a committed literal when installed |
+| Cheap properties, durations, blur ≤ 14 px, a reduced-motion path | gate where run — `motion-check.mjs` exits 1; nothing runs it for you |
 | Exports are deterministic (fake clock, loop time) | recorded — nothing compares two captures |
 
-No script in this plugin captures or encodes yet; the recorder in the reference is code you
-write per project.
+`motion-check.mjs` records and checks; encoding and the frame diffs above stay yours.
 
 ## Output format
 

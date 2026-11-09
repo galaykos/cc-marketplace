@@ -28,6 +28,13 @@ unlikely to collide).
 | `motion.duration.<name>` | `duration` | `--duration-*`, any custom property whose value is `<n>ms` or `<n>s` |
 | `motion.easing.<name>` | `cubicBezier` | `--ease-*`; `cubic-bezier(a,b,c,d)` becomes `[a, b, c, d]`, a named easing stays a string |
 | `elevation.<name>` | `shadow` | `--shadow-*`, Tailwind `extend.boxShadow` (kept as the raw CSS string) |
+| `typography.size.<value>` | `dimension` | rendered mode only: computed `font-size` of text elements |
+
+**Rendered mode** (`--source rendered`, `scripts/system-render.mjs`) reads computed styles, so
+its values are the browser's forms: `#rrggbb` for an opaque colour (`oklch()` and `color(srgb …)`
+converted, any other space kept as written), `rgba(r, g, b, a)` with alpha, and px for
+dimensions. Its names are the values (`color.1f2937`, `spacing.16px`, `radius.50pct`; a `.` in a
+value becomes `_`), because a computed style carries no role.
 
 Colour values are kept **as written in the source** — a hex, an `oklch()` call, or a
 shadcn v3 HSL triplet like `222.2 47.4% 11.2%`. Converting them would erase the fact
@@ -53,9 +60,10 @@ because they double every path and let the two drift. A token with no dark block
 
 ## Provenance
 
-`$extensions.design-kit.sources` is a sorted list of `path:line` (repo, brand) or
-`url` / `url#style` (url mode). It is the audit trail: a token without it did not come
-from the script.
+`$extensions.design-kit.sources` is a sorted list of `path:line` (repo, brand),
+`url` / `url#style` (url mode), or `rendered <target> <element>` (rendered mode, up to three
+elements, with `uses`, how many computed properties carried the value after colours within RGB
+distance 8 merged). It is the audit trail: a token without it did not come from the script.
 
 `$extensions.design-kit.literalColors` at the ROOT lists the twelve most-used literal
 hex values with counts. They are not tokens — they are the colours the source used

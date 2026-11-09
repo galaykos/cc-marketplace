@@ -113,4 +113,38 @@ assert [r for r in rows if r["verb"] == "drift"], rows
 assert all(set(r) == {"ts", "verb", "outcome", "artifact"} for r in rows), rows
 PY
 
+# --print-hook prints a snippet and writes nothing; the printed command itself is run against payloads.
+ph="$tmp/ph"; mkdir -p "$ph"; ( cd "$ph" && git init -q . )
+( cd "$ph" && bash "$dk" drift --print-hook >"$tmp/hook.json" 2>"$tmp/hook.notes" ) || fail "--print-hook exited non-zero"
+[ -z "$(ls -A "$ph" | grep -v '^\.git$')" ] || fail "--print-hook wrote into the project: $(ls -A "$ph")"
+grep -q 'nothing was installed' "$tmp/hook.notes" || fail "--print-hook printed no install note:
+$(cat "$tmp/hook.notes")"
+hookcmd="$(python3 - "$tmp/hook.json" <<'PY'
+import json, sys
+h = json.load(open(sys.argv[1]))
+g = h["hooks"]["PostToolUse"][0]
+assert g["matcher"] == "Edit|Write|MultiEdit", g
+e = g["hooks"][0]
+assert e["type"] == "command" and isinstance(e["timeout"], int), e
+print(e["command"])
+PY
+)" || fail "--print-hook stdout is not the expected settings.json JSON"
+payload() { printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"}}' "$1"; }
+run_hook() { # run_hook <project> <stdin> -> sets hrc, hout (stdout), herr (stderr)
+  set +e; hout="$(printf '%s' "$2" | CLAUDE_PROJECT_DIR="$1" sh -c "$hookcmd" 2>"$tmp/hook.err")"; hrc=$?; set -e
+  herr="$(cat "$tmp/hook.err")"
+}
+run_hook "$repo" "$(payload "$repo/src/components/Dirty.tsx")"
+[ "$hrc" = 2 ] || fail "the pasted hook must exit 2 on a drifting file (rc=$hrc)"
+grep -q 'bg-indigo-500' <<<"$herr" || fail "the pasted hook did not hand the table to stderr:
+$herr"
+for p in "$repo/src/components/Clean.tsx" "$repo/package.json" ""; do
+  run_hook "$repo" "$(payload "$p")"
+  [ "$hrc" = 0 ] && [ -z "$hout$herr" ] || fail "the pasted hook must stay silent on '$p' (rc=$hrc): $hout$herr"
+done
+run_hook "$empty" "$(payload "$repo/src/components/Dirty.tsx")"
+[ "$hrc" = 0 ] && [ -z "$hout$herr" ] || fail "a project with no tokens must stay silent in the hook (rc=$hrc): $herr"
+run_hook "$repo" 'not json'
+[ "$hrc" = 0 ] && [ -z "$hout$herr" ] || fail "a malformed payload must stay silent (rc=$hrc): $herr"
+
 echo "PASS drift.test.sh"

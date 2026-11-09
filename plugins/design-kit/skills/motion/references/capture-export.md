@@ -1,8 +1,21 @@
 # Capture, checks and export — the recording half of `motion`
 
 Never screen-record in real time: dropped frames and a visible seam. Step a fake clock and
-screenshot every frame. Write the recorder per project (Node + Playwright); nothing in this plugin
-ships one yet.
+screenshot every frame. `scripts/motion-check.mjs` is that recorder, on the project's own Playwright:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/motion-check.mjs" "<page>?capture&static=1" --selector '#stage' \
+  --ms 12600 --pre 15 --frames .design-kit/motion/<slug>/.frames [--scale 1.333] [--viewport 1440x900]
+```
+
+`--ms` counts from `__start`; the `--pre` frames come before it, so frame `PRE − 1` is loop time 0.
+It writes `00000.png`… and `loop-time.json`, then checks what it recorded: no layout property animated
+(transform, opacity, filter and clip-path are the cheap set; others warn), every CSS animation and
+transition 500–1100 ms (`--min-ms`, `--max-ms`; ≤ 16 ms is a reset), animated blur ≤ 14 px
+(`--max-blur`), and nothing but opacity moving under `prefers-reduced-motion: reduce`. Exit 0 held ·
+1 broke · 2 usage · 3 no Playwright or Chromium it can launch (named; nothing installed) · 4 the page
+did not load or nothing animated. `--static <file.html>` checks the CSS rules without a browser. The
+snippet below is what it does per frame, kept so the page side reads against it.
 
 ## Deterministic capture
 

@@ -7,8 +7,8 @@
 #   dk serve [--lan|--stop]                 start / expose / stop the preview server, print its URL
 #   dk system [target] [--out DIR]          extract → copy kit into previews → serve → URL
 #   dk check                                one line: design-system current, moved, or missing
-#   dk drift [PATHS|--staged|--diff REF] [--ci]   literal colours + named Tailwind palette
-#                                           utilities in components that reach no token
+#   dk drift [PATHS|--staged|--diff REF] [--ci] | --print-hook   literal colours + named
+#                                           Tailwind palette utilities reaching no token
 #   dk snapshot [--routes R] [--device desktop|mobile|both] [--base-url U] [--out DIR]
 #               [--storage-state FILE]      one PNG per route per device off the running app;
 #                                           FILE replays a signed-in session (snapshot.sh)
@@ -80,6 +80,26 @@ WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
 # help exits before ensure_ignored, so `dk --help` writes nothing
 case "$verb" in -h|--help|"") sed -n '2,51p' "$0"; exit 0 ;; esac
+
+# drift --print-hook writes nothing either: it prints the PostToolUse snippet for the user to paste, and installs nothing.
+if [ "$verb" = drift ] && [ "${1:-}" = "--print-hook" ]; then
+  python3 - "$here/handoff-drift.py" <<'PY'
+import json, shlex, sys
+drift = shlex.quote(sys.argv[1])
+cmd = ("f=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get(\"tool_input\") or {}).get(\"file_path\") or \"\")' 2>/dev/null); "
+       '[ -n "$f" ] || exit 0; '
+       f'out=$(python3 {drift} --scan --ci --repo "${{CLAUDE_PROJECT_DIR:-.}}" "$f" 2>/dev/null); '
+       '[ $? -eq 1 ] || exit 0; printf \'%s\\n\' "$out" | head -n 40 >&2; exit 2')
+hook = {"hooks": {"PostToolUse": [{"matcher": "Edit|Write|MultiEdit",
+                                    "hooks": [{"type": "command", "command": cmd, "timeout": 15}]}]}}
+print(json.dumps(hook, indent=2))
+print("design-kit: nothing was installed. Merge the JSON above into .claude/settings.json (this project) or ~/.claude/settings.json, "
+      "under \"hooks\". After an edit it hands Claude the drift table (exit 2) when the edited file has a hit; a clean file, "
+      "a file it does not scan and a project with no tokens stay silent. The path names this plugin version: re-run after an update.",
+      file=sys.stderr)
+PY
+  exit 0
+fi
 
 # ensure_ignored — once per git repo, a managed .gitignore block for .design-kit/ and __design-kit__/ (never design-system/, the tracked record); DESIGN_KIT_IGNORE=off skips it.
 ensure_ignored() {
