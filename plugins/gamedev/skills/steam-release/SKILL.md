@@ -68,4 +68,8 @@ The checker is a **gate** only where a CI step or the user runs it; no hook runs
   (checker: `buildoutput-in-contentroot`). Valve's layout keeps `output/` beside `content/`.
 - **A folder as `LocalPath`.** `"LocalPath" "bin"` uploads nothing; use `bin\*` with
   `"Recursive" "1"` (checker: `localpath-is-folder`).
+- **`steam_appid.txt` in the depot.** It is for running outside Steam while developing; Valve
+  says not to ship it, and while it is present `SteamAPI_RestartAppIfNecessary` returns false
+  (checker: `steam-appid-txt-shipped`). AppID 480 is Spacewar, the SDK's example app, never
+  yours (checker: `appid-spacewar`).
 - **Waiting for approval to release the game.** Nothing happens until someone clicks Release App.

@@ -385,6 +385,39 @@ class SteamBuildCheckerTests(unittest.TestCase):
         code, payload = self.run_json(self.write_script("app.vdf", text))
         self.assertEqual((code, self.codes(payload)), (1, ["appid-not-numeric"]))
 
+    def test_appid_480_is_spacewar(self) -> None:
+        text = SIMPLE_APP.replace('"AppID" "1000"', '"AppID" "480"')
+        code, payload = self.run_json(self.write_script("app.vdf", text))
+        self.assertEqual((code, self.codes(payload)), (1, ["appid-spacewar"]))
+        self.assertIn("Spacewar", payload["errors"][0]["message"])
+
+    def test_appid_containing_480_digits_is_silent(self) -> None:
+        for app_id in ("4800", "1480"):
+            with self.subTest(app_id=app_id):
+                text = SIMPLE_APP.replace('"AppID" "1000"', f'"AppID" "{app_id}"')
+                code, payload = self.run_json(self.write_script(f"app{app_id}.vdf", text))
+                self.assertEqual((code, payload["errors"]), (0, []))
+
+    def test_steam_appid_txt_in_a_depot_is_an_error(self) -> None:
+        self.write_files({"content/steam_appid.txt": "480\n", "content/bin/Steam_AppID.txt": "1000"})
+        code, payload = self.run_json(self.write_script("simple_app_build.vdf", SIMPLE_APP))
+        self.assertEqual((code, self.codes(payload)), (1, ["steam-appid-txt-shipped"] * 2))
+        by_target = {e["message"].split(" as ")[1].split(".")[0]: e["message"] for e in payload["errors"]}
+        self.assertIn("Spacewar", by_target["steam_appid"])
+        self.assertNotIn("Spacewar", by_target["bin/Steam_AppID"])
+        self.assertTrue(all(e["file"] == "simple_app_build.vdf" for e in payload["errors"]))
+
+    def test_steam_appid_txt_left_out_of_the_upload_is_silent(self) -> None:
+        self.write_files({
+            "content/steam_appid.txt": "480",
+            "content/steam_appid.txt.example": "480",
+            "scripts/steam_appid.txt": "480",
+        })
+        body = ALL_FILES + '      "FileExclusion" "*steam_appid.txt"\n'
+        code, payload = self.run_json(self.write_script("app.vdf", inline_app(body)))
+        self.assertEqual((code, payload["errors"], payload["warnings"]), (0, [], []))
+        self.assertEqual(self.depot(payload, "1001")["excluded"], 1)
+
     def test_depots_missing(self) -> None:
         text = '"AppBuild"\n{\n  "AppID" "1000"\n  "Desc" "x"\n  "ContentRoot" "..\\content\\"\n  "Depots" { }\n}\n'
         code, payload = self.run_json(self.write_script("app.vdf", text))

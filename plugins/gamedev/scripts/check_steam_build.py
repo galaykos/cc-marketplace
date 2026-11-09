@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Lint a SteamPipe app build script, its depot scripts and content folders before steamcmd +run_app_build.
-Catches unparseable VDF, bad or duplicate IDs, missing scripts and roots, LocalPaths matching nothing, empty depots, risky SetLive.
+Catches unparseable VDF, bad or duplicate IDs, AppID 480, missing scripts and roots, LocalPaths matching nothing, empty depots, a shipped steam_appid.txt, risky SetLive.
 Does not catch Steamworks-side state (unpublished config, depot missing from a package, account rights); never logs in or uploads."""
 # Derived from gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0, see NOTICE); modified.
+# Why, limits, history: rationale/derivations/plugin-gamedev.md § plugins/gamedev/scripts/check_steam_build.py
 
 from __future__ import annotations
 
@@ -31,6 +32,7 @@ REPEATABLE = {"filemapping", "fileexclusion", "fileproperties"}
 
 WINDOWS_ABS_RE = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\|//)")
 NUMBER_RE = re.compile(r"^[0-9]+$")
+SPACEWAR_APPID = 480
 
 
 
@@ -532,6 +534,10 @@ class Checker:
         elif not NUMBER_RE.match(appid.value.strip()) or int(appid.value.strip()) == 0:
             self.error("appid-not-numeric", file, appid.line, f'AppID "{appid.value}" is not a positive whole number',
                        "Use the numeric App ID from Steamworks, with no spaces or letters.")
+        elif int(appid.value.strip()) == SPACEWAR_APPID:
+            self.error("appid-spacewar", file, appid.line,
+                       "AppID is 480, Valve's Spacewar example app from the Steamworks SDK, not your game",
+                       "Use your own App ID from the Steamworks home page.")
 
         desc = app.first("Desc")
         if desc is None or desc.is_block or not (desc.value or "").strip():
@@ -793,6 +799,19 @@ class Checker:
                        f"depot {depot_id} would upload zero files: FileExclusion removes every mapped file",
                        "Loosen the FileExclusion patterns; they are matched against paths relative to the content root.")
 
+        for target, path in sorted(uploads.items()):
+            if path.name.lower() != "steam_appid.txt":
+                continue
+            try:
+                held = path.read_bytes()[:64].decode("utf-8", "replace").strip()
+            except OSError:
+                held = ""
+            spacewar = ", and it holds 480, Valve's Spacewar example app" if held == str(SPACEWAR_APPID) else ""
+            self.error("steam-appid-txt-shipped", depot_file, depot.line,
+                       f"depot {depot_id} uploads {self.show(path)} as {target}{spacewar}. Valve: \"You should not ship this"
+                       " with your builds\"; while it is present SteamAPI_RestartAppIfNecessary returns false",
+                       'Delete it from the build output, or add "FileExclusion" "*steam_appid.txt" to this depot.')
+
         install = depot.first("InstallScript")
         if install is not None and not install.is_block and (install.value or "").strip():
             raw = install.value.strip()
@@ -896,9 +915,10 @@ def build_parser() -> argparse.ArgumentParser:
             "  python3 check_steam_build.py tools/ContentBuilder/scripts/app_build_1000.vdf\n"
             "  python3 check_steam_build.py build/manifest.vdf --json --strict\n\n"
             "errors:\n"
-            "  vdf-parse, appid-missing, appid-not-numeric, depots-missing, depotid-not-numeric,\n"
+            "  vdf-parse, appid-missing, appid-not-numeric, appid-spacewar, depots-missing, depotid-not-numeric,\n"
             "  depot-duplicate, depot-script-missing, contentroot-missing, filemapping-no-localpath,\n"
-            "  localpath-is-folder, localpath-no-match, depot-empty, installscript-missing\n"
+            "  localpath-is-folder, localpath-no-match, depot-empty, installscript-missing,\n"
+            "  steam-appid-txt-shipped\n"
             "warnings:\n"
             "  desc-missing, setlive-immediate, setlive-default, local-content-server,\n"
             "  buildoutput-in-contentroot, contentroot-not-set, contentroot-ambiguous, depotid-mismatch,\n"
