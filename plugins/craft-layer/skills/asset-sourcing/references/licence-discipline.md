@@ -80,7 +80,8 @@ finding:
 
 **Scripted slice (gate where run):** `template/craft-gates/divergence.mjs`'s `asset-manifest` checks
 items 1–3 for HEAVY assets only — a video, 3D, Lottie or Rive file, or a local image or font of 100 KB
-or more named in page source or a stylesheet; a `first-party` record owes the source alone. Lighter
+or more named in page source or a stylesheet; a `first-party` record owes the source alone. The
+licence-class must open with a fixed token, so `CC-BY-NC` or `non-commercial` fails. Lighter
 assets, inline blobs and `component:` records stay with the reviewer.
 
 It CANNOT confirm the declared licence is truthful — AND it is blind to refs that are not literal

@@ -1,0 +1,9 @@
+<!doctype html>
+<!-- finish-lint's watchdog control: the page busy-loops after load, so every later evaluate hangs. -->
+<html lang="en">
+<head><meta charset="utf-8"><title>Harbourmaster — berth bookings</title></head>
+<body>
+<p>Berths for every boat in the harbour.</p>
+<script>addEventListener('load', () => setTimeout(() => { for (;;) {} }, 0))</script>
+</body>
+</html>

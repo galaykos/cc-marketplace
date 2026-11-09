@@ -4,7 +4,10 @@
      Each defect sits beside its nearest neighbour that must stay silent: a #anchor whose id exists,
      href="#" with a handler, a delegated or React-prop handler, TODO inside <code>, lowercase "todo"
      in prose, an empty table with "No invoices yet." beside it, an aria-busy list, and a button whose
-     outline:none is replaced by a box-shadow on :focus-visible. -->
+     outline:none is replaced by a box-shadow on :focus-visible. Later neighbours: a React handler on a
+     parent, a late-hydrated button, "TODO" as a kanban column, editor-rendered code, a date input and an
+     iframe the Tab walk must pass through, a peer-focus ring on a sibling, an empty state three levels
+     up, a fixed toast viewport and a live region. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -17,6 +20,10 @@
   .ring:focus-visible { box-shadow: 0 0 0 3px #0057b8; }
   .fv:focus { outline: none; }
   .fv:focus-visible { outline: 2px solid #0057b8; outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+  .ring-within:focus-within { box-shadow: 0 0 0 3px #0057b8; }
+  .peer:focus-visible ~ .peer-ring { box-shadow: 0 0 0 3px #0057b8; }
+  .toast-viewport { position: fixed; top: 0; right: 0; }
 </style>
 </head>
 <body>
@@ -30,6 +37,7 @@
     <li><a id="dc-void" href="javascript:void(0)">Docs</a></li> <!-- defect -->
     <li><a id="dc-nohref">Careers</a></li> <!-- defect -->
     <li><a id="dc-missing" href="#roadmap">Roadmap</a></li> <!-- defect -->
+    <li><a id="dc-pct" href="#50%off">Winter offer</a></li> <!-- defect -->
   </ul>
 </nav>
 <main>
@@ -46,6 +54,14 @@
     <pre><code id="ok-code">// TODO: wire the berth webhook</code></pre>
     <div id="ok-hidden" style="display: none">Lorem ipsum hidden draft</div>
     <label>Find a harbour <input id="ok-ph-attr" placeholder="Search harbours"></label>
+    <p id="ok-untitled-doc">Untitled document</p>
+    <h3 id="ok-kanban">TODO</h3>
+    <p id="ok-venue">Venue: TBD</p>
+    <p id="ph-fixme">FIXME(copy): the winter rates</p> <!-- defect -->
+    <div class="cm-editor"><div class="cm-content" contenteditable="true"><div class="cm-line">// TODO: wire the tide feed</div></div></div>
+    <div class="monaco-editor"><div class="view-line">TODO: rename the berth table</div></div>
+    <label>Arrival <input id="ok-date" type="date"></label>
+    <iframe id="ok-frame" title="Tide widget" srcdoc="<button>Rise</button><button>Fall</button>" width="200" height="60"></iframe>
   </section>
   <section id="actions-area">
     <button id="ok-listener" type="button">Copy berth code</button>
@@ -60,11 +76,19 @@
       <button id="dc-react" type="button">Restore</button> <!-- defect -->
     </div>
     <button id="dc-button" type="button">Start trial</button> <!-- defect -->
+    <ul id="react-menu"><li><button id="ok-react-parent" type="button">Pin berth</button></li></ul>
+    <ul id="react-menu-plain"><li><button id="dc-react-parent" type="button">Unpin berth</button></li></ul> <!-- defect -->
+    <button id="ok-hydrated" type="button">Refresh tides</button>
+    <button id="dc-esc&#27;[2J" type="button">Clear filters</button> <!-- defect -->
     <div id="dc-role" role="button" tabindex="0">Export</div> <!-- defect -->
     <button id="ok-ring-shadow" class="ring" type="button" onclick="void 0">Download tide table</button>
     <button id="ok-ring-fv" class="fv" type="button" onclick="void 0">Print</button>
     <button id="fr-none" class="bare" type="button" onclick="void 0">Download invoice</button> <!-- defect -->
     <a id="fr-link" class="bare" href="/terms">Terms</a> <!-- defect -->
+    <label id="sr-label"><input id="fr-sr" class="sr-only" type="checkbox"> Email me tide alerts</label> <!-- defect -->
+    <label class="ring-within"><input id="ok-sr-within" class="sr-only" type="checkbox"> Weekly digest</label>
+    <input id="ok-peer" class="bare peer" placeholder="Boat name"><span class="peer-ring">Required</span>
+    <input id="fr-bare-input" class="bare" placeholder="Berth number"><span>Optional</span> <!-- defect -->
   </section>
   <section id="ledger-ok">
     <table id="ok-table-empty"><thead><tr><th>Invoice</th><th>Amount</th></tr></thead><tbody></tbody></table>
@@ -80,7 +104,14 @@
     <ul id="ok-list-busy" aria-busy="true"></ul>
     <div class="frame"><div class="inner"><ul id="sc-list"></ul></div></div> <!-- defect -->
   </section>
+  <section id="payouts">
+    <h2>Payouts</h2>
+    <div class="card"><p>No payouts yet.</p><div class="overflow"><div class="min-w"><table id="ok-table-deep"><thead><tr><th>Payout</th><th>Date</th></tr></thead><tbody></tbody></table></div></div></div>
+  </section>
 </main>
+<ol id="sc-body-list"></ol> <!-- defect -->
+<div class="results"><div role="region" aria-label="Search results"><ul id="sc-region-list"></ul></div></div> <!-- defect -->
+<div id="toasts"><div role="region" aria-label="Notifications (F8)" tabindex="-1"><ol id="ok-toaster" tabindex="-1" class="toast-viewport"></ol></div><div aria-live="polite"><ul id="ok-live-list"></ul></div></div>
 <script>
   document.getElementById('ok-hash-handler').addEventListener('click', (e) => e.preventDefault())
   document.getElementById('ok-listener').addEventListener('click', () => {})
@@ -90,6 +121,13 @@
   document.getElementById('ok-react').__reactProps$fx = { type: 'button', onClick() {} }
   const restore = document.getElementById('dc-react')
   if (restore) restore.__reactProps$fx = { type: 'button', className: 'restore' }
+  // A React handler on a parent fires for its children; one with only a hover handler does not.
+  document.getElementById('react-menu').__reactProps$fx = { className: 'menu', onClick() {} }
+  document.getElementById('ok-react-parent').__reactProps$fx = { type: 'button' }
+  const plain = document.getElementById('react-menu-plain')
+  if (plain) { plain.__reactProps$fx = { className: 'menu', onMouseEnter() {} }; document.getElementById('dc-react-parent').__reactProps$fx = { type: 'button' } }
+  // Late hydration: the handler lands after load and network idle.
+  setTimeout(() => { document.getElementById('ok-hydrated').__reactProps$fx = { type: 'button', onClick() {} } }, 1200)
 </script>
 </body>
 </html>

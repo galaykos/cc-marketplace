@@ -951,9 +951,36 @@ function utilityFont(files, corpus, kept) {
 }
 
 /* poster-first: in the hero (the build task's plain-what anchor, else a `hero` id or class, else a file named for it), a <video> owes a poster and a canvas, R3F <Canvas>, Spline, Unicorn Studio or <model-viewer> owes a still image. A CSS gradient is not one (motion-tiers/references/hosted-runtimes.md § Arrival). */
-const HERO_MOTION_RE = /<(video|canvas|Canvas|spline-viewer|Spline|model-viewer|UnicornScene)\b[^>]*>|<[A-Za-z][\w.-]*\b[^>]*\bdata-us-project\b[^>]*>/g
+const HERO_MOTION = new Set(['video', 'canvas', 'Canvas', 'spline-viewer', 'Spline', 'model-viewer', 'UnicornScene'])
 const HERO_STILL_RE = /<(?:img|picture|Image)\b(?![^>]*\b(?:logo|icon|avatar|badge)\b)[^>]*>|\bposter\s*=|<\w*(?:Poster|Still)\b|background-image\s*:\s*url\(|\bbg-\[url\(/
 const HERO_ATTR_RE = /\b(?:id|class|className)\s*=\s*(?:"[^"]*\bhero\b[^"]*"|'[^']*\bhero\b[^']*'|\{\s*[`"'][^`"']*\bhero\b)/i
+
+/** The end of the opening tag at `i`, past quoted values and JSX `{…}`: `onCanPlay={() => go()}` does not close it. */
+function tagEnd(s, i) {
+  let depth = 0
+  let q = null
+  for (let k = i + 1; k < s.length; k++) {
+    const c = s[k]
+    if (q) { if (c === q && s[k - 1] !== '\\') q = null; continue }
+    if (c === '"' || c === "'" || c === '`') q = c
+    else if (c === '{') depth++
+    else if (c === '}') depth = Math.max(0, depth - 1)
+    else if (c === '>' && depth === 0) return k + 1
+    else if (c === '<' && depth === 0) return k
+  }
+  return s.length
+}
+
+/** Hero motion elements in a slice: { kind, index, tag }, the tag read whole. */
+function heroMotion(slice) {
+  const out = []
+  for (const m of slice.matchAll(/<([A-Za-z][\w.:-]*)/g)) {
+    const tag = slice.slice(m.index, tagEnd(slice, m.index))
+    const kind = HERO_MOTION.has(m[1]) ? m[1] : /\bdata-us-project\b/.test(tag) ? 'data-us-project' : null
+    if (kind) out.push({ kind, index: m.index, tag })
+  }
+  return out
+}
 
 function posterFirst(files, spine) {
   const heroes = []
@@ -975,27 +1002,30 @@ function posterFirst(files, spine) {
       + 'no file named for it — so no hero motion was graded')
   }
   const bad = []
-  let graded = 0
+  // One element is graded once, though a hero class region and a file named for the hero both hold it.
+  const graded = new Set()
   for (const h of heroes) {
     const still = HERO_STILL_RE.test(h.slice)
-    for (const m of h.slice.matchAll(HERO_MOTION_RE)) {
-      graded++
-      const kind = m[1] ?? 'data-us-project'
-      const own = /\bposter\s*=/.test(m[0])
-      const ok = kind === 'video' ? own : own || still
-      if (!ok) bad.push({ kind, file: rel(h.file), line: lineAt(h.src, h.at + m.index), how: h.how })
+    for (const m of heroMotion(h.slice)) {
+      const at = `${h.file}|${h.at + m.index}`
+      if (graded.has(at)) continue
+      graded.add(at)
+      const own = /\bposter\s*=/.test(m.tag)
+      const ok = m.kind === 'video' ? own : own || still
+      if (!ok) bad.push({ kind: m.kind, file: rel(h.file), line: lineAt(h.src, h.at + m.index), how: h.how })
     }
   }
-  if (!graded) {
+  if (!graded.size) {
     return record('poster-first', 'SKIP', `the hero (${heroes.map((h) => `${rel(h.file)}, ${h.how}`).join('; ')}) carries no video, canvas or 3D element`)
   }
-  const shown = bad.slice(0, 6).map((b) => `<${b.kind}> at ${b.file}:${b.line} (${b.how})`).join('; ')
-  settle('poster-first', bad.length > 0, bad[0]?.kind ?? '',
-    `hero motion with no still to arrive on — ${shown}${bad.length > 6 ? ` (+${bad.length - 6} more)` : ''}. A hero <video> `
-      + 'owes a `poster`; a canvas, scene or embed owes an <img>/<picture> (or a `poster`) in the same hero, painted before the '
+  settleEach('poster-first', bad, (b) => [b.kind, `${b.file}:${b.line}`], (list) =>
+    `hero motion with no still to arrive on — ${list.slice(0, 6).map((b) => `<${b.kind}> at ${b.file}:${b.line} (${b.how})`).join('; ')}`
+      + `${list.length > 6 ? ` (+${list.length - 6} more)` : ''}. A hero <video> `
+      + 'owes its own `poster` (an image behind it is not one); a canvas, scene or embed owes an <img>/<picture> (or a `poster`) in the same hero, painted before the '
       + 'scene and kept under it (motion-tiers/references/webgl-3d.md, the arrival contract). A gradient is not a poster. '
-      + `Reproduce: grep -n '<${bad[0]?.kind}' ${bad[0]?.file ?? ''}`,
-    `${graded} hero video/canvas/3D element(s) each arrive on a poster or a still image`)
+      + 'A decorative overlay canvas: waive its `<file>:<line>` with the reason. '
+      + `Reproduce: grep -n '<${list[0]?.kind}' ${list[0]?.file ?? ''}`,
+    `${graded.size} hero video/canvas/3D element(s) each arrive on a poster or a still image`)
 }
 
 /* asset-manifest: every HEAVY asset the page source names (video, 3D, Lottie/Rive, or a local image or font of 100 KB or more) has a record in the provenance manifest carrying a source and a licence-class; first-party records owe the source only. Names and fields: asset-sourcing/references/licence-discipline.md. */
@@ -1003,7 +1033,8 @@ const HEAVY_BYTES = 100 * 1024
 const HEAVY_KIND = /\.(?:mp4|webm|mov|m4v|ogv|glb|gltf|usdz|riv|lottie|hdr|exr|ktx2)$/i
 const ASSET_REF_RE = /(?:https?:)?[^\s"'`()<>,=]*?[\w-]\.(?:mp4|webm|mov|m4v|ogv|glb|gltf|usdz|riv|lottie|hdr|exr|ktx2|woff2?|ttf|otf|avif|webp|png|jpe?g|gif|svg)(?=[?#"'`()\s<>,]|$)/gi
 const MANIFEST_NAME = /^(?:ASSETS|CREDITS|PROVENANCE|THIRD-PARTY-NOTICES)(?:\.(?:md|txt|json))?$/i
-const LICENCE_TOKEN = /\b(?:public[- ]domain|cc0|permissive|mit|apache|bsd|isc|ofl|sil|cc[- ]?by|commercial|commissioned|ai-assisted|first-party)\b/i
+const LICENCE_TOKEN = /^(?:public[- ]domain|cc0|permissive|mit|apache|bsd|isc|ofl|sil|cc[- ]?by|commercial|commissioned|ai-assisted|first-party)\b/i
+const LICENCE_LIMITED = /(?:^|[\s(/_-])n[cd](?=$|[\s)/_.,;-])|\bnon[- ]?commercial\b|\bno[- ]?deriv/i
 const EMPTY_VALUE = /^(?:|unknown|\?+|tbd|todo|n\/a|none|-|—)$/i
 
 function resolveAsset(ref, file) {
@@ -1030,19 +1061,43 @@ function manifestRecords(dirs) {
   return out
 }
 
-/** The record naming any of `keys` in one manifest: { licence, source, origin }, or null. */
+/** `key` as a whole path tail of `s`: `bg.jpg` is not in `hero-bg.jpg`, `img/bg.jpg` is in `public/img/bg.jpg`. */
+function holds(s, key) {
+  const t = String(s).toLowerCase()
+  const k = key.toLowerCase()
+  for (let i = t.indexOf(k); i >= 0; i = t.indexOf(k, i + 1)) {
+    if (!/[\w.-]/.test(t[i - 1] ?? '') && !/^(?:[\w-]|\.\w)/.test(t.slice(i + k.length))) return true
+  }
+  return false
+}
+
+/** The record for the first of `keys` (paths before the basename) one manifest holds: { licence, source, origin }, or null. A line that only mentions the asset is a record only when nothing better names it. */
 function findRecord(m, keys) {
-  const hits = (s) => keys.some((k) => String(s).toLowerCase().includes(k.toLowerCase()))
   if (/\.json$/i.test(m.path)) {
     let j
     try { j = JSON.parse(m.text) } catch { return null }
     const rows = Array.isArray(j) ? j : (j.assets ?? j.records ?? j.items ?? [])
-    const o = rows.find((x) => x && hits(x.ref ?? x.path ?? x.file ?? x.url ?? x.asset ?? ''))
+    let o = null
+    for (const k of keys) if ((o = rows.find((x) => x && holds(x.ref ?? x.path ?? x.file ?? x.url ?? x.asset ?? '', k)))) break
     return o ? { licence: String(o['licence-class'] ?? o.licenceClass ?? o.licence ?? o.license ?? o['license-class'] ?? '').trim(),
       source: String(o.source ?? '').trim(), origin: String(o.origin ?? '') } : null
   }
   const lines = m.text.split('\n')
-  const i = lines.findIndex(hits)
+  const blockAt = (i) => {
+    let block = lines[i]
+    for (let k = i + 1; k < lines.length && /^\s+\S/.test(lines[k]) && !/^\s*[-*]\s/.test(lines[k]); k++) block += `\n${lines[k]}`
+    return block
+  }
+  const isRecord = (i) => lines[i].trim().startsWith('|') || /\b(?:source|origin|licen[cs]e(?:[- ]class)?)\s*[:=]/i.test(blockAt(i))
+  let i = -1
+  let mention = -1
+  for (const k of keys) {
+    const at = lines.flatMap((l, n) => (holds(l, k) ? [n] : []))
+    i = at.find(isRecord) ?? -1
+    if (i >= 0) break
+    if (mention < 0 && at.length) mention = at[0]
+  }
+  if (i < 0) i = mention
   if (i < 0) return null
   if (lines[i].trim().startsWith('|')) {
     let h = i
@@ -1053,8 +1108,7 @@ function findRecord(m, keys) {
     const col = (re) => { const k = head.findIndex((c) => re.test(c)); return k < 0 ? '' : (row[k] ?? '') }
     return { licence: col(/licen[cs]e/), source: col(/source/), origin: col(/origin/) }
   }
-  let block = lines[i]
-  for (let k = i + 1; k < lines.length && /^\s+\S/.test(lines[k]) && !/^\s*[-*]\s/.test(lines[k]); k++) block += `\n${lines[k]}`
+  const block = blockAt(i)
   const field = (re) => (block.match(re)?.[1] ?? '').replace(/[`*]/g, '').trim()
   return { licence: field(/\blicen[cs]e(?:[- ]class)?\s*[:=]\s*([^·|\n;]+)/i), source: field(/\bsource\s*[:=]\s*([^·|\n;]+)/i),
     origin: field(/\borigin\s*[:=]\s*([^·|\n;,]+)/i) }
@@ -1096,18 +1150,20 @@ function assetManifest(files) {
       .filter((k) => k && !k.startsWith('..'))
     const rec = manifests.map((m) => findRecord(m, keys)).find(Boolean)
     const where = `${a.ref} (${a.size === null ? 'size not measured' : `${Math.round(a.size / 1024)} KB`}, ${a.file}:${a.line})`
-    if (!rec) { problems.push({ name, why: `${where} has no manifest record` }); continue }
-    if (EMPTY_VALUE.test(rec.source)) { problems.push({ name, why: `${where}: its record carries no source` }); continue }
+    const problem = (why) => problems.push({ name, ref: a.ref, why: `${where}${why}` })
+    if (!rec) { problem(' has no manifest record'); continue }
+    if (EMPTY_VALUE.test(rec.source)) { problem(': its record carries no source'); continue }
     if (/first-party/i.test(rec.origin)) continue
-    if (EMPTY_VALUE.test(rec.licence)) problems.push({ name, why: `${where}: its record carries no licence-class` })
-    else if (!LICENCE_TOKEN.test(rec.licence)) problems.push({ name, why: `${where}: licence-class "${rec.licence}" is not one of the fixed tokens` })
+    if (EMPTY_VALUE.test(rec.licence)) problem(': its record carries no licence-class')
+    else if (LICENCE_LIMITED.test(rec.licence)) problem(`: licence-class "${rec.licence}" is non-commercial or no-derivatives, which no fixed token allows`)
+    else if (!LICENCE_TOKEN.test(rec.licence)) problem(`: licence-class "${rec.licence}" does not open with one of the fixed tokens`)
   }
   const found = manifests.length ? manifests.map((m) => rel(m.path)).join(', ') : 'no manifest (ASSETS, CREDITS, PROVENANCE or THIRD-PARTY-NOTICES)'
-  settle('asset-manifest', problems.length > 0, problems[0]?.name ?? '',
-    `${problems.slice(0, 6).map((p) => p.why).join('; ')}${problems.length > 6 ? ` (+${problems.length - 6} more)` : ''}. `
+  settleEach('asset-manifest', problems, (p) => [p.name, p.ref], (list) =>
+    `${list.slice(0, 6).map((p) => p.why).join('; ')}${list.length > 6 ? ` (+${list.length - 6} more)` : ''}. `
       + `Read: ${found}. A heavy asset owes one record with a \`source\` and, unless \`origin: first-party\`, a licence-class token `
       + '(asset-sourcing/references/licence-discipline.md); this checks declaration, never legal truth. '
-      + `Reproduce: grep -rn ${JSON.stringify(problems[0]?.name ?? '')} ${manifests.map((m) => rel(m.path)).join(' ') || '.'}`,
+      + `Reproduce: grep -rn ${JSON.stringify(list[0]?.name ?? '')} ${manifests.map((m) => rel(m.path)).join(' ') || '.'}`,
     `${assets.size} heavy asset(s) each carry a manifest record with a source and a licence-class (${found})`)
 }
 
@@ -1122,6 +1178,20 @@ const settle = (check, failed, value, failDetail, passDetail) => {
   const w = waiverFor(waivers, check, value)
   if (w) return record(check, 'WAIVED', `${failDetail}  [waived: ${w.reason}]`)
   record(check, 'FAIL', failDetail)
+}
+
+/** settle for a check that lists items: a waiver value names one item (any of `keysOf(item)`), or every item when empty or '*'; the rest still FAIL. */
+const settleEach = (check, items, keysOf, failDetail, passDetail) => {
+  if (!items.length) return record(check, 'PASS', passDetail)
+  const reasons = new Set()
+  const open = items.filter((it) => {
+    const w = keysOf(it).map((v) => waiverFor(waivers, check, v)).find(Boolean)
+    if (w) reasons.add(w.reason)
+    return !w
+  })
+  if (!open.length) return record(check, 'WAIVED', `${failDetail(items)}  [waived: ${[...reasons].join('; ')}]`)
+  const waived = items.length - open.length
+  record(check, 'FAIL', `${failDetail(open)}${waived ? `  [${waived} more waived: ${[...reasons].join('; ')}]` : ''}`)
 }
 
 /* Reads source and the build task only, so it runs first and its verdict survives an exit-2 run. */

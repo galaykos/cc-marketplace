@@ -100,12 +100,17 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
 
    **`finish-lint.mjs` is the finish pass, on the same Chromium.** It flags dead controls (`href="#"`,
    `javascript:void`, an `<a>` with no href, a `#id` no element carries, a button nothing handles),
-   placeholder copy (lorem ipsum, TODO/TBD, "Coming soon", "Placeholder", a lone "Untitled", John/Jane
-   Doe), an empty list or table with no empty, loading or error text beside it, and a Tab stop whose
-   focus changes nothing visible; its source half flags a file that fetches and maps a list with no
-   such branch. Standing: **gate** where run. Exit 1 is a FINDING, waivable in `waivers.json` under the
+   placeholder copy (lorem ipsum, a `TODO:`/`TBD:`/`FIXME(` marker, "Coming soon", "Placeholder", a lone
+   "Untitled", John/Jane Doe), an empty list or table with no empty, loading or error text in its section,
+   and a Tab stop whose focus changes nothing visible; its source half flags a file that fetches and maps
+   the fetched list with no such branch (a Next.js `loading`/`error` file counts as one). Standing: **gate**
+   where run. It misses: one 1280x800 viewport; a handler delegated to `document` or `body`; a dead button
+   from a library that always passes handlers (MUI `ButtonBase`, AntD `Button`), which reads live; closed
+   shadow roots and iframe contents; focus-ring contrast and size; a phrase split across inline elements; a
+   list fetched in another file. Exit 1 is a FINDING, waivable in `waivers.json` under the
    rule name (`dead-control`, `placeholder-copy`, `stateless-collection`, `focus-ring`); 2 is `not
-   measured` (no URL, the page did not load, `CRAFT_EXPECT_TITLE` unmatched); 3 and 4 name the missing
+   measured` (no URL, the page did not load or did not finish within `--timeout`, default 120 s,
+   `CRAFT_EXPECT_TITLE` unmatched); 3 and 4 name the missing
    playwright package or Chromium, and are `not measured` too. `--json` prints the report as one object.
 
    **`contrast.mjs` is not optional and it is not covered by the Playwright suite.**

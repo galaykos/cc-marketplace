@@ -1,20 +1,21 @@
-// finish-lint.mjs — craft-layer's UI finish linter, on the craft-gates Chromium driver: exit 1 on a dead control, placeholder copy, an empty list or table with no empty/loading/error state, or a Tab stop whose focus changes nothing visible; 0 clean; 2 not measured (no URL, the page did not load, CRAFT_EXPECT_TITLE unmatched, a bad argument); 3 no playwright package; 4 no Chromium that launches.
-// Run from the project root: `NODE_PATH=<project>/node_modules node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/finish-lint.mjs" --url <url> [--src <dir>] [--json]`. Misses: one 1280x800 viewport; handlers delegated to document/body; closed shadow roots and iframes; focus-indicator contrast; a phrase split across inline elements; the source half of the list rule reads only files that fetch.
+// finish-lint.mjs — craft-layer's UI finish linter, on the craft-gates Chromium driver: exit 1 on a dead control, placeholder copy, an empty list or table with no empty/loading/error state, or a Tab stop whose focus changes nothing visible; 0 clean; 2 not measured (no URL, the page did not load or did not finish within --timeout, CRAFT_EXPECT_TITLE unmatched, a bad argument); 3 no playwright package; 4 no Chromium that launches.
+// Run from the project root: `NODE_PATH=<project>/node_modules node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/finish-lint.mjs" --url <url> [--src <dir>] [--json] [--timeout <s>]`. Misses: one 1280x800 viewport; handlers delegated to document/body; a library button that always passes handlers (MUI ButtonBase, AntD Button) reads live; closed shadow roots and iframes; focus-indicator contrast; a phrase split across inline elements; the source half of the list rule reads only files that fetch.
 // Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/template/craft-gates/finish-lint.mjs
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
-import { join, resolve, relative, delimiter } from 'node:path'
+import { join, resolve, relative, delimiter, basename, dirname } from 'node:path'
 import { createRequire } from 'node:module'
 
-const USAGE = 'usage: node finish-lint.mjs [--url <url>] [--src <dir>] [--json]'
+const USAGE = 'usage: node finish-lint.mjs [--url <url>] [--src <dir>] [--json] [--timeout <seconds, default 120>]'
 const RULES = ['dead-control', 'placeholder-copy', 'stateless-collection', 'focus-ring']
 
 const PLACEHOLDER = [
   ['lorem-ipsum', String.raw`\blorem\s+ipsum\b|\bdolor\s+sit\s+amet\b`, 'i'],
-  ['todo-marker', String.raw`\b(?:TODO|TBD)\b`, ''],
+  // The marker form only: a kanban column "TODO" and "Venue: TBD" are copy.
+  ['todo-marker', String.raw`\b(?:TODO|TBD|FIXME)\s*[:(]`, ''],
   ['coming-soon', String.raw`\bcoming\s+soon\b`, 'i'],
   ['placeholder-word', String.raw`\bplaceholder\b`, 'i'],
-  // A whole chunk of three words or fewer: "An untitled 1962 photograph" is copy, "Untitled" alone is a stand-in.
-  ['untitled', String.raw`^untitled\b`, 'i'],
+  // The whole chunk: "Untitled document" is an app's default name, "Untitled" alone is a stand-in.
+  ['untitled', String.raw`^untitled[.…]?$`, 'i'],
   ['stand-in-name', String.raw`\b(?:John|Jane)\s+Doe\b|\bAcme\s+(?:Inc|Corp|Corporation)\b`, ''],
 ]
 
@@ -28,7 +29,7 @@ const DETAIL = {
   'missing-target': 'points at an id no element on the page carries, and nothing handles the click',
   'no-handler': 'no click handler, no form to submit and no popover or command target',
   'lorem-ipsum': 'lorem ipsum',
-  'todo-marker': 'a TODO or TBD marker',
+  'todo-marker': 'a TODO, TBD or FIXME marker',
   'coming-soon': '"Coming soon"',
   'placeholder-word': 'the word "placeholder"',
   'untitled': '"Untitled" as a whole label',
@@ -51,7 +52,7 @@ function usage(msg) {
   process.exit(2)
 }
 
-const opt = { url: process.env.BASE_URL || '', src: process.cwd(), json: false }
+const opt = { url: process.env.BASE_URL || '', src: process.cwd(), json: false, timeout: 120 }
 const argv = process.argv.slice(2)
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i]
@@ -59,21 +60,25 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--url' || a === '--src') {
     if (!argv[i + 1]) usage(`${a} needs a value`)
     opt[a.slice(2)] = argv[++i]
+  } else if (a === '--timeout') {
+    opt.timeout = Number(argv[++i])
+    if (!(opt.timeout > 0)) usage('--timeout needs a number of seconds')
   } else if (a === '-h' || a === '--help') { console.log(USAGE); process.exit(0) }
   else usage(`unknown argument ${JSON.stringify(a)}`)
 }
 report.url = opt.url || null
 report.src = resolve(opt.src)
 
+let stopped = false   // set by the watchdog: a hung pass that wakes later writes nothing
 const add = (rule, pattern, where, target, text, detail = DETAIL[pattern]) =>
-  report.findings.push({ rule, pattern, where, target, text, detail, waived: null })
+  stopped || report.findings.push({ rule, pattern, where, target, text, detail, waived: null })
 
 const SRC_EXT = /\.(?:html?|jsx?|tsx?|vue|svelte|astro|mdx)$/i
 const SKIP_DIR = /^(?:node_modules|dist|build|out|coverage|vendor|craft|taskmaster-docs)$/i
 const NOT_THE_PAGE = /(?:^|\/)(?:tests?|__tests__|e2e|spec|specs|stories|scripts|config|mocks?|fixtures?)\//i
 const NOT_THE_PAGE_FILE = /\.(?:spec|test|stories|config|d)\.[jt]sx?$/i
 const FETCH_RE = /\b(?:fetch|useQuery|useSuspenseQuery|useInfiniteQuery|useQueries|useSWR(?:Infinite)?|useFetch|useLazyFetch|useAsyncData|createResource|createQuery|useLoaderData)\s*\(|\$fetch\s*\(|\baxios(?:\.\w+)?\s*\(/
-const COLLECTION_RE = /\.map\(\s*(?:async\s+)?(?:\([^()]*\)|[\w$]+)\s*=>\s*[(`]?\s*<|\bv-for\s*=|\{#each\b/
+const COLLECTION_RE = /\.map\(\s*(?:async\s+)?(?:\([^()]*\)|[\w$]+)\s*=>\s*[(`]?\s*<|\bv-for\s*=\s*["'][^"']*?\b(?:in|of)\s+([\w$]+)|\{#each\s+([\w$]+)/g
 const STATE_RE = [
   /\.length\s*(?:===?|!==?|>|<=?)\s*0\b|!\s*[\w$.?]+\.length\b|\.length\s*(?:\?|&&)|\bisEmpty\b|\{:else\}|\bv-else\b|<Empty\w*|\bnoResults?\b/,
   /\bis(?:Loading|Pending|Fetching)\b|\b(?:loading|pending)\s*(?:\?|&&|\)|===?)|<Skeleton|<Spinner|<Suspense\b|aria-busy|\{#await\b|['"](?:loading|pending)['"]/,
@@ -92,6 +97,71 @@ function sourceFiles(dir, out = [], budget = { n: 0 }) {
   return out
 }
 
+const NAME = /[A-Za-z_$][\w$]*/g
+const BIND_RE = /(?:\b(?:const|let|var)\s+(\{[^}]*\}|\[[^\]]*\]|[A-Za-z_$][\w$]*)(?:\s*:[^=;\n]+?)?|(?<![\w$.])([A-Za-z_$][\w$]*))\s*=(?![=>])([^;\n]*)/g
+const STATE_PAIR_RE = /\[\s*([A-Za-z_$][\w$]*)\s*,\s*(set[A-Z][\w]*)\s*\]\s*=\s*(?:React\.)?use(?:State|Reducer)\b/g
+
+/** Names bound from a fetch or data hook: directly, through another such name, or as useState set near a fetch. */
+function fetchedNames(src) {
+  const names = new Set()
+  const binds = [...src.matchAll(BIND_RE)].map((m) => ({ names: (m[1] ?? m[2]).match(NAME) ?? [], rhs: m[3] }))
+  for (let grew = true, n = 0; grew && n < 6; n++) {
+    grew = false
+    for (const b of binds) {
+      if (b.names.every((x) => names.has(x))) continue
+      const words = b.rhs.replace(/'[^']*'|"[^"]*"/g, '').match(NAME) ?? []
+      if (FETCH_RE.test(b.rhs) || words.some((w) => names.has(w))) { b.names.forEach((x) => names.add(x)); grew = true }
+    }
+  }
+  const fetchAt = [...src.matchAll(new RegExp(FETCH_RE.source, 'g'))].map((m) => m.index)
+  for (const m of src.matchAll(STATE_PAIR_RE)) {
+    for (const u of src.matchAll(new RegExp(`(?<![\\w$])${m[2]}(?![\\w$])`, 'g'))) {
+      if (u.index < m.index + m[0].length) continue
+      if (fetchAt.some((f) => f < u.index && u.index - f < 600)) { names.add(m[1]); break }
+    }
+  }
+  return names
+}
+
+/** The member/call chain `.map` is called on, as text: `data?.rows`, `items.filter((x) => x.on)`, `(data ?? [])`. */
+function receiverText(src, end) {
+  let j = end
+  const ws = () => { while (j > 0 && /[\s?!]/.test(src[j - 1])) j-- }
+  for (let n = 0; n < 40; n++) {
+    ws()
+    const c = src[j - 1]
+    if (c === ')' || c === ']') {
+      const open = c === ')' ? '(' : '['
+      let depth = 0, k = j - 1
+      for (; k >= 0; k--) { if (src[k] === c) depth++; else if (src[k] === open && --depth === 0) break }
+      if (k < 0) break
+      j = k
+      ws()
+      if (!/[\w$]/.test(src[j - 1] ?? '')) break
+      continue
+    }
+    const id = /[A-Za-z_$][\w$]*$/.exec(src.slice(Math.max(0, j - 80), j))
+    if (!id) break
+    j -= id[0].length
+    while (j > 0 && /\s/.test(src[j - 1])) j--
+    if (src[j - 1] !== '.') break
+    j--
+  }
+  return src.slice(j, end)
+}
+
+// Next.js renders a route segment's loading.* and error.* around its page and every page below it.
+function routeStates(file, root) {
+  if (!/^page\.[jt]sx?$/.test(basename(file))) return false
+  for (let d = dirname(file); d.startsWith(root); d = dirname(d)) {
+    let names = []
+    try { names = readdirSync(d) } catch { /* unreadable reads as absent */ }
+    if (names.some((n) => /^(?:loading|error)\.[jt]sx?$/.test(n))) return true
+    if (basename(d) === 'app' || d === root || dirname(d) === d) break
+  }
+  return false
+}
+
 function sourcePass() {
   const root = report.src
   if (!existsSync(root)) { report.notes.push(`source half: ${root} does not exist — not read`); return }
@@ -104,9 +174,14 @@ function sourcePass() {
       src = readFileSync(f, 'utf8')
     } catch { continue }
     report.static.files++
-    if (!FETCH_RE.test(src)) continue
-    const m = COLLECTION_RE.exec(src)
-    if (!m || STATE_RE.some((re) => re.test(src))) continue
+    if (!FETCH_RE.test(src) || STATE_RE.some((re) => re.test(src)) || routeStates(f, root)) continue
+    const fetched = fetchedNames(src)
+    // A list counts only when it maps what was fetched: a module literal (LINKS.map) cannot be empty.
+    const m = [...src.matchAll(COLLECTION_RE)].find((x) => {
+      const recv = x[1] ?? x[2] ?? receiverText(src, x.index)
+      return FETCH_RE.test(recv) || (recv.match(NAME) ?? []).some((w) => fetched.has(w))
+    })
+    if (!m) continue
     add('stateless-collection', 'no-state-branch', `${rel}:${src.slice(0, m.index).split('\n').length}`, rel,
       m[0].replace(/\s+/g, ' ').slice(0, 60))
   }
@@ -138,8 +213,10 @@ async function launch(pw) {
 }
 
 function notMeasured(code, reason) {
-  Object.assign(report.dom, { measured: false, code, reason })
+  if (!stopped) Object.assign(report.dom, { measured: false, code, reason })
 }
+
+let live = null   // the launched browser, for the watchdog to close
 
 /** In-page helpers, installed once so each later evaluate can reach them. */
 function installHelpers() {
@@ -152,6 +229,33 @@ function installHelpers() {
   f.label = (el) => (el.getAttribute('aria-label') || el.innerText || el.textContent || el.getAttribute('value') ||
     el.getAttribute('title') || '').replace(/\s+/g, ' ').trim().slice(0, 60)
   f.up = (n) => n.parentElement ?? (n.getRootNode() instanceof ShadowRoot ? n.getRootNode().host : null)
+
+  const EVENTS = ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'keyup', 'keypress']
+  const REACT_HANDLER = /^on(?:Click|MouseDown|MouseUp|PointerDown|PointerUp|TouchStart|TouchEnd|KeyDown|KeyUp|KeyPress)(?:Capture)?$/
+  const DELEGATED = /^(?:__|\$\$)(?:click|mousedown|mouseup|pointerdown|pointerup|touchstart|touchend|keydown|keyup)$/
+  const reactProps = (el) => { const k = Object.keys(el).find((x) => x.startsWith('__reactProps$')); return k ? el[k] || {} : null }
+  const reactHandles = (p) => Object.keys(p).some((k) => REACT_HANDLER.test(k) && typeof p[k] === 'function')
+  // React, Svelte 5 and Solid delegate to a root and keep the handler on the node; everything else binds to the node.
+  f.handled = (el) => {
+    if (!el.isConnected) return 'gone'
+    if (EVENTS.some((t) => typeof el['on' + t] === 'function')) return 'inline'
+    const p = reactProps(el)
+    if (p) {
+      if (reactHandles(p)) return 'react'
+      // A React handler on an ancestor fires for this node too: synthetic events bubble.
+      for (let a = f.up(el); a && a !== document.body; a = f.up(a)) { const q = reactProps(a); if (q && reactHandles(q)) return 'react' }
+      return 'react-none'
+    }
+    return Object.keys(el).some((k) => DELEGATED.test(k) && typeof el[k] === 'function') ? 'delegated' : null
+  }
+  f.clipped = (el) => {
+    const r = el.getBoundingClientRect()
+    const cs = getComputedStyle(el)
+    const c = cs.clip.match(/rect\((-?[\d.]+)px,?\s*(-?[\d.]+)px,?\s*(-?[\d.]+)px,?\s*(-?[\d.]+)px/)
+    const out = cs.position === 'absolute' || cs.position === 'fixed'
+    return (out && (r.width <= 1 || r.height <= 1)) || cs.clipPath === 'inset(50%)' || (!!c && (c[2] - c[4] <= 1 || c[3] - c[1] <= 1))
+  }
+  f.hidden = []
   const PROPS = ['box-shadow', 'background-color', 'background-image', 'color', 'text-decoration-line', 'opacity',
     'transform', 'filter', 'left', 'top', 'clip', 'clip-path', 'visibility']
   const clear = (c) => c === 'transparent' || /^rgba\(.*,\s*0\)$/.test(c)
@@ -166,10 +270,14 @@ function installHelpers() {
     return [...['outline', 'border-top', 'border-right', 'border-bottom', 'border-left'].map((k) => line(cs, k)),
       ...PROPS.map((p) => cs.getPropertyValue(p))].join('|')
   }
-  // The element, its pseudo-elements and two ancestors, so a :focus-within ring on a wrapper counts.
-  f.snap = (el) => {
-    const parts = [part(el), part(el, '::before'), part(el, '::after')]
+  // Two ancestors (:focus-within), the labels and three later siblings (peer-focus-visible:, input:focus + label), and the
+  // element with its pseudo-elements unless it is clipped or 1px: an sr-only input's own outline is never seen.
+  f.snap = (el, hidden) => {
+    const parts = hidden ? [] : [part(el), part(el, '::before'), part(el, '::after')]
     for (let a = f.up(el), k = 0; a && a !== document.body && k < 2; a = f.up(a), k++) parts.push(part(a))
+    const near = [...(el.labels ?? [])]
+    for (let n = el.nextElementSibling, k = 0; n && k < 3; n = n.nextElementSibling, k++) near.push(n)
+    for (const n of near) parts.push(part(n), part(n, '::before'), part(n, '::after'))
     return parts.join('\n')
   }
 }
@@ -181,21 +289,6 @@ function collect(o) {
   addRoot(document)
   const all = (sel) => [...new Set(roots.flatMap((r) => [...r.querySelectorAll(sel)]))]
   const out = { scanned: 0, controls: [], placeholder: [], collections: [] }
-
-  const EVENTS = ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'keydown', 'keyup', 'keypress']
-  const REACT_HANDLER = /^on(?:Click|MouseDown|MouseUp|PointerDown|PointerUp|TouchStart|TouchEnd|KeyDown|KeyUp|KeyPress)(?:Capture)?$/
-  const DELEGATED = /^(?:__|\$\$)(?:click|mousedown|mouseup|pointerdown|pointerup|touchstart|touchend|keydown|keyup)$/
-  // React, Svelte 5 and Solid delegate to a root and keep the handler on the node; everything else binds to the node.
-  const handled = (el) => {
-    if (EVENTS.some((t) => typeof el['on' + t] === 'function')) return 'inline'
-    const keys = Object.keys(el)
-    const rp = keys.find((k) => k.startsWith('__reactProps$'))
-    if (rp) {
-      const p = el[rp] || {}
-      return Object.keys(p).some((k) => REACT_HANDLER.test(k) && typeof p[k] === 'function') ? 'react' : 'react-none'
-    }
-    return keys.some((k) => DELEGATED.test(k) && typeof el[k] === 'function') ? 'delegated' : null
-  }
 
   const here = new URL(location.href)
   const CONTROL = 'a, button, input[type=button], input[type=submit], input[type=reset], input[type=image], [role=button], [role=link]'
@@ -220,7 +313,8 @@ function collect(o) {
           let u
           try { u = new URL(href, location.href) } catch { continue }
           if (!u.hash || u.origin + u.pathname + u.search !== here.origin + here.pathname + here.search) continue
-          const frag = decodeURIComponent(u.hash.slice(1))
+          let frag = u.hash.slice(1)
+          try { frag = decodeURIComponent(frag) } catch { /* `#50%off` is not percent-encoding: match it as written */ }
           // `#top` scrolls to the top by the HTML spec; `#/` and `#!` are hash routes.
           if (/^top$/i.test(frag) || /^[/!]/.test(frag)) continue
           const root = el.getRootNode()
@@ -234,7 +328,7 @@ function collect(o) {
       pattern = el.hasAttribute('popovertarget') || el.hasAttribute('commandfor') ? 'missing-target' : 'no-handler'
     }
     f.nodes.push(el)
-    out.controls.push({ i: f.nodes.length - 1, pattern, target: f.name(el), text: f.label(el), handled: handled(el) })
+    out.controls.push({ i: f.nodes.length - 1, pattern, target: f.name(el), text: f.label(el), handled: f.handled(el) })
   }
 
   const PH = o.placeholder.map(([id, src, flags]) => [id, new RegExp(src, flags)])
@@ -243,7 +337,6 @@ function collect(o) {
     const t = String(raw || '').replace(/\s+/g, ' ').trim()
     if (!t) return
     for (const [id, re] of PH) {
-      if (id === 'untitled' && t.split(' ').length > 3) continue
       if (!re.test(t)) continue
       const key = `${id}|${el ? f.name(el) : where}|${t.slice(0, 80)}`
       if (seen.has(key)) continue
@@ -252,7 +345,7 @@ function collect(o) {
     }
   }
   hit(document.title, null, 'title')
-  const CODE = 'code, pre, kbd, samp, var, template'
+  const CODE = 'code, pre, kbd, samp, var, template, .cm-editor, .CodeMirror, .monaco-editor, [contenteditable=""], [contenteditable=true], [contenteditable=plaintext-only]'
   for (const r of roots) {
     const start = r === document ? document.body : r
     if (!start) continue
@@ -270,9 +363,16 @@ function collect(o) {
   }
 
   const EMPTY = new RegExp(o.emptyState, 'i')
+  const SECTION = 'main, section, article, aside, nav, dialog, [role=region], [role=dialog], [role=main], [role=tabpanel]'
+  // In it or an ancestor up to its nearest sectioning element; never body or a wrapper of several sections, whose text is the page's.
   const stated = (el) => {
     if (el.closest('[aria-busy="true"]') || EMPTY.test(el.innerText || '')) return true
-    for (let a = el.parentElement, k = 0; a && k < 2; a = a.parentElement, k++) if (EMPTY.test(a.innerText || '')) return true
+    for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+      const section = a.matches(SECTION)
+      if (!section && a.querySelector(SECTION)) return false
+      if (EMPTY.test(a.innerText || '')) return true
+      if (section) return false
+    }
     return false
   }
   for (const t of all('table')) {
@@ -284,19 +384,26 @@ function collect(o) {
   }
   for (const l of all('ul, ol, [role=list], [role=listbox], [role=feed], [role=grid], [role=treegrid], [role=tree]')) {
     if (l.tagName === 'TABLE' || !f.shown(l) || l.closest('[aria-hidden="true"]')) continue
+    // A toast viewport (Radix, Sonner: a fixed <ol>) or a live region is empty at rest by design.
+    if (getComputedStyle(l).position === 'fixed' || l.closest('[aria-live]:not([aria-live=off])')) continue
     if (l.children.length || (l.textContent || '').trim() || stated(l)) continue
     out.collections.push({ pattern: 'empty-list', target: f.name(l), text: '' })
   }
   return out
 }
 
+/** The focused element as a new stop; `same` when Tab stayed on the last one (date fields, an iframe's contents); `end` on body or a revisit. */
 function readStop() {
   const f = window.__finishLint
   let el = document.activeElement
   while (el && el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement
-  if (!el || el === document.body || el === document.documentElement || f.stops.includes(el)) return null
-  f.stops.push(el)
-  return { i: f.stops.length - 1, iframe: el.tagName === 'IFRAME', target: f.name(el), text: f.label(el), focused: el.tagName === 'IFRAME' ? '' : f.snap(el), outline: getComputedStyle(el).outlineStyle }
+  if (!el || el === document.body || el === document.documentElement) return { end: true }
+  if (el === f.stops[f.stops.length - 1]) return { same: true, target: f.name(el) }
+  if (f.stops.includes(el)) return { end: true }
+  const i = f.stops.push(el) - 1
+  const iframe = el.tagName === 'IFRAME'
+  f.hidden[i] = !iframe && f.clipped(el)
+  return { i, iframe, target: f.name(el), text: f.label(el), focused: iframe ? '' : f.snap(el, f.hidden[i]), outline: getComputedStyle(el).outlineStyle }
 }
 
 async function domPass() {
@@ -311,6 +418,7 @@ async function domPass() {
       + 'in the project, or set CRAFT_BROWSER_CHANNEL to an installed channel (chrome); this script never downloads one')
   }
   report.dom.browser = how
+  live = browser
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
     const page = await context.newPage()
@@ -319,6 +427,8 @@ async function domPass() {
       return notMeasured(2, `the page did not load: ${String(e?.message ?? e).split('\n')[0]}`)
     }
     if (resp && resp.status() >= 400) return notMeasured(2, `${opt.url} answered HTTP ${resp.status()}`)
+    // Hydration and late chunks land after load; bounded, so a page that never goes idle still runs.
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {})
 
     const seen = await page.evaluate(() => ({ title: document.title, text: (document.body?.innerText ?? '').slice(0, 5000) }))
     const expect = process.env.CRAFT_EXPECT_TITLE?.trim()
@@ -349,31 +459,44 @@ async function domPass() {
       const { listeners } = await cdp.send('DOMDebugger.getEventListeners', { objectId: result.objectId, depth: 0 })
       return listeners.some((l) => INTERACTIVE.has(l.type))
     }
-    const ancestorCache = new Map()
-    for (const c of dom.controls) {
-      if (c.handled && c.handled !== 'react-none') continue
-      if (await listens(`window.__finishLint.nodes[${c.i}]`)) continue
-      if (c.handled !== 'react-none') {
-        // Delegation to a container counts; to body or document it is the residual this file names.
-        const anc = await page.evaluate((i) => {
-          const f = window.__finishLint
-          const out = []
-          for (let n = f.up(f.nodes[i]); n && n !== document.body && n !== document.documentElement; n = f.up(n)) {
-            let k = f.anc.indexOf(n)
-            if (k < 0) k = f.anc.push(n) - 1
-            out.push(k)
+    const deadOf = async (controls) => {
+      const ancestorCache = new Map()
+      const dead = []
+      for (const c of controls) {
+        if (c.handled && c.handled !== 'react-none') continue
+        if (await listens(`window.__finishLint.nodes[${c.i}]`)) continue
+        if (c.handled !== 'react-none') {
+          // Delegation to a container counts; to body or document it is the residual this file names.
+          const anc = await page.evaluate((i) => {
+            const f = window.__finishLint
+            const out = []
+            for (let n = f.up(f.nodes[i]); n && n !== document.body && n !== document.documentElement; n = f.up(n)) {
+              let k = f.anc.indexOf(n)
+              if (k < 0) k = f.anc.push(n) - 1
+              out.push(k)
+            }
+            return out
+          }, c.i)
+          let delegated = false
+          for (const k of anc) {
+            if (!ancestorCache.has(k)) ancestorCache.set(k, await listens(`window.__finishLint.anc[${k}]`))
+            if (ancestorCache.get(k)) { delegated = true; break }
           }
-          return out
-        }, c.i)
-        let delegated = false
-        for (const k of anc) {
-          if (!ancestorCache.has(k)) ancestorCache.set(k, await listens(`window.__finishLint.anc[${k}]`))
-          if (ancestorCache.get(k)) { delegated = true; break }
+          if (delegated) continue
         }
-        if (delegated) continue
+        dead.push(c)
       }
-      add('dead-control', c.pattern, 'dom', c.target, c.text)
+      return dead
     }
+    let dead = await deadOf(dom.controls)
+    if (dead.length) {
+      // Hydration can land after network idle: a control is dead only if it is still dead a moment later.
+      await page.waitForTimeout(1500)
+      const now = await page.evaluate((ix) => ix.map((i) => window.__finishLint.handled(window.__finishLint.nodes[i])), dead.map((c) => c.i))
+      dead.forEach((c, k) => { c.handled = now[k] })
+      dead = await deadOf(dead)
+    }
+    for (const c of dead) add('dead-control', c.pattern, 'dom', c.target, c.text)
     report.dom.controls = dom.scanned
     await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'finish-lint' }).catch(() => {})
 
@@ -385,22 +508,33 @@ async function domPass() {
     await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' })
     await page.evaluate(() => { document.activeElement?.blur?.(); scrollTo(0, 0) })
     const MAX_STOPS = 200
+    const MAX_HELD = 40
     const stops = []
-    for (let k = 0; k < MAX_STOPS; k++) {
+    const held = new Map()
+    let trapped = null
+    for (let same = 0; stops.length < MAX_STOPS;) {
       await page.keyboard.press('Tab')
       const s = await page.evaluate(readStop)
-      if (!s) break
+      if (s.end) break
+      if (s.same) {
+        held.set(s.target, (held.get(s.target) ?? 0) + 1)
+        if (++same >= MAX_HELD) { trapped = s.target; break }
+        continue
+      }
+      same = 0
       stops.push(s)
     }
+    for (const [t, n] of held) report.notes.push(`focus-ring: Tab stayed on ${t} for ${n} more press(es) (its own fields, or an iframe's contents) — the walk went on past it`)
+    if (trapped) report.notes.push(`focus-ring: Tab stayed on ${trapped} for ${MAX_HELD} presses — the walk stopped there, later stops not checked`)
     if (stops.length === MAX_STOPS) report.notes.push(`focus-ring: stopped after ${MAX_STOPS} Tab stops — later stops not checked`)
     await page.evaluate(() => { let el = document.activeElement; while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement; el?.blur?.() })
-    const rest = await page.evaluate(() => window.__finishLint.stops.map((el) => (el.tagName === 'IFRAME' ? '' : window.__finishLint.snap(el))))
+    const rest = await page.evaluate(() => window.__finishLint.stops.map((el, i) => (el.tagName === 'IFRAME' ? '' : window.__finishLint.snap(el, window.__finishLint.hidden[i]))))
     for (const s of stops) {
       if (s.iframe) { report.notes.push(`focus-ring: ${s.target} is an iframe Tab stop — its contents were not checked`); continue }
       if (s.focused === rest[s.i]) add('focus-ring', 'no-focus-indicator', 'dom', s.target, s.text, `${DETAIL['no-focus-indicator']} (outline-style ${s.outline})`)
     }
     report.dom.tabStops = stops.length
-    Object.assign(report.dom, { measured: true, code: 0, reason: null })
+    if (!stopped) Object.assign(report.dom, { measured: true, code: 0, reason: null })
   } finally {
     await browser.close().catch(() => {})
   }
@@ -426,7 +560,17 @@ function readWaivers() {
 
 sourcePass()
 if (opt.url) {
-  try { await domPass() } catch (e) { notMeasured(2, `the browser pass crashed: ${String(e?.message ?? e).split('\n')[0]}`) }
+  let timer
+  const watchdog = new Promise((r) => { timer = setTimeout(() => r('timeout'), opt.timeout * 1000) })
+  try {
+    if (await Promise.race([domPass(), watchdog]) === 'timeout') {
+      notMeasured(2, `the browser pass did not finish in ${opt.timeout} s (a page that never yields, such as a busy loop) — raise --timeout for a slow page`)
+      stopped = true
+      await Promise.race([live?.close(), new Promise((r) => setTimeout(r, 5000))]).catch(() => {})
+    }
+  } catch (e) { notMeasured(2, `the browser pass crashed: ${String(e?.message ?? e).split('\n')[0]}`) }
+  stopped = true
+  clearTimeout(timer)
 }
 const waivers = readWaivers()
 for (const fnd of report.findings) {
@@ -436,22 +580,24 @@ for (const fnd of report.findings) {
 }
 
 const open = report.findings.filter((x) => !x.waived)
+// Page-controlled text reaches the terminal escaped: an id holding ESC or a bidi override must not drive it.
+const safe = (s) => String(s).replace(/[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
 report.exit = report.dom.measured ? (open.length ? 1 : 0) : report.dom.code
 if (opt.json) {
   console.log(JSON.stringify(report, null, 2))
 } else {
   console.log(`finish-lint · url ${report.url ?? 'none'} · source ${report.src}`)
   if (report.dom.browser) console.log(`browser:  ${report.dom.browser}`)
-  if (report.dom.identity) console.log(`identity: ${report.dom.identity}`)
+  if (report.dom.identity) console.log(`identity: ${safe(report.dom.identity)}`)
   console.log('')
   for (const x of report.findings) {
-    console.log(`  ${(x.waived ? 'WAIVED' : 'FAIL').padEnd(6)} ${x.rule.padEnd(20)} ${x.pattern.padEnd(18)} ${x.where} ${x.target}`
-      + `${x.text ? ' ' + JSON.stringify(x.text) : ''} — ${x.detail}${x.waived ? `  [waived: ${x.waived}]` : ''}`)
+    console.log(`  ${(x.waived ? 'WAIVED' : 'FAIL').padEnd(6)} ${x.rule.padEnd(20)} ${x.pattern.padEnd(18)} ${safe(x.where)} ${safe(x.target)}`
+      + `${x.text ? ' ' + safe(JSON.stringify(x.text)) : ''} — ${safe(x.detail)}${x.waived ? `  [waived: ${safe(x.waived)}]` : ''}`)
   }
-  for (const n of report.notes) console.log(`  note   ${n}`)
+  for (const n of report.notes) console.log(`  note   ${safe(n)}`)
   console.log('')
   console.log(`coverage: dom ${report.dom.measured ? `measured (${report.dom.controls} control(s), ${report.dom.tabStops} Tab stop(s))`
-    : `NOT MEASURED (${report.dom.reason})`} · source ${report.static.files} file(s)`)
+    : `NOT MEASURED (${safe(report.dom.reason)})`} · source ${report.static.files} file(s)`)
   console.log(!report.dom.measured
     ? `NOT MEASURED: the browser half did not run, so this proves nothing about the page${open.length ? `; the ${open.length} finding(s) above stand on their own` : ''}.`
     : open.length ? `${open.length} finish finding(s) — the build shipped unfinished UI.`
