@@ -132,6 +132,13 @@ class Findings(CheckerCase):
                                   "const half = total / 2; const quarter = Phaser.Math.PI2 / 4;\n")
         self.assertEqual(self.found(self.run_json()[1]), [("pi2-removed", 1), ("pi2-removed", 3)])
 
+    def test_template_literal_code_is_scanned_and_its_text_is_not(self) -> None:
+        self.manifest("^4.2.1")
+        self.write("src/hud.js", "const turn = `angle: ${Phaser.Math.PI2 * t} (not Math.PI2)`;\n"
+                                 "const nested = `${`${ s.angle / Phaser.Math.PI2 }` + '}'} Math.PI2`;\n"
+                                 "const tail = `${ {a: 1}.a }` + Phaser.Math.PI2;\n")
+        self.assertEqual(self.found(self.run_json()[1]), [("pi2-removed", 1), ("pi2-removed", 2), ("pi2-removed", 3)])
+
     def test_v3_project_stays_silent(self) -> None:
         self.manifest("^3.80.1")
         self.write("src/main.js", V4_BAD)
@@ -190,6 +197,15 @@ class Usage(CheckerCase):
             self.assertIn("--major", proc.stderr)
         rc, data = self.run_json("--major", "4")
         self.assertEqual((rc, self.found(data)), (1, [("pi2-removed", 1)]))
+
+    def test_src_outside_the_project_folder(self) -> None:
+        self.manifest("^4.2.1")
+        shared = Path(self.tmp.name) / "shared"
+        shared.mkdir()
+        (shared / "util.js").write_text("export const full = Phaser.Math.PI2;\n", encoding="utf-8")
+        rc, data = self.run_json("--src", str(shared))
+        self.assertEqual((rc, [(i["code"], i["file"], i["line"]) for i in data["errors"]]),
+                         (1, [("pi2-removed", "../shared/util.js", 1)]))
 
     def test_missing_src_folder(self) -> None:
         self.manifest("^4.2.1")

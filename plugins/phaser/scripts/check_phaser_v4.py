@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import bisect
 import json
+import os
 import re
 import sys
 from dataclasses import dataclass
@@ -62,7 +63,8 @@ def read_text(path: Path) -> str:
 
 
 def blank_js(text: str) -> tuple[str, str]:
-    """Return (code, code_with_strings): comments blanked in both, string/template/regex literal bodies blanked in code."""
+    """Return (code, code_with_strings): comments blanked in both; string, regex and template-literal text (not its
+    ${} code) blanked in code."""
     code = list(text)
     keep = list(text)
     n = len(text)
@@ -79,38 +81,21 @@ def blank_js(text: str) -> tuple[str, str]:
         return min(j + 1, n)
 
     def template_end(i: int) -> int:
-        j = i + 1
+        """Blank the template's text in code, scan each ${} as code, and return the index after the closing backtick."""
+        j = start = i + 1
         while j < n:
             c = text[j]
             if c == "\\":
                 j += 2
             elif c == "`":
+                blank(code, start, j)
                 return j + 1
             elif c == "$" and j + 1 < n and text[j + 1] == "{":
-                j = code_end(j + 2, "}")
+                blank(code, start, j)
+                j = start = scan(j + 2, nested=True)
             else:
                 j += 1
-        return n
-
-    def code_end(i: int, closer: str) -> int:
-        depth = 0
-        j = i
-        while j < n:
-            c = text[j]
-            if c in "'\"":
-                j = string_end(j, c)
-            elif c == "`":
-                j = template_end(j)
-            elif c == "{":
-                depth += 1
-                j += 1
-            elif c == "}":
-                if depth == 0:
-                    return j + 1
-                depth -= 1
-                j += 1
-            else:
-                j += 1
+        blank(code, start, n)
         return n
 
     def regex_end(i: int) -> int | None:
@@ -144,38 +129,45 @@ def blank_js(text: str) -> tuple[str, str]:
         m = re.search(r"[A-Za-z_$][\w$]*$", text[max(0, k - 12):k + 1])
         return bool(m and m.group(0) in REGEX_WORDS)
 
-    i = 0
-    while i < n:
-        c = text[i]
-        if c == "/" and i + 1 < n and text[i + 1] == "/":
-            j = text.find("\n", i)
-            j = n if j < 0 else j
-            blank(code, i, j)
-            blank(keep, i, j)
-            i = j
-        elif c == "/" and i + 1 < n and text[i + 1] == "*":
-            j = text.find("*/", i + 2)
-            j = n if j < 0 else j + 2
-            blank(code, i, j)
-            blank(keep, i, j)
-            i = j
-        elif c in "'\"":
-            j = string_end(i, c)
-            blank(code, i + 1, j - 1)
-            i = j
-        elif c == "`":
-            j = template_end(i)
-            blank(code, i + 1, j - 1)
-            i = j
-        elif c == "/" and regex_allowed(i):
-            j = regex_end(i)
-            if j is None:
+    def scan(i: int, nested: bool) -> int:
+        """Lex code from i; when nested (inside ${}), stop after the } that closes it and return that index."""
+        depth = 0
+        while i < n:
+            c = text[i]
+            if c == "/" and i + 1 < n and text[i + 1] == "/":
+                j = text.find("\n", i)
+                j = n if j < 0 else j
+                blank(code, i, j)
+                blank(keep, i, j)
+                i = j
+            elif c == "/" and i + 1 < n and text[i + 1] == "*":
+                j = text.find("*/", i + 2)
+                j = n if j < 0 else j + 2
+                blank(code, i, j)
+                blank(keep, i, j)
+                i = j
+            elif c in "'\"":
+                j = string_end(i, c)
+                blank(code, i + 1, j - 1)
+                i = j
+            elif c == "`":
+                i = template_end(i)
+            elif c == "/" and regex_allowed(i):
+                j = regex_end(i)
+                if j is None:
+                    i += 1
+                    continue
+                blank(code, i + 1, j)
+                i = j
+            elif nested and c == "}" and depth == 0:
+                return i + 1
+            else:
+                if nested:
+                    depth += (c == "{") - (c == "}")
                 i += 1
-                continue
-            blank(code, i + 1, j)
-            i = j
-        else:
-            i += 1
+        return n
+
+    scan(0, nested=False)
     return "".join(code), "".join(keep)
 
 
@@ -254,9 +246,15 @@ class Scan:
                 out.append(path)
         return out
 
+    def rel(self, path: Path) -> str:
+        try:
+            return Path(os.path.relpath(path, self.root)).as_posix()
+        except ValueError:
+            return path.as_posix()  # another drive on Windows
+
     def run(self) -> None:
         for path in self.files():
-            rel = path.relative_to(self.root).as_posix()
+            rel = self.rel(path)
             try:
                 text = read_text(path)
             except OSError as exc:
@@ -344,7 +342,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("project_dir", nargs="?", default=".", metavar="PROJECT_DIR",
                         help="folder that holds package.json (default: current folder)")
-    parser.add_argument("--src", default="src", metavar="DIR", help="source folder under PROJECT_DIR (default: src)")
+    parser.add_argument("--src", default="src", metavar="DIR",
+                        help="source folder, relative to PROJECT_DIR or absolute (default: src)")
     parser.add_argument("--major", type=int, metavar="N",
                         help="Phaser major to assume when the package.json range does not pin one")
     parser.add_argument("--json", action="store_true", help="print one JSON object instead of text")

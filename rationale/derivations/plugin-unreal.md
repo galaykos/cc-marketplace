@@ -19,7 +19,13 @@ version-windowed lexical check with an exit code is the one artifact here that p
   build) exits 2 and asks for `--engine-version`. The checker does not read `Engine/Build/Build.version`: its field
   layout was not verified from an Epic page this run.
 - Source rules: one regex per rule over `Source/**/*.cpp|h`, after comments, string, raw-string and char literals
-  are blanked. Digit separators (`1'000`) are not mistaken for char literals. Each rule carries `deprecated`
+  are blanked. Digit separators (`1'000`) are not mistaken for char literals. A line in an `#if 0` branch is skipped,
+  and so is every branch (`#else` too) of an `#if`/`#ifdef`/`#ifndef` group whose `#if` or `#elif` names
+  `ENGINE_MAJOR_VERSION`, `ENGINE_MINOR_VERSION`, `ENGINE_PATCH_VERSION` or `UE_VERSION_*`, as unity-traps'
+  `version_guarded_lines` does: code that guards on the version has handled it. The `#else` of an `#if 0` compiles,
+  so it is scanned. The macro names were read from a public mirror of
+  `Engine/Source/Runtime/Core/Public/Misc/EngineVersionComparison.h` (`OpenHUTB/engine`, blob `e20a9a7`, 2026-11-09):
+  `UE_VERSION_NEWER_THAN`/`UE_VERSION_OLDER_THAN` expand to `ENGINE_MAJOR|MINOR|PATCH_VERSION`. Each rule carries `deprecated`
   (warning from that version) and `removed` (error from that version), the blender `check_bpy_scripts.py` idiom.
 - Config rules apply from 5.8 only, over `Config/**/*.ini` (`;` comments skipped, UE's `+-.!@*` key prefixes
   accepted). `zen-process-lifetime` is skipped when `Config/DefaultGame.ini` sets `bUseZenStore` false in a
@@ -88,13 +94,18 @@ The `[/Script/UnrealEd.ProjectPackagingSettings]` section name appears in the 5.
 
 ### Measured on 2026-11-09
 
-- `scripts/__tests__/check_unreal_project.test.sh`: 17 cases, all pass.
+- `scripts/__tests__/check_unreal_project.test.sh`: 17 cases, all pass. A review on 2026-11-09 found `#if 0` and
+  version-guarded branches scanned: `#if ENGINE_MINOR_VERSION < 7` around `FXRMotionControllerData Data;` exited 1 on
+  5.7. Two cases were added (19): a silent one and one where the live branches around the guards still fire. Both
+  failed on the first cut.
 - Five seeded faults each failed the suite: comment and string blanking off, the 5.7 removal window dropped, the
   config window moved to 5.7, `bUseZenStore` ignored, and digit-separator handling removed.
 - No Unreal Engine install or compiler ran. The fixtures encode the release notes as read, not engine behaviour.
 
 ### What it does not catch
 
+- A deprecated name inside a version-guarded `#if` group, in any branch, even the one this engine compiles. A guard
+  macro named only on a `\`-continued directive line is not seen, so that group is scanned.
 - A deprecated name reached through a `using` alias, a macro, or a renamed variable. A same-named method on an
   unrelated class is reported (`IsAllowedToTick`, `::NonInstanced`).
 - `Plugins/*/Source`, `*.Build.cs`, `*.Target.cs`, `.inl` and `.hpp` files are not scanned. Ini files outside

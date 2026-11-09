@@ -181,6 +181,47 @@ class SourceRules(CheckerCase):
         self.assertEqual([(i["code"], i["line"]) for i in data["warnings"]],
                          [("any-package", SILENT_CPP.count("\n") + 1)])
 
+    def test_dead_and_version_guarded_branches_stay_silent(self) -> None:
+        self.uproject("5.7")
+        self.write("Source/MyGame/Xr.cpp",
+                   "#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7\n"
+                   "FXRMotionControllerData Data;\n"
+                   "#else\n"
+                   "FXRMotionControllerState State;\n"
+                   "#endif\n"
+                   "#if !UE_VERSION_NEWER_THAN(5, 6, 0)\n"
+                   "#ifdef WITH_XR\n"
+                   "Sys->GetMotionControllerData(World, Hand, Data);\n"
+                   "#endif\n"
+                   "#endif\n"
+                   "#if 0 // kept for reference\n"
+                   "FXRMotionControllerData Old;\n"
+                   "#endif\n")
+        rc, data = self.run_json()
+        self.assertEqual((rc, data["errors"], data["warnings"]), (0, [], []))
+
+    def test_live_branches_around_guards_still_fire(self) -> None:
+        self.uproject("5.7")
+        self.write("Source/MyGame/Xr.cpp",
+                   "#if WITH_EDITOR\n"
+                   "FXRMotionControllerData A;\n"
+                   "#endif\n"
+                   "#if 0\n"
+                   "FXRMotionControllerData B;\n"
+                   "#else\n"
+                   "FXRMotionControllerData C;\n"
+                   "#endif\n"
+                   "#ifdef WITH_XR\n"
+                   "#if ENGINE_MINOR_VERSION < 7\n"
+                   "FXRMotionControllerData D;\n"
+                   "#endif\n"
+                   "FXRMotionControllerData E;\n"
+                   "#endif\n"
+                   "FXRMotionControllerData F;\n")
+        rc, data = self.run_json()
+        self.assertEqual((rc, [(i["code"], i["line"]) for i in data["errors"]]),
+                         (1, [("motion-controller-data", n) for n in (2, 7, 13, 15)]))
+
     def test_other_suffixes_and_plugins_are_not_scanned(self) -> None:
         self.uproject("5.8")
         self.write("Config/DefaultEngine.ini", CLEAN_ENGINE_INI)

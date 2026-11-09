@@ -36,8 +36,8 @@ artifact here that a table row cannot replace.
   range that pins exactly one major is read (`4.2.1`, `^4`, `~4.0.0`, `4.x`, `4.0.0-rc.7`). `latest`, `*`, `>=`,
   `||` and git URLs exit 2 and ask for `--major`. The task asked for `package.json`, so the lockfile is not read,
   although the skill tells the model to read it.
-- Lexing: comments are blanked in both views; string, template-literal and regex-literal bodies are blanked in the
-  code view. A regex literal is assumed after `( , = : [ ! & | ? { } ; + - * % < > ~ ^`, at the start of the file,
+- Lexing: comments are blanked in both views; string and regex-literal bodies, and a template literal's text, are
+  blanked in the code view. The `${}` code inside a template is lexed as code, nested templates included. A regex literal is assumed after `( , = : [ ! & | ? { } ; + - * % < > ~ ^`, at the start of the file,
   or after `return`, `typeof` and similar keywords.
 - Unrendered texture: each creation call (`add.renderTexture`, `make.renderTexture`, `textures.addDynamicTexture`,
   `new [Phaser.GameObjects.]RenderTexture`, `new [Phaser.Textures.]DynamicTexture`) names a receiver (`rt`,
@@ -45,12 +45,17 @@ artifact here that a table row cannot replace.
   in the same file is walked. A draw (`draw`, `fill`, `stamp`, `erase`, `capture`, `repeat`) with no `render()` on
   the receiver is reported. `setRenderMode(x)` or `renderMode = x` with any value except `'render'` counts as
   auto-render. `clear()` alone is not a draw: a texture that is only cleared is not reported.
+- `--src` is relative to the project folder, or absolute. A file outside the project folder is reported by its path
+  relative to it (`../shared/util.js`).
 - Severities: `pi2-removed` and `render-missing` are errors, because the result is wrong. `canvas-renderer` is a
   warning, because Canvas still runs.
 
 ### Measured on 2026-11-09
 
-- `scripts/__tests__/check_phaser_v4.test.sh`: 11 cases, all pass.
+- `scripts/__tests__/check_phaser_v4.test.sh`: 11 cases, all pass. A review on 2026-11-09 found two more faults. A
+  template literal was blanked whole, so `${Phaser.Math.PI2 * t}` went unseen. An absolute `--src` outside the
+  project folder raised `ValueError`, a traceback with exit 1 that reads as "errors found". One case each was
+  added (13); both failed on the first cut.
 - Seven seeded faults each failed the suite: blanking off, `setRenderMode` ignored, any `setRenderMode` treated as
   auto, a Phaser 3 project scanned, `render()` not seen, regex literals not lexed, and `renderMode =` ignored. The
   first draft survived two of them: a dotted receiver (`scene.minimap`) was not tracked, and the regex fixture could

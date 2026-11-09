@@ -45,7 +45,7 @@ detail it does not carry.
 | The v3→v4 table | recorded — true at the skill's `Last verified` stamp. `check-doc-staleness.sh --live` warns when npm ships a newer `phaser` minor; it cannot say what changed |
 | `setTintFill` and `TAU` | unenforceable by this plugin — Phaser 4 logs or computes instead of throwing, which is why they are listed |
 | No `Math.PI2`, `type: Phaser.CANVAS` or drawn-but-unrendered `RenderTexture`/`DynamicTexture` in `src/` | **gate where run** — `check_phaser_v4.py` exits 1 (CANVAS warns). Running it is recorded: no hook runs it. A texture rendered from another file is reported, and an aliased `Math` or a destructured `PI2` is missed |
-| The checker's own behaviour | **gate** — `scripts/__tests__/check_phaser_v4.test.sh`, 11 end-to-end cases, runs in this repo's CI. It includes comment, string and regex-literal cases and a Phaser 3 project that stay silent. It proves the codes, not that Phaser agrees: no browser runs |
+| The checker's own behaviour | **gate** — `scripts/__tests__/check_phaser_v4.test.sh`, 13 end-to-end cases, runs in this repo's CI. It includes comment, string and regex-literal cases and a Phaser 3 project that stay silent. It proves the codes, not that Phaser agrees: no browser runs |
 | Compressed textures re-compressed Y-up | unenforceable here — the orientation is inside the binary texture |
 | The vendor-skills note | recorded — read from Phaser's README and the 4.2.1 npm file list on 2026-11-09 |
 | The Arcade footguns | recorded — read from the Phaser 4.2.1 Arcade source |

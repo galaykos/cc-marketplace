@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read-only check of a Unity 6 project for .meta mistakes made outside the Editor (duplicate or malformed GUIDs, moved assets
 without their .meta, leftover .meta, missing scripts, class/file name mismatches) and C# names its versions deprecate or removed.
-Does NOT read binary assets, DLL scripts, or names inside #if version guards; with no Library/PackageCache, missing-script warns."""
+Does NOT read binary assets, DLL scripts, or names in #if version guards; with no Library/PackageCache, missing-script warns and git Cinemachine goes unchecked."""
 # Derived from gamedev-skills/awesome-gamedev-agent-skills@184b72b (Apache-2.0, see NOTICE); modified.
 # Why, limits, history: rationale/derivations/plugin-unity-traps.md § plugins/unity-traps/scripts/check_unity_project.py
 
@@ -783,7 +783,7 @@ def top_level_positions(code: str) -> Callable[[int], bool]:
     return is_top_level
 
 
-def check_class_names(scan: Scan, rules: tuple[tuple[ApiRule, str, str], ...] = ()) -> None:
+def check_cs_files(scan: Scan, rules: tuple[tuple[ApiRule, str, str], ...] = ()) -> None:
     """Warn when a MonoBehaviour/ScriptableObject class does not match its file name; scan API names in the same pass."""
     for path in scan.cs_files:
         try:
@@ -825,7 +825,32 @@ def check_class_names(scan: Scan, rules: tuple[tuple[ApiRule, str, str], ...] = 
         )
 
 
-def read_versions(root: Path) -> dict[str, tuple[tuple[int, int], str]]:
+def package_version(root: Path, name: str, embedded: dict[str, Path]) -> str | None:
+    """An embedded package's own version, a version the manifest pins, a transitive registry entry's locked version,
+    or else the package.json of the git, file: or cache copy; None when absent or the cache copies disagree."""
+    if name in embedded:
+        folders = [embedded[name]]
+    else:
+        deps = (load_json(root / "Packages" / "manifest.json") or {}).get("dependencies")
+        wanted = deps.get(name) if isinstance(deps, dict) else None
+        if isinstance(wanted, str) and re.match(r"\s*\d+\.\d+", wanted):
+            return wanted
+        if wanted is None:
+            # A git package's lock "version" is its URL; only registry and builtin entries hold a number.
+            locked = (load_json(root / "Packages" / "packages-lock.json") or {}).get("dependencies")
+            entry = locked.get(name) if isinstance(locked, dict) else None
+            if isinstance(entry, dict) and entry.get("source") in ("registry", "builtin"):
+                return entry.get("version")
+        local = root / "Packages" / wanted[len("file:"):] if isinstance(wanted, str) and wanted.startswith("file:") else None
+        if local is not None and local.is_dir():
+            folders = [local]
+        else:
+            folders = sorted((root / "Library" / "PackageCache").glob(f"{name}@*"))
+    versions = {str((load_json(folder / "package.json") or {}).get("version")) for folder in folders}
+    return versions.pop() if len(versions) == 1 else None
+
+
+def read_versions(root: Path, embedded: dict[str, Path]) -> dict[str, tuple[tuple[int, int], str]]:
     """The Unity editor and Cinemachine versions as ((major, minor), as written); an unreadable one is left out."""
     found: dict[str, tuple[tuple[int, int], str]] = {}
     try:
@@ -835,16 +860,10 @@ def read_versions(root: Path) -> dict[str, tuple[tuple[int, int], str]]:
     match = re.search(r"^m_EditorVersion:\s*((\d+)\.(\d+)\S*)", text, re.M)
     if match:
         found[UNITY] = ((int(match.group(2)), int(match.group(3))), match.group(1))
-    candidates = []
-    for name in ("manifest.json", "packages-lock.json"):
-        deps = (load_json(root / "Packages" / name) or {}).get("dependencies")
-        entry = deps.get(CINEMACHINE) if isinstance(deps, dict) else None
-        candidates.append(entry.get("version") if isinstance(entry, dict) else entry)
-    for value in candidates:
-        match = re.match(r"\s*(\d+)\.(\d+)", value) if isinstance(value, str) else None
-        if match:
-            found[CINEMACHINE] = ((int(match.group(1)), int(match.group(2))), value.strip())
-            break
+    value = package_version(root, CINEMACHINE, embedded)
+    match = re.match(r"\s*(\d+)\.(\d+)", value) if isinstance(value, str) else None
+    if match:
+        found[CINEMACHINE] = ((int(match.group(1)), int(match.group(2))), value.strip())
     return found
 
 
@@ -940,7 +959,7 @@ def run(root: Path) -> Scan:
     known, orphan_guids = check_metas(scan, packages)
     known |= set(packages.external_guids)
     check_scripts(scan, known, orphan_guids, packages)
-    check_class_names(scan, active_rules(read_versions(root)))
+    check_cs_files(scan, active_rules(read_versions(root, packages.embedded)))
     return scan
 
 
@@ -962,7 +981,9 @@ def build_parser() -> argparse.ArgumentParser:
             "warnings: missing-meta (normal for a new file), orphan-meta, meta-name-case,\n"
             "          class-name-mismatch, api-deprecated\n"
             "api-*: a C# name the project's Unity version (ProjectSettings/ProjectVersion.txt) or\n"
-            "Cinemachine version (Packages/manifest.json) deprecates or removed; no version, no finding.\n"
+            "Cinemachine version deprecates or removed; no version, no finding. Cinemachine's version is the\n"
+            "one Packages/manifest.json pins, else its package.json (embedded, file: or Library/PackageCache),\n"
+            "so a git Cinemachine with no Library/PackageCache yet gets no api-* finding.\n"
             "missing-script is downgraded to a warning when package scripts could not be read\n"
             "(Library/PackageCache absent: a fresh clone or CI runner before Unity opened the project).\n"
             "Walks Assets/ and embedded Packages/ only; skips binary-serialized files and DLL scripts.\n\n"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Catches, for the engine version in the .uproject (or --engine-version), Zen and DDC keys in Config/*.ini that UE 5.8 renamed,
 deprecated or asks CI to set, and C++ names in Source/**/*.cpp|h that Epic's release notes deprecate or remove (each rule cites them).
-Does NOT compile or resolve types: a name is matched as written outside comments and strings, so an alias or macro hides it."""
+Does NOT compile or resolve types: a name is matched as written outside comments, strings, #if 0 and version #if groups, so an alias or macro hides it."""
 # Why, limits, history: rationale/derivations/plugin-unreal.md § plugins/unreal/scripts/check_unreal_project.py
 
 from __future__ import annotations
@@ -83,6 +83,8 @@ DDC_LEGACY_SECTION = "deriveddatabackendgraph"
 DDC_DEPRECATED_NODE = re.compile(r"\bType\s*=\s*(KeyLength|AsyncPut|Verify)\b", re.I)
 INI_KEY = re.compile(r"^[+\-.!@*]?([A-Za-z0-9_.]+)\s*=\s*(.*)$")
 CPP_SUFFIXES = {".cpp", ".h"}
+CPP_DIRECTIVE = re.compile(r"^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|elifdef|elifndef|else|endif)\b(.*)$", re.M)
+CPP_VERSION_GUARD = re.compile(r"\bENGINE_(?:MAJOR|MINOR|PATCH)_VERSION\b|\bUE_VERSION_\w")
 
 
 @dataclass
@@ -162,6 +164,30 @@ def blank_cpp(text: str) -> str:
         else:
             i += 1
     return "".join(out)
+
+
+def skipped_lines(code: str) -> set[int]:
+    """Lines in an `#if 0` branch, or in any branch of an #if group whose condition names an engine version macro."""
+    skipped: set[int] = set()
+    stack: list[list[bool]] = []  # per open group: [names a version macro, current branch is `#if 0`]
+    open_from = 0
+    for match in CPP_DIRECTIVE.finditer(code):
+        line = code.count("\n", 0, match.start()) + 1
+        if any(guarded or dead for guarded, dead in stack):
+            skipped.update(range(open_from, line))
+        kind, condition = match.group(1), match.group(2)
+        versioned = bool(CPP_VERSION_GUARD.search(condition))
+        dead = kind in ("if", "elif") and condition.strip() == "0"
+        if kind.startswith("if"):
+            stack.append([versioned, dead])
+        elif stack and kind.startswith("elif"):
+            stack[-1] = [stack[-1][0] or versioned, dead]
+        elif stack and kind == "else":
+            stack[-1][1] = False
+        elif stack and kind == "endif":
+            stack.pop()
+        open_from = line + 1
+    return skipped
 
 
 def parse_ini(text: str):
@@ -267,10 +293,15 @@ class Project:
             if text is None or not active:
                 continue
             rel = self.rel(path)
-            for lineno, line in enumerate(blank_cpp(text).split("\n"), start=1):
+            code = blank_cpp(text)
+            skipped: set[int] | None = None
+            for lineno, line in enumerate(code.split("\n"), start=1):
                 for rule, severity in active:
                     if rule["regex"].search(line):
-                        self.add(severity, rule["id"], rel, lineno, rule["msg"], rule["fix"], rule["source"])
+                        if skipped is None:
+                            skipped = skipped_lines(code)
+                        if lineno not in skipped:
+                            self.add(severity, rule["id"], rel, lineno, rule["msg"], rule["fix"], rule["source"])
 
 
 def build_parser() -> argparse.ArgumentParser:

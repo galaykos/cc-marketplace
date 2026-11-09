@@ -19,6 +19,7 @@ GUID_SPRITE = "11112222333344445555666677778888"
 GUID_FOLDER = "99990000aaaabbbbccccddddeeeeffff"
 GUID_GONE = "deadbeefdeadbeefdeadbeefdeadbeef"
 GUID_PACKAGE = "c0ffee00c0ffee00c0ffee00c0ffee00"
+CINEMACHINE = "com.unity.cinemachine"
 
 MODULES_ONLY = {"dependencies": {"com.unity.modules.physics": "1.0.0"}}
 
@@ -493,12 +494,42 @@ class CheckUnityProjectTests(unittest.TestCase):
                          [("api-deprecated", 5), ("api-removed", 3), ("api-removed", 6), ("api-removed", 8)])
         self.assertTrue(all("com.unity.cinemachine 3.0" in f[3] for f in found), found)
 
-    def test_cinemachine_version_falls_back_to_the_lock_file(self) -> None:
+    def test_git_cinemachine_version_comes_from_the_package_cache(self) -> None:
         body = "public class Uses { CinemachineTransposer t; }\n"
-        self.write("Packages/packages-lock.json",
-                   json.dumps({"dependencies": {"com.unity.cinemachine": {"version": "3.1.2", "source": "git"}}}))
-        code, found = self.api(body, cinemachine="https://github.com/example/cinemachine.git")
+        url = "https://github.com/Unity-Technologies/com.unity.cinemachine.git#3.1.2"
+        # The lock shape UPM writes for a git package: "version" holds the URL, the commit is in "hash".
+        self.write("Packages/packages-lock.json", json.dumps({"dependencies": {CINEMACHINE: {
+            "version": url, "depth": 0, "source": "git", "dependencies": {}, "hash": "45728f3" + "0" * 33}}}))
+        self.assertEqual(self.api(body, cinemachine=url), (0, []))
+        self.write(f"Library/PackageCache/{CINEMACHINE}@45728f30a1b2/package.json",
+                   json.dumps({"name": CINEMACHINE, "version": "3.1.2"}))
+        code, found = self.api(body, cinemachine=url)
         self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        self.assertIn("this project has 3.1.2", found[0][3])
+        self.write(f"Library/PackageCache/{CINEMACHINE}@2.10.1/package.json",
+                   json.dumps({"name": CINEMACHINE, "version": "2.10.1"}))
+        self.assertEqual(self.api(body, cinemachine=url), (0, []))
+
+    def test_embedded_and_local_cinemachine_versions_come_from_their_package_json(self) -> None:
+        body = "public class Uses { CinemachineTransposer t; }\n"
+        self.write("Packages/packages-lock.json", json.dumps({"dependencies": {CINEMACHINE: {
+            "version": f"file:{CINEMACHINE}", "depth": 0, "source": "embedded", "dependencies": {}}}}))
+        self.write(f"Packages/{CINEMACHINE}/package.json", json.dumps({"name": CINEMACHINE, "version": "3.1.2"}))
+        code, found = self.api(body)
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        (self.root / "Packages" / CINEMACHINE / "package.json").unlink()
+        self.write("../Shared/Cinemachine/package.json", json.dumps({"name": CINEMACHINE, "version": "3.0.1"}))
+        code, found = self.api(body, cinemachine="file:../../Shared/Cinemachine")
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+
+    def test_transitive_registry_cinemachine_falls_back_to_the_lock_file(self) -> None:
+        body = "public class Uses { CinemachineTransposer t; }\n"
+        self.write("Packages/packages-lock.json", json.dumps({"dependencies": {CINEMACHINE: {
+            "version": "3.1.2", "depth": 1, "source": "registry", "dependencies": {},
+            "url": "https://packages.unity.com"}}}))
+        code, found = self.api(body)
+        self.assertEqual((code, [f[1] for f in found]), (0, ["api-deprecated"]))
+        self.assertEqual(self.api(body, cinemachine="https://github.com/example/cinemachine.git"), (0, []))
 
     def test_api_names_in_comments_strings_guards_and_declarations_are_silent(self) -> None:
         body = (

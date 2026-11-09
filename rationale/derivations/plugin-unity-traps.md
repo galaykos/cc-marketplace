@@ -50,9 +50,11 @@ Standard library only. Read-only: nothing is ever written.
 ### Version-windowed API names (2026-11-09, unity-traps 0.6.0)
 
 Roadmap row GD4. The checker reads `m_EditorVersion` from `ProjectSettings/ProjectVersion.txt` and the
-`com.unity.cinemachine` version from `Packages/manifest.json`, falling back to `packages-lock.json` when the manifest
-holds a URL. It then scans each C# file it already reads for class names, in the same pass, for names in that
-version's window. Every boundary below was read from the page named, on 2026-11-09:
+`com.unity.cinemachine` version as Unity resolves it: an embedded `Packages/<dir>/package.json` first, then a version
+the manifest pins, then, for a package the manifest does not list, a `registry` or `builtin` entry of
+`packages-lock.json`, else the `package.json` of the `file:` folder or of `Library/PackageCache/com.unity.cinemachine@*`
+(none when cache copies disagree). It then scans each C# file it already reads for class names, in the same pass
+(`check_cs_files`), for names in that version's window. Every boundary below was read from the page named, on 2026-11-09:
 
 | Name | Deprecated (warning) | Removed (error) | Read from |
 |---|---|---|---|
@@ -75,13 +77,25 @@ and 6000.5 gets errors.
   condition names `UNITY_<digit>` or `CINEMACHINE`, in both branches: code that already guards on the version handled
   it. One finding per file and rule, with a use count.
 - **Misses.** A call inside an interpolated string's braces, because the stripper blanks the whole string. A name
-  reached through `using static`, an alias or a variable. Files over 2 MB. A project whose versions cannot be read.
+  reached through `using static`, an alias or a variable. Files over 2 MB. A project whose versions cannot be read,
+  which includes a git Cinemachine before Unity has filled `Library/PackageCache` (a fresh clone or CI runner).
   `Uxml*AttributeDescription` fields are not scanned on their own: they sit inside a `UxmlTraits` class the scan
   already reports.
 - **Cost.** Each rule runs only on a file holding its literal needles (`InstanceID`, `Uxml`, `Cinemachine` and the
   name itself). The namespace regex starts with its literal, because a lookbehind first made it 60 times slower. On a
   synthetic project of 24,202 files with 12,000 scripts, every one naming `Unity.Cinemachine`, on Unity 6000.6 with
   Cinemachine 3.1.2, the checker went from 1.22 s to 1.33 s (three runs each, 2026-11-09).
+
+**Review fix, 2026-11-09: the git Cinemachine version.** The first cut fell back to `packages-lock.json` when the
+manifest held a URL, and its test wrote a lock entry `{"version": "3.1.2", "source": "git"}`. UPM never writes
+that. A real lock (`Haruma-K/UnityDebugSheet` `Packages/packages-lock.json`, blob `791ba554`, read 2026-11-09)
+holds the URL in a git entry's `version` and the commit in `hash`, for example `com.tayx.graphy`:
+`{"version": "https://github.com/Tayx94/graphy.git", "depth": 0, "source": "git", "hash": "e571e3a…"}`;
+its `builtin` entries hold numbers. Unity's "Lock files" page (`docs.unity3d.com/6000.0/Documentation/Manual/upm-conflicts-auto.html`)
+shows only a `registry` entry. So a git Cinemachine was never version-checked while the test passed. The version now
+comes from the package's own `package.json`, and the lock is read only for a transitive `registry`/`builtin` entry.
+Tests: git with and without a cache copy, two disagreeing copies, embedded, `file:` folder, transitive registry
+entry, and a manifest-listed package whose lock entry is not read; three of them failed on the first cut.
 
 ## plugins/unity-traps/hooks/meta-check.sh
 
