@@ -33,8 +33,9 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_godot_project.py" <project-dir> --j
 | A missing `run/main_scene` or autoload target | `run/main_scene` not set at all | |
 
 Standing: the checks are a **gate** for whoever runs the script — exit 1 is mechanical. Running
-it is **recorded** only: no hook in this plugin runs it on an edit, so a session that skips it
-ships the break.
+it is a **gate where installed** for edits: `hooks/godot-check.sh` runs it after a Write or Edit
+of a `.tscn`, `.tres` or `.gd` and adds each new finding once (off: `CC_GODOT_CHECK=off`). A move
+or rename from a shell is not an edit it sees: run the checker yourself after one.
 
 ## Facts the checker cannot tell you
 

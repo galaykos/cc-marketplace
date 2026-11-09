@@ -27,6 +27,7 @@ claude plugin install godot@cc-plugins-marketplace
 | `godot-headless-testing` (skill) | Running GDScript tests from a terminal or CI, or a headless run that hangs or exits 0 despite failures |
 | `godot-project-check` (skill) | After creating, moving, renaming or hand-editing scenes, resources or scripts; on `Failed loading resource`, `invalid UID`, a missing main scene or autoload |
 | `scripts/check_godot_project.py` | `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_godot_project.py" <project-dir> [--json] [--strict]` — read-only, Python 3.10+ standard library, no Godot binary; exit 0 clean, 1 errors, 2 not a project |
+| `hooks/godot-check.sh` (PostToolUse) | Runs on its own: after a Write or Edit of a `.tscn`, `.tres` or `.gd`, it runs the checker on the project above the file (the nearest `project.godot`) and adds new findings — errors anywhere, warnings in the edited file, at most 5, each once per context. It never blocks. Off: `CC_GODOT_CHECK=off`, or the plugin's option under `/config` |
 
 Every skill reads the engine minor from `project.godot` (`config/features`) before advising
 and never mixes Godot 3 and 4 snippets.
@@ -35,8 +36,10 @@ and never mixes Godot 3 and 4 snippets.
 
 | Rule | Standing |
 |---|---|
-| Broken `res://` paths, path case, uids, resource ids, scene `parent=`/connection paths, main scene and autoloads | **gate** for whoever runs `check_godot_project.py` — exit 1, deterministic. Running it is **recorded**: no hook runs it on an edit |
+| Broken `res://` paths, path case, uids, resource ids, scene `parent=`/connection paths, main scene and autoloads | **gate** for whoever runs `check_godot_project.py` — exit 1, deterministic |
+| The checker runs after a scene, resource or script edit | **gate where installed** (warn-only hook): `hooks/godot-check.sh` on every Write/Edit/MultiEdit of a `.tscn`, `.tres` or `.gd` inside a Godot project. A move, rename or write from Bash, or a save in the Godot editor, is not an edit it sees: running the checker then is **recorded**. What the agent does with a finding is **agent-graded** |
 | The checker's own behaviour | **gate** — `scripts/__tests__/check_godot_project.test.sh`, 44 end-to-end cases on throwaway projects, runs in this repo's CI. It proves the checker's codes, not that Godot agrees: no engine binary runs in the tests |
+| The hook's firing and silence | **gate** — `scripts/__tests__/godot-check-hook.test.sh`, 26 cases in this repo's CI on payloads in the host's PostToolUse shape: it fires on a broken scene, resource or script and stays silent on a clean scene, a `.gd` outside any project, a hidden folder and the off switch. No live host session was run for it |
 | A CI test job fails on a failing GDScript test | **gate** in the user's CI once the runner from `godot-headless-testing` is used — its `quit()` code fails the step. Whether the runner is used is **recorded** |
 | The version-read rule and every trap in `godot-best-practices` and its references | **recorded** — nothing here runs Godot or lints `.gd`; **agent-graded** only when a reviewer applies them to a diff |
 
