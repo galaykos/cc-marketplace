@@ -461,9 +461,15 @@ The `hooks.json` matcher admits `mcp__.*([Bb]lender|[Mm]eshy)` only (unanchored 
 code.claude.com/docs/en/hooks.md § Matcher patterns, read 2026-11-09). A plain `mcp__.*` would start the hook on every MCP call.
 Measured that day: 10.9 ms median for an unmatched MCP payload and 27.7 ms for a matched one that is already fired, 21 runs each
 on an empty git repo. The narrow matcher puts the cost on Blender and Meshy calls alone, and it pays for that with a second place to
-edit: a `tool` row the matcher does not admit never fires. `route.test.sh` case 29 checks that each `tool` row matches a fixture name
-the matcher also admits, and it compiles every `tool` row. `pc_rules_reachable` (scripts/lib/plugin-checks.sh) compiles `content` and
-`command` rows only.
+edit: a `tool` row the matcher does not admit never fires. `route.test.sh` case 29 checks that the matcher admits every fixture
+tool name and that each `tool` row matches one of them, and it compiles every `tool` row. The first cut checked only the first name
+each row matched, so a matcher narrowed to `mcp__(Blender|meshy)__` stayed green while three routed names lost the hook (review of
+92daeb35, reproduced on a copy 2026-11-09). `pc_rules_reachable` (scripts/lib/plugin-checks.sh) compiles `content` and `command`
+rows only.
+
+The `game-assets` licence row first matched `*licen[cs]e*` anywhere under an asset directory, so `Assets/Scripts/LicenseManager.cs`
+and `LicensesScreen.prefab` took a nudge slot (same review). Its `@path` marker now also requires a `.txt` or `.md` extension, or
+none; case 29 pins the `.cs` and `.prefab` neighbours and an extensionless `OFL-LICENSE`.
 
 LIMITATION: Meshy reached through another server's tool does not route; the retro's Higgsfield `generate_3d` called
 `meshy_multi_image_to_3d` as a model name. Nor does a server whose name holds neither word, nor a claude.ai connector, which is named

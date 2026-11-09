@@ -707,6 +707,9 @@ for f in Assets/Models/hero.png Assets/Models/hero.glb; do
 done
 matcher=$(jq -r '.hooks.PostToolUse[] | select(.hooks[].command | test("hooks/route.sh")) | .matcher' "$SR/hooks/hooks.json" 2>/dev/null)
 grep -qE "$matcher" <<<mcp__github__create_issue && bad "hooks.json: the route.sh matcher admits an unrelated MCP tool" || ok
+for n in $TOOL_NAMES; do
+  grep -qE "$matcher" <<<"$n" && ok || bad "hooks.json: the route.sh matcher does not admit $n, which the tool rows route above"
+done
 while IFS=$'\t' read -r k p s rest; do
   [ "$k" = tool ] || continue
   printf '' | grep -qE "$p" 2>/dev/null; [ $? -le 1 ] && ok || bad "tool row does not compile: $p ($s)"
@@ -721,6 +724,11 @@ routes "$GD" src/audio/volume.ts 'export const masterVolumeDb = -6; export const
 routes "$GD" Assets/Packs/Kenney/License.txt 'Creative Commons Zero, CC0 1.0' game-assets
 printf 'MIT License\n' > "$GD/LICENSE"; out=$(edit "$GD" "$GD/LICENSE" "$(fresh)")
 has_skill "$out" game-assets && bad "licence row: a LICENSE outside an asset directory routed game-assets" || ok
+routes "$GD" Assets/Fonts/OFL-LICENSE 'SIL Open Font License 1.1' game-assets
+for f in Assets/Scripts/LicenseManager.cs Assets/UI/LicensesScreen.prefab; do
+  mkdir -p "$(dirname "$GD/$f")"; printf 'public class LicenseManager { }\n' > "$GD/$f"; out=$(edit "$GD" "$GD/$f" "$(fresh)")
+  has_skill "$out" game-assets && bad "licence row: $f is no licence file but routed game-assets" || ok
+done
 TP=$(fresh); printf 'import bpy\nbpy.ops.export_scene.gltf(filepath="build/hero.glb")\n' > "$GD/tools/export_hero.py"
 edit "$GD" "$GD/tools/export_hero.py" "$TP" >/dev/null
 pend "$(statef "$GD" "$TP")" asset-pipeline && ok || bad "export row: a Blender glTF export script queued no asset-pipeline signal"

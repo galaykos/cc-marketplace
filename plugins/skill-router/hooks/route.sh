@@ -279,7 +279,7 @@ route_cmd_mask() {
     done < <(grep "^command"$'\t' "$rules" 2>/dev/null)
     bash_effects=$(cc_bash_write_effects "$root" "$effects_mark" "$bash_cmd" "$MAX_BASH_EFFECTS" "$sess")
   fi
-  # A `tool` row matches an MCP call's name and joins cmd_hits with that name as its subject; a path in the call's arguments is never read.
+  # Name only: a Blender or Meshy call's file_path is an import source or a download target, not an edit; cmd_hits lends it the command rows' rank, cap and one-shot.
   by_name=0
   case "$tool" in *create_new_file) ;; mcp__*) by_name=1 ;; esac
   if [ "$by_name" = 1 ]; then
