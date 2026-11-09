@@ -6,6 +6,10 @@ description: Use when writing, reviewing or running Blender Python — a .py imp
 > Last verified: 2026-10-30 — https://developer.blender.org/docs/release_notes/5.0/python_api/
 <!-- version-tail-ok: Blender ships as a binary, not an npm/composer/pypi package; the stamp points at the 5.0 Python API notes, re-read with the 5.1 and 5.2 notes and probed in a local Blender 5.2.3 LTS -->
 
+Not this skill when the model comes from an AI service (`meshy:meshy-generation` owns Meshy tasks,
+credits and the GLB budget check), or the asset is 2D art (`gamedev:game-assets`,
+`pixel-art:pixel-art-pipeline`).
+
 ## Read the Blender version first
 
 - Inside Blender: `bpy.app.version` is the running binary. Without Blender, read the version that saved a file:

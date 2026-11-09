@@ -1,6 +1,6 @@
 {
   "name": "blender",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Blender Python, rigging, animation and asset export as of Blender 5.x: a stdlib checker for bpy calls the target version removed or renamed (action.fcurves, bone layers, bake_action keywords, driver_add modifiers, Geometry Nodes Socket_N keys); anim_audit.py, which runs the real FBX/glTF exporters and reports dropped, cross-assigned, duplicated or late clips and loop pops; rig_check.py for export-breaking rigs and skins; an in-Blender mesh QA script with UV-damage compare; and FBX/glTF export rules for Unreal, Unity and Godot.",
   "author": {
     "name": "Ivan-WG",

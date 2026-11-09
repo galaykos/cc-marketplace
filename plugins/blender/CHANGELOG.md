@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.1 — 2026-11-09
+
+- **`blender-best-practices` names its near misses.** A model from an AI service goes to
+  `meshy:meshy-generation`, 2D art to `gamedev:game-assets` or `pixel-art:pixel-art-pipeline`.
+  Skill body only; scripts and hooks are unchanged. Standing: recorded.
+
 ## 0.3.0 — 2026-11-07
 
 - **New skill `blender-rig-anim`** for rigging, skinning and animating for a game engine, with `references/rigging.md` and `references/animation.md`. Every exporter fact in them was probed in Blender 5.2.3: FBX "All Actions" writes actions onto objects that never use them; turning it off drops actions that are only active; glTF clips count from frame 0; `nla.bake` defaults to selected bones, no visual keying and frames 1–250; Rigify with "Only Deform Bones" exports two roots. Engine-side setup is routed to `unity-traps`, `godot` and `unreal`. Standing: recorded, gate where the scripts run.
