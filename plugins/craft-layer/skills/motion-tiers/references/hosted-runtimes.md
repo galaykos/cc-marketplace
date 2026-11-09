@@ -76,7 +76,9 @@ argued the gradient "can't become the LCP element the way a poster image could".
   no deferral of the runtime. Ship your own poster and dynamic-import the plain component.
 
 Standing: agent-graded — the craft reviewer checks every 3D/WebGL surface for lazy load, a static
-fallback and an error boundary; whether the fallback is a real frame is its read.
+fallback and an error boundary; whether the fallback is a real frame is its read. One slice is a
+gate where run: `divergence.mjs`'s `poster-first` fails a hero Spline, Unicorn Studio or canvas
+embed with no image or poster in the same hero, and reads a CSS gradient as no still.
 
 ## Reduced motion — no vendor documents it
 

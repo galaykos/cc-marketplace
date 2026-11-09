@@ -99,6 +99,25 @@ staged, or `--diff <base>` with no changed file, used to fall through to `.`
 and red a --ci run over code the change never touched.
 ```
 
+### drift --print-hook
+
+Added 2026-11-09 (design-kit 0.13.0, roadmap D6 dk6). It runs before `ensure_ignored`, like
+`--help`, so printing a snippet writes no `.gitignore` block, no `.design-kit/` and no usage line.
+The hook calls `handoff-drift.py` directly, not `dk drift`, for the same reason: `dk` logs and
+creates state on every call, and a hook fires on every edit. It exits 2 only on `--ci`'s 1, so a
+project with no tokens (2) or a file it does not scan (0) stays silent; exit 2 is the PostToolUse
+code whose stderr reaches Claude. The path is absolute because a settings.json hook has no
+`${CLAUDE_PLUGIN_ROOT}`; it names the installed version and goes stale on update, which the
+printed note says.
+
+### system --source rendered
+
+Changed 2026-11-09 before 0.13.0 shipped, from review finding `dk.sh`/system SKILL.md:95. `dk system`
+ran a `--dry-run` before every extraction, so a rendered source loaded the page twice, and its
+`|| fail … 1` turned system-extract's exit 3 (no Playwright) into 1, against the skill's promise.
+A rendered run now skips the dry-run, and the extraction's exit code passes through for every
+source. `dk.test.sh` drives it with a stand-in `node` that counts its calls.
+
 ### snapshot and review
 
 ```text
@@ -547,6 +566,22 @@ Usage:
                     [--dry-run]
 ```
 
+### Rendered source
+
+Added 2026-11-09 (design-kit 0.13.0). `--source rendered` runs `system-render.mjs` with `node` and
+takes its tokens as found: each keeps its value as the light mode, its element sources and its
+`uses`. Its exit codes pass through (3 a missing Playwright or Chromium, 4 a page that did not
+load), so `dk system` fails with the missing piece named instead of writing an empty record. A
+`typography.size` token is a dimension: the kit renders it as a size specimen and the markdown as a
+`Type sizes:` line, never as a typeface card.
+
+Two review fixes before release (2026-11-09). A rendered run reads no stylesheet, motion, shadow or
+component, yet `## Not found` listed "a dark mode (no … `prefers-color-scheme: dark` block …)" on
+any page, including one that has a dark mode, and the system skill forbids deriving one. The
+extraction now records the sections its mode never reads (`ex.unread`), and the markdown lists
+them under `## Not read` and the kit's empty slots say "Not read (rendered mode)". And each token
+now carries system-render's `roles` and `merged`, the only role hint a computed colour has.
+
 ### Blade class components
 
 ```text
@@ -576,3 +611,130 @@ level and CSS theme colours are not carried; the theme's accent is read from
 --dk-accent when present, everything else is PowerPoint defaults. Driven by
 deck-export.sh, which owns the pptxgenjs install consent.
 ```
+
+## plugins/design-kit/scripts/chromium.mjs
+
+Written 2026-11-09 for design-kit 0.13.0 (roadmap 2026-11-07, Track 5 D6). Standing: `recorded`.
+
+### Why one launcher
+
+`motion-check.mjs` and `system-render.mjs` both drive Playwright, and the design track's rule is that
+browser work runs on what the project already has: its own `playwright`, `playwright-core` or
+`@playwright/test` (resolved from the project's `package.json` with `createRequire`, so Node's
+`NODE_PATH` counts too), never an install. One module keeps the resolution order and the "installs
+nothing" message in one place, the way `board-export.sh --which` does for the shell scripts.
+
+### Launch order
+
+An explicit `--browser` / `DESIGN_KIT_BROWSER` (the variable `board-export.sh` already reads), then
+Playwright's own Chromium, then `channel: 'chrome'`. Measured 2026-11-09 on the author's machine: the
+only Playwright on disk (1.65.0-alpha in the npx cache) wanted `chromium_headless_shell-1252` while
+the cache held 1234 and 1248, so its own launch failed with "Executable doesn't exist"; the installed
+Google Chrome 156 launched through `channel: 'chrome'`. Without the third step the scripts would have
+reported a missing browser on a machine that has one. Every failed step's first error line is
+printed with the exit 3, so "missing" is never a guess.
+
+## plugins/design-kit/scripts/motion-check.mjs
+
+Written 2026-11-09 for design-kit 0.13.0 (roadmap D6, dk5). Standing: `recorded`.
+
+### Why it exists
+
+`/design-kit:motion` told the model to write the recorder per project from the snippet in
+`references/capture-export.md`; each project got its own copy and none of the skill's motion rules
+was checked by anything. The script is that snippet generalised (fake clock, whole-millisecond
+steps, `__start` inside the same evaluate as the seek, every animation paused and seeked from the
+mark it was created under) plus the checks.
+
+### The rules and their numbers
+
+Taken from `skills/motion/SKILL.md` Part B and `references/motion-system.md`: the cheap set is
+transform, opacity, filter and clip-path ("Cheap properties only"); a layout property is a fail and
+any other property a warning, because the roadmap item asked for "no layout-shifting properties"
+and a colour tween does not re-lay out the page. The duration band 500–1100 ms is the Values table's
+span: the 0.5 s dissolve is the shortest CSS motion it names, the 1.1 s slow wipe the longest;
+stories, typing and accents run on the JS clock, so a longer CSS animation is either a loop the
+capture seek restarts or a value the table does not have. 16 ms or less is exempt so a reset class
+and the common `0.01ms !important` reduced-motion override do not fail. Blur 14 px is "animated blur
+≤ 14 px". Reduced motion: the skill renders the still frame, so the second pass, under
+`reducedMotion: 'reduce'`, fails on anything but opacity still moving.
+
+### JS-driven motion
+
+A `MutationObserver` on `style` attributes, installed before any page script, records each changed
+inline property per element; three changes is the threshold, so a style set once at start-up is
+not "animated". Durations are not checked there: an inline tween has no declared duration.
+
+### Exit codes
+
+0 held, 1 broke, 2 usage, 3 missing Playwright or Chromium, 4 not measured (page did not load,
+recording failed, or nothing animated). Nothing animated is 4, not 0: a check that saw no motion has
+not cleared any.
+
+### Review fixes before release (2026-11-09)
+
+Each reproduced on the ff1d37fd build and now a harness case.
+
+- **Page-paused animations.** Every animation was paused and seeked from first sight, so
+  `@media (prefers-reduced-motion: reduce) { .orb { animation-play-state: paused } }` was played
+  and failed reduced-motion. A CSS animation's computed `animation-play-state` is now read each
+  frame, and any animation already paused when first seen is left alone until the page plays it.
+  One that never ran is not judged. Residual: a JavaScript `pause()` after the recorder took the
+  animation over is indistinguishable from the recorder's own.
+- **`.finished` chains.** A paused animation never resolves `finished`, so a page chaining a
+  second animation on it stalled. An animation whose seek time reaches its `endTime` is now
+  `finish()`ed once and left alone.
+- **Inline motion** is limited to properties that move something when rewritten: layout, the
+  cheap set and a list of paint properties (colours, shadows, radii, positions). A `display` or
+  `z-index` swap written 3+ times had drawn paint warnings and a reduced-motion fail.
+- **Names in the table.** Element ids, classes and animation names are page-controlled; they are
+  reduced to `[\w#.:()-]` and capped (80, and 40 for a name) before they reach the markdown table.
+- **--static times.** A shorthand with no literal time is 0s, and an item at or under 16 ms is
+  now dropped, not judged: `.snap { transition: height 0s }` had failed layout-property and
+  reduced-motion. A time held in `var()`/`calc()` is unknown, so its duration is `null` and one
+  note counts them; a whole-`var()` transition no longer falls back to `all`.
+- **--static reduce path.** It is an `@media` prelude naming `prefers-reduced-motion`, or a script
+  with a `matchMedia(` call and the query, both with comments stripped; the bare words anywhere had
+  counted. A branch under `not (…: reduce)` or `(…: no-preference)` is the motion branch, judged.
+
+## plugins/design-kit/scripts/system-render.mjs
+
+Written 2026-11-09 for design-kit 0.13.0 (roadmap D6, "the dembrandt idea"). Standing: `recorded`.
+
+### Why it exists
+
+`system-extract.py`'s url mode fetches HTML and stylesheets and runs no JavaScript, and says so: an
+SPA or a CSS-in-JS site yields next to nothing. The rendered source reads what the browser computed
+instead. The idea of extracting tokens from a rendered page's computed styles is dembrandt's, as the
+roadmap names it; this was written from that one-line description, without reading its code.
+
+### Names are values
+
+A computed style carries no role, so the names are the values (`color.1f2937`, `spacing.16px`;
+`.` in a value becomes `_` because DTCG names cannot hold a dot and `flat()` splits paths on it).
+Naming one of them "primary" would be the invented token the system skill forbids; the skill sends
+the naming back to the source.
+
+### Clustering
+
+Colours: opaque sRGB within RGB distance 8 of a more-used colour of the same alpha merge into it (the
+more-used one names the cluster); alpha 0 is dropped; `oklch()` and `color(srgb …)` convert, any
+other space is kept as written under a slug name. Font family: the first family of the computed
+stack, generic families dropped (a system stack is not a family). Dimensions: px rounded to 0.5,
+zero and negative dropped, the first value of an elliptical radius. Anything used once is dropped
+(`--min-uses 2`). The same samples give byte-identical output; `--dump-samples` / `--samples` exist
+so a read can be re-clustered and so the harness can test clustering with no browser.
+
+### Review fixes before release (2026-11-09)
+
+- **`uses` counts elements.** One `<div style="padding:13px;border:1px solid #e2e8f0;border-radius:7px">`
+  produced spacing 13px, colour e2e8f0 and radius 7px at 4 uses each, past `--min-uses 2`. A
+  sample now carries its element's index, and a value counts each element once; a dump without
+  the index counts samples, as before.
+- **Visibility** is `checkVisibility({opacityProperty, visibilityProperty})`, which also sees an
+  ancestor at opacity 0; the element's own computed opacity missed a hidden wrapper's children.
+- **The page background.** `html` was never sampled and `body`'s background is one sample, so
+  `--min-uses 2` always dropped the base colour. `html` is sampled, `html` and `body` are sampled even at
+  zero height, and their background is exempt from `--min-uses`.
+- **No margins.** A computed margin is a used value: `margin: 0 auto` at 1440 px read as
+  `spacing.120px`. Only padding and flex/grid gaps are read; a margin scale is not inferred.

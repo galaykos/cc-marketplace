@@ -94,7 +94,24 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    cd <project> && BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> \
      CRAFT_PRIMARY_ACTION=<the contract's primary action text> NODE_PATH=<project>/node_modules \
      npx playwright test --config "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/playwright.config.ts"
+   cd <project> && CRAFT_EXPECT_TITLE=<the contract's product name> NODE_PATH=<project>/node_modules \
+     node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/finish-lint.mjs" --url <the dev server>
    ```
+
+   **`finish-lint.mjs` is the finish pass, on the same Chromium.** It flags dead controls (`href="#"`,
+   `javascript:void`, an `<a>` with no href, a `#id` no element carries, a button nothing handles),
+   placeholder copy (lorem ipsum, a `TODO:`/`TBD:`/`FIXME(` marker, "Coming soon", "Placeholder", a lone
+   "Untitled", John/Jane Doe), an empty list or table with no empty, loading or error text in its section,
+   and a Tab stop whose focus changes nothing visible; its source half flags a file that fetches and maps
+   the fetched list with no such branch (a Next.js `loading`/`error` file counts as one). Standing: **gate**
+   where run. It misses: one 1280x800 viewport; a handler delegated to `document` or `body`; a dead button
+   from a library that always passes handlers (MUI `ButtonBase`, AntD `Button`), which reads live; closed
+   shadow roots and iframe contents; focus-ring contrast and size; a phrase split across inline elements; a
+   list fetched in another file. Exit 1 is a FINDING, waivable in `waivers.json` under the
+   rule name (`dead-control`, `placeholder-copy`, `stateless-collection`, `focus-ring`); 2 is `not
+   measured` (no URL, the page did not load or did not finish within `--timeout`, default 120 s,
+   `CRAFT_EXPECT_TITLE` unmatched); 3 and 4 name the missing
+   playwright package or Chromium, and are `not measured` too. `--json` prints the report as one object.
 
    **`contrast.mjs` is not optional and it is not covered by the Playwright suite.**
    `gates.spec.ts` disables axe's `color-contrast` rule (axe cannot parse `oklch()`
@@ -118,7 +135,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    `CRAFT_TOKEN_SOURCE` is required whenever the tokens are not where the gates look — `contrast.mjs`
    treats a missing token source as a FAILURE, and `divergence.mjs` exits 2 at the token resolution, so
    its five token-dependent assertions (`accent-default-band`, `hue-repeat`, `font-anti-corpus`,
-   `font-repeat`, `draw-repeat`) never run; the seven source-only ones print first and their verdicts
+   `font-repeat`, `draw-repeat`) never run; the source-only ones print first and their verdicts
    stand. `CRAFT_EXPECT_TITLE` is the only thing proving the server on that port is THIS build; the
    suite runs inside the target and cannot read the contract, and without it reports `IDENTITY NOT
    MEASURED` and captures anyway — carry that phrase into the `Visual:` line rather than dropping it.
@@ -156,6 +173,10 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    recommended substitute. The fixture proof (`scripts/__tests__/fixtures/fixture-motion-{js,canvas,clean}.html`,
    driven by `craft-gates.test.sh`) runs only where a local Playwright can launch Chromium; CI installs
    none, so in CI that proof SKIPs and the JS/canvas half is `recorded` there.
+
+   **The suite's `cpu throttle` test** fails when the p95 frame time under a 4x CPU throttle, at rest and
+   scrolling, is over the budget in `motion-tiers/references/tier-budgets.md`; its line prints the p95.
+   Standing: **gate** where the suite runs; it slows the CPU only, so GPU cost is not measured.
 
    Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
    `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`, EXCEPT from
@@ -219,8 +240,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    condition that SURFACES a fault: viewport, motion preference, colour mode, zoom, input device. Gate
    coverage can improve forever while the trigger set never changes, and a defect reachable only under an
    unfired trigger stays invisible however careful the review was. The default set: **default viewport ·
-   narrow viewport · 200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only · capture
-   at 390/768/1280**. Fire what you can and NAME what you did not.
+   narrow viewport · 200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only · 4x CPU
+   throttle · capture at 390/768/1280**. Fire what you can and NAME what you did not.
 
    When anything is unchecked, say in one sentence WHICH inputs were missing. A sheet of `not checked`
    rows reads as a clean audit at a glance and is the opposite: an audit whose coverage is mostly

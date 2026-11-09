@@ -103,6 +103,16 @@ download. The mechanism, the `save-data` opt-out, the mid-sequence failure behav
 `plugins/craft-layer/skills/scroll-orchestration/references/scroll-acts.md`. This file owns the
 numbers only.
 
+## The frame-time budget (a 4x CPU throttle)
+
+**p95 frame time ≤ 50ms under a 4x CPU throttle**: three frames at 60 Hz, a 20 fps floor for 95%
+of frames, on the main-thread slowdown Lighthouse's mobile run uses. POLICY, like the sequence caps
+above. It is sampled with the page at rest at the top, then scrolled to the bottom, at 1280x720, by
+the `cpu throttle` test in `plugins/craft-layer/template/craft-gates/gates.spec.ts`, whose
+`FRAME_BUDGET_MS` must equal the figure here (`scripts/__tests__/frame-time.test.sh` fails when they
+differ). Standing: **gate** where the suite runs. It does not see GPU cost (the throttle slows the CPU
+only), motion an interaction starts, or anything the scroll walk does not reach.
+
 ## Not a tier
 
 GSAP is deliberately absent: it is a powerful alternative for complex imperative

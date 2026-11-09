@@ -83,4 +83,6 @@ scene looping past five seconds gets a visible pause control
 hidden tab.
 
 Standing: recorded — no gate reads this file. `/craft-layer:audit`'s served-HTML step
-fails a loader painted over an empty document; nothing measures frame time or the ladder.
+fails a loader painted over an empty document; the craft-gates suite's `cpu throttle` test fails a
+p95 frame time over the budget in `motion-tiers/references/tier-budgets.md` (gate where run, CPU
+only); nothing measures the ladder.

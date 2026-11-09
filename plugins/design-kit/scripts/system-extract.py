@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""system-extract.py — extract a design system from a repo, a live URL, or a brand asset directory into design-system/.
+"""system-extract.py — extract a design system from a repo, a live URL, a brand asset directory, or a rendered page (--source rendered, via system-render.mjs) into design-system/.
 
-Writes tokens.json (DTCG-shaped), DESIGN-SYSTEM.md (the `## Design system` block plus a component inventory) and kit.html (a UI-kit page, one `@dsCard` per card). Every token points back to a source line, nothing is invented, and the same input gives byte-identical output.
-Misses: repo mode reads text with regexes (a Tailwind config built from imports or functions yields its literal entries only); URL mode runs no JS, so runtime-injected styles are invisible (it says so); which of two primaries is THE primary is flagged, never decided; kit.html cards are static stand-ins, not the components.
+Writes tokens.json (DTCG-shaped), DESIGN-SYSTEM.md (the `## Design system` block plus a component inventory) and kit.html (a UI-kit page, one `@dsCard` per card). Every token points back to a source line (in rendered mode, an element), nothing is invented, and the same input gives byte-identical output.
+Misses: repo mode reads text with regexes (a Tailwind config built from imports or functions yields its literal entries only); URL mode runs no JS, so runtime-injected styles are invisible (it says so; rendered mode runs it, and its names are values, not roles); which of two primaries is THE primary is flagged, never decided; kit.html cards are static stand-ins, not the components.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/system-extract.py
 """
 import argparse
@@ -12,6 +12,7 @@ import html
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -200,6 +201,7 @@ class Extraction:
         self.components = []
         self.notes = []
         self.sources = []
+        self.unread = {}   # section -> the mode that never reads it, so its absence is not reported as Not found
 
     def add(self, name, value, ttype, source, mode="light"):
         path = group_for(name, ttype) + "." + token_name(name)
@@ -617,6 +619,31 @@ def extract_url(url, ex):
     ex.notes.append("URL mode reads HTML and linked stylesheets without running JavaScript; styles injected at runtime are not seen.")
 
 
+def extract_rendered(target, ex):
+    """Return system-render.mjs's exit code; on 0 its clustered tokens are in ex, each with its uses and element sources."""
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "system-render.mjs")
+    try:
+        proc = subprocess.run(["node", script, target, "--out", "-"], capture_output=True, text=True, timeout=180)
+    except FileNotFoundError:
+        print("system-extract: NOT MEASURED — node is not installed; the rendered source needs Node and the project's Playwright", file=sys.stderr)
+        return 3
+    except subprocess.TimeoutExpired:
+        print("system-extract: NOT MEASURED — system-render.mjs did not finish in 180 s", file=sys.stderr)
+        return 4
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr)
+        return proc.returncode
+    for path, node in flat(json.loads(proc.stdout)):
+        dk = node.get("$extensions", {}).get("design-kit", {})
+        ex.tokens[path] = {"$type": node["$type"], "modes": {"light": node["$value"]}, "sources": list(dk.get("sources", [])),
+                           "uses": dk.get("uses"), "roles": list(dk.get("roles", [])), "merged": dk.get("merged")}
+    ex.sources.append(f"{target} (rendered)")
+    ex.unread = {k: "rendered mode" for k in ("dark", "motion", "elevation", "components")}
+    ex.notes.append("rendered mode: the computed styles of the visible elements after JavaScript ran, clustered. A token's name is its value, "
+                    "never a role, and its sources are elements, not source lines — which colour is the primary is named in the source, then re-run.")
+    return 0
+
+
 def extract_brand(root, ex):
     root = os.path.abspath(root)
     for dirpath, dirnames, filenames in os.walk(root):
@@ -690,6 +717,12 @@ def build_tokens(ex):
         if "dark" in modes and modes["dark"] != light:
             ext["modes"] = {"dark": modes["dark"]}
         ext["sources"] = sorted(entry["sources"])
+        if entry.get("uses"):
+            ext["uses"] = entry["uses"]
+        if entry.get("roles"):
+            ext["roles"] = entry["roles"]
+        if entry.get("merged"):
+            ext["merged"] = entry["merged"]
         node["$extensions"] = {"design-kit": ext}
         cur = out
         parts = path.split(".")
@@ -772,8 +805,9 @@ def build_markdown(ex, tokens, project, source_label):
     by = collections.defaultdict(list)
     for path, node in rows:
         by[path.split(".")[0]].append((path, node))
+    carries = ("the rendered element it was read from" if source_label.startswith("rendered ") else "a `path:line` source")
     lines = [f"# Design system — {project}", "",
-             f"Extracted by design-kit from {source_label}. Every value below carries a `path:line` source in tokens.json; nothing here was invented. Re-run `/design-kit:system` after the source changes.", "",
+             f"Extracted by design-kit from {source_label}. Every value below carries {carries} in tokens.json; nothing here was invented. Re-run `/design-kit:system` after the source changes.", "",
              "## Design system", ""]
     colors = by.get("color", [])
     if colors:
@@ -781,6 +815,9 @@ def build_markdown(ex, tokens, project, source_label):
     fams = [(p, n) for p, n in by.get("typography", []) if ".family." in p]
     if fams:
         lines.append("- Typography: " + ", ".join(f"{n['$value']} ({p.split('.')[-1]})" for p, n in fams[:6]))
+    sizes = [(p, n) for p, n in by.get("typography", []) if ".size." in p]
+    if sizes:
+        lines.append("- Type sizes: " + ", ".join(str(n["$value"]) for p, n in sizes[:10]))
     sp = by.get("spacing", [])
     if sp:
         lines.append("- Spacing: " + ", ".join(f"{p.split('.', 1)[1]} {n['$value']}" for p, n in sp[:12]))
@@ -796,7 +833,9 @@ def build_markdown(ex, tokens, project, source_label):
     if not (colors or fams or sp or rd or mo):
         lines.append("- (no tokens found — see below)")
     lines += ["", "## Components", ""]
-    if ex.components:
+    if "components" in ex.unread:
+        lines.append(f"Not read ({ex.unread['components']}).")
+    elif ex.components:
         lines.append("| Component | Source | Props | Variants |")
         lines.append("|---|---|---|---|")
         for c in ex.components:
@@ -805,11 +844,16 @@ def build_markdown(ex, tokens, project, source_label):
     else:
         lines.append("None found under " + ", ".join(COMPONENT_DIRS) + ".")
     lines += ["", "## Not found", ""]
-    missing = []
+    missing, unread = [], []
+    def gap(key, text, short):
+        if key in ex.unread:
+            unread.append(f"{short} — not read ({ex.unread[key]})")
+        else:
+            missing.append(text)
     if not colors:
         missing.append("colour tokens (custom properties, Tailwind colors, SCSS variables)")
     elif not any("modes" in n["$extensions"]["design-kit"] for _, n in colors):
-        missing.append("a dark mode (no `.dark`, `[data-theme=dark]` or `prefers-color-scheme: dark` block changed a colour)")
+        gap("dark", "a dark mode (no `.dark`, `[data-theme=dark]` or `prefers-color-scheme: dark` block changed a colour)", "a dark mode")
     if not fams:
         missing.append("a typeface (no @font-face, font-family, --font-* or Google Fonts link)")
     if not sp:
@@ -817,10 +861,14 @@ def build_markdown(ex, tokens, project, source_label):
     if not rd:
         missing.append("a radius token")
     if not mo:
-        missing.append("motion tokens (durations, easings)")
+        gap("motion", "motion tokens (durations, easings)", "motion tokens (durations, easings)")
+    if not el and "elevation" in ex.unread:
+        unread.append(f"elevation (shadows) — not read ({ex.unread['elevation']})")
     if not ex.components:
-        missing.append("a component inventory")
-    lines += [f"- {m}" for m in missing] or ["- nothing — every section above has a source"]
+        gap("components", "a component inventory", "a component inventory")
+    lines += [f"- {m}" for m in missing] or [f"- nothing — every section {'read' if unread else 'above'} has a source"]
+    if unread:
+        lines += ["", "## Not read", ""] + [f"- {u}" for u in unread]
     if ex.notes:
         lines += ["", "## Notes", ""] + [f"- {n}" for n in ex.notes]
     lines += ["", "## Sources", ""] + [f"- {s}" for s in sorted(set(ex.sources))]
@@ -866,6 +914,8 @@ def build_kit(ex, tokens, project, shell_path):
             if dark:
                 sw += f"<div class=\"dk-swatch dk-dark\" style=\"background:{html.escape(str(dark))}\"></div>"
             sections["Colors"].append(card("Colors", label, sw + f"<code>{html.escape(str(val))}</code>" + (f" <code>dark {html.escape(str(dark))}</code>" if dark else ""), ", ".join(dk["sources"][:1])))
+        elif top == "typography" and node["$type"] != "fontFamily":
+            sections["Type"].append(card("Type", label, f"<p class=\"dk-specimen\" style=\"font-size:{html.escape(str(val))}\">Aa {html.escape(str(val))}</p>"))
         elif top == "typography":
             sections["Type"].append(card("Type", str(val), f"<p class=\"dk-specimen\" style=\"font-family:'{html.escape(str(val))}',sans-serif\">The quick brown fox jumps over the lazy dog 0123456789</p>", label))
         elif top == "spacing":
@@ -882,7 +932,9 @@ def build_kit(ex, tokens, project, shell_path):
         var = "; ".join(f"{k}: {', '.join(v)}" for k, v in c["variants"].items())
         sections["Components"].append(card("Components", c["name"], component_sample(c) + f"<div class=\"dk-meta\"><code>{html.escape(c['path'])}</code><br>props: {html.escape(props)}" + (f"<br>variants: {html.escape(var)}" if var else "") + "</div>", "static stand-in — not the component"))
     for key, cards in sections.items():
-        slots[key.lower()] = "\n".join(cards) if cards else "<p class=\"dk-empty\">Nothing found in the source.</p>"
+        unread = ex.unread.get(key.lower())
+        empty = f"Not read ({unread})." if unread else "Nothing found in the source."
+        slots[key.lower()] = "\n".join(cards) if cards else f"<p class=\"dk-empty\">{empty}</p>"
     for k, v in slots.items():
         shell = shell.replace(f"<!-- SLOT: {k} -->", v)
     return shell
@@ -902,7 +954,7 @@ def guess_source(target):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Extract a design system into design-system/.")
     ap.add_argument("target", help="repo dir, https URL, or brand asset dir")
-    ap.add_argument("--source", choices=("repo", "url", "brand"), default=None)
+    ap.add_argument("--source", choices=("repo", "url", "brand", "rendered"), default=None)
     ap.add_argument("--out", default="design-system")
     ap.add_argument("--kit-shell", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "skills", "system", "assets", "kit-shell.html"))
     ap.add_argument("--project-name", default=None)
@@ -918,12 +970,17 @@ def main(argv=None):
         extract_repo(args.target, ex)
     elif source == "url":
         extract_url(args.target, ex)
+    elif source == "rendered":
+        rc = extract_rendered(args.target, ex)
+        if rc:
+            return rc
     else:
         if not os.path.isdir(args.target):
             print(f"system-extract: {args.target} is not a directory", file=sys.stderr)
             return 2
         extract_brand(args.target, ex)
-    project = args.project_name or (os.path.basename(os.path.abspath(args.target)) if source != "url" else urllib.parse.urlsplit(args.target).netloc)
+    is_url = source == "url" or (source == "rendered" and re.match(r"https?://", args.target))
+    project = args.project_name or (urllib.parse.urlsplit(args.target).netloc if is_url else os.path.basename(os.path.abspath(args.target)))
     tokens = build_tokens(ex)
     if args.check:
         return 1 if check_tokens(tokens, os.path.join(args.out, "tokens.json")) else 0

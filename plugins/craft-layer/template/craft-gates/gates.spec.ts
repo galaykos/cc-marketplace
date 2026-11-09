@@ -1,9 +1,10 @@
 /* craft-layer — the trigger suite.
  * ---------------------------------------------------------------------------
- * Run ALL THREE of this file, `contrast.mjs` and `divergence.mjs` FROM THE
- * PLUGIN, never a copy — `commands/audit.md` step 4 owns the invocation, and a
- * vendored gate is a snapshot with no freshness signal. From the crafted
- * project's root, with the two dev dependencies installed THERE:
+ * Run ALL FOUR of this file, `contrast.mjs`, `divergence.mjs` and
+ * `finish-lint.mjs` FROM THE PLUGIN, never a copy — `commands/audit.md` step 4
+ * owns the invocation, and a vendored gate is a snapshot with no freshness
+ * signal. From the crafted project's root, with the two dev dependencies
+ * installed THERE:
  *
  *     npm i -D @playwright/test @axe-core/playwright && npx playwright install chromium
  *     CRAFT_EXPECT_TITLE='<a string only THIS build serves>' \
@@ -12,6 +13,7 @@
  *       npx playwright test --config "$CLAUDE_PLUGIN_ROOT/template/craft-gates/playwright.config.ts"
  *     node "$CLAUDE_PLUGIN_ROOT/template/craft-gates/contrast.mjs"
  *     node "$CLAUDE_PLUGIN_ROOT/template/craft-gates/divergence.mjs"
+ *     NODE_PATH="$PWD/node_modules" node "$CLAUDE_PLUGIN_ROOT/template/craft-gates/finish-lint.mjs" --url "$BASE_URL"
  *
  * Neither flag is decoration. Playwright has no `--spec` flag, so without
  * `--config` the run scans the PROJECT's testDir and exits 0 having found no
@@ -30,9 +32,9 @@
  * new trigger, which is how whole classes of defect stay structurally
  * invisible however careful the reviewer is.
  *
- * The default trigger set for a visual build is the five below. They are cheap
- * (a few seconds), and each has caught a real defect that every other gate
- * in this plugin missed:
+ * The default trigger set for a visual build is the six below. They are cheap
+ * (a few seconds), and each of the first five has caught a real defect that
+ * every other gate in this plugin missed:
  *
  *   - 200% zoom      → a visually-hidden <caption> keeping its min-content
  *                      width and dragging the page into horizontal overflow.
@@ -48,6 +50,9 @@
  *                      never shows (GSAP, Motion, Lenis, three.js, Lottie).
  *   - forced colours → content vanishing under Windows High Contrast.
  *   - axe            → the machine-testable ~30% of WCAG, on every commit.
+ *   - 4x CPU throttle → main-thread work a fast machine hides: p95 frame time
+ *                      against FRAME_BUDGET_MS. Added from the roadmap, with
+ *                      no escaped defect behind it yet.
  *
  * ADDING a trigger is the point. When a defect escapes to production, ask what
  * condition would have surfaced it, and add THAT here — not another assertion
@@ -939,6 +944,49 @@ async function pixelChange(shots: string[]) {
     out.push(changed / (w * h))
   }
   return out
+}
+
+/* --------------------------------------------------- trigger: 4x CPU throttle */
+// Mirrored in skills/motion-tiers/references/tier-budgets.md § The frame-time budget; frame-time.test.sh fails when they differ.
+const FRAME_BUDGET_MS = 50
+
+test('cpu throttle: p95 frame time under a 4x CPU throttle stays within budget', async ({ page }) => {
+  await page.goto(URL)
+  await assertIdentity(page)
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  const deltas = await page.evaluate(sampleFrames, { idleMs: 1000, scrollMs: 2500 })
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
+  const sorted = [...deltas].sort((a, b) => a - b)
+  const at = (q: number) => (sorted.length > 1 ? sorted[Math.ceil(sorted.length * q) - 1] : Infinity)
+  const line = `frame time under a 4x CPU throttle: p95 ${at(0.95).toFixed(1)}ms, median ${at(0.5).toFixed(1)}ms over ` +
+    `${sorted.length} frames at rest and scrolling; budget p95 <= ${FRAME_BUDGET_MS}ms`
+  console.log(line)
+  test.info().annotations.push({ type: 'frame time', description: line })
+  // One millisecond of slack: a frame landing on the third 60 Hz vsync reads 50.0 or 50.1.
+  expect(at(0.95), `${line}. The page falls under 20 fps on a mid-tier phone`).toBeLessThanOrEqual(FRAME_BUDGET_MS + 1)
+})
+
+async function sampleFrames(o: { idleMs: number; scrollMs: number }) {
+  const deltas: number[] = []
+  let last = 0
+  let running = true
+  const tick = (t: number) => {
+    if (last) deltas.push(t - last)
+    last = t
+    if (running) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+  await new Promise((r) => setTimeout(r, o.idleMs))
+  const room = document.documentElement.scrollHeight - innerHeight
+  const t0 = performance.now()
+  while (performance.now() - t0 < o.scrollMs) {
+    window.scrollTo({ top: room * ((performance.now() - t0) / o.scrollMs), behavior: 'instant' })
+    await new Promise((r) => requestAnimationFrame(r))
+  }
+  running = false
+  window.scrollTo({ top: 0, behavior: 'instant' })
+  return deltas
 }
 
 /* ----------------------------------------------------- trigger: forced colours */

@@ -1,6 +1,6 @@
 ---
 name: motion-tiers
-description: Use when deciding HOW to animate a web-app surface — Framer Motion, anime.js, Three.js/R3F, Lottie/Rive, or sprite-sheets — or when a motion review flags a missing perf budget, prefers-reduced-motion path, or reduced-bundle fallback.
+description: Use when picking HOW to animate a web-app surface — Framer Motion, anime.js, Three.js/R3F, Spline, Unicorn Studio, Lottie/Rive, sprites — or a motion review flags a missing perf budget, reduced-motion path or reduced-bundle fallback.
 ---
 
 ## What this decides

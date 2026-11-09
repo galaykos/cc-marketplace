@@ -1,5 +1,5 @@
-// divergence.mjs — craft-layer's anti-attractor gate: exit 1 when the build lands on the category default (hue, family, copy, layout) or repeats its last five runs, 0 clean, 2 not measured, a failure (as in contrast.mjs, a missing token source is never a pass). Run `node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs` from the project root.
-// Env: CRAFT_TOKEN_SOURCE, CRAFT_CONTRACT, CRAFT_DIVERGENCE_RECORD, CRAFT_BUILD_TASK, CRAFT_CONTENT_SOURCE set each input's path; CLAUDE_PLUGIN_ROOT reads the registries live. Misses: a chosen hue or face told from a default unless `Brand echo:` names it (else waive it with a reason), class lists built in variables or cn(), colours through props, arrangement beyond one measure, copy depth and the voice itself (agent-graded).
+// divergence.mjs — craft-layer's anti-attractor gate: exit 1 when the build lands on the category default (hue, family, copy, layout), repeats its last five runs, ships hero video/canvas/3D with no poster or still, or names a heavy asset the provenance manifest does not record with a source and licence; 0 clean, 2 not measured, a failure (as in contrast.mjs, a missing token source is never a pass). Run `node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs` from the project root.
+// Env: CRAFT_TOKEN_SOURCE, CRAFT_CONTRACT, CRAFT_DIVERGENCE_RECORD, CRAFT_BUILD_TASK, CRAFT_CONTENT_SOURCE set each input's path; CLAUDE_PLUGIN_ROOT reads the registries live. Misses: a chosen hue or face told from a default unless `Brand echo:` names it (else waive it with a reason), class lists built in variables or cn(), colours through props, arrangement beyond one measure, a hero or asset ref built at runtime, whether a still is a real frame, copy depth and the voice itself (agent-graded).
 // Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/template/craft-gates/divergence.mjs
 import { readFileSync, existsSync, statSync, readdirSync, realpathSync } from 'node:fs'
 import { join, dirname, basename, resolve, relative } from 'node:path'
@@ -432,14 +432,14 @@ const SKIP_DIR = /^(?:node_modules|dist|build|out|coverage|vendor|craft|taskmast
 const rel = (p) => relative(process.cwd(), p) || p
 
 /** Shipped source files, dot-directories and build output excluded. */
-function sourceFiles(dir, out = [], budget = { n: 0 }) {
+function sourceFiles(dir, out = [], budget = { n: 0 }, ext = SRC_EXT) {
   let entries
   try { entries = readdirSync(dir, { withFileTypes: true }) } catch { return out }
   for (const e of entries) {
     if (budget.n > 3000) return out
     if (e.name.startsWith('.')) continue
-    if (e.isDirectory()) { if (!SKIP_DIR.test(e.name)) sourceFiles(join(dir, e.name), out, budget) }
-    else if (SRC_EXT.test(e.name)) { budget.n++; out.push(join(dir, e.name)) }
+    if (e.isDirectory()) { if (!SKIP_DIR.test(e.name)) sourceFiles(join(dir, e.name), out, budget, ext) }
+    else if (ext.test(e.name)) { budget.n++; out.push(join(dir, e.name)) }
   }
   return out
 }
@@ -450,13 +450,17 @@ const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 function regionFor(src, anchor) {
   const a = esc(anchor)
   const m = new RegExp(`\\bid\\s*=\\s*(?:"${a}"|'${a}'|\\{\\s*(?:"${a}"|'${a}'|\`${a}\`)\\s*\\})`).exec(src)
-  if (!m) return null
-  const lt = src.lastIndexOf('<', m.index)
+  return m ? regionAt(src, m.index) : null
+}
+
+/** The element whose opening tag holds index `at`, bounded the same way. */
+function regionAt(src, at) {
+  const lt = src.lastIndexOf('<', at)
   if (lt < 0) return null
   const tagM = /^<([A-Za-z][\w.:-]*)/.exec(src.slice(lt, lt + 80))
   if (!tagM) return null
   const tag = tagM[1]
-  const gt = src.indexOf('>', m.index)
+  const gt = src.indexOf('>', at)
   if (gt < 0) return null
   if (src[gt - 1] === '/') return { start: gt + 1, end: gt + 1, tag, selfClosing: true }
   const re = new RegExp(`<${esc(tag)}(?=[\\s/>])|</${esc(tag)}\\s*>`, 'g')
@@ -946,6 +950,223 @@ function utilityFont(files, corpus, kept) {
       + `${corpus.kind} (${corpus.date})` + (echoed.length ? ` or echo the kept brand (${echoed.join(', ')})` : ''))
 }
 
+/* poster-first: in the hero (the build task's plain-what anchor, else a `hero` id or class, else a file named for it), a <video> owes a poster and a canvas, R3F <Canvas>, Spline, Unicorn Studio or <model-viewer> owes a still image. A CSS gradient is not one (motion-tiers/references/hosted-runtimes.md § Arrival). */
+const HERO_MOTION = new Set(['video', 'canvas', 'Canvas', 'spline-viewer', 'Spline', 'model-viewer', 'UnicornScene'])
+const HERO_STILL_RE = /<(?:img|picture|Image)\b(?![^>]*\b(?:logo|icon|avatar|badge)\b)[^>]*>|\bposter\s*=|<\w*(?:Poster|Still)\b|background-image\s*:\s*url\(|\bbg-\[url\(/
+const HERO_ATTR_RE = /\b(?:id|class|className)\s*=\s*(?:"[^"]*\bhero\b[^"]*"|'[^']*\bhero\b[^']*'|\{\s*[`"'][^`"']*\bhero\b)/i
+
+/** The end of the opening tag at `i`, past quoted values and JSX `{…}`: `onCanPlay={() => go()}` does not close it. */
+function tagEnd(s, i) {
+  let depth = 0
+  let q = null
+  for (let k = i + 1; k < s.length; k++) {
+    const c = s[k]
+    if (q) { if (c === q && s[k - 1] !== '\\') q = null; continue }
+    if (c === '"' || c === "'" || c === '`') q = c
+    else if (c === '{') depth++
+    else if (c === '}') depth = Math.max(0, depth - 1)
+    else if (c === '>' && depth === 0) return k + 1
+    else if (c === '<' && depth === 0) return k
+  }
+  return s.length
+}
+
+/** Hero motion elements in a slice: { kind, index, tag }, the tag read whole. */
+function heroMotion(slice) {
+  const out = []
+  for (const m of slice.matchAll(/<([A-Za-z][\w.:-]*)/g)) {
+    const tag = slice.slice(m.index, tagEnd(slice, m.index))
+    const kind = HERO_MOTION.has(m[1]) ? m[1] : /\bdata-us-project\b/.test(tag) ? 'data-us-project' : null
+    if (kind) out.push({ kind, index: m.index, tag })
+  }
+  return out
+}
+
+function posterFirst(files, spine) {
+  const heroes = []
+  const seen = new Set()
+  const keep = (file, src, region, how) => {
+    if (!region || seen.has(`${file}|${region.start}`)) return
+    seen.add(`${file}|${region.start}`)
+    heroes.push({ file, src, slice: src.slice(region.start, region.end), at: region.start, how })
+  }
+  const anchors = (spine?.map?.['plain-what'] ?? []).map((a) => a.replace(/^#/, ''))
+  for (const { file, src } of files) {
+    for (const a of anchors) keep(file, src, regionFor(src, a), `plain-what #${a}`)
+    const m = HERO_ATTR_RE.exec(src)
+    if (m) keep(file, src, regionAt(src, m.index), 'a hero id or class')
+    if (/hero/i.test(basename(file))) keep(file, src, { start: 0, end: src.length }, 'a file named for the hero')
+  }
+  if (!heroes.length) {
+    return record('poster-first', 'SKIP', 'no hero region found — no plain-what anchor in the build task, no `hero` id or class, '
+      + 'no file named for it — so no hero motion was graded')
+  }
+  const bad = []
+  // One element is graded once, though a hero class region and a file named for the hero both hold it.
+  const graded = new Set()
+  for (const h of heroes) {
+    const still = HERO_STILL_RE.test(h.slice)
+    for (const m of heroMotion(h.slice)) {
+      const at = `${h.file}|${h.at + m.index}`
+      if (graded.has(at)) continue
+      graded.add(at)
+      const own = /\bposter\s*=/.test(m.tag)
+      const ok = m.kind === 'video' ? own : own || still
+      if (!ok) bad.push({ kind: m.kind, file: rel(h.file), line: lineAt(h.src, h.at + m.index), how: h.how })
+    }
+  }
+  if (!graded.size) {
+    return record('poster-first', 'SKIP', `the hero (${heroes.map((h) => `${rel(h.file)}, ${h.how}`).join('; ')}) carries no video, canvas or 3D element`)
+  }
+  settleEach('poster-first', bad, (b) => [b.kind, `${b.file}:${b.line}`], (list) =>
+    `hero motion with no still to arrive on — ${list.slice(0, 6).map((b) => `<${b.kind}> at ${b.file}:${b.line} (${b.how})`).join('; ')}`
+      + `${list.length > 6 ? ` (+${list.length - 6} more)` : ''}. A hero <video> `
+      + 'owes its own `poster` (an image behind it is not one); a canvas, scene or embed owes an <img>/<picture> (or a `poster`) in the same hero, painted before the '
+      + 'scene and kept under it (motion-tiers/references/webgl-3d.md, the arrival contract). A gradient is not a poster. '
+      + 'A decorative overlay canvas: waive its `<file>:<line>` with the reason. '
+      + `Reproduce: grep -n '<${list[0]?.kind}' ${list[0]?.file ?? ''}`,
+    `${graded.size} hero video/canvas/3D element(s) each arrive on a poster or a still image`)
+}
+
+/* asset-manifest: every HEAVY asset the page source names (video, 3D, Lottie/Rive, or a local image or font of 100 KB or more) has a record in the provenance manifest carrying a source and a licence-class; first-party records owe the source only. Names and fields: asset-sourcing/references/licence-discipline.md. */
+const HEAVY_BYTES = 100 * 1024
+const HEAVY_KIND = /\.(?:mp4|webm|mov|m4v|ogv|glb|gltf|usdz|riv|lottie|hdr|exr|ktx2)$/i
+const ASSET_REF_RE = /(?:https?:)?[^\s"'`()<>,=]*?[\w-]\.(?:mp4|webm|mov|m4v|ogv|glb|gltf|usdz|riv|lottie|hdr|exr|ktx2|woff2?|ttf|otf|avif|webp|png|jpe?g|gif|svg)(?=[?#"'`()\s<>,]|$)/gi
+const MANIFEST_NAME = /^(?:ASSETS|CREDITS|PROVENANCE|THIRD-PARTY-NOTICES)(?:\.(?:md|txt|json))?$/i
+const LICENCE_TOKEN = /^(?:public[- ]domain|cc0|permissive|mit|apache|bsd|isc|ofl|sil|cc[- ]?by|commercial|commissioned|ai-assisted|first-party)\b/i
+const LICENCE_LIMITED = /(?:^|[\s(/_-])n[cd](?=$|[\s)/_.,;-])|\bnon[- ]?commercial\b|\bno[- ]?deriv/i
+const EMPTY_VALUE = /^(?:|unknown|\?+|tbd|todo|n\/a|none|-|—)$/i
+
+function resolveAsset(ref, file) {
+  if (/^(?:https?:)?\/\//i.test(ref)) return null
+  const cwd = process.cwd()
+  const r = ref.replace(/^\.\//, '')
+  const tries = ref.startsWith('/') ? ['public', 'static', '.', 'src'].map((d) => join(cwd, d, ref))
+    : /^[@~]\//.test(ref) ? ['src', '.', 'app'].map((d) => join(cwd, d, ref.slice(2)))
+      : [resolve(dirname(file), ref), join(cwd, r), join(cwd, 'public', r)]
+  for (const p of tries) { try { if (statSync(p).isFile()) return p } catch { /* next */ } }
+  return null
+}
+
+function manifestRecords(dirs) {
+  const out = []
+  for (const d of dirs) {
+    let names
+    try { names = readdirSync(d) } catch { continue }
+    for (const n of names.filter((x) => MANIFEST_NAME.test(x))) {
+      const p = join(d, n)
+      try { if (statSync(p).isFile()) out.push({ path: p, text: readFileSync(p, 'utf8') }) } catch { /* unreadable reads as absent */ }
+    }
+  }
+  return out
+}
+
+/** `key` as a whole path tail of `s`: `bg.jpg` is not in `hero-bg.jpg`, `img/bg.jpg` is in `public/img/bg.jpg`. */
+function holds(s, key) {
+  const t = String(s).toLowerCase()
+  const k = key.toLowerCase()
+  for (let i = t.indexOf(k); i >= 0; i = t.indexOf(k, i + 1)) {
+    if (!/[\w.-]/.test(t[i - 1] ?? '') && !/^(?:[\w-]|\.\w)/.test(t.slice(i + k.length))) return true
+  }
+  return false
+}
+
+/** The record for the first of `keys` (paths before the basename) one manifest holds: { licence, source, origin }, or null. A line that only mentions the asset is a record only when nothing better names it. */
+function findRecord(m, keys) {
+  if (/\.json$/i.test(m.path)) {
+    let j
+    try { j = JSON.parse(m.text) } catch { return null }
+    const rows = Array.isArray(j) ? j : (j.assets ?? j.records ?? j.items ?? [])
+    let o = null
+    for (const k of keys) if ((o = rows.find((x) => x && holds(x.ref ?? x.path ?? x.file ?? x.url ?? x.asset ?? '', k)))) break
+    return o ? { licence: String(o['licence-class'] ?? o.licenceClass ?? o.licence ?? o.license ?? o['license-class'] ?? '').trim(),
+      source: String(o.source ?? '').trim(), origin: String(o.origin ?? '') } : null
+  }
+  const lines = m.text.split('\n')
+  const blockAt = (i) => {
+    let block = lines[i]
+    for (let k = i + 1; k < lines.length && /^\s+\S/.test(lines[k]) && !/^\s*[-*]\s/.test(lines[k]); k++) block += `\n${lines[k]}`
+    return block
+  }
+  const isRecord = (i) => lines[i].trim().startsWith('|') || /\b(?:source|origin|licen[cs]e(?:[- ]class)?)\s*[:=]/i.test(blockAt(i))
+  let i = -1
+  let mention = -1
+  for (const k of keys) {
+    const at = lines.flatMap((l, n) => (holds(l, k) ? [n] : []))
+    i = at.find(isRecord) ?? -1
+    if (i >= 0) break
+    if (mention < 0 && at.length) mention = at[0]
+  }
+  if (i < 0) i = mention
+  if (i < 0) return null
+  if (lines[i].trim().startsWith('|')) {
+    let h = i
+    while (h > 0 && lines[h - 1].trim().startsWith('|')) h--
+    const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
+    const head = cells(lines[h]).map((c) => c.toLowerCase())
+    const row = cells(lines[i])
+    const col = (re) => { const k = head.findIndex((c) => re.test(c)); return k < 0 ? '' : (row[k] ?? '') }
+    return { licence: col(/licen[cs]e/), source: col(/source/), origin: col(/origin/) }
+  }
+  const block = blockAt(i)
+  const field = (re) => (block.match(re)?.[1] ?? '').replace(/[`*]/g, '').trim()
+  return { licence: field(/\blicen[cs]e(?:[- ]class)?\s*[:=]\s*([^·|\n;]+)/i), source: field(/\bsource\s*[:=]\s*([^·|\n;]+)/i),
+    origin: field(/\borigin\s*[:=]\s*([^·|\n;,]+)/i) }
+}
+
+function assetManifest(files) {
+  const cwd = process.cwd()
+  const css = sourceFiles(cwd, [], { n: 0 }, /\.(?:css|scss|sass|less)$/i).filter(isPage)
+    .flatMap((f) => { try { return statSync(f).size > 512 * 1024 ? [] : [{ file: f, src: readFileSync(f, 'utf8') }] } catch { return [] } })
+  const assets = new Map()
+  let remoteLight = 0
+  for (const { file, src } of [...files, ...css]) {
+    for (const m of src.matchAll(ASSET_REF_RE)) {
+      const ref = m[0]
+      const local = resolveAsset(ref, file)
+      const remote = /^(?:https?:)?\/\//i.test(ref)
+      let size = null
+      if (local) { try { size = statSync(local).size } catch { /* unmeasured */ } }
+      const heavy = HEAVY_KIND.test(ref) || (size !== null && size >= HEAVY_BYTES)
+      if (!heavy) { if (remote) remoteLight++; continue }
+      const key = local ?? ref
+      if (!assets.has(key)) assets.set(key, { ref, local, size, file: rel(file), line: lineAt(src, m.index) })
+    }
+  }
+  if (remoteLight) notes.push(`asset-manifest: ${remoteLight} remote image/font ref(s) of unknown size not graded`)
+  if (!assets.size) {
+    return record('asset-manifest', 'SKIP', 'no heavy asset (video, 3D, Lottie/Rive, or a local image or font of 100 KB or more) '
+      + 'named in page source or stylesheets')
+  }
+  const dirs = new Set([cwd])
+  for (const a of assets.values()) {
+    for (let d = a.local ? dirname(a.local) : null; d && d.startsWith(cwd) && d !== cwd; d = dirname(d)) dirs.add(d)
+  }
+  const manifests = manifestRecords([...dirs])
+  const problems = []
+  for (const a of assets.values()) {
+    const name = basename(a.ref)
+    const keys = [...new Set([a.ref.replace(/^\.?\//, ''), ...(a.local ? [relative(cwd, a.local), relative(join(cwd, 'public'), a.local)] : []), name])]
+      .filter((k) => k && !k.startsWith('..'))
+    const rec = manifests.map((m) => findRecord(m, keys)).find(Boolean)
+    const where = `${a.ref} (${a.size === null ? 'size not measured' : `${Math.round(a.size / 1024)} KB`}, ${a.file}:${a.line})`
+    const problem = (why) => problems.push({ name, ref: a.ref, why: `${where}${why}` })
+    if (!rec) { problem(' has no manifest record'); continue }
+    if (EMPTY_VALUE.test(rec.source)) { problem(': its record carries no source'); continue }
+    if (/first-party/i.test(rec.origin)) continue
+    if (EMPTY_VALUE.test(rec.licence)) problem(': its record carries no licence-class')
+    else if (LICENCE_LIMITED.test(rec.licence)) problem(`: licence-class "${rec.licence}" is non-commercial or no-derivatives, which no fixed token allows`)
+    else if (!LICENCE_TOKEN.test(rec.licence)) problem(`: licence-class "${rec.licence}" does not open with one of the fixed tokens`)
+  }
+  const found = manifests.length ? manifests.map((m) => rel(m.path)).join(', ') : 'no manifest (ASSETS, CREDITS, PROVENANCE or THIRD-PARTY-NOTICES)'
+  settleEach('asset-manifest', problems, (p) => [p.name, p.ref], (list) =>
+    `${list.slice(0, 6).map((p) => p.why).join('; ')}${list.length > 6 ? ` (+${list.length - 6} more)` : ''}. `
+      + `Read: ${found}. A heavy asset owes one record with a \`source\` and, unless \`origin: first-party\`, a licence-class token `
+      + '(asset-sourcing/references/licence-discipline.md); this checks declaration, never legal truth. '
+      + `Reproduce: grep -rn ${JSON.stringify(list[0]?.name ?? '')} ${manifests.map((m) => rel(m.path)).join(' ') || '.'}`,
+    `${assets.size} heavy asset(s) each carry a manifest record with a source and a licence-class (${found})`)
+}
+
 const notes = []
 const results = []   // { check, state: 'PASS'|'FAIL'|'WAIVED'|'SKIP', detail }
 const record = (check, state, detail) => results.push({ check, state, detail })
@@ -957,6 +1178,20 @@ const settle = (check, failed, value, failDetail, passDetail) => {
   const w = waiverFor(waivers, check, value)
   if (w) return record(check, 'WAIVED', `${failDetail}  [waived: ${w.reason}]`)
   record(check, 'FAIL', failDetail)
+}
+
+/** settle for a check that lists items: a waiver value names one item (any of `keysOf(item)`), or every item when empty or '*'; the rest still FAIL. */
+const settleEach = (check, items, keysOf, failDetail, passDetail) => {
+  if (!items.length) return record(check, 'PASS', passDetail)
+  const reasons = new Set()
+  const open = items.filter((it) => {
+    const w = keysOf(it).map((v) => waiverFor(waivers, check, v)).find(Boolean)
+    if (w) reasons.add(w.reason)
+    return !w
+  })
+  if (!open.length) return record(check, 'WAIVED', `${failDetail(items)}  [waived: ${[...reasons].join('; ')}]`)
+  const waived = items.length - open.length
+  record(check, 'FAIL', `${failDetail(open)}${waived ? `  [${waived} more waived: ${[...reasons].join('; ')}]` : ''}`)
 }
 
 /* Reads source and the build task only, so it runs first and its verdict survives an exit-2 run. */
@@ -1177,6 +1412,8 @@ const echo = brandEcho()
 const kept = echoNames(echo)
 utilityPalette(shippedCopy, kept)
 utilityFont(shippedCopy, anti, kept)
+posterFirst(shippedCopy, readSpineRegions())
+assetManifest(shippedCopy)
 
 /** Print what IS measured before a not-measured exit, so no verdict is swallowed by a missing token source. */
 const flushEarly = () => {

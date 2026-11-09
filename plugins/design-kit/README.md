@@ -181,6 +181,14 @@ pre-commit hook you add. Not run is not clean. What it does NOT catch: spacing, 
 and font drift; a colour computed at runtime; the right token used in the wrong role. The
 script's own header carries the full residual list.
 
+Since 0.13.0, `dk drift --print-hook` prints a `PostToolUse` hook for `.claude/settings.json`
+(stdout is the JSON, stderr says where it goes) and writes nothing. Pasted, it runs
+`handoff-drift.py --scan --ci` on each file Claude edits: a hit hands Claude the table (exit 2), and
+a clean file, a file it does not scan, a project with no tokens or a malformed payload stay
+silent. It names this version's absolute path, so re-run it after a plugin update. Standing:
+**gate** for the snippet — `drift.test.sh` runs the printed command against those payloads;
+whether you paste it is yours.
+
 What has teeth: the scratch-file cleanup (`--verify`), the bundle drift table and `dk drift`'s
 scan are **gates** — scripts under `scripts/__tests__/` drive all three. Consent before the first write is an AskUserQuestion, once
 per session. Finding the right component, passing only real props, rendering all four states, and
@@ -214,6 +222,12 @@ Tailwind `theme.extend` literals, `components.json`, `@font-face`/`font-family`,
 component files (TS Props, `defineProps`, cva variants, Blade `@props`, PHP view
 components, stories). URL mode fetches the page and its stylesheets without JavaScript
 and says so in the output. Brand mode reads `.css`, `.svg` fills and `.md` hex lines.
+Rendered mode (`--source rendered`, since 0.13.0) loads the page in the project's own Playwright
+Chromium after its JavaScript ran (`scripts/system-render.mjs`): computed colours, font families
+and sizes, padding, gaps and radii of every visible element, near colours merged, values on one
+element only dropped (the page background excepted). Dark mode, motion, shadows and components
+are listed as not read. Its token names are the values (`color.1f2937`) and its sources are elements, because a
+computed style carries no role; exit 3 names a missing Playwright or Chromium.
 
 What has teeth: nothing enters the record without a source, and the same source
 gives byte-identical files — **gate**, `scripts/__tests__/system-extract.test.sh` runs
@@ -318,10 +332,15 @@ Needs Node with Playwright's Chromium for capture, `ffmpeg` for export, and a Fi
 access token in the environment for a Figma source; the skill names what is missing before it
 builds.
 
-What has teeth: nothing here is a **gate**. The still-versus-reference PSNR floor and the
-overflow, seam, empty-beat and rest checks are **agent-graded** — the skill tells the model to run
-them on the recorded frames before encoding, and no script re-runs them. No script in this plugin
-captures or encodes; the recorder in `references/capture-export.md` is written per project.
+What has teeth: since 0.13.0, `scripts/motion-check.mjs` is the recorder — the project's own
+Playwright on a stepped fake clock, PNG frames with `--frames`, the page's `__start`/`__tick` driven
+— and a **gate where run**: it exits 1 on an animated layout property, a CSS animation or
+transition outside 500–1100 ms, blur above 14 px, or motion left under
+`prefers-reduced-motion: reduce`; `--static` checks the CSS rules with no browser. Exit 3 is a
+missing Playwright or Chromium, named and never installed; 4 is a page that did not load or did
+not animate. `scripts/__tests__/motion-check.test.sh` drives both modes, and skips the browser half
+where no Playwright launches (CI). The still-versus-reference PSNR floor and the overflow, seam,
+empty-beat and rest checks stay **agent-graded**, and encoding stays `ffmpeg` by hand.
 Credit: adapted from `design-to-motion` in
 [elayadesign/ai-design-skills](https://github.com/elayadesign/ai-design-skills) @a2735a3 (MIT,
 © 2026 Elaya), restructured here; the licence text is in `references/motion-system.md`. Its

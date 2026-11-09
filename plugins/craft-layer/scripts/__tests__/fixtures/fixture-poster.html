@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- poster-first controls. fixture-poster{,-clean}.html are ONE page that differs in the hero's two
+     motion lines: here the hero <video> has no poster and the <canvas> scene sits on a CSS gradient;
+     the clean twin adds the poster and an <img> still under the canvas. Both keep a logo <img> in the
+     hero, which is not a still, and a chart <canvas> outside the hero with no fallback, which is not
+     hero motion. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tideline</title>
+</head>
+<body>
+<main>
+  <section id="hero" class="hero">
+    <img class="logo" src="/brand/tideline.svg" alt="Tideline logo" width="48" height="48">
+    <h1>Tide tables for forty harbours</h1>
+    <video autoplay muted loop playsinline src="/media/harbour.mp4" width="1600" height="900"></video>
+    <div class="scene" style="background: linear-gradient(#0a6, #036)"><canvas id="scene" width="1600" height="900"></canvas></div>
+  </section>
+  <section id="week">
+    <h2>This week</h2>
+    <canvas id="chart" width="640" height="240" aria-label="High water times"></canvas>
+  </section>
+</main>
+</body>
+</html>

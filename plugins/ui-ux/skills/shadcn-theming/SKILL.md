@@ -76,7 +76,9 @@ your stack's components.
 Read before generating — lock beats memory (stack-scan doctrine):
 
 - `components.json`: `cssVariables` must be true for token theming;
-  `baseColor` names the neutral scale the project started from.
+  `baseColor` names the neutral scale the project started from. Then take
+  `project.tailwindVersion` and `project.tailwindCss` from `npx --no shadcn info --json`
+  before inferring them below; `shadcn-best-practices` (base section) says when to ask first.
 - Tailwind v4 (package.json/lockfile): tokens mapped via `@theme inline` in
   globals.css, with no tailwind.config colour block. New projects write `oklch()`.
   A project upgraded along shadcn's v4 path keeps full `hsl(…)` values, so the v4

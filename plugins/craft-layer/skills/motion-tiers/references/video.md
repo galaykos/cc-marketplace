@@ -64,4 +64,5 @@ real controls — that is `/ui-ux:audit`'s media contract, not this file.
 Standing: mostly recorded. One case is gated: the craft-gates reduced-motion pass
 (`plugins/craft-layer/template/craft-gates/gates.spec.ts`, run by `/craft-layer:audit`)
 fails a video still playing a loop under reduced motion with no controls and no pause
-button nearby. Poster, preload, LCP and encode are read back by nothing.
+button nearby, and `divergence.mjs`'s `poster-first` fails a HERO `<video>` with no `poster`
+attribute. Preload, LCP and encode are read back by nothing.

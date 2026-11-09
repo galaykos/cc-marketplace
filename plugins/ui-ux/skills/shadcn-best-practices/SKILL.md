@@ -60,8 +60,16 @@ base that manages focus trapping, `aria-*` attributes, and keyboard navigation. 
 ship. **Base UI** has been the `init` default since July 2026, and **Radix** and **React Aria**
 are the alternatives. Their APIs differ in ways that compile and then silently do nothing.
 
-- **Name the base before editing.** In `components.json`, a `style` prefix of `base-`, `radix-`
-  or `aria-` names it, and a legacy `new-york` or `default` style means Radix.
+- **Name the base before editing.** With a `components.json`, read the CLI's facts first:
+  `npx --no shadcn info --json` gives `config.base` (`base`, `radix`, `aria`),
+  `config.style`, `project.tailwindVersion` and `project.tailwindCss` (the CSS file). The
+  bare name runs the project's own `node_modules/.bin/shadcn` with no registry call;
+  `shadcn@latest` looks the registry up and skips a project copy behind latest. Keep `--no`:
+  npx assumes yes and downloads silently when stdin is not a TTY. "npx canceled due to
+  missing packages" means shadcn is not installed: say so, and run
+  `npx shadcn@latest info --json` only once the user agrees. Only when it fails or is
+  declined, infer: a `style` prefix of `base-`, `radix-` or `aria-` names
+  the base, and a legacy `new-york` or `default` style means Radix.
 - **Base UI rejects Radix habits.** `asChild` becomes `render` (plus `nativeButton={false}` for
   a non-button element), `data-[state=open]:` becomes `data-open:`, and the primitive parts
   `Content` / `Overlay` become `Popup` / `Backdrop`.
@@ -73,6 +81,10 @@ All of that, with the migrate commands, is in `references/bases.md`. Read it bef
 Base UI project or a mixed one. It matters: in a 2026-09-25 scan of 428 likely-shadcn live
 sites, 60 ran Base UI only and 67 ran both bases, so a Radix answer from memory is wrong for
 about one project in three. Standing: recorded. No gate reads the base.
+
+shadcn's own skill, `shadcn` (`npx skills add shadcn/ui`; name read from ui.shadcn.com/docs/skills
+and its SKILL.md on 2026-11-09), fires on the same `components.json` and runs `info --json`
+without `--no` as it loads. When it is loaded, read the JSON it injected instead of re-running.
 
 Whatever the base, preserve its structural parts (`Root`, `Trigger`, `Portal`, and the popup
 part) and pass through `...props` so consumers can still set `aria-label`,

@@ -94,10 +94,17 @@ the digest. Before writing any Astryx code:
 At the usage site, in the docs' order: `xstyle` with `stylex.create()`
 (merged last; `:hover` behind `@media (hover: hover)`), Tailwind utilities via
 the `tailwind-theme.css` bridge, `className` / `style`, then plain CSS against
-the stable `.astryx-*` class plus reflected `data-*` attributes — the preferred
-surface since 0.6, the bare prop/state classes (`.primary`, `.sm`, `.checked`)
-deprecated until 0.7.0 removes them. No hardcoded colours or spacing, no
-`!important`, no wrapper `div` for margin, never a patch to compiled CSS.
+the `.astryx-*` target class plus reflected `data-*` attributes
+(`.astryx-button[data-variant="primary"]`) — the only selector surface since 0.7.0,
+which removed the bare prop/state classes (`.primary`, `.sm`, `.checked`) and renamed
+21 targets (`textarea` → `text-area`); from 0.6, `astryx upgrade --from <0.6.x> --apply --path .`
+runs the codemod. Field inputs (TextInput, Selector, Typeahead, the date and time
+inputs, CheckboxList, Slider and their siblings) take `containerXstyle` /
+`controlXstyle` (and `…ClassName`, `…Style`) since 0.7.0, never a root `xstyle`.
+These 0.7 facts are 0.7.0's Breaking Changes in the core changelog (https://raw.githubusercontent.com/meta/astryx/main/packages/core/CHANGELOG.md),
+read 2026-11-09; the stamp above is the last end-to-end read, against 0.6.
+No hardcoded colours or spacing, no `!important`, no wrapper `div` for margin,
+never a patch to compiled CSS.
 
 ## Working with the agent surface
 

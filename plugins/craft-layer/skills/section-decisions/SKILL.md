@@ -77,6 +77,7 @@ already own it, in fidelity order:
 | Need | Owned by |
 | --- | --- |
 | Consent gate, fidelity ladder, ASCII + shell HTML mockups | `taskmaster:visual-decisions` |
+| Each option as an artboard on one local board, text editable, the pick read back | `/design-kit:design`, one board per decision (`references/decision-rounds.md` § Staging on a design-kit board) |
 | Real project components on a live server | the real-component rung of `taskmaster:visual-decisions` |
 | Colour or theme IS the decision | `/ui-ux:theme` |
 | Validating the ASSEMBLED page after the picks | `taskmaster:experience-walkthrough` |
@@ -112,14 +113,14 @@ what it left open.
 | How many sections, how deep | `creative-direction` (`content-depth.md`) |
 | The concept the options must honor | `creative-direction` + the creative-director agent |
 | MOVE categories the options are reasoned from | `creative-direction` (`moves-taxonomy.md`) |
-| Drawing an option | `taskmaster:visual-decisions` (shell, or its real-component rung) |
+| Drawing an option | `taskmaster:visual-decisions` (shell, or its real-component rung), or a `/design-kit:design` board |
 | Building the picked section | `/ui-ux:build` |
 | Checking the built page against the ledger | `/craft-layer:audit` |
 
 ## References
 
 - `references/decision-rounds.md` — round shapes, batching rule, round cap, the
-  decide-the-rest-for-me and headless degradations.
+  decide-the-rest-for-me and headless degradations, and staging a round on a design-kit board.
 - `references/section-ledger.md` — ledger schema, where it lives, how the build
   task carries it, and the audit's conformance rule.
 

@@ -72,6 +72,27 @@ Offer these as real options, not as a fallback mentioned once:
   multiple-choice question with written option descriptions. The agenda, rounds,
   ledger, and audit conformance all still work; only the drawing is lost.
 
+## Staging on a design-kit board
+
+When the design-kit plugin is installed, a round can draw its options as artboards with
+`/design-kit:design` instead of written descriptions. Standing: **recorded** — no script reads a
+board or checks that its pick reached the ledger.
+
+- **One board per decision, one artboard per option.** Round 1's board holds the two or three
+  whole-page outlines. A Round 2 section gets a board only when the user wants it drawn, so a batch
+  stays one exchange. Round 3's one signature decision is the one most worth a board. The board's
+  brief is the decision: the slot, the concept's metaphor and voice, and how the options differ in
+  structure. The option rule still binds — artboards that differ in decoration are a fake choice.
+- **Read the pick back, then write the row.** Take the pick `/design-kit:design` reads back from the
+  board, never a retyped summary. `choice` is the picked artboard's title and shape, `why` its
+  trade-off line, `locks` what it commits plus every text edit and knob value the read-back
+  reported (each is a requirement), `source: user`, and `staged` the board and artboard number.
+- **Stop at the pick.** The board's own next-step offer (render it in the codebase, build it now)
+  belongs to a standalone design run. Here the next step is the next decision, and the build reads
+  the ledger.
+- **The cap still counts.** A board revision is one of the two revisions a pick allows, every board
+  exchange counts toward the six, and "Decide the rest for me" stays beside the pick question.
+
 ## Headless / non-interactive runs
 
 With no interactive user (a scheduled or piped run), do not stall waiting for a

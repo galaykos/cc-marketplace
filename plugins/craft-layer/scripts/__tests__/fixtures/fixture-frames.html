@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Frame-time control for gates.spec.ts's cpu-throttle test. frame-time.test.sh derives the clean
+     twin by setting WORK_MS to 0 on the marked line, so the two differ in that line alone. The rAF
+     loop does WORK_MS of arithmetic per frame, calibrated at load on the machine running it (with the
+     result kept live, or the JIT deletes the calibration loop), so a 4x CPU throttle stretches each
+     frame past the budget wherever it runs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tideline frame probe</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #102030; background: #f6f8fa; }
+  section { padding: 48px; }
+  canvas { display: block; width: 320px; height: 160px; background: #fff; }
+</style>
+</head>
+<body>
+<main>
+  <section id="hero">
+    <h1>Tideline</h1>
+    <canvas id="scene" width="320" height="160" aria-label="Tide curve"></canvas>
+  </section>
+  <section style="min-height: 300vh"><p>Tables are published every Monday.</p></section>
+</main>
+<script>
+  const WORK_MS = 20    // DEFECTIVE: the clean twin sets this to 0
+  const work = (n) => { let x = 0; for (let k = 0; k < n; k++) x += Math.sqrt(k + (x % 7)); return x }
+  let t0 = performance.now()
+  while (performance.now() - t0 < 100) window.__sink = work(1000)
+  let calls = 0
+  t0 = performance.now()
+  while (performance.now() - t0 < 100) { window.__sink = work(1000); calls++ }
+  const iterations = Math.round((calls / 100) * 1000 * WORK_MS)
+  const g = document.getElementById('scene').getContext('2d')
+  const loop = (t) => {
+    window.__sink = work(iterations)
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, 320, 160)
+    g.fillStyle = '#0a6'; g.fillRect((t / 10) % 300, 70, 20, 20)
+    requestAnimationFrame(loop)
+  }
+  requestAnimationFrame(loop)
+</script>
+</body>
+</html>

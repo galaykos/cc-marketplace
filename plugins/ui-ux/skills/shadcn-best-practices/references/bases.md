@@ -8,6 +8,14 @@ no script reads a project's base.
 
 ## Detect the base; never assume Radix
 
+`config.base` from `npx --no shadcn info --json` comes first (the SKILL body says how);
+the table below is the fallback when that run fails or the user declines the download. Read on
+shadcn 4.23.0 on 2026-11-09: `"style": "new-york"` reports `base: "radix"`, a project without
+`components.json` reports `config: null` (exit 0), and with `"tsx": true` a missing or malformed
+`tsconfig.json` makes `info` exit 1 with the error on stdout, so parse the JSON before trusting
+it. The CSS file is `project.tailwindCss`, relative to the project. `info` does not report
+`cssVariables`; read that from `components.json`.
+
 | signal in `components.json` | base | package |
 |---|---|---|
 | `"style": "base-<preset>"` | Base UI | `@base-ui/react` |

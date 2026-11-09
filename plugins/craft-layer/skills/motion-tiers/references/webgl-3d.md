@@ -80,7 +80,10 @@ ready — is an exception, allowed only when every rule below holds:
   poster. Skip the loader on a repeat visit in the same session.
 
 Standing: the served-HTML rule is checked by `/craft-layer:audit`'s served-HTML step,
-agent-run; the rest is recorded. A page whose canvas IS the page — persistent across
+agent-run; a hero canvas or scene with no `<img>`/`<picture>`/poster in the same hero fails
+`divergence.mjs`'s `poster-first` (gate where run, source only: it cannot tell a real frame from
+a placeholder still; a decorative overlay canvas in a hero with no still fails too, so waive that one
+by its `<file>:<line>` with the reason); the rest is recorded. A page whose canvas IS the page — persistent across
 routes, DOM synced to GL — follows
 `plugins/craft-layer/skills/threejs-best-practices/references/webgl-first-site.md`.
 
