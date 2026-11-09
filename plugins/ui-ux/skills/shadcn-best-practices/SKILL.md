@@ -61,11 +61,14 @@ ship. **Base UI** has been the `init` default since July 2026, and **Radix** and
 are the alternatives. Their APIs differ in ways that compile and then silently do nothing.
 
 - **Name the base before editing.** With a `components.json`, read the CLI's facts first:
-  `npx --no shadcn@latest info --json` gives `config.base` (`base`, `radix`, `aria`),
-  `config.style`, `project.tailwindVersion` and `config.resolvedPaths`. Keep `--no`: npx
-  assumes yes and downloads silently when stdin is not a TTY. "npx canceled due to missing
-  packages" means it would download: say so and ask before running it without `--no`. Only
-  when it fails or is declined, infer: a `style` prefix of `base-`, `radix-` or `aria-` names
+  `npx --no shadcn info --json` gives `config.base` (`base`, `radix`, `aria`),
+  `config.style`, `project.tailwindVersion` and `project.tailwindCss` (the CSS file). The
+  bare name runs the project's own `node_modules/.bin/shadcn` with no registry call;
+  `shadcn@latest` looks the registry up and skips a project copy behind latest. Keep `--no`:
+  npx assumes yes and downloads silently when stdin is not a TTY. "npx canceled due to
+  missing packages" means shadcn is not installed: say so, and run
+  `npx shadcn@latest info --json` only once the user agrees. Only when it fails or is
+  declined, infer: a `style` prefix of `base-`, `radix-` or `aria-` names
   the base, and a legacy `new-york` or `default` style means Radix.
 - **Base UI rejects Radix habits.** `asChild` becomes `render` (plus `nativeButton={false}` for
   a non-button element), `data-[state=open]:` becomes `data-open:`, and the primitive parts

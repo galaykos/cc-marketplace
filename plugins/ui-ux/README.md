@@ -159,23 +159,32 @@ tags, quoted selector, help URL), or one JSON object with `--json`:
 
 ```bash
 cd <project root> && node "${CLAUDE_PLUGIN_ROOT}/scripts/axe-run.mjs" http://localhost:5173/checkout
-node "${CLAUDE_PLUGIN_ROOT}/scripts/axe-run.mjs" --json dist/index.html
+npx vite preview &   # built output needs a server: serves dist/ on http://localhost:4173
+node "${CLAUDE_PLUGIN_ROOT}/scripts/axe-run.mjs" --json http://localhost:4173/
 ```
+
+A local file works for hand-written HTML. Built output does not: over `file://` a bundler's
+root-absolute `/assets/…` URLs miss and a module script is blocked, so the page renders
+empty and unstyled. The run then exits 4 and names each failed script or stylesheet,
+rather than passing an empty page. Serve the build (`vite preview`, or any static server)
+and give the URL.
 
 It uses only what the project already has, resolved from its `node_modules`:
 `playwright`, `@playwright/test`, `playwright-core` or `puppeteer`, and `axe-core`
 (directly, or through `@axe-core/playwright` / `@axe-core/puppeteer`). It installs
 nothing. Exit 0 clean, 1 violations, 2 usage, 3 a missing piece (stderr names it),
-4 the page did not load or axe failed. When the project's Playwright has no matching
-Chromium, `AXE_RUN_CHROMIUM=<path>` points it at a Chrome or Chromium already on the
-machine. `/ui-ux:audit` runs it as its rendered pass, and its static checklist still runs.
+4 the page, one of its scripts or stylesheets, or axe failed. When the project's
+Playwright has no matching Chromium, `AXE_RUN_CHROMIUM=<path>` points it at a Chrome or
+Chromium already on the machine. `/ui-ux:audit` runs it as its rendered pass, and its static checklist still runs.
 
 **Standing: gate where run.** The exit codes are mechanical and
 `scripts/__tests__/axe-run.test.sh` pins them; its browser cases SKIP where no Chromium
 launches, and CI has none. **Limits:** axe tests a minority of WCAG (not keyboard flow,
 screen-reader output or meaning). It sees one 1280×800 light render at the load event,
-so hover, open menus, data fetched later and dark mode are not seen, and it skips
-iframes. A page that rewrites `window.axe` can forge the result.
+so hover, open menus, data fetched later and dark mode are not seen. It does not test
+iframe content; it prints `N iframe(s) not tested` (`framesSkipped` in JSON). A page that
+rewrites `window.axe` can forge the result; the fields it prints off their usual shape
+come out JSON-quoted.
 
 ## Evals
 
