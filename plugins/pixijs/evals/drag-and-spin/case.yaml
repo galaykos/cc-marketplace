@@ -1,0 +1,33 @@
+schema_version: "1.1"
+name: drag-and-spin
+description: 'The core v7-to-v8 renames in one small page: await app.init, Assets.load for a URL, the Ticker passed to ticker callbacks, and a drag that does not stop at the sprite edge (v8 migration guide, v8 events guide). Expected to be a regression guard.'
+runs: 3
+execution:
+  timeout_seconds: 300
+  max_turns: 6
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    PixiJS 8.22, a fresh page. Create the app (800x600, dark background), load bunny.png and put the bunny in the
+    middle. The player can drag the bunny around the stage with the mouse. While it is not being dragged it spins at
+    90 degrees per second at any frame rate. Reply with the TypeScript only.
+graders:
+  - name: skill-fired
+    type: tool_used
+    tool: Skill
+    input_match: "pixijs:pixijs-best-practices"
+  - name: v8-init-ticker-drag
+    type: llm
+    criteria: |
+      Facts (PixiJS v8 migration guide and events guide): options passed to new Application() are ignored; they go to
+      await app.init(). Texture.from(url) and Sprite.from(url) no longer load a URL; Assets.load does. A ticker
+      callback receives the Ticker, not a delta number. pointermove fires only while the pointer is over the object;
+      globalpointermove fires on every move. The default eventMode is 'passive' (no events on that object).
+      PASS requires all four:
+      1. const app = new Application(); await app.init({ ... }) with the size and background in init().
+      2. The texture comes from await Assets.load('bunny.png') (or Assets.load then Sprite.from on the loaded alias).
+      3. The spin reads time from the Ticker (ticker.deltaTime, ticker.deltaMS or app.ticker.deltaMS), not arithmetic
+         on the callback argument as a number.
+      4. The bunny has eventMode 'static' or 'dynamic', and the drag moves on globalpointermove, or on pointermove of
+         a stage given eventMode 'static' and hitArea = app.screen. FAIL if pointermove is listened to on the bunny
+         alone.
+      FAIL if any one is missing. Not graded: app.view vs app.canvas, anchor, cursor style, code style.
