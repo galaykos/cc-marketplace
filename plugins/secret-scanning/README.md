@@ -130,6 +130,16 @@ standing is in the table at the top.
   carries one line for the model naming the labels, saying the value is unchanged at its
   source and forbidding writing the placeholder back; a toast names the count and the
   labels, never a value.
+- **Higgsfield upload URLs** (since 0.16.0). Higgsfield's MCP `media_upload` returns a signed
+  `https://upload.higgsfield.ai/…` URL whose `X-Amz-Credential` and `X-Amz-Security-Token`
+  values match the AWS and assigned rows. Masked, the URL cannot take the `PUT` the upload
+  needs, so the model regenerated images instead. In the result of a tool named
+  `mcp__<server>__media_upload`, a match inside one of that URL's `X-Amz-*` values stays
+  unmasked. Everything else is masked as before: a key beside the URL or in another parameter,
+  the same URL in any other tool's result (a log, a commit), and every other presigned URL. The
+  write guard still denies the URL in a file. **Gate** — `tests/redact.test.ts`, "Higgsfield
+  upload URL", replays the firing; `scan-hook.test.sh` pins the write deny. Residual: the
+  transcript keeps that URL, which can upload to one path until it expires.
 - **Errors and attached context.** An errored result whose error text, stored result or
   attached context holds a secret is answered with a refusal carrying the redacted error
   text. Context a hook seated beneath this one attached is passed on verbatim (CLI 2.1.291

@@ -496,6 +496,41 @@ Residual:
 - Any token format newer than that commit is missed.
 - So is an OpenAI key whose halves are neither 58 nor 74 characters.
 
+## plugins/secret-scanning/hooks/redact.ts
+
+### The Higgsfield signed upload URL (0.16.0, 2026-11-09)
+
+Session retro 2026-11-05, issue 16. In sessions `5df215ae`/`64de927c` (cowork) and `5d6230d0`/`b1c33fa3` (little-sprito), Higgsfield's
+MCP `media_upload` result came back with its `X-Amz-Security-Token` value masked as "an assigned secret literal". The tool was
+`mcp__91037719-f36d-439c-a49c-805a84b65a0d__media_upload`, a claude.ai connector named by UUID. The assigned-row mask runs to the
+next quote, so it also swallowed `X-Amz-Signature`. The model then said "The upload link came back redacted, so I can't send the
+file". It regenerated reference views for about 6 more credits in one session and dropped a planned inpainting fix in the other.
+Since 0.15.7 the AWS row also matches the `ASIA…` key ID in `X-Amz-Credential`, so today both values would be masked.
+
+The shape, read from the 2026-10-29 transcript line (`5df215ae`, line 6119) on 2026-11-09:
+`https://upload.higgsfield.ai/user_<id>/<uuid>.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=<ASIA…>%2F<date>%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=…&X-Amz-Expires=86400&X-Amz-SignedHeaders=content-type%3Bhost%3Bif-none-match&X-Amz-Security-Token=…`.
+It is an S3 SigV4 presigned PUT under STS session credentials. The result holds it twice: as `upload_url` in a JSON text block,
+and quoted in the `curl -X PUT` line the tool tells the model to run. Higgsfield's public API docs
+(https://docs.higgsfield.ai/docs/concepts/file-uploads.md, read 2026-11-09) describe the same flow, an `upload_url` to PUT to that
+"expires after one hour", but name no host. So `upload.higgsfield.ai` rests on that one transcript and is not in the docs. The
+same docs name the API credentials `HF_API_KEY_ID`/`HF_API_KEY_SECRET` and the legacy `hf-api-key`/`hf-secret` headers
+(…/authentication.md); the key format itself is not documented.
+
+The exception: in the successful result of a tool named `mcp__<server>__media_upload`, a match is left unmasked when it begins inside
+the value of an `X-Amz-*` query parameter of an `https://upload.higgsfield.ai/…?…` URL and ends by that URL's end. Every other match
+in the same result is masked as before: a Higgsfield key beside the URL, or one carried by a non-`X-Amz` parameter of the same URL.
+So is that URL in any other tool's result, Bash and Read included, so it stays masked in a log or in a commit's echoed message. So
+is an S3, R2 or any other host's presigned URL, and an errored `media_upload`. Nothing changed for writes: `scan.sh` still denies the
+URL in a Write or a Bash write (the `ASIA…` key ID), and the mod never rewrites tool input. `tests/redact.test.ts`, "Higgsfield
+upload URL", replays the firing and runs each must-still-mask case; `scan-hook.test.sh` pins the write deny and the `curl -X PUT`
+that passes.
+
+LIMITATION: the transcript now keeps the signed URL as returned. Its credentials can PUT one object path until `X-Amz-Expires` runs
+out (86400 s in the replayed firing, one hour per the docs). The match is on the tool's name and the host, not on the server: any
+MCP server with a `media_upload` tool returning an `upload.higgsfield.ai` URL gets it. The policy lives in `redact.ts`, and
+`redact-core.ts` only takes the ranges (`Kept`). `scan.sh` has no counterpart, so `pattern-parity.test.sh` runs the core without
+ranges.
+
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
 
 ### Header
