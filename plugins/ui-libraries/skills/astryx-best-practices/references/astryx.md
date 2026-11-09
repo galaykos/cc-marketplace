@@ -1,16 +1,19 @@
 # Astryx structure digest — packages, imports, CLI, themes, templates
 
-> Last verified: 2026-09-26 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
+> Last verified: 2026-11-09 — https://raw.githubusercontent.com/meta/astryx/main/packages/core/CHANGELOG.md — npm:@astryxdesign/core@0.7
 
 Read on demand from astryx-best-practices: structure only — packages, install,
 CSS and theme wiring, the CLI, the theme and template inventories. Astryx is
-**beta** (0.x, `0.6.3` on npm at the stamp above, `canary` publishing several
-times a day; the 2026-09-26 re-read was the 0.6.1–0.6.3 changelog against this file,
-which changed no package, CSS import, layer order, `defineTheme` key, CLI command or
-peer — the full structure read is 2026-09-22's) — nothing here answers a props question, and a 0.x MINOR is where
+**beta** (0.x, `0.7.11` the npm `latest` at the stamp above, published 2026-11-07,
+`canary` publishing several times a day — https://registry.npmjs.org/@astryxdesign/core;
+the 2026-11-09 re-read was every 0.7.0–0.7.11 Breaking Changes entry in the changelog
+against this file, and only 0.7.0 has any; the 2026-09-26 re-read was the 0.6.1–0.6.3
+changelog; the full structure read is 2026-09-22's) — nothing here answers a props question, and a 0.x MINOR is where
 this file goes stale: 0.3 → 0.5 split the package, renamed a category and added
 the agent surface; 0.5 → 0.6 changed the CSS selector contract, added
-`adaptations` to `defineTheme`, and shipped 7 more templates.
+`adaptations` to `defineTheme`, and shipped 7 more templates; 0.6 → 0.7 removed the
+bare prop/state classes, renamed 21 theme targets and moved field inputs' root
+styling to `container*` / `control*` props. Peers at 0.7.11 are unchanged.
 
 ## Package layout and install
 
@@ -82,13 +85,23 @@ Ordered as the docs recommend; all are usage-site, none touch library output:
    mapping tokens to classes (`text-primary`, `bg-surface`, `rounded-container`).
 3. `className` (appended after the component's own classes) and `style`
    (consumer wins on conflict).
-4. Plain CSS against the stable base class plus reflected data attributes:
-   `.astryx-button[data-variant="primary"]`. **Data attributes are the preferred
-   selector surface.** Bare prop/state classes (`.primary`, `.sm`, `.checked`)
-   are DEPRECATED — still emitted through the 0.7.0 removal window, and
-   `astryx upgrade --apply` rewrites qualified `.css` selectors into an
-   `:is(.primary, [data-variant="primary"])` union. Semantic
-   `defineTheme({components})` keys did not change.
+4. Plain CSS against the target class plus reflected data attributes:
+   `.astryx-button[data-variant="primary"]`, `.astryx-switch[data-checked="checked"]`.
+   **Data attributes are the only selector surface since 0.7.0**, which removed
+   the bare prop/state classes (`.primary`, `.sm`, `.checked`): components "now emit
+   only canonical target classes and reflected `data-*` prop/state selectors". 0.7.0
+   also renamed 21 target keys and classes (`base-table` → `table`, `textarea` →
+   `text-area`, `progressbar` → `progress-bar`, the four clear icons →
+   `input-clear-icon`, …), in `defineTheme({components})` maps and in CSS alike. The
+   required codemod, `migrate-deprecated-theme-surface`, runs with
+   `astryx upgrade --from <your 0.6 version> --apply --path .`; it leaves unqualified
+   classes, computed theme keys and CSS inside JS strings for review.
+   Field inputs (TextInput, TextArea, NumberInput, FileInput, Selector,
+   MultiSelector, ComplexSelector, Typeahead, Tokenizer, CheckboxList, RadioList,
+   Slider, the date and time inputs) no longer take a root `xstyle`/`className`/`style`:
+   `containerXstyle`/`containerClassName`/`containerStyle` style the Field box,
+   `controlXstyle`/`controlClassName`/`controlStyle` the control (0.7.0,
+   codemod `migrate-field-input-styling`).
 
 The docs add one the SKILL does not: no `style={{}}` on a raw `<div>` wrapper.
 

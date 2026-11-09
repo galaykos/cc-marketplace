@@ -8,7 +8,8 @@ means headless ones (Base UI, Radix, React Aria, Ark, Headless UI). Styled ones 
 too (Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus). It also covers
 an organisation's own service that must use its official design system (GOV.UK Frontend,
 USWDS, Polaris, Carbon, Atlassian). It carries a per-library map of detection signals,
-theme channels and docs URLs.
+theme channels, docs URLs and, since 0.4.0, the vendor's own MCP server where one exists (read
+2026-11-09, each with its source; "none found" is not proof of absence).
 
 > **Pairs with `ui-ux` — install both.** `/ui-ux:build` and the ui-ux agents are what load
 > these skills; without ui-ux they only fire through skill-router or by name. Nothing
