@@ -47,6 +47,42 @@ starting with `%YAML`) are skipped.
 Standard library only. Read-only: nothing is ever written.
 ```
 
+### Version-windowed API names (2026-11-09, unity-traps 0.6.0)
+
+Roadmap row GD4. The checker reads `m_EditorVersion` from `ProjectSettings/ProjectVersion.txt` and the
+`com.unity.cinemachine` version from `Packages/manifest.json`, falling back to `packages-lock.json` when the manifest
+holds a URL. It then scans each C# file it already reads for class names, in the same pass, for names in that
+version's window. Every boundary below was read from the page named, on 2026-11-09:
+
+| Name | Deprecated (warning) | Removed (error) | Read from |
+|---|---|---|---|
+| `GetInstanceID()` | 6000.4 | 6000.5 | `docs.unity3d.com/6000.4/Documentation/ScriptReference/Object.GetInstanceID.html` ("GetInstanceID is deprecated"); 6000.3 page carries no notice; `docs.unity.com/en-us/engine/6000.5/script-reference/unityengine/object/getinstanceid` ("Removed. Use GetEntityId instead.") |
+| `Resources`/`EditorUtility.InstanceIDToObject`, `Selection.activeInstanceID`, `Selection.instanceIDs` | 6000.3 | 6000.5 | 6000.2 pages carry no notice; 6000.3 pages say "Deprecated."; 6000.5 pages say "Removed."; the 6.5 upgrade guide says "a large number of InstanceID APIs have been marked obsolete and will cause errors" |
+| `UxmlFactory`, `UxmlTraits` | 6000.0 | 6000.6 | 2023.2 page carries no notice; 6000.0–6000.5 pages say "deprecated and will be removed"; the 6.6 upgrade guide, "Removed UXML Factory/Traits" |
+| `using Cinemachine;`, `Cinemachine.Utility`, `Cinemachine.Editor` | — | 3.0 | `com.unity.cinemachine@3.0` CHANGELOG: "All namespaces changed from "Cinemachine" to "Unity.Cinemachine"" |
+| `CinemachineBlendListCamera` | — | 3.0 | 3.0 CHANGELOG ("renamed to CinemachineSequencerCamera"), 3.1 What's new ("simply renamed"); no class of that name in the package source at `Unity-Technologies/com.unity.cinemachine@45728f3` |
+| `CinemachineCore.Instance` | — | 3.0 | 3.1 What's new, "Removed CinemachineCore.Instance"; 3.0 CHANGELOG, "CinemchineCore refactored to remove singleton" |
+| 16 Cinemachine 2 components (`CinemachineVirtualCamera`, `CinemachineFreeLook`, `CinemachinePath`, `CinemachineSmoothPath`, `CinemachineDollyCart`, `CinemachineTransposer`, `CinemachineOrbitalTransposer`, `CinemachineFramingTransposer`, `CinemachineComposer`, `CinemachinePOV`, `CinemachineTrackedDolly`, `CinemachineGroupComposer`, `CinemachineCollider`, `CinemachineConfiner`, `Cinemachine3rdPersonFollow`, `CinemachineSameAsFollowTarget`) | 3.0 | — | each `com.unity.cinemachine@3.1/api/Unity.Cinemachine.<Name>.html` carries `[Obsolete(...)]`; `CinemachineVirtualCamera` checked on the 3.0 API too |
+
+**Unverified, not gated:** `Cinemachine3rdPersonAim`. The 3.0 CHANGELOG calls it deprecated, but it has no API page
+in 3.0 or 3.1 and no class in the package source. Whether it was removed in 3.0 or later could not be settled.
+
+The roadmap row named 6.5 for InstanceID. The docs show the deprecation earlier, so 6000.3 and 6000.4 get warnings
+and 6000.5 gets errors.
+
+- **What is skipped.** Comments and strings, with the class-name check's own stripper. A `GetInstanceID()` preceded on
+  its line by a type word (`int GetInstanceID()`), which is a declaration. Any line inside an `#if`/`#elif` group whose
+  condition names `UNITY_<digit>` or `CINEMACHINE`, in both branches: code that already guards on the version handled
+  it. One finding per file and rule, with a use count.
+- **Misses.** A call inside an interpolated string's braces, because the stripper blanks the whole string. A name
+  reached through `using static`, an alias or a variable. Files over 2 MB. A project whose versions cannot be read.
+  `Uxml*AttributeDescription` fields are not scanned on their own: they sit inside a `UxmlTraits` class the scan
+  already reports.
+- **Cost.** Each rule runs only on a file holding its literal needles (`InstanceID`, `Uxml`, `Cinemachine` and the
+  name itself). The namespace regex starts with its literal, because a lookbehind first made it 60 times slower. On a
+  synthetic project of 24,202 files with 12,000 scripts, every one naming `Unity.Cinemachine`, on Unity 6000.6 with
+  Cinemachine 3.1.2, the checker went from 1.22 s to 1.33 s (three runs each, 2026-11-09).
+
 ## plugins/unity-traps/hooks/meta-check.sh
 
 Added 2026-11-02 (unity-traps 0.4.0). Until then `check_unity_project.py` was **recorded** only: the
@@ -82,6 +118,11 @@ Design:
 
 Standing: the firing and silence cases are a **gate** in
 `scripts/smoke/game-checker-hooks-tests.sh`, run in CI.
+
+**2026-11-09 (0.6.0): `api-*` findings are filtered out.** The checker's version-windowed name scan reports errors
+that are not move damage, and this hook's closing advice is about `.meta` files. Verified by hand on 2026-11-09: a
+6000.5 project with a `GetInstanceID()` use and a `.cs` moved without its `.meta` reported `moved-without-meta` and
+not `api-removed`. No harness case pins it, because the smoke harness is outside this plugin.
 
 **Live host check, 2026-11-02.** One headless `claude -p` session (CLI 2.1.316, haiku), with unity-traps and meshy loaded by `--plugin-dir`, ran `mv` of an `Assets/` script without its `.meta`, then `cp` of a 60,000-triangle `.glb`. Its final reply named both findings: the `.meta` left behind, and "60,000 triangles, over the 15,000 budget". So the host delivered both hooks' context, and the PreToolUse/PostToolUse `tool_use_id` bracket held. blender and pixel-art were driven only through the harness. What the agent does with a finding is
 **agent-graded**.
