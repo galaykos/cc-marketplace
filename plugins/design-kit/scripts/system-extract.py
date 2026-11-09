@@ -201,6 +201,7 @@ class Extraction:
         self.components = []
         self.notes = []
         self.sources = []
+        self.unread = {}   # section -> the mode that never reads it, so its absence is not reported as Not found
 
     def add(self, name, value, ttype, source, mode="light"):
         path = group_for(name, ttype) + "." + token_name(name)
@@ -635,8 +636,9 @@ def extract_rendered(target, ex):
     for path, node in flat(json.loads(proc.stdout)):
         dk = node.get("$extensions", {}).get("design-kit", {})
         ex.tokens[path] = {"$type": node["$type"], "modes": {"light": node["$value"]}, "sources": list(dk.get("sources", [])),
-                           "uses": dk.get("uses")}
+                           "uses": dk.get("uses"), "roles": list(dk.get("roles", [])), "merged": dk.get("merged")}
     ex.sources.append(f"{target} (rendered)")
+    ex.unread = {k: "rendered mode" for k in ("dark", "motion", "elevation", "components")}
     ex.notes.append("rendered mode: the computed styles of the visible elements after JavaScript ran, clustered. A token's name is its value, "
                     "never a role, and its sources are elements, not source lines — which colour is the primary is named in the source, then re-run.")
     return 0
@@ -717,6 +719,10 @@ def build_tokens(ex):
         ext["sources"] = sorted(entry["sources"])
         if entry.get("uses"):
             ext["uses"] = entry["uses"]
+        if entry.get("roles"):
+            ext["roles"] = entry["roles"]
+        if entry.get("merged"):
+            ext["merged"] = entry["merged"]
         node["$extensions"] = {"design-kit": ext}
         cur = out
         parts = path.split(".")
@@ -827,7 +833,9 @@ def build_markdown(ex, tokens, project, source_label):
     if not (colors or fams or sp or rd or mo):
         lines.append("- (no tokens found — see below)")
     lines += ["", "## Components", ""]
-    if ex.components:
+    if "components" in ex.unread:
+        lines.append(f"Not read ({ex.unread['components']}).")
+    elif ex.components:
         lines.append("| Component | Source | Props | Variants |")
         lines.append("|---|---|---|---|")
         for c in ex.components:
@@ -836,11 +844,16 @@ def build_markdown(ex, tokens, project, source_label):
     else:
         lines.append("None found under " + ", ".join(COMPONENT_DIRS) + ".")
     lines += ["", "## Not found", ""]
-    missing = []
+    missing, unread = [], []
+    def gap(key, text, short):
+        if key in ex.unread:
+            unread.append(f"{short} — not read ({ex.unread[key]})")
+        else:
+            missing.append(text)
     if not colors:
         missing.append("colour tokens (custom properties, Tailwind colors, SCSS variables)")
     elif not any("modes" in n["$extensions"]["design-kit"] for _, n in colors):
-        missing.append("a dark mode (no `.dark`, `[data-theme=dark]` or `prefers-color-scheme: dark` block changed a colour)")
+        gap("dark", "a dark mode (no `.dark`, `[data-theme=dark]` or `prefers-color-scheme: dark` block changed a colour)", "a dark mode")
     if not fams:
         missing.append("a typeface (no @font-face, font-family, --font-* or Google Fonts link)")
     if not sp:
@@ -848,10 +861,14 @@ def build_markdown(ex, tokens, project, source_label):
     if not rd:
         missing.append("a radius token")
     if not mo:
-        missing.append("motion tokens (durations, easings)")
+        gap("motion", "motion tokens (durations, easings)", "motion tokens (durations, easings)")
+    if not el and "elevation" in ex.unread:
+        unread.append(f"elevation (shadows) — not read ({ex.unread['elevation']})")
     if not ex.components:
-        missing.append("a component inventory")
-    lines += [f"- {m}" for m in missing] or ["- nothing — every section above has a source"]
+        gap("components", "a component inventory", "a component inventory")
+    lines += [f"- {m}" for m in missing] or [f"- nothing — every section {'read' if unread else 'above'} has a source"]
+    if unread:
+        lines += ["", "## Not read", ""] + [f"- {u}" for u in unread]
     if ex.notes:
         lines += ["", "## Notes", ""] + [f"- {n}" for n in ex.notes]
     lines += ["", "## Sources", ""] + [f"- {s}" for s in sorted(set(ex.sources))]
@@ -915,7 +932,9 @@ def build_kit(ex, tokens, project, shell_path):
         var = "; ".join(f"{k}: {', '.join(v)}" for k, v in c["variants"].items())
         sections["Components"].append(card("Components", c["name"], component_sample(c) + f"<div class=\"dk-meta\"><code>{html.escape(c['path'])}</code><br>props: {html.escape(props)}" + (f"<br>variants: {html.escape(var)}" if var else "") + "</div>", "static stand-in — not the component"))
     for key, cards in sections.items():
-        slots[key.lower()] = "\n".join(cards) if cards else "<p class=\"dk-empty\">Nothing found in the source.</p>"
+        unread = ex.unread.get(key.lower())
+        empty = f"Not read ({unread})." if unread else "Nothing found in the source."
+        slots[key.lower()] = "\n".join(cards) if cards else f"<p class=\"dk-empty\">{empty}</p>"
     for k, v in slots.items():
         shell = shell.replace(f"<!-- SLOT: {k} -->", v)
     return shell

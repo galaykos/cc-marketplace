@@ -94,11 +94,13 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source rep
   listed under `$extensions.design-kit.literalColors` — candidates, not tokens.
 - **rendered** (never guessed — pass `--source rendered`, or `dk.sh system <url|file> --source rendered`):
   the page in the project's own Playwright Chromium after its JavaScript ran, through
-  `scripts/system-render.mjs` — computed colours, font families and sizes, spacing and radii of
-  every visible element, clustered. Use it when url mode's note says styles are runtime-injected
+  `scripts/system-render.mjs` — computed colours, font families and sizes, padding, gaps and radii
+  of every visible element, clustered. Use it when url mode's note says styles are runtime-injected
   (an SPA, CSS-in-JS). Names are values (`color.1f2937`), never roles: which one is the primary
-  is the user's answer, named in the source. Exit 3 names a missing Playwright or Chromium;
-  nothing is installed. Gate where run: `scripts/__tests__/system-render.test.sh`. `dk.sh check`
+  is the user's answer, named in the source. Dark mode, motion, shadows and components are not read:
+  `DESIGN-SYSTEM.md` lists them under `## Not read`, never as not found. Exit 3 names a missing
+  Playwright or Chromium (`dk.sh system` renders once and passes the code through); nothing is
+  installed. Gate where run: `scripts/__tests__/system-render.test.sh`. `dk.sh check`
   re-reads the repo, not the page, so after a url or rendered run its `check:` lines are not drift.
 - **brand** (a directory with no manifest): `.css`, `.svg` fills and strokes, `.md`/`.txt`
   lines carrying a hex code or a "Typeface: X" phrase.

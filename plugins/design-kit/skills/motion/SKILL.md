@@ -89,7 +89,7 @@ Recorder, page-side contract, checks and `ffmpeg` lines: `references/capture-exp
 - **Never screen-record in real time, and never write the recorder.** Record with
   `node "${CLAUDE_PLUGIN_ROOT}/scripts/motion-check.mjs" "<page>?capture&static=1" --selector '#stage'
   --ms <intro + cycle + 200> --frames .design-kit/motion/<slug>/.frames`: it steps Playwright's fake
-  clock, drives `__start`/`__tick`, writes the PNGs and `loop-time.json`, and exits 1 on an animated
+  clock, drives `__start`/`__tick`, writes the PNGs (and `loop-time.json` when the page defines both), and exits 1 on an animated
   layout property, a CSS duration outside 500–1100 ms, blur above 14 px, or motion left under reduced
   motion; exit 3 names a missing Playwright or Chromium (it installs nothing). `static=1` keeps the
   preview server's live-reload stream out, which would keep a capture from settling.

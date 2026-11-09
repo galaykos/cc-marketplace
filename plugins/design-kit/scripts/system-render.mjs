@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// system-render.mjs — tokens from a page AFTER its JavaScript ran: loads a URL or HTML file in the project's Playwright Chromium, reads the computed colours, font families and sizes, spacing and radii of every visible element, clusters them and writes DTCG JSON in tokens.json's shape. --samples re-clusters a saved --dump-samples file with no browser.
-// Misses: names are the values (color.1f2937), never roles; one viewport, the light scheme and the first screen's DOM (no hover, focus, dark mode or other route); gradients, shadows, images and canvas; a colour outside rgb()/oklch()/color(srgb) is kept as written, unclustered.
+// system-render.mjs — tokens from a page AFTER its JavaScript ran: loads a URL or HTML file in the project's Playwright Chromium, reads the computed colours, font families and sizes, padding, gaps and radii of html and every visible element, clusters them and writes DTCG JSON in tokens.json's shape. --samples re-clusters a saved --dump-samples file with no browser.
+// Misses: names are the values (color.1f2937), never roles; margins (a used value: `margin: auto` reads as a width); one viewport, the light scheme and the first screen's DOM (no hover, focus, dark mode or other route); gradients, shadows, images and canvas; a colour outside rgb()/oklch()/color(srgb) is kept as written, unclustered.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/system-render.mjs
 import { readFileSync, writeFileSync } from 'node:fs'
 import { launchChromium, targetUrl, Missing } from './chromium.mjs'
@@ -8,7 +8,7 @@ import { launchChromium, targetUrl, Missing } from './chromium.mjs'
 const USAGE = `usage: system-render.mjs <url|file.html> [--out FILE|-] [--dump-samples FILE] [--viewport 1440x900]
                          [--settle 500] [--max-elements 4000] [--project DIR] [--browser PATH]
        system-render.mjs --samples FILE [--out FILE|-]
-  clustering: --near 8 (RGB distance merged into one colour) --min-uses 2 (rarer values are dropped)
+  clustering: --near 8 (RGB distance merged into one colour) --min-uses 2 (values on fewer elements are dropped, the html/body background excepted)
   exit: 0 tokens written · 1 no value survived (nothing visible, or all under --min-uses) · 2 usage or unreadable input
         3 NOT MEASURED: Playwright, or a Chromium it can launch, is missing (nothing is installed)
         4 NOT MEASURED: the page did not load`
@@ -61,17 +61,20 @@ function collect(max) {
     return (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + cls.map((c) => '.' + c).join('')).replace(/[^\w#.-]/g, '').slice(0, 60)
   }
   const skip = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'HEAD', 'META', 'LINK', 'BR', 'TITLE'])
-  const els = document.body ? [document.body, ...document.body.querySelectorAll('*')] : []
+  const root = document.documentElement
+  const els = [root, ...(document.body ? [document.body, ...document.body.querySelectorAll('*')] : [])]
   for (const el of els) {
     if (out.elements >= max) break
     if (skip.has(el.tagName)) continue
     const cs = getComputedStyle(el)
-    if (cs.display === 'none' || cs.visibility !== 'visible' || Number(cs.opacity) === 0) continue
+    // checkVisibility's opacity test covers an ancestor at opacity 0, which the element's own computed opacity does not.
+    if (el.checkVisibility ? !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })
+      : cs.display === 'none' || cs.visibility !== 'visible' || Number(cs.opacity) === 0) continue
     const r = el.getBoundingClientRect()
-    if (r.width <= 0 || r.height <= 0) continue
-    out.elements++
+    if (el !== root && el !== document.body && (r.width <= 0 || r.height <= 0)) continue
+    const id = out.elements++
     const d = desc(el)
-    const push = (kind, value) => out.samples.push([kind, value, d])
+    const push = (kind, value) => out.samples.push([kind, value, d, id])
     if ([...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) {
       push('text', cs.color); push('family', cs.fontFamily); push('size', cs.fontSize)
     }
@@ -79,7 +82,8 @@ function collect(max) {
     for (const s of ['Top', 'Right', 'Bottom', 'Left']) {
       if (cs[`border${s}Style`] !== 'none' && parseFloat(cs[`border${s}Width`]) > 0) push('border', cs[`border${s}Color`])
     }
-    for (const p of ['marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']) push('spacing', cs[p])
+    // Padding only: a computed margin is a used value, so `margin: 0 auto` reads as half the free width.
+    for (const p of ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']) push('spacing', cs[p])
     if (/flex|grid/.test(cs.display)) { push('spacing', cs.rowGap); push('spacing', cs.columnGap) }
     for (const c of ['TopLeft', 'TopRight', 'BottomRight', 'BottomLeft']) push('radius', cs[`border${c}Radius`])
   }
@@ -135,31 +139,39 @@ function firstFamily(raw) {
 
 function cluster(dump, o, label) {
   const groups = { color: new Map(), family: new Map(), size: new Map(), spacing: new Map(), radius: new Map() }
-  const add = (map, key, value, role, el, extra) => {
-    const e = map.get(key) || { key, value, uses: 0, roles: new Set(), els: [], ...extra }
-    e.uses++
+  // uses counts elements: four equal borders or paddings on one element are one use. A dump without ids counts samples.
+  const use = (e, id) => { if (!e.ids.has(id)) { e.ids.add(id); e.uses++ } }
+  const add = (map, key, value, role, el, id, extra) => {
+    const e = map.get(key) || { key, value, uses: 0, ids: new Set(), roles: new Set(), els: [], base: false, ...extra }
+    use(e, id)
     if (role) e.roles.add(role)
     if (e.els.length < 3 && !e.els.includes(el)) e.els.push(el)
     map.set(key, e)
+    return e
   }
-  for (const [kind, raw, el] of dump.samples || []) {
+  let anon = 0
+  for (const [kind, raw, el, n] of dump.samples || []) {
+    const id = Number.isInteger(n) ? n : `s${anon++}`
     if (kind === 'text' || kind === 'background' || kind === 'border') {
       const c = parseColor(raw)
-      if (c) add(groups.color, c.key, c.value || c.raw, kind, el, { rgb: c.rgb, a: c.a })
+      const e = c && add(groups.color, c.key, c.value || c.raw, kind, el, id, { rgb: c.rgb, a: c.a })
+      // The page's base background sits on html or body alone, once: it is kept under any --min-uses.
+      if (e && kind === 'background' && /^(html|body)(?![\w-])/.test(String(el))) e.base = true
     } else if (kind === 'family') {
       const f = firstFamily(raw)
-      if (f) add(groups.family, f.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), f, null, el)
+      if (f) add(groups.family, f.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), f, null, el, id)
     } else if (groups[kind]) {
       const d = dim(raw)
-      if (d) add(groups[kind], d.key, d.value, null, el)
+      if (d) add(groups[kind], d.key, d.value, null, el, id)
     }
   }
   const byUse = (a, b) => b.uses - a.uses || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
   const merged = []
   for (const c of [...groups.color.values()].sort(byUse)) {
     const near = c.rgb && merged.find((m) => m.rgb && m.a === c.a && Math.hypot(...m.rgb.map((x, i) => x - c.rgb[i])) <= o.near)
-    if (!near) { merged.push({ ...c, roles: new Set(c.roles), els: [...c.els], members: 1 }); continue }
-    near.uses += c.uses; near.members++
+    if (!near) { merged.push({ ...c, ids: new Set(c.ids), roles: new Set(c.roles), els: [...c.els], members: 1 }); continue }
+    near.members++; near.base ||= c.base
+    for (const id of c.ids) use(near, id)
     for (const r of c.roles) near.roles.add(r)
     for (const e of c.els) if (near.els.length < 3 && !near.els.includes(e)) near.els.push(e)
   }
@@ -171,7 +183,7 @@ function cluster(dump, o, label) {
     cur[name] = { $type: type, $value: e.value, $extensions: { 'design-kit': { uses: e.uses, ...more, sources: e.els.map((x) => `rendered ${label} ${x}`) } } }
     count++
   }
-  const keep = (list) => list.filter((e) => e.uses >= o.minUses).sort(byUse)
+  const keep = (list) => list.filter((e) => e.uses >= o.minUses || e.base).sort(byUse)
   for (const e of keep(merged)) put(['color'], e.key, 'color', e, { roles: [...e.roles].sort(), ...(e.members > 1 ? { merged: e.members } : {}) })
   for (const e of keep([...groups.family.values()])) put(['typography', 'family'], e.key, 'fontFamily', e)
   for (const e of keep([...groups.size.values()])) put(['typography', 'size'], e.key, 'dimension', e)

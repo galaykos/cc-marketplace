@@ -104,7 +104,8 @@ Two entry shapes, one procedure:
    construction. Run it on what you WROTE before the pick, not on the repo.
    Standing: **gate** where wired (`--ci` exits 1); nothing in this plugin runs it
    for you, so not run is not clean. To run it on every edit, `dk.sh drift --print-hook`
-   prints a settings.json hook for the user to paste; never write it in for them.
+   prints a settings.json hook for the user to paste; never write it in for them
+   (agent-graded — nothing checks who wrote the hook).
 
 ## Procedure
 

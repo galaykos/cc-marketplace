@@ -185,10 +185,11 @@ case "$verb" in
     base="$(ensure_server $lan)"; echo "url=$base"; log ok ;;
 
   system)
-    target="."; out="design-system"; args=()
-    while [ $# -gt 0 ]; do case "$1" in --out) out="$2"; shift ;; --source|--project-name) args+=("$1" "$2"); shift ;; *) target="$1" ;; esac; shift; done
-    python3 "$here/system-extract.py" "$target" --out "$out" --dry-run ${args[@]+"${args[@]}"} || fail "dry-run failed" "" 1
-    python3 "$here/system-extract.py" "$target" --out "$out" ${args[@]+"${args[@]}"} || fail "extraction failed" "" 1
+    target="."; out="design-system"; args=(); rendered=""
+    while [ $# -gt 0 ]; do case "$1" in --out) out="$2"; shift ;; --source|--project-name) [ "$1 ${2:-}" = "--source rendered" ] && rendered=1; args+=("$1" "$2"); shift ;; *) target="$1" ;; esac; shift; done
+    # A rendered dry-run would load the page twice; its exit code (3 no Playwright, 4 no page) passes through.
+    [ -n "$rendered" ] || python3 "$here/system-extract.py" "$target" --out "$out" --dry-run ${args[@]+"${args[@]}"} || fail "dry-run failed" "" 1
+    python3 "$here/system-extract.py" "$target" --out "$out" ${args[@]+"${args[@]}"} || fail "extraction failed" "" "$?"
     mkdir -p "$DK/previews"; cp "$out/kit.html" "$DK/previews/kit.html"
     base="$(ensure_server)"
     ws_set system "{\"stamp\":\"$(tokens_sha)\",\"at\":\"$(now)\",\"out\":\"$out\"}"

@@ -62,8 +62,8 @@ because they double every path and let the two drift. A token with no dark block
 
 `$extensions.design-kit.sources` is a sorted list of `path:line` (repo, brand),
 `url` / `url#style` (url mode), or `rendered <target> <element>` (rendered mode, up to three
-elements, with `uses`, how many computed properties carried the value after colours within RGB
-distance 8 merged). It is the audit trail: a token without it did not come from the script.
+elements, with `uses`, how many elements carried the value after colours within RGB distance 8
+merged, and on a colour `roles`, which of `text`, `background` and `border` it filled). It is the audit trail: a token without it did not come from the script.
 
 `$extensions.design-kit.literalColors` at the ROOT lists the twelve most-used literal
 hex values with counts. They are not tokens — they are the colours the source used

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // motion-check.mjs — records a page or element animation through the project's Playwright Chromium on a stepped fake clock (PNG frames with --frames) and checks it against the motion skill: animated layout properties, CSS durations outside --min-ms..--max-ms, blur above --max-blur, motion left under prefers-reduced-motion: reduce. --static reads the HTML and its local CSS and scripts with no browser.
-// Misses: JS-driven motion gets only the layout and reduced-motion rules (an inline style counts after 3 changes); a custom property feeding a transform; motion started by hover, click or a scroll beyond --selector's; seam, overflow, empty-beat and rest stay the model's (capture-export.md). --static: no cascade, no remote CSS, a transitioned blur unread.
+// Misses: JS-driven motion gets only the layout and reduced-motion rules (an inline visual property counts after 3 changes); a custom property feeding a transform; a JS pause() after the recorder took an animation over; motion started by hover, click or a scroll beyond --selector's; seam, overflow, empty-beat and rest stay the model's (capture-export.md). --static: no cascade, no remote CSS, a transitioned blur and a var()/calc() time unread (the latter noted).
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/motion-check.mjs
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve, join } from 'node:path'
@@ -147,6 +147,11 @@ function decls(block) {
 
 const EASE = /^(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end|allow-discrete|normal|initial|inherit|unset)$/i
 const ANIM_KW = /^(ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end|infinite|alternate|alternate-reverse|reverse|normal|forwards|backwards|both|none|running|paused|initial|inherit|unset|\d+(\.\d+)?)$/i
+const COMPUTED = /^(var|calc|min|max|clamp|env)\(/i
+// A media query list whose branch runs under reduce: `not …` and no-preference are the motion branch.
+const reduceQuery = (prelude) => /^@media\b/i.test(prelude) && splitTop(prelude.replace(/^@media\b/i, ''), ',').some((q) =>
+  !/^not\b/i.test(q) && !/\bnot\s*\(\s*prefers-reduced-motion/i.test(q) && /\(\s*prefers-reduced-motion\s*(:\s*reduce\s*)?\)/i.test(q))
+const stripJs = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:\\'"])\/\/[^\n]*/g, '$1')
 
 function blursIn(value) { let b = 0; for (const m of value.matchAll(/blur\(\s*([\d.]+)px/gi)) b = Math.max(b, Number(m[1])); return b }
 
@@ -178,9 +183,9 @@ function staticItems(file, o) {
   const { css, js, notes } = staticSources(file)
   const parsed = css.map((s) => ({ ...s, blocks: walk(stripComments(s.text)) }))
   const keyframes = new Map()
-  let reducePath = js.some((t) => /prefers-reduced-motion/i.test(t))
+  let reducePath = js.some((t) => { const s = stripJs(t); return /\bmatchMedia\s*\(/.test(s) && /prefers-reduced-motion/i.test(s) })
   for (const s of parsed) {
-    if (/prefers-reduced-motion/i.test(s.text)) reducePath = true
+    if (s.blocks.some((b) => /^@media\b/i.test(b.prelude) && /prefers-reduced-motion/i.test(b.prelude))) reducePath = true
     for (const b of s.blocks) {
       const kf = [b.prelude, ...b.ancestors].map((p) => /^@(-webkit-)?keyframes\s+([\w-]+)/i.exec(p)).find(Boolean)
       if (!kf || /^@(-webkit-)?keyframes/i.test(b.prelude)) continue
@@ -189,27 +194,38 @@ function staticItems(file, o) {
       keyframes.set(kf[2], k)
     }
   }
-  const items = []
+  const items = []; const unread = []
+  // A shorthand with no literal time is 0s, unless a var()/calc() holds it: then the duration is unknown, never 0.
+  const shortTime = (toks, at) => {
+    const times = toks.map(ms).filter((t) => t !== null)
+    if (times.length) return times[0]
+    if (toks.some((t) => COMPUTED.test(t))) { if (at) unread.push(at); return null }
+    return 0
+  }
+  const longTimes = (d, at) => {
+    const durs = splitTop(d?.value || '', ',').map(ms).filter((t) => t !== null)
+    if (!durs.length && d && at && COMPUTED.test(d.value)) unread.push(at)
+    return durs
+  }
   for (const s of parsed) {
     for (const b of s.blocks) {
       const ctx = [b.prelude, ...b.ancestors]
       if (ctx.some((p) => /^@(-webkit-)?keyframes/i.test(p))) continue
-      const reduce = ctx.some((p) => /prefers-reduced-motion\s*:\s*reduce/i.test(p))
+      const reduce = ctx.some(reduceQuery)
       const where = (line) => `${s.name}:${s.line0 + line} ${b.prelude.replace(/\s+/g, ' ').slice(0, 60)}`
       const ds = decls(b)
       const get = (p) => ds.filter((d) => d.prop === p)
       for (const d of get('transition')) {
         for (const part of splitTop(d.value, ',')) {
           const toks = splitTop(part, ' ')
-          const times = toks.map(ms).filter((t) => t !== null)
-          const prop = toks.find((t) => ms(t) === null && !EASE.test(t) && !/\(/.test(t)) || 'all'
+          const prop = toks.find((t) => ms(t) === null && !EASE.test(t) && !/\(/.test(t)) || (toks.some((t) => COMPUTED.test(t)) ? null : 'all')
           if (prop === 'none') continue
-          items.push({ where: where(d.line), props: [prop.toLowerCase()], duration: times.length ? times[0] : 0, infinite: false, blur: 0, reduce })
+          items.push({ where: where(d.line), props: prop ? [prop.toLowerCase()] : [], duration: shortTime(toks, !reduce && where(d.line)), infinite: false, blur: 0, reduce })
         }
       }
       const tp = get('transition-property').pop()
       if (tp) {
-        const durs = (get('transition-duration').pop()?.value || '').split(',').map((t) => ms(t.trim())).filter((t) => t !== null)
+        const durs = longTimes(get('transition-duration').pop(), !reduce && where(tp.line))
         splitTop(tp.value, ',').forEach((p, i) => {
           if (p === 'none') return
           items.push({ where: where(tp.line), props: [p.toLowerCase()], duration: durs.length ? durs[i % durs.length] : null, infinite: false, blur: 0, reduce })
@@ -221,13 +237,12 @@ function staticItems(file, o) {
           const name = toks.find((t) => keyframes.has(t)) || toks.find((t) => ms(t) === null && !ANIM_KW.test(t) && !/\(/.test(t))
           if (!name || name === 'none') continue
           const k = keyframes.get(name) || { props: new Set(), blur: 0 }
-          const times = toks.map(ms).filter((t) => t !== null)
-          items.push({ where: where(d.line) + ` @keyframes ${name}`, props: [...k.props], duration: times.length ? times[0] : 0, infinite: toks.includes('infinite'), blur: k.blur, reduce })
+          items.push({ where: where(d.line) + ` @keyframes ${name}`, props: [...k.props], duration: shortTime(toks, !reduce && where(d.line)), infinite: toks.includes('infinite'), blur: k.blur, reduce })
         }
       }
       const an = get('animation-name').pop()
       if (an) {
-        const durs = (get('animation-duration').pop()?.value || '').split(',').map((t) => ms(t.trim())).filter((t) => t !== null)
+        const durs = longTimes(get('animation-duration').pop(), !reduce && where(an.line))
         const inf = /infinite/i.test(get('animation-iteration-count').pop()?.value || '')
         splitTop(an.value, ',').forEach((name, i) => {
           if (name === 'none') return
@@ -237,7 +252,8 @@ function staticItems(file, o) {
       }
     }
   }
-  return { items, reducePath, notes }
+  if (unread.length) notes.push(`${unread.length} duration(s) set through var()/calc() were not read and are not judged on duration (first: ${unread[0]})`)
+  return { items: items.filter((it) => it.duration === null || it.duration > INSTANT), reducePath, notes }
 }
 
 function runStatic(o) {
@@ -245,17 +261,19 @@ function runStatic(o) {
   const moving = items.filter((it) => !it.reduce)
   const findings = judge(items, o)
   if (moving.length && !reducePath) {
-    findings.push({ rule: 'reduced-motion', level: 'fail', where: o.target, detail: `${moving.length} animation(s) or transition(s) and no prefers-reduced-motion in its CSS or scripts — the skill renders the still frame under reduce` })
+    findings.push({ rule: 'reduced-motion', level: 'fail', where: o.target, detail: `${moving.length} animation(s) or transition(s), and no @media (prefers-reduced-motion) block in its CSS nor a matchMedia() test of it in its scripts — the skill renders the still frame under reduce` })
   }
   return report(o, { mode: 'static', items: moving.length, reducePath, notes }, findings, moving.length === 0
-    ? 'no CSS animation or transition declared — nothing was checked; JS-driven motion needs the browser run' : null)
+    ? `no CSS animation or transition over ${INSTANT} ms declared — nothing was checked; JS-driven motion needs the browser run` : null)
 }
 
 function observer() {
+  // Page-controlled text (ids, classes, animation names) reaches a markdown table: one safe charset, capped.
+  const clean = (s, n) => String(s).replace(/[^\w#.:()-]+/g, '_').slice(0, n)
   const desc = (el, pseudo) => {
-    if (!el || !el.tagName) return String(el)
+    if (!el || !el.tagName) return clean(el, 80)
     const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/).filter(Boolean).slice(0, 2) : []
-    return (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + cls.map((c) => '.' + c).join('') + (pseudo || '')).slice(0, 80)
+    return clean(el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + cls.map((c) => '.' + c).join('') + (pseudo || ''), 80)
   }
   const parse = (s) => {
     const m = new Map()
@@ -263,7 +281,7 @@ function observer() {
     return m
   }
   const ids = new WeakMap(); let n = 0
-  const mc = { seen: new WeakSet(), anims: [], inline: new Map(), desc }
+  const mc = { seen: new WeakSet(), anims: [], inline: new Map(), desc, clean }
   const take = (list) => {
     for (const r of list) {
       if (r.attributeName !== 'style') continue
@@ -297,10 +315,20 @@ function sample({ i, pre, dt, selector }) {
   if (contract) { if (i === pre) window.__start(); if (i >= pre) window.__tick(dt / 1000) }
   const now = performance.now()
   const root = selector ? document.querySelector(selector) : null
+  // Paused by the page: a CSS animation-play-state read each frame, or any animation already paused when first seen and not since taken over.
+  const held = (a, t, pseudo) => {
+    if (typeof CSSAnimation === 'function' && a instanceof CSSAnimation && t) {
+      const cs = getComputedStyle(t, pseudo || null)
+      const names = cs.animationName.split(',').map((x) => x.trim()); const states = cs.animationPlayState.split(',').map((x) => x.trim())
+      return states[Math.max(0, names.indexOf(a.animationName)) % states.length] === 'paused'
+    }
+    return !a.__own && a.playState === 'paused'
+  }
   for (const a of document.getAnimations()) {
+    const eff = a.effect; const t = eff && eff.target
     if (!mc.seen.has(a)) {
       mc.seen.add(a)
-      const eff = a.effect; const t = eff && eff.target
+      a.__pp = a.playState === 'paused'
       if (!root || (t && (root === t || root.contains(t)))) {
         const timing = eff ? eff.getTiming() : {}
         const props = new Set(); let blur = 0
@@ -313,14 +341,21 @@ function sample({ i, pre, dt, selector }) {
           }
         }
         if (a.transitionProperty) props.add(a.transitionProperty)
-        mc.anims.push({ kind: a.constructor.name, name: a.transitionProperty || a.animationName || a.id || '', target: mc.desc(t, eff && eff.pseudoElement),
+        a.__e = { kind: a.constructor.name, name: mc.clean(a.transitionProperty || a.animationName || a.id || '', 40), target: mc.desc(t, eff && eff.pseudoElement),
           duration: typeof timing.duration === 'number' ? timing.duration : 0, delay: timing.delay || 0,
-          infinite: timing.iterations === Infinity, props: [...props], blur, frame: i })
+          infinite: timing.iterations === Infinity, props: [...props], blur, frame: i, ran: false }
+        mc.anims.push(a.__e)
       }
     }
-    a.__m ??= (typeof window.__mark === 'number' ? window.__mark : now)
+    if (a.__done || held(a, t, eff && eff.pseudoElement)) continue
+    a.__own = true
+    if (a.__e) a.__e.ran = true
+    a.__m ??= a.__pp ? now - (a.currentTime || 0) : (typeof window.__mark === 'number' ? window.__mark : now)
+    const at = Math.max(0, now - a.__m)
+    // A paused animation never resolves .finished, so a page chaining on it would stall: finish it once its end is reached.
+    if (eff && at >= eff.getComputedTiming().endTime) { try { a.finish(); a.__done = true; continue } catch { /* playbackRate 0: seek as below */ } }
     a.pause()
-    a.currentTime = Math.max(0, now - a.__m)
+    a.currentTime = at
   }
   return { contract, lt: typeof window.__lt === 'number' ? window.__lt : null }
 }
@@ -370,11 +405,18 @@ async function record(browser, url, o, reducedMotion, full) {
 }
 
 const moves = (props) => props.some((p) => p !== 'opacity' && !p.startsWith('--'))
+// Inline properties that move something when written frame after frame; a display or z-index swap does not.
+const VISUAL = new Set(['color', 'background-color', 'background-position', 'background-position-x', 'background-position-y', 'background-size',
+  'border-color', 'border-radius', 'box-shadow', 'text-shadow', 'outline-color', 'outline-offset', 'fill', 'stroke', 'stroke-dashoffset',
+  'stroke-width', 'transform-origin', 'perspective', 'perspective-origin', 'backdrop-filter', 'object-position', 'mask-position', 'mask-size',
+  'offset-distance', 'offset-rotate'])
+const visual = (p) => isLayout(p) || CHEAP.has(p) || VISUAL.has(p) || /^border-[a-z-]+-(color|radius)$/.test(p)
+const tweened = (rec) => rec.inline.filter((x) => x.changes >= 3 && visual(x.prop))
 
 function itemsFrom(rec) {
-  const items = rec.anims.map((a) => ({ where: `${a.target} (${a.kind}${a.name ? ' ' + a.name : ''})`, props: a.props, duration: a.duration,
+  const items = rec.anims.filter((a) => a.ran).map((a) => ({ where: `${a.target} (${a.kind}${a.name ? ' ' + a.name : ''})`, props: a.props, duration: a.duration,
     infinite: a.infinite, blur: a.blur, reduce: false }))
-  for (const e of rec.inline.filter((x) => x.changes >= 3)) {
+  for (const e of tweened(rec)) {
     items.push({ where: `${e.target} (inline style, ${e.changes} changes)`, props: [e.prop], duration: null, infinite: false, blur: e.blur, reduce: false })
   }
   return items
@@ -405,8 +447,8 @@ async function runBrowser(o) {
       findings.push({ rule: 'reduced-motion', level: 'fail', where: still[0].where,
         detail: `${still.length} animation(s) still move under prefers-reduced-motion: reduce — the skill renders the still frame there` })
     }
-    return report(o, { mode: 'browser', via, frames: normal.frames, contract: normal.contract, animations: normal.anims.length,
-      inline: normal.inline.filter((x) => x.changes >= 3).length, framesDir: o.frames || null }, findings, null)
+    return report(o, { mode: 'browser', via, frames: normal.frames, contract: normal.contract, animations: normal.anims.filter((a) => a.ran).length,
+      inline: tweened(normal).length, framesDir: o.frames || null }, findings, null)
   } catch (e) {
     if (e instanceof Missing) fail(3, `NOT MEASURED — ${e.message}`)
     fail(4, `NOT MEASURED — the recording failed: ${String(e && e.message).split('\n')[0]}`)

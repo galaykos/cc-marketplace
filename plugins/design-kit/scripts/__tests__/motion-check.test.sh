@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# motion-check.test.sh — node --check, the usage and missing-Playwright exits, --static on a page breaking every rule, on the nearest page breaking none
-# (a 0.01ms reduce override, a static width, will-change) and on a still page; with a Playwright whose Chromium launches, the recorder on the same three kinds plus a __start/__tick page.
+# motion-check.test.sh — node --check, usage and missing-Playwright exits; --static on a page breaking every rule, on the nearest ones breaking none (0.01ms reduce override, 0s or var() time,
+# not-gated or matchMedia reduce path), a commented-out query and a still page; with a launchable Chromium, the recorder on those plus __start/__tick, page-paused, .finished-chained, display-swap pages.
 # Misses: SKIPs the browser half without a local Playwright (CI installs none); that the frames LOOK right is the capture's contact sheet, not this file.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -78,6 +78,49 @@ run --static "$tmp/broken.html" --json
 python3 -c 'import json,sys; d=json.loads(sys.argv[1]); assert d["mode"]=="static" and any(f["rule"]=="reduced-motion" for f in d["findings"]), d' "$out" \
   || fail "--json is not the findings document: $out"
 
+# A 0s transition moves nothing; a var()/calc() time is unknown (noted), never 0 and never `all`.
+cat > "$tmp/instant.html" <<'EOF'
+<!doctype html><html><head><style>
+.snap { height: 10px; transition: height 0s; }
+.fade { opacity: 0; transition: opacity 600ms; }
+.v { transition: var(--t); }
+.w { animation: spin var(--d) linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { .fade, .v { transition: none; } .w { animation: none; } }
+</style></head><body><div class="snap"></div><div class="fade"></div><div class="v"></div><div class="w"></div></body></html>
+EOF
+run --static "$tmp/instant.html"
+[ "$rc" = 0 ] && grep -q '0 failed, 0 warning' <<<"$out" || fail "a 0s transition or a var() time must not be judged (rc=$rc): $out"
+grep -q '^note: 2 duration(s) set through var()/calc()' <<<"$out" || fail "the var()/calc() durations must be noted: $out"
+# The reduce path is an @media prelude or a matchMedia() test, never the word in a comment.
+cat > "$tmp/comment.html" <<'EOF'
+<!doctype html><html><head><style>
+/* prefers-reduced-motion: handled later */
+.fade { opacity: 0; transition: opacity 600ms; }
+</style></head><body><div class="fade"></div><script>// TODO prefers-reduced-motion via matchMedia(
+</script></body></html>
+EOF
+run --static "$tmp/comment.html"
+[ "$rc" = 1 ] && grep -q '| reduced-motion | fail |' <<<"$out" || fail "a comment naming prefers-reduced-motion is not a reduce path (rc=$rc): $out"
+cat > "$tmp/js-path.html" <<'EOF'
+<!doctype html><html><head><style>.fade { opacity: 0; transition: opacity 600ms; }</style></head><body><div class="fade"></div>
+<script>const q = '(prefers-reduced-motion: reduce)' // the query
+if (!matchMedia(q).matches) document.body.classList.add('motion')</script></body></html>
+EOF
+run --static "$tmp/js-path.html"
+[ "$rc" = 0 ] || fail "a matchMedia() test of the query is a reduce path (rc=$rc): $out"
+# `not … reduce` and no-preference are the motion branch: judged, and they count as a reduce path.
+cat > "$tmp/not.html" <<'EOF'
+<!doctype html><html><head><style>
+@media not (prefers-reduced-motion: reduce) { .x { transition: width 300ms; } }
+@media (prefers-reduced-motion: no-preference) { .y { animation: fade 700ms both; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+</style></head><body><div class="x"></div><div class="y"></div></body></html>
+EOF
+run --static "$tmp/not.html"
+[ "$rc" = 1 ] && grep -q '| layout-property | fail | .*not.html:2 .x' <<<"$out" || fail "the not-reduce branch must be judged (rc=$rc): $out"
+grep -q '| reduced-motion |' <<<"$out" && fail "a motion branch gated on the query is a reduce path: $out"
+
 # The missing-browser exit: an empty project, no NODE_PATH, HOME pointed away from any ~/.node_modules.
 run "$tmp/clean.html" --project "$tmp"
 [ "$rc" = 3 ] && grep -q 'NOT MEASURED — no Playwright resolvable' <<<"$out" || fail "no Playwright must exit 3 naming it (rc=$rc): $out"
@@ -116,6 +159,47 @@ done
 brun "$tmp/still.html" --ms 500
 [ "$rc" = 4 ] && grep -q 'nothing animated' <<<"$out" || fail "a still page must be NOT MEASURED, exit 4 (rc=$rc): $out"
 brun "$tmp/absent-host.html" ; [ "$rc" = 2 ] || fail "a missing file with a browser present must still exit 2 (rc=$rc)"
+
+# An animation the page itself pauses under reduce is left paused, not played and failed.
+cat > "$tmp/paused.html" <<'EOF'
+<!doctype html><html><head><style>
+.orb { width: 40px; height: 40px; background: #36c; animation: pulse 800ms ease-in-out infinite alternate; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.2); } }
+@media (prefers-reduced-motion: reduce) { .orb { animation-play-state: paused; } }
+</style></head><body><div class="orb"></div></body></html>
+EOF
+brun "$tmp/paused.html" --ms 1500
+[ "$rc" = 0 ] || fail "a page-paused animation under reduce must not fail reduced-motion (rc=$rc): $out"
+# A .finished chain starts its second animation; the page's animation id reaches the table sanitised and capped.
+cat > "$tmp/chain.html" <<'EOF'
+<!doctype html><html><head><style>.a, .b { width: 40px; height: 40px; background: #36c; }</style></head><body><div class="a"></div><div class="b"></div>
+<script>
+if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelector('.a').animate([{ backgroundColor: '#3366cc' }, { backgroundColor: '#cc6633' }], { duration: 600, id: 'x | <img src=x onerror=alert(1)> ' + 'A'.repeat(200) })
+    .finished.then(() => document.querySelector('.b').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, id: 'second' }))
+}
+</script></body></html>
+EOF
+brun "$tmp/chain.html" --ms 1500
+[ "$rc" = 0 ] && grep -q '2 animation(s)' <<<"$out" || fail "the animation chained on .finished never started (rc=$rc): $out"
+grep -q '<img' <<<"$out" && fail "a page-set animation id reached the table unsanitised: $out"
+grep -q 'A\{41\}' <<<"$out" && fail "a page-set animation id reached the table uncapped: $out"
+grep -q '| paint-property | warn | div.a (Animation x_img_src' <<<"$out" || fail "the sanitised id is missing from the warning row: $out"
+# A display / z-index swap written by JavaScript is not motion.
+cat > "$tmp/inline.html" <<'EOF'
+<!doctype html><html><head><style>
+.card { opacity: 0; transition: opacity 600ms; } .in .card { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style></head><body><div id="stage"><div class="card">x</div><div class="tab">t</div></div>
+<script>
+setTimeout(() => document.getElementById('stage').classList.add('in'), 50)
+const tab = document.querySelector('.tab'); let n = 0
+function f() { n++; tab.style.display = n % 2 ? 'none' : 'block'; tab.style.zIndex = String(n); if (n < 20) requestAnimationFrame(f) }
+requestAnimationFrame(f)
+</script></body></html>
+EOF
+brun "$tmp/inline.html" --ms 1500
+[ "$rc" = 0 ] && grep -q '0 JS-animated style(s)' <<<"$out" || fail "an inline display/z-index swap was judged as motion (rc=$rc): $out"
 
 cat > "$tmp/contract.html" <<'EOF'
 <!doctype html><html><head><style>

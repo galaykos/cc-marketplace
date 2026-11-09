@@ -9,7 +9,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/motion-check.mjs" "<page>?capture&static=1" 
 ```
 
 `--ms` counts from `__start`; the `--pre` frames come before it, so frame `PRE − 1` is loop time 0.
-It writes `00000.png`… and `loop-time.json`, then checks what it recorded: no layout property animated
+It writes `00000.png`… (and `loop-time.json` only when the page defines `__start`/`__tick`), then checks what it recorded: no layout property animated
 (transform, opacity, filter and clip-path are the cheap set; others warn), every CSS animation and
 transition 500–1100 ms (`--min-ms`, `--max-ms`; ≤ 16 ms is a reset), animated blur ≤ 14 px
 (`--max-blur`), and nothing but opacity moving under `prefers-reduced-motion: reduce`. Exit 0 held ·

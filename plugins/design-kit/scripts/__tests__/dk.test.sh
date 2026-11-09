@@ -140,4 +140,23 @@ sg="$(mktemp -d)"; ( cd "$sg" && git init -q && mkdir -p a/b && cd a/b
   [ -d "$sg/.design-kit" ] && [ ! -e .design-kit ] || { echo "FAIL: status from a subdirectory did not use the root"; exit 1; }
 ) || exit 1; rm -rf "$sg"
 
+# dk system --source rendered: one page load (no dry-run first), and the render's exit code passes through.
+# A stand-in node plays system-render.mjs: it counts its calls and prints one token, or fails as a missing Playwright.
+mkdir -p "$tmp/fakebin"
+cat > "$tmp/fakebin/node" <<EOF
+#!/bin/sh
+echo run >> "$tmp/node-calls"
+if [ -n "\${FAKE_RENDER_RC:-}" ]; then echo "system-render: NOT MEASURED — no Playwright resolvable (stand-in)" >&2; exit "\$FAKE_RENDER_RC"; fi
+echo '{"color":{"1f2937":{"\$type":"color","\$value":"#1f2937","\$extensions":{"design-kit":{"uses":2,"roles":["text"],"sources":["rendered page.html p"]}}}}}'
+EOF
+chmod +x "$tmp/fakebin/node"
+set +e; out="$(env PATH="$tmp/fakebin:$PATH" FAKE_RENDER_RC=3 bash "$here/dk.sh" system page.html --source rendered --out ds-r 2>&1)"; rc=$?; set -e
+[ "$rc" = 3 ] && grep -q 'no Playwright' <<<"$out" || { echo "FAIL: dk system --source rendered must pass exit 3 through (rc=$rc): $out"; exit 1; }
+rm -f "$tmp/node-calls"
+out="$(env PATH="$tmp/fakebin:$PATH" bash "$here/dk.sh" system page.html --source rendered --out ds-r 2>/dev/null)" || { echo "FAIL: dk system --source rendered: $out"; exit 1; }
+calls="$(wc -l < "$tmp/node-calls" | tr -d ' ')"
+[ "$calls" = 1 ] || { echo "FAIL: dk system --source rendered loaded the page $calls times, want 1"; exit 1; }
+grep -q '"1f2937"' ds-r/tokens.json && case "$out" in *"url=http://127.0.0.1:$port/previews/kit.html"*) ;; *) false ;; esac \
+  || { echo "FAIL: dk system --source rendered wrote no record or no URL: $out"; exit 1; }
+
 echo "PASS dk.test.sh"

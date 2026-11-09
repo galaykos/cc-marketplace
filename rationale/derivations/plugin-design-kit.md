@@ -110,6 +110,14 @@ code whose stderr reaches Claude. The path is absolute because a settings.json h
 `${CLAUDE_PLUGIN_ROOT}`; it names the installed version and goes stale on update, which the
 printed note says.
 
+### system --source rendered
+
+Changed 2026-11-09 before 0.13.0 shipped, from review finding `dk.sh`/system SKILL.md:95. `dk system`
+ran a `--dry-run` before every extraction, so a rendered source loaded the page twice, and its
+`|| fail … 1` turned system-extract's exit 3 (no Playwright) into 1, against the skill's promise.
+A rendered run now skips the dry-run, and the extraction's exit code passes through for every
+source. `dk.test.sh` drives it with a stand-in `node` that counts its calls.
+
 ### snapshot and review
 
 ```text
@@ -567,6 +575,13 @@ load), so `dk system` fails with the missing piece named instead of writing an e
 `typography.size` token is a dimension: the kit renders it as a size specimen and the markdown as a
 `Type sizes:` line, never as a typeface card.
 
+Two review fixes before release (2026-11-09). A rendered run reads no stylesheet, motion, shadow or
+component, yet `## Not found` listed "a dark mode (no … `prefers-color-scheme: dark` block …)" on
+any page, including one that has a dark mode, and the system skill forbids deriving one. The
+extraction now records the sections its mode never reads (`ex.unread`), and the markdown lists
+them under `## Not read` and the kit's empty slots say "Not read (rendered mode)". And each token
+now carries system-render's `roles` and `merged`, the only role hint a computed colour has.
+
 ### Blade class components
 
 ```text
@@ -656,6 +671,32 @@ not "animated". Durations are not checked there: an inline tween has no declared
 recording failed, or nothing animated). Nothing animated is 4, not 0: a check that saw no motion has
 not cleared any.
 
+### Review fixes before release (2026-11-09)
+
+Each reproduced on the ff1d37fd build and now a harness case.
+
+- **Page-paused animations.** Every animation was paused and seeked from first sight, so
+  `@media (prefers-reduced-motion: reduce) { .orb { animation-play-state: paused } }` was played
+  and failed reduced-motion. A CSS animation's computed `animation-play-state` is now read each
+  frame, and any animation already paused when first seen is left alone until the page plays it.
+  One that never ran is not judged. Residual: a JavaScript `pause()` after the recorder took the
+  animation over is indistinguishable from the recorder's own.
+- **`.finished` chains.** A paused animation never resolves `finished`, so a page chaining a
+  second animation on it stalled. An animation whose seek time reaches its `endTime` is now
+  `finish()`ed once and left alone.
+- **Inline motion** is limited to properties that move something when rewritten: layout, the
+  cheap set and a list of paint properties (colours, shadows, radii, positions). A `display` or
+  `z-index` swap written 3+ times had drawn paint warnings and a reduced-motion fail.
+- **Names in the table.** Element ids, classes and animation names are page-controlled; they are
+  reduced to `[\w#.:()-]` and capped (80, and 40 for a name) before they reach the markdown table.
+- **--static times.** A shorthand with no literal time is 0s, and an item at or under 16 ms is
+  now dropped, not judged: `.snap { transition: height 0s }` had failed layout-property and
+  reduced-motion. A time held in `var()`/`calc()` is unknown, so its duration is `null` and one
+  note counts them; a whole-`var()` transition no longer falls back to `all`.
+- **--static reduce path.** It is an `@media` prelude naming `prefers-reduced-motion`, or a script
+  with a `matchMedia(` call and the query, both with comments stripped; the bare words anywhere had
+  counted. A branch under `not (…: reduce)` or `(…: no-preference)` is the motion branch, judged.
+
 ## plugins/design-kit/scripts/system-render.mjs
 
 Written 2026-11-09 for design-kit 0.13.0 (roadmap D6, "the dembrandt idea"). Standing: `recorded`.
@@ -683,3 +724,17 @@ stack, generic families dropped (a system stack is not a family). Dimensions: px
 zero and negative dropped, the first value of an elliptical radius. Anything used once is dropped
 (`--min-uses 2`). The same samples give byte-identical output; `--dump-samples` / `--samples` exist
 so a read can be re-clustered and so the harness can test clustering with no browser.
+
+### Review fixes before release (2026-11-09)
+
+- **`uses` counts elements.** One `<div style="padding:13px;border:1px solid #e2e8f0;border-radius:7px">`
+  produced spacing 13px, colour e2e8f0 and radius 7px at 4 uses each, past `--min-uses 2`. A
+  sample now carries its element's index, and a value counts each element once; a dump without
+  the index counts samples, as before.
+- **Visibility** is `checkVisibility({opacityProperty, visibilityProperty})`, which also sees an
+  ancestor at opacity 0; the element's own computed opacity missed a hidden wrapper's children.
+- **The page background.** `html` was never sampled and `body`'s background is one sample, so
+  `--min-uses 2` always dropped the base colour. `html` is sampled, `html` and `body` are sampled even at
+  zero height, and their background is exempt from `--min-uses`.
+- **No margins.** A computed margin is a used value: `margin: 0 auto` at 1440 px read as
+  `spacing.120px`. Only padding and flex/grid gaps are read; a margin scale is not inferred.

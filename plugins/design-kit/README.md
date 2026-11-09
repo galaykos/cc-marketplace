@@ -224,8 +224,9 @@ components, stories). URL mode fetches the page and its stylesheets without Java
 and says so in the output. Brand mode reads `.css`, `.svg` fills and `.md` hex lines.
 Rendered mode (`--source rendered`, since 0.13.0) loads the page in the project's own Playwright
 Chromium after its JavaScript ran (`scripts/system-render.mjs`): computed colours, font families
-and sizes, spacing and radii of every visible element, near colours merged, values used once
-dropped. Its token names are the values (`color.1f2937`) and its sources are elements, because a
+and sizes, padding, gaps and radii of every visible element, near colours merged, values on one
+element only dropped (the page background excepted). Dark mode, motion, shadows and components
+are listed as not read. Its token names are the values (`color.1f2937`) and its sources are elements, because a
 computed style carries no role; exit 3 names a missing Playwright or Chromium.
 
 What has teeth: nothing enters the record without a source, and the same source

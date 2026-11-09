@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# system-render.test.sh — node --check, the usage and missing-Playwright exits (through system-extract --source rendered too), clustering of a fixture sample dump with no browser
-# (near colours merged, transparent/0px/generic/rare values dropped, byte-identical twice), its ingestion into design-system/, and, with a Chromium, a page whose JS adds a colour.
+# system-render.test.sh — node --check, usage and missing-Playwright exits (through system-extract --source rendered too), clustering of sample dumps with no browser (near colours merged,
+# rare values dropped, uses per element, base background kept, byte-identical twice), ingestion (roles, unread sections), and with a Chromium, JS-added colour, html, opacity and margin pages.
 # Misses: SKIPs the browser half without a local Playwright (CI installs none); whether a cluster is the colour a designer meant is the reader's call.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -80,6 +80,23 @@ PY
 run --samples "$tmp/samples.json" --min-uses 1
 grep -q '"e2e8f0"' <<<"$out" || fail "--min-uses 1 must bring the single-use colour back"
 
+# uses counts elements (the 4th field), not properties; the html/body background is kept at one use.
+python3 - "$tmp/el.json" <<'PY'
+import json, sys
+s = [["border", "rgb(226, 232, 240)", "div.card", 0]] * 4 + [["spacing", "13px", "div.card", 0]] * 4 + [["radius", "7px", "div.card", 0]] * 4
+s += [["background", "rgb(250, 250, 249)", "body", 1], ["text", "rgb(17, 24, 39)", "p", 2], ["text", "rgb(17, 24, 39)", "p", 3]]
+s += [["text", "rgb(15, 118, 110)", "a", 4], ["border", "rgb(15, 118, 110)", "a", 4], ["text", "rgb(15, 118, 110)", "a", 5]]
+json.dump({"elements": 6, "samples": s, "label": "el.html"}, open(sys.argv[1], "w"))
+PY
+run --samples "$tmp/el.json"; [ "$rc" = 0 ] || fail "--samples on the element fixture must exit 0 (rc=$rc): $out"
+python3 -c '
+import json, sys
+t = json.loads(sys.argv[1]); c = t["color"]; dk = lambda n: n["$extensions"]["design-kit"]
+assert "e2e8f0" not in c and "spacing" not in t and "radius" not in t, "one element with four equal borders, paddings or radii is one use"
+assert dk(c["0f766e"])["uses"] == 2 and dk(c["0f766e"])["roles"] == ["border", "text"], c["0f766e"]
+assert dk(c["fafaf9"])["uses"] == 1 and dk(c["fafaf9"])["roles"] == ["background"], "the body background must survive --min-uses 2"
+' "$out" || fail "element counting or the base background is wrong: $out"
+
 python3 - "$tmp/blank.json" <<'PY'
 import json, sys
 json.dump({"elements": 3, "samples": [["background", "rgba(0, 0, 0, 0)", "div"]] * 5 + [["spacing", "0px", "div"]] * 9
@@ -104,8 +121,14 @@ assert t["typography"]["size"]["16px"]["$type"] == "dimension", t["typography"]
 md = open(os.path.join(d, "DESIGN-SYSTEM.md")).read()
 assert "# Design system — example.test" in md and "the rendered element it was read from" in md and "- Type sizes: " in md, md[:600]
 assert "rendered mode:" in md, "the rendered note is missing"
+assert t["color"]["0f766e"]["$extensions"]["design-kit"]["roles"] == ["background"], "the rendered roles were dropped"
+assert t["color"]["1f2937"]["$extensions"]["design-kit"]["merged"] == 2, "the rendered merge count was dropped"
+found = md.split("## Not found", 1)[1].split("## Not read", 1)[0]
+assert "dark mode" not in found and "motion tokens" not in found and "component inventory" not in found, found
+assert "- a dark mode — not read (rendered mode)" in md and "- motion tokens (durations, easings) — not read (rendered mode)" in md, md
 kit = open(os.path.join(d, "kit.html")).read()
 assert "font-size:16px" in kit and "font-family:'16px'" not in kit, "a size token rendered as a typeface card"
+assert kit.count("Not read (rendered mode).") == 3, "the kit's unread sections must say so, not Nothing found"
 PY
 
 pw_launches() { # <node_modules> -> 0 when chromium.mjs launches a browser through it
@@ -148,5 +171,23 @@ set +e; again="$(cd "$tmp" && env -u NODE_PATH node "$sr" --samples "$tmp/dump.j
 [ "$again" = "$out" ] || fail "re-clustering the --dump-samples file gave other tokens than the live run"
 set +e; out="$(cd "$tmp" && NODE_PATH="$PW" python3 "$ex" "$tmp/page.html" --source rendered --out "$tmp/ds-live" 2>&1)"; rc=$?; set -e
 [ "$rc" = 0 ] && grep -q '"7c3aed"' "$tmp/ds-live/tokens.json" || fail "system-extract --source rendered on the page (rc=$rc): $out"
+
+# html's background read; a full border counted once; an opacity:0 wrapper's children skipped; no margin read.
+cat > "$tmp/page2.html" <<'EOF'
+<!doctype html><html><head><style>
+html { background: #fafaf9; } body { margin: 0; color: #1f2937; }
+.wrap { max-width: 1200px; margin: 0 auto; }
+</style></head><body>
+<div class="wrap"><p>One</p></div><div class="wrap"><p>Two</p></div>
+<div style="padding:13px;border:1px solid #e2e8f0;border-radius:7px">boxed</div>
+<div style="opacity:0"><p style="color:#ab1234">hidden a</p><p style="color:#ab1234">hidden b</p></div>
+</body></html>
+EOF
+set +e; out="$(cd "$tmp" && NODE_PATH="$PW" node "$sr" "$tmp/page2.html" --project "$tmp" 2>&1)"; rc=$?; set -e
+[ "$rc" = 0 ] || fail "rendering the second fixture page must exit 0 (rc=$rc): $out"
+grep -q '"fafaf9"' <<<"$out" || fail "html's background is missing: $out"
+for no in '"e2e8f0"' '"13px"' '"7px"' '"ab1234"' '"120px"'; do
+  grep -q "$no" <<<"$out" && fail "$no must not be a token (one bordered element, an opacity:0 wrapper's text, an auto margin): $out"
+done
 
 echo "PASS system-render.test.sh"
