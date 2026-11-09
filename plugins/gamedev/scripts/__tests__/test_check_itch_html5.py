@@ -54,14 +54,22 @@ class ItchHtml5CheckerTests(unittest.TestCase):
         self.assertEqual((payload["tool"], payload["schema"], payload["truncated"]), ("check_itch_html5", 1, False))
         result = self.run_tool(path)
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.strip(), "Summary: 0 errors in web.zip: 4 files, 31 bytes extracted")
+        self.assertEqual(result.stdout.strip(), "Summary: 0 errors, 0 warnings in web.zip: 4 files, 31 bytes extracted")
         self.assertEqual(sorted(self.root.rglob("*")), before)
 
-    def test_index_html_inside_a_folder(self) -> None:
+    def test_index_html_inside_a_folder_is_an_unverified_warning(self) -> None:
         files = {f"MyGame/{k}": v for k, v in GAME.items()}
         code, payload = self.report(self.make_zip("folder.zip", files))
-        self.assertEqual((code, self.codes(payload)), (1, ["index-html-missing"]))
-        self.assertIn("MyGame/index.html, inside a folder", payload["errors"][0]["message"])
+        self.assertEqual((code, payload["errors"], [w["code"] for w in payload["warnings"]]), (0, [], ["index-html-nested"]))
+        self.assertIn("MyGame/index.html, inside a folder", payload["warnings"][0]["message"])
+        self.assertIn("unverified", payload["warnings"][0]["message"])
+        self.assertIn("WARNING folder.zip: ", self.run_tool(self.root / "folder.zip").stdout)
+
+    def test_a_backslash_in_an_entry_name_is_a_warning(self) -> None:
+        path = self.make_zip("backslash.zip", {"index.html": "x", "assets\\hero.png": "png", "assets/ok.png": "png"})
+        code, payload = self.report(path)
+        self.assertEqual((code, payload["errors"], [w["code"] for w in payload["warnings"]]), (0, [], ["backslash-in-name"]))
+        self.assertEqual(payload["warnings"][0]["file"], "assets\\hero.png")
 
     def test_index_html_in_the_wrong_case(self) -> None:
         files = dict(GAME)
@@ -113,6 +121,15 @@ class ItchHtml5CheckerTests(unittest.TestCase):
         code, payload = self.report(patched("utf8.zip", b"caf??", "café".encode()))
         self.assertEqual((code, payload["errors"]), (0, []))
 
+    def test_a_utf8_flagged_name_that_is_not_utf8_fails_as_name_not_utf8(self) -> None:
+        path = self.make_zip("flagged.zip", {"index.html": "x", "café.png": ""})
+        data = path.read_bytes()
+        self.assertEqual(data.count("é".encode()), 2)
+        path.write_bytes(data.replace("é".encode(), b"\x82\x82"))
+        code, payload = self.report(path)
+        self.assertEqual((code, self.codes(payload), payload["files"]), (1, ["name-not-utf8"], None))
+        self.assertIn("other checks did not run", payload["errors"][0]["message"])
+
     def test_max_issues_caps_output(self) -> None:
         files = {f"x{i}/" + "n" * 240: "" for i in range(3)}
         path = self.make_zip("many.zip", files)
@@ -120,7 +137,7 @@ class ItchHtml5CheckerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertEqual(result.stdout.count("ERROR "), 2)
         self.assertIn("... and 2 more", result.stdout)
-        self.assertTrue(result.stdout.rstrip().splitlines()[-1].startswith("Summary: 4 errors in many.zip"))
+        self.assertTrue(result.stdout.rstrip().splitlines()[-1].startswith("Summary: 4 errors, 0 warnings in many.zip"))
         _, payload = self.report(path, "--max-issues", "2")
         self.assertEqual((payload["error_count"], len(payload["errors"]), payload["truncated"]), (4, 2, True))
 

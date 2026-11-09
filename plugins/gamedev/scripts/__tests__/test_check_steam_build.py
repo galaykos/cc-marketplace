@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -406,6 +407,15 @@ class SteamBuildCheckerTests(unittest.TestCase):
         self.assertIn("Spacewar", by_target["steam_appid"])
         self.assertNotIn("Spacewar", by_target["bin/Steam_AppID"])
         self.assertTrue(all(e["file"] == "simple_app_build.vdf" for e in payload["errors"]))
+
+    def test_steam_appid_txt_fix_hint_clears_the_file_in_its_own_case(self) -> None:
+        self.write_files({"content/Steam_AppID.txt": "1000"})
+        code, payload = self.run_json(self.write_script("app.vdf", inline_app(ALL_FILES)))
+        self.assertEqual((code, self.codes(payload)), (1, ["steam-appid-txt-shipped"]))
+        exclusion = re.search(r'"FileExclusion" "[^"]+"', payload["errors"][0]["fix"]).group(0)
+        self.assertEqual(exclusion, '"FileExclusion" "*Steam_AppID.txt"')
+        code, payload = self.run_json(self.write_script("fixed.vdf", inline_app(ALL_FILES + f"      {exclusion}\n")))
+        self.assertEqual((code, payload["errors"]), (0, []))
 
     def test_steam_appid_txt_left_out_of_the_upload_is_silent(self) -> None:
         self.write_files({

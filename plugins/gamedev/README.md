@@ -33,7 +33,7 @@ claude plugin install gamedev@cc-plugins-marketplace
 | Script | What it does |
 |---|---|
 | `scripts/check_steam_build.py` | Lints a SteamPipe app build script, its depot scripts and content folders before `steamcmd +run_app_build`, including a shipped `steam_appid.txt` and AppID 480; prints per-depot file counts. Exit 0 clean, 1 errors (or warnings with `--strict`), 2 unusable input. Standard library only; never logs in or uploads |
-| `scripts/check_itch_html5.py` | Checks an HTML5 game zip against itch.io's limits before upload: `index.html` at the root, ≤1,000 files, ≤500 MB, ≤200 MB per file, ≤240-character names, UTF-8 names. Exit 0/1/2. Standard library only; never extracts |
+| `scripts/check_itch_html5.py` | Checks an HTML5 game zip against itch.io's limits before upload: an `index.html`, ≤1,000 files, ≤500 MB, ≤200 MB per file, ≤240-character names, UTF-8 names. Warns on an `index.html` only in a folder and on a backslash in a name. Exit 0/1/2. Standard library only; never extracts |
 | `scripts/loudness_meter.py` | Integrated loudness (LUFS) and true peak (dBTP) per ITU-R BS.1770-5, held to `--target aswg-home`/`aswg-portable` or a number. Exit 0/1/2, and 3 when an OGG or float WAV needs ffmpeg and it is not on PATH. Integer PCM WAV needs only Python |
 | `scripts/asset_report.py` | The `game-assets` checks above, run over files on disk |
 

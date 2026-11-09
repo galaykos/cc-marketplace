@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
+import io
 import json
 import math
 import os
@@ -18,6 +20,30 @@ from pathlib import Path
 
 METER = Path(__file__).resolve().parents[1] / "loudness_meter.py"
 FFMPEG = shutil.which("ffmpeg")
+GUID_TAIL = b"\x00\x00\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71"
+
+# Runs the meter with wave as Python 3.10/3.11 shipped it: WAVE_FORMAT_PCM only, "unknown format: 65534" otherwise.
+PY311_WAVE = r"""import runpy, struct, sys, wave
+real = wave.Wave_read._read_fmt_chunk
+class Replay:
+    def __init__(self, chunk, head):
+        self.chunk, self.head = chunk, head
+    def read(self, n):
+        if self.head:
+            out, self.head = self.head[:n], self.head[n:]
+            return out
+        return self.chunk.read(n)
+def read_fmt_chunk(self, chunk):
+    head = chunk.read(14)
+    tag = struct.unpack_from("<H", head)[0] if len(head) >= 2 else wave.WAVE_FORMAT_PCM
+    if tag != wave.WAVE_FORMAT_PCM:
+        raise wave.Error("unknown format: %r" % (tag,))
+    real(self, Replay(chunk, head))
+wave.Wave_read._read_fmt_chunk = read_fmt_chunk
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+"""
+BIG_ENDIAN = "import runpy, sys; sys.byteorder = 'big'; sys.argv = sys.argv[1:]; runpy.run_path(sys.argv[0], run_name='__main__')"
 
 
 def write_wav(path: Path, rate: int, channels: int, width: int, frames: bytes) -> Path:
@@ -60,6 +86,20 @@ def float_wav(path: Path, rate: int, samples: list[float]) -> Path:
     return path
 
 
+def extensible_wav(path: Path, source: Path, subformat: int = 1) -> Path:
+    """Re-wrap source's PCM as WAVE_FORMAT_EXTENSIBLE, with an odd-sized LIST chunk before data."""
+    with wave.open(str(source), "rb") as src:
+        channels, width, rate = src.getnchannels(), src.getsampwidth(), src.getframerate()
+        frames = src.readframes(src.getnframes())
+    bits = width * 8
+    fmt = struct.pack("<HHIIHHHHI", 0xFFFE, channels, rate, rate * channels * width, channels * width, bits, 22, bits, 0)
+    fmt += struct.pack("<H", subformat) + GUID_TAIL
+    body = (b"WAVE" + b"fmt " + struct.pack("<I", len(fmt)) + fmt + b"LIST" + struct.pack("<I", 5) + b"INFOx\x00"
+            + b"data" + struct.pack("<I", len(frames)) + frames)
+    path.write_bytes(b"RIFF" + struct.pack("<I", len(body)) + body)
+    return path
+
+
 class LoudnessMeterTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -85,14 +125,16 @@ class LoudnessMeterTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         cls.tmp.cleanup()
 
-    def run_meter(self, *args, path_env: str | None = None) -> subprocess.CompletedProcess[str]:
+    def run_meter(self, *args, path_env: str | None = None, shim: str | None = None,
+                  cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
         env = dict(os.environ)
         if path_env is not None:
             env["PATH"] = path_env
-        return subprocess.run([sys.executable, "-I", str(METER), *map(str, args)], capture_output=True, text=True, env=env)
+        command = [sys.executable, "-I"] + (["-c", shim] if shim else []) + [str(METER), *map(str, args)]
+        return subprocess.run(command, capture_output=True, text=True, env=env, cwd=cwd)
 
-    def report(self, *args, path_env: str | None = None) -> tuple[int, dict]:
-        result = self.run_meter(*args, "--json", path_env=path_env)
+    def report(self, *args, path_env: str | None = None, shim: str | None = None) -> tuple[int, dict]:
+        result = self.run_meter(*args, "--json", path_env=path_env, shim=shim)
         self.assertNotIn("Traceback", result.stderr)
         return result.returncode, json.loads(result.stdout)
 
@@ -192,6 +234,54 @@ class LoudnessMeterTests(unittest.TestCase):
         self.assertEqual(lines[-1], "Summary: 1 errors, 1 of 1 files measured")
         self.assertEqual(sorted(self.root.rglob("*")), before)
         self.assertIn("ASWG-R001 v1.10", self.run_meter("--help").stdout)
+
+    def test_riff_parser_reads_an_extensible_pcm_header(self) -> None:
+        spec = importlib.util.spec_from_file_location("loudness_meter", METER)
+        meter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(meter)
+        ext = extensible_wav(self.root / "unit-ext.wav", self.case1).read_bytes()
+        reader = meter.PcmWav(io.BytesIO(ext))
+        self.assertEqual((reader.getnchannels(), reader.getsampwidth(), reader.getframerate()), (2, 3, 48000))
+        with wave.open(str(self.case1), "rb") as src:
+            self.assertEqual(reader.readframes(5), src.readframes(5))
+        data_at = ext.index(b"data")
+        streamed = ext[:4] + b"\xff" * 4 + ext[8:data_at + 4] + b"\xff" * 4 + ext[data_at + 8:]
+        reader = meter.PcmWav(io.BytesIO(streamed))
+        self.assertEqual(len(reader.readframes(96000)), 96000 * 6)
+        with self.assertRaises(meter.NotPcm):
+            meter.PcmWav(io.BytesIO(extensible_wav(self.root / "unit-float.wav", self.case1, subformat=3).read_bytes()))
+
+    def test_extensible_pcm_wav_reads_where_wave_rejects_it(self) -> None:
+        """WAVE_FORMAT_EXTENSIBLE with the PCM SubFormat; wave reads it only from Python 3.12, simulated here."""
+        ext = extensible_wav(self.root / "ext24.wav", self.case1)
+        flt = extensible_wav(self.root / "ext-float.wav", self.case1, subformat=3)
+        code, payload = self.report(ext, flt, path_env=str(self.no_ffmpeg), shim=PY311_WAVE)
+        self.assertEqual((code, [e["code"] for e in payload["errors"]]), (3, ["needs-ffmpeg"]))
+        self.assertEqual(self.file(payload, "ext24.wav")["decoder"], "wave")
+        self.assertAlmostEqual(self.file(payload, "ext24.wav")["integrated_lufs"], -23.0, delta=0.1)
+
+    def test_a_big_endian_host_is_refused_with_exit_2(self) -> None:
+        result = self.run_meter(self.case1, shim=BIG_ENDIAN)
+        self.assertEqual((result.returncode, result.stdout), (2, ""))
+        self.assertIn("big-endian", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    @unittest.skipIf(FFMPEG is None, "ffmpeg not on PATH")  # skip: ffmpeg is optional; the exit-3 case covers its absence
+    def test_ffmpeg_output_reads_where_wave_rejects_extensible(self) -> None:
+        """ffmpeg writes pcm_s32le as WAVE_FORMAT_EXTENSIBLE; wave reads it only from Python 3.12, simulated here."""
+        flt = float_wav(self.root / "float-311.wav", 48000,
+                        [10 ** (-23 / 20) * math.sin(2 * math.pi * 997 * i / 48000) for i in range(48000)])
+        code, payload = self.report(flt, shim=PY311_WAVE)
+        self.assertEqual((code, payload["errors"]), (0, []))
+        self.assertAlmostEqual(self.file(payload, "float-311.wav")["integrated_lufs"], -26.01, delta=0.05)
+
+    @unittest.skipIf(FFMPEG is None, "ffmpeg not on PATH")  # skip: ffmpeg is optional; the exit-3 case covers its absence
+    def test_ffmpeg_reads_a_relative_name_with_a_colon(self) -> None:
+        float_wav(self.root / "boss:2.wav", 48000, [0.1 * math.sin(2 * math.pi * 997 * i / 48000) for i in range(48000)])
+        result = self.run_meter("boss:2.wav", "--json", cwd=self.root)
+        payload = json.loads(result.stdout)
+        self.assertEqual((result.returncode, payload["errors"]), (0, []))
+        self.assertEqual((payload["files"][0]["path"], payload["files"][0]["decoder"]), ("boss:2.wav", "ffmpeg"))
 
     @unittest.skipIf(FFMPEG is None, "ffmpeg not on PATH")  # skip: ffmpeg is optional; the exit-3 case covers its absence
     def test_ffmpeg_decodes_float_wav_and_ogg(self) -> None:

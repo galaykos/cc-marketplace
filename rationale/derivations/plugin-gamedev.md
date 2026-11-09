@@ -31,8 +31,9 @@ as **recorded**: itch.io enforced them at upload or play time, after the build h
 Limits, verified at https://itch.io/docs/creators/html5 ("ZIP file requirements"):
 
 - "The ZIP file must contain a file called index.html". The page does not say it must be at the
-  root. The root rule comes from the roadmap row and the skill's own recorded rule (2026-10-26). A
-  nested `index.html` is still reported as an error, and the message names where it is.
+  root. The root rule came from the roadmap row and the skill's own recorded rule (2026-10-26), so
+  a nested `index.html` is its own code, `index-html-nested`, a warning labelled unverified (exit
+  0). A re-fetch of the page on 2026-11-09 to look for a root rule got HTTP 429, so none is cited.
 - "not … more than 1,000 individual files after extraction"; "maximum length of a file name
   including path should not be greater than 240 characters"; "all the extracted content should not
   be greater than 500MB"; "any single extracted file should not be greater than 200MB"; "case
@@ -49,9 +50,17 @@ Silent neighbours in the harness: exactly 1,000 files, exactly 500,000,000 bytes
 exactly 200,000,000, a 240-character path, and an unflagged UTF-8 name.
 
 Not checked, and named in the skill: absolute `/` paths and wrong-case references inside the
-game's code, non-HTTPS requests, and the page's Kind and embed settings. Also a backslash in an
-entry name. The ZIP spec forbids it (PKWARE APPNOTE 4.4.17, verified), but itch.io's page does not
-list it. Which Windows tools write one is unverified. It is left as a follow-up.
+game's code, non-HTTPS requests, and the page's Kind and embed settings.
+
+A backslash in an entry name is a warning, `backslash-in-name`. The ZIP spec forbids it (PKWARE
+APPNOTE 4.4.17, verified), but itch.io's page does not list it. Python's zipfile turns it into a
+folder separator only where `os.sep` is `\` (`_sanitize_filename`, CPython 3.14 source), so the
+result differs by OS. The check reads `orig_filename`, the name before that rewrite. Which Windows
+tools write one, and how itch extracts it, are unverified.
+
+A name flagged UTF-8 (bit 11) that is not valid UTF-8 makes `zipfile` raise `UnicodeDecodeError`
+while it reads the directory. It is reported as `name-not-utf8` (exit 1), with the other checks
+not run, instead of "not a readable ZIP" (exit 2).
 
 ## plugins/gamedev/scripts/loudness_meter.py
 
@@ -116,12 +125,21 @@ Unverified, and left out: an Apple Music −16 LUFS figure. Apple's Digital Mast
 (https://www.apple.com/apple-music/apple-digital-masters/docs/apple-digital-masters.pdf) describes
 Sound Check but states no LKFS number.
 
-**Decoding.** Python's `wave` module reads integer PCM at 8, 16, 24 and 32 bits, and
-WAVE_FORMAT_EXTENSIBLE from Python 3.12. It refuses IEEE float (format 3). Those files, and OGG, go
-through `ffmpeg -f wav -c:a pcm_s32le` on a pipe. `wave` reads that stream although its size
-fields are 0xFFFFFFFF, checked with ffmpeg 8.0.1. Without ffmpeg on PATH the script exits 3 and
-says why.
+**Decoding.** The script parses the RIFF `fmt ` and `data` chunks itself with `struct`. It reads
+integer PCM at 8, 16, 24 and 32 bits, as format 1 or as WAVE_FORMAT_EXTENSIBLE (0xFFFE) with the
+PCM SubFormat GUID. Python's `wave` reads 0xFFFE only from 3.12: the 3.11 `_read_fmt_chunk`
+raises "unknown format" on any tag but 1, and 3.12 accepts 0xFFFE (verified in
+https://raw.githubusercontent.com/python/cpython/3.11/Lib/wave.py and `.../3.12/Lib/wave.py`).
+ffmpeg 8.0.1 writes its `pcm_s32le` pipe and a 24-bit stereo WAV as 0xFFFE (checked with `xxd`),
+so on 3.10 and 3.11 every ffmpeg-decoded file failed. Python 3.10 and 3.11 were not run: the
+harness patches `wave` to reject non-PCM tags as 3.11 did, and the parser does not import `wave`. IEEE float (format 3, or
+0xFFFE with the float SubFormat) and OGG go through `ffmpeg -f wav -c:a pcm_s32le` on a pipe,
+whose size fields are 0xFFFFFFFF and read as "to the end". ffmpeg gets the absolute path, so a
+name such as `boss:2.ogg` is not parsed as a protocol. Without ffmpeg on PATH the script exits 3
+and says why.
 
 Not measured: momentary, short-term and loudness range (ASWG's third descriptor is LRA, per EBU
 Tech 3342). The meter also cannot judge whether a capture is representative. That stays
-**agent-graded** in the skill. Big-endian hosts take the `byteswap` path, which no test covers.
+**agent-graded** in the skill. A big-endian host exits 2 before measuring: samples are decoded as
+little-endian, and no big-endian machine was available to test a swap. The harness covers the
+refusal by patching `sys.byteorder`.

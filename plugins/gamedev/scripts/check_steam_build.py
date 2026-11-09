@@ -810,7 +810,7 @@ class Checker:
             self.error("steam-appid-txt-shipped", depot_file, depot.line,
                        f"depot {depot_id} uploads {self.show(path)} as {target}{spacewar}. Valve: \"You should not ship this"
                        " with your builds\"; while it is present SteamAPI_RestartAppIfNecessary returns false",
-                       'Delete it from the build output, or add "FileExclusion" "*steam_appid.txt" to this depot.')
+                       f'Delete it from the build output, or add "FileExclusion" "*{path.name}" to this depot.')
 
         install = depot.first("InstallScript")
         if install is not None and not install.is_block and (install.value or "").strip():

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Measure integrated loudness (ITU-R BS.1770 K-weighted, gated, LUFS) and true peak (dBTP) of WAV and OGG files; with --target, exit 1 off target.
-Integer PCM WAV is read by Python's wave module; OGG, float WAV and other encodings are decoded by ffmpeg when it is on PATH, else exit 3.
-Does not measure momentary, short-term or loudness range, weight layouts other than mono, stereo, 5.0 and 5.1, or judge whether a capture is long or representative enough."""
+Integer PCM WAV, WAVE_FORMAT_EXTENSIBLE included, is parsed here; OGG, float WAV and other encodings are decoded by ffmpeg when it is on PATH, else exit 3.
+Does not measure momentary, short-term or loudness range, weight layouts other than mono, stereo, 5.0 and 5.1, run on a big-endian host (exit 2), or judge whether a capture is representative."""
 # Why, limits, history: rationale/derivations/plugin-gamedev.md § plugins/gamedev/scripts/loudness_meter.py
 
 from __future__ import annotations
@@ -10,10 +10,10 @@ import argparse
 import json
 import math
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
-import wave
 from array import array
 from operator import mul
 from pathlib import Path
@@ -51,6 +51,9 @@ PRESETS = {
     "aswg-portable": (-18.0, 2.0, -1.0, "ASWG-R001 v1.10 portable platforms"),
 }
 U8_TO_S8 = bytes((b - 128) & 0xFF for b in range(256))
+WAVE_FORMAT_PCM, WAVE_FORMAT_EXTENSIBLE = 0x0001, 0xFFFE
+PCM_GUID_TAIL = b"\x00\x00\x00\x00\x10\x00\x80\x00\x00\xaa\x00\x38\x9b\x71"  # KSDATAFORMAT_SUBTYPE_PCM after its format tag
+STREAMED = 0xFFFFFFFF  # the size ffmpeg writes when it pipes a WAV
 FFMPEG_SCALE = 0.25  # decode 12.04 dB down (BS.1770 Annex 2's headroom) so overs above 0 dBFS survive int32
 
 
@@ -64,6 +67,79 @@ class ChannelsUnsupported(Unreadable):
 
 class NeedsFfmpeg(Exception):
     pass
+
+
+class NotPcm(Exception):
+    """A RIFF/WAVE header this parser cannot read as integer PCM; ffmpeg may still decode it."""
+
+
+class PcmWav:
+    """Integer PCM from a RIFF/WAVE stream, WAVE_FORMAT_EXTENSIBLE included; the reader API measure() uses."""
+
+    def __init__(self, stream) -> None:
+        self.stream = stream
+        head = stream.read(12)
+        if len(head) < 12 or head[:4] != b"RIFF" or head[8:12] != b"WAVE":
+            raise NotPcm("not a RIFF/WAVE stream")
+        fmt = None
+        while True:
+            chunk = stream.read(8)
+            if len(chunk) < 8:
+                raise NotPcm("no data chunk")
+            size = struct.unpack("<I", chunk[4:])[0]
+            if chunk[:4] == b"data":
+                break
+            body = self.take(size + (size & 1))
+            if len(body) < size:
+                raise NotPcm(f"the {chunk[:4].decode('latin-1')!r} chunk is cut short")
+            if chunk[:4] == b"fmt ":
+                fmt = body[:size]
+        if fmt is None:
+            raise NotPcm("no fmt chunk before the data chunk")
+        if len(fmt) < 16:
+            raise NotPcm("fmt chunk is shorter than 16 bytes")
+        tag, self.channels, self.rate, _, _, bits = struct.unpack_from("<HHIIHH", fmt)
+        if tag == WAVE_FORMAT_EXTENSIBLE:
+            if len(fmt) < 40:
+                raise NotPcm("WAVE_FORMAT_EXTENSIBLE fmt chunk is shorter than 40 bytes")
+            tag = struct.unpack_from("<H", fmt, 24)[0] if fmt[26:40] == PCM_GUID_TAIL else None
+        if tag != WAVE_FORMAT_PCM:
+            raise NotPcm("not integer PCM")
+        self.width = (bits + 7) // 8
+        if not self.width or not self.channels:
+            raise NotPcm("bad sample width or channel count")
+        self.remaining = None if size == STREAMED else size
+
+    def take(self, count: int) -> bytes:
+        parts = []
+        while count > 0:
+            part = self.stream.read(min(count, 1 << 16))
+            if not part:
+                break
+            parts.append(part)
+            count -= len(part)
+        return b"".join(parts)
+
+    def getnchannels(self) -> int:
+        return self.channels
+
+    def getsampwidth(self) -> int:
+        return self.width
+
+    def getframerate(self) -> int:
+        return self.rate
+
+    def readframes(self, frames: int) -> bytes:
+        count = frames * self.width * self.channels
+        if self.remaining is not None:
+            count = min(count, self.remaining)
+        data = self.take(count)
+        if self.remaining is not None:
+            self.remaining -= len(data)
+        return data
+
+    def close(self) -> None:
+        self.stream.close()
 
 
 def biquads(rate: int) -> tuple[float, ...]:
@@ -129,8 +205,6 @@ def split_channels(data: bytes, width: int, channels: int) -> list:
         values = array("i", data)
     else:
         raise Unreadable(f"{width * 8}-bit samples are not supported")
-    if sys.byteorder == "big" and width > 1:
-        values.byteswap()
     return [values[c::channels] for c in range(channels)]
 
 
@@ -140,7 +214,7 @@ def ffmpeg_decode(path: Path):
         raise NeedsFfmpeg("ffmpeg is not on PATH")
     log = tempfile.TemporaryFile()
     process = subprocess.Popen(
-        [ffmpeg, "-nostdin", "-v", "error", "-i", str(path), "-map", "0:a:0", "-af", f"volume={FFMPEG_SCALE}",
+        [ffmpeg, "-nostdin", "-v", "error", "-i", str(path.resolve()), "-map", "0:a:0", "-af", f"volume={FFMPEG_SCALE}",
          "-c:a", "pcm_s32le", "-f", "wav", "-"],
         stdout=subprocess.PIPE, stderr=log,
     )
@@ -156,20 +230,22 @@ def ffmpeg_error(process) -> str:
 
 
 def open_source(path: Path):
-    """Return (wave reader, full-scale value, decoder name, ffmpeg process or None)."""
+    """Return (PcmWav reader, full-scale value, decoder name, ffmpeg process or None)."""
     try:
         with open(path, "rb") as f:
             head = f.read(12)
     except OSError as exc:
         raise Unreadable(f"cannot read: {exc.strerror or exc}") from exc
     if head[:4] == b"RIFF" and head[8:12] == b"WAVE":
+        source = open(path, "rb")
         try:
-            reader = wave.open(str(path), "rb")
+            reader = PcmWav(source)
             width = reader.getsampwidth()
             return reader, float(1 << (31 if width >= 3 else width * 8 - 1)), "wave", None
-        except (wave.Error, EOFError) as exc:
+        except NotPcm as exc:
+            source.close()
             if shutil.which("ffmpeg") is None:
-                raise NeedsFfmpeg(f"Python's wave module cannot read this WAV ({exc}); ffmpeg, not on PATH, decodes float"
+                raise NeedsFfmpeg(f"this WAV cannot be read here ({exc}); ffmpeg, not on PATH, decodes float"
                                   " and other encodings") from exc
     elif head[:4] == b"OggS":
         if shutil.which("ffmpeg") is None:
@@ -178,8 +254,8 @@ def open_source(path: Path):
         raise Unreadable("not a WAV (RIFF/WAVE) or OGG file")
     process = ffmpeg_decode(path)
     try:
-        reader = wave.open(process.stdout, "rb")
-    except (wave.Error, EOFError) as exc:
+        reader = PcmWav(process.stdout)
+    except NotPcm as exc:
         process.kill()
         process.wait()
         raise Unreadable(f"ffmpeg could not decode it: {ffmpeg_error(process)}") from exc
@@ -232,7 +308,7 @@ def measure(path: Path) -> dict:
         for c in range(channels):
             peaks[c] = true_peak([0] * (TAPS - 1), histories[c], peaks[c])
         completed = True
-    except (wave.Error, EOFError, ValueError) as exc:
+    except ValueError as exc:
         raise Unreadable(f"decoding stopped: {exc}") from exc
     finally:
         reader.close()
@@ -283,7 +359,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  loudness-off-target, true-peak-over (exit 1); unreadable, channels-unsupported (exit 2);\n"
             "  needs-ffmpeg (exit 3)\n\n"
             "exit codes: 0 measured (and within every limit given), 1 a file broke a limit,\n"
-            "            2 bad arguments or a file that could not be measured,\n"
+            "            2 bad arguments, a big-endian host, or a file that could not be measured,\n"
             "            3 a file needs ffmpeg (OGG, float WAV) and ffmpeg is not on PATH; the highest code wins"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -307,6 +383,10 @@ def main(argv: list[str] | None = None) -> int:
     ceiling = args.max_true_peak if args.max_true_peak is not None else (target[2] if target else None)
     if tolerance < 0:
         parser.error("--tolerance must be 0 or more")
+    if sys.byteorder != "little":
+        print(f"{TOOL}: this host is big-endian; samples are decoded as little-endian here, so nothing is measured",
+              file=sys.stderr)
+        return 2
     reports, errors, exit_code = [], [], 0
 
     def fail(code: str, path: Path, message: str, fix: str, level: int) -> None:
