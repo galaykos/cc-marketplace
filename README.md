@@ -175,6 +175,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_PIXEL_CHECK` | pixel-art | on | Run check_sprite_sheet.py or check_tilemaps.py on a sprite sheet or Tiled/LDtk map a call changed, and a … |
 | `CC_PREAMBLE` | candor | on | Inject the five working moves before the first edit of a session and of each subagent: on or off |
 | `CC_PREVIEW_GUARD` | taskmaster, ui-ux | on | Ask before an HTML page is published as a remote artifact instead of served locally: on or off |
+| `CC_PROBE_GUARD` | debugging | on | Ask before a git commit whose staged lines add a [DEBUG- probe tag: on or off |
 | `CC_PROMPT_COACH` | prompt-coach | on | Judge an eligible prompt at Enter, and hold a flagged one for the sprite's rewrite: on or off |
 | `CC_PROTECT_TESTS` | testing | on | Refuse an edit that adds a skip or only marker to a test, or empties a test file: on or off |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |

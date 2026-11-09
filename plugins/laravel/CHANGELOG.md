@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.10.3; earlier versions have no entries rather than invented ones.
 
+## 0.11.0 — 2026-11-08
+
+- **New `scripts/i18n_parity.py`, a translation parity checker.** It compares every locale under `lang/` (PHP and JSON) to the base locale and names missing keys, extra keys and placeholder sets that differ. It also reads i18next and vue-i18n JSON. It parses PHP and never runs it; a file it cannot read is reported, not guessed. It skips the `lang/php_<locale>.json` files laravel-vue-i18n generates. Exit 0 parity, 1 findings, 2 usage or no base locale, 3 no locale files. `laravel-best-practices` says when to run it.
+- README lists `scripts/i18n_parity.py`.
+
 ## 0.10.4 — 2026-10-31
 
 - **`laravel-best-practices` now warns that `->change()` drops every modifier you do not restate (Laravel 11+).** The leverage map's Laravel 11 section adds that rule. It also adds Carbon 3's float and possibly negative `diffIn*` results, the `mariadb` driver's native `uuid()` column, and 11's end of support (security fixes ended 2026-03-12).

@@ -1,6 +1,6 @@
 #!/bin/bash
-# no-ai-trailer.sh — PreToolUse: denies a git commit/merge/tag/notes/rebase/cherry-pick/am or gh pr/release/repo create/merge/edit/comment at a command position whose text holds a `Co-Authored-By: Claude …` trailer or a "Generated with Claude Code" line, and a Write/Edit planting one in a git message file. Off: CLAUDE_AI_TRAILER=allow for that one command — or for good, by a user who wants the trailer. Fails open. `--check '<command>'`: exit 0 allow, 2 deny.
-# Misses: a message file written by an unmatched tool, `git commit -F` on an existing file, `git config trailer.*` or prepare-commit-msg trailers, filter-repo rewrites, commits outside the session. Denies on purpose: prose quoting a full trailer line, and a `(` in quoted text before one.
+# no-ai-trailer.sh — PreToolUse: denies a git commit/merge/tag/notes/rebase/cherry-pick/am or gh pr/release/repo create/merge/edit/comment at a command position whose own words, heredoc or pipeline hold a `Co-Authored-By: Claude …` trailer or a "Generated with Claude Code" line (anywhere in the command once it reads a variable, a substitution, an -F file or stdin without its own heredoc or here-string), and a Write/Edit planting one in a git message file. Off: CLAUDE_AI_TRAILER=allow for that one command — or for good, by a user who wants the trailer. Fails open. `--check '<command>'`: exit 0 allow, 2 deny.
+# Misses: a message file written by an unmatched tool or an earlier call, `git config trailer.*` or prepare-commit-msg trailers, filter-repo rewrites, commits outside the session, `git -C <bare word>`. Denies on purpose, judging the whole command as before: one it cannot split (an unclosed quote or heredoc, `$((`, `|&`, a `{ }` or `( )` group piped onward), a heredoc fed to a shell, sudo or ssh; prose quoting a full trailer line; a `(` in quoted text before one.
 # Why, limits, history: rationale/derivations/plugin-git-workflow.md § plugins/git-workflow/hooks/no-ai-trailer.sh
 
 set -u
@@ -13,13 +13,112 @@ GIT_WRITE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash
 
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
+# A message read from a variable, a substitution, a file or stdin can carry text from anywhere in the command.
+STDIN_RE='(^|[[:space:]])(-[a-z]*f[[:space:]]*|--(body-|notes-)?file(=|[[:space:]]+))-([[:space:]]|$)|<'
+INDIRECT_RE='\$[a-z_{0-9@*#?!]|(^|[[:space:]])(-[a-z]*f|-t|--(body-|notes-)?file|--template)(=|[[:space:]]+)?([^[:space:]-][^[:space:]]*|-[^[:space:]]+)'
+
+# segments <command>: one \036-ended record per command or pipeline (a line ending in `|` continues it) outside quotes, substitutions and heredoc bodies: trailer flag, heredoc flag, the command without its heredoc bodies, the same with quoted literal text blanked, lowercased. Exit 3: cannot split it.
+segments() {
+  printf '%s\n' "$1" | CC_TRAILER_RE="$TRAILER_RE" awk '
+    function add(a, e,   x, p, r) {
+      x = substr(s, a, e - a); H[ns] = H[ns] x; if (tolower(x) ~ tre) T[ns] = 1
+      for (p = a; p < e;) {
+        if (BL[p]) { while (p < e && BL[p]) p++; Q[ns] = Q[ns] " " }
+        else { r = p; while (p < e && !BL[p]) p++; Q[ns] = Q[ns] substr(s, r, p - r) }
+      }
+    }
+    function cut(i, w) { add(st, i); st = i + w; ns++; H[ns] = ""; Q[ns] = ""; T[ns] = 0; D[ns] = 0 }
+    { L[++n] = $0 }
+    END {
+      tre = ENVIRON["CC_TRAILER_RE"]; ns = 1; H[1] = ""; Q[1] = ""; T[1] = 0; D[1] = 0; top = 0; F[0] = "p"; np = 0; lp = 0
+      for (ln = 1; ln <= n; ln++) {
+        s = L[ln]; len = length(s); st = 1; cont = 0; split("", BL)
+        for (i = 1; i <= len; i++) {
+          c = substr(s, i, 1); f = F[top]; nx = substr(s, i + 1, 1)
+          if (f == "q") { if (c == "\047") top--; else BL[i] = 1; continue }
+          if (f == "a") { if (c == "\\") { BL[i] = BL[i + 1] = 1; i++ } else if (c == "\047") top--; else BL[i] = 1; continue }
+          if (c == "\\") { if (i == len) cont = 1; if (f == "d") BL[i] = BL[i + 1] = 1; lp = 0; i++; continue }
+          if (f == "d") {
+            if (c == "\"") top--; else if (c == "$" && nx == "(") { F[++top] = "p"; i++ } else if (c == "`") F[++top] = "b"
+            else if (c == "$") { if (nx ~ /[A-Za-z0-9_{@*#?!]/) i++ } else BL[i] = 1
+            continue
+          }
+          if (c == "#" && (i == 1 || substr(s, i - 1, 1) ~ /[ \t;&|()]/)) break
+          if (c !~ /[ \t]/) lp = 0
+          if (c == "\047") F[++top] = "q"
+          else if (c == "\"") F[++top] = "d"
+          else if (c == "$" && nx == "\047") { F[++top] = "a"; i++ }
+          else if (c == "`") { if (f == "b") top--; else F[++top] = "b" }
+          else if (c == "$" && nx == "(") { F[++top] = "p"; i++ }
+          else if (c == "(") { if (top > 0 || (i > 1 && substr(s, i - 1, 1) ~ /[<>=]/)) F[++top] = "p"; else cut(i, 1) }
+          else if (c == ")") { if (top > 0 && f == "p") top--; else if (top == 0) cut(i, 1) }
+          else if (c == "<" && nx == "<") {
+            if (substr(s, i + 2, 1) == "<") { i += 2; continue }
+            j = i + 2; tabs = 0; w = ""; q = ""
+            if (substr(s, j, 1) == "-") { tabs = 1; j++ }
+            while (substr(s, j, 1) ~ /[ \t]/) j++
+            for (; j <= len; j++) {
+              d = substr(s, j, 1)
+              if (q != "") { if (d == q) q = ""; else w = w d; continue }
+              if (d ~ /[ \t;&|()<>]/) break
+              if (d == "\\") { j++; w = w substr(s, j, 1) } else if (d == "\047" || d == "\"") q = d; else w = w d
+            }
+            if (w == "" || q != "") exit 3
+            PD[++np] = w; PT[np] = tabs; PS[np] = ns; D[ns] = 1; i = j - 1
+          }
+          else if (top > 0) continue
+          else if (c == ";") cut(i, 1)
+          else if (c == "&" && nx == "&") { cut(i, 2); i++ }
+          else if (c == "&" && nx != ">" && (i == 1 || substr(s, i - 1, 1) !~ /[<>]/)) cut(i, 1)
+          else if (c == "|" && nx == "|") { cut(i, 2); i++ }
+          else if (c == "|" && nx == "&") exit 3
+          else if (c == "|") lp = 1
+        }
+        add(st, len + 1)
+        if (ln == n) break
+        if (np > 0) {
+          if (cont || (F[top] != "p" && F[top] != "b")) exit 3
+          for (k = 1; k <= np; k++) {
+            for (ok = 0; ++ln <= n;) {
+              b = L[ln]; if (PT[k]) sub(/^\t+/, "", b)
+              if (b == PD[k]) { ok = 1; break }
+              if (tolower(L[ln]) ~ tre) T[PS[k]] = 1
+            }
+            if (!ok) exit 3
+          }
+          np = 0
+          if (ln >= n) break
+        }
+        if (top == 0 && !cont && !lp) { ns++; H[ns] = ""; Q[ns] = ""; T[ns] = 0; D[ns] = 0 } else { H[ns] = H[ns] "\n"; Q[ns] = Q[ns] "\n" }
+      }
+      if (top != 0 || np > 0) exit 3
+      for (k = 1; k <= ns; k++) {
+        h = tolower(H[k])
+        if (h ~ /^[ \t\n]*[})]?[ \t\n]*[|]/) exit 3
+        if (D[k] && h ~ /(^|[ \t;&|(`\/])(ba|z|da|k|c|tc|a|rba|mk)?sh([ \t]|$)|(^|[ \t;&|(`])(ssh|su|sudo|doas|exec|eval|source|xargs|runuser|chroot|\.)([ \t]|$)/) exit 3
+        if (index(h, "git") || index(h, "gh")) printf "%d\037%d\037%s\037%s\036", T[k], D[k], h, tolower(Q[k])
+      }
+    }'
+}
+
 # 0 = clean, 1 = trailer present in a git-writing command
 classify_command() {
-  local c; c=$(lc "$1")
+  local c segs t d h b
+  c=$(lc "$1")
   printf '%s' "$c" | grep -qE "$TRAILER_RE" || return 0
-  # Keep the quote tokens in GIT_WRITE_RE's prefix: dropping them opens `bash -c "git commit …"` and `eval` as bypasses and leaves the `(` false deny.
-  printf '%s' "$c" | tr '\n' ';' | grep -qE "$GIT_WRITE_RE" || return 0
-  return 1
+  if ! segs=$(segments "$1"); then
+    # Keep the quote tokens in GIT_WRITE_RE's prefix: dropping them opens `bash -c "git commit …"` and `eval` as bypasses and leaves the `(` false deny.
+    printf '%s' "$c" | tr '\n' ';' | grep -qE "$GIT_WRITE_RE" || return 0
+    return 1
+  fi
+  while IFS=$'\037' read -r -d $'\036' t d h b; do
+    printf '%s' "$h" | tr '\n' ';' | grep -qE "$GIT_WRITE_RE" || continue
+    [ "$t" = 1 ] && return 1
+    printf '%s' "$b" | grep -qE "$INDIRECT_RE" && return 1
+    if [ "$d" != 1 ] && printf '%s' "$b" | grep -qE '\$\(|`'; then return 1; fi
+    if [ "$d" != 1 ] && [[ $b != *'<<<'* ]] && printf '%s' "$b" | grep -qE "$STDIN_RE"; then return 1; fi
+  done <<<"$segs"
+  return 0
 }
 
 # 0 = clean, 1 = trailer written into a git message file

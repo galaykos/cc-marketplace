@@ -131,6 +131,14 @@ const handler = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffse
 <Animated.ScrollView onScroll={handler} scrollEventThrottle={16} />
 ```
 
+## Locale files — run the parity checker
+
+A key missing from one locale shows the fallback language or the raw key, and a renamed `{{var}}` is never filled;
+no build or test fails. On a diff touching i18next JSON (`locales/`, `src/locales/`, `src/i18n/`), run
+`python3 "${CLAUDE_PLUGIN_ROOT}/scripts/i18n_parity.py" . [--base-locale en]`. A `react-i18next` dependency in
+`package.json` makes `src/` dirs read as i18next. Exits and limits: `vite-best-practices` § Locale files.
+Standing: **gate** where run (exit 1); that it ran is **recorded**.
+
 ## Scope by model tier
 
 **All models** — every rule above: the version gates, the boundaries, the footguns. Facts
@@ -138,7 +146,7 @@ do not scale down with the model. **Compensation (worker-tier)** — the detect 
 verify order the `/code-review:review` fan-in runs (detect the stack from the lockfile,
 pin the version, verify each rule), followed literally, every skill in scope applied
 to every file in scope; a Fable-class session may compress it once the lockfile is read.
-**Skip** — a diff touching no list, no navigator, no animation, no native config and no `.ios`/`.android` split earns a one-line verdict; do not walk the rubric to prove it.
+**Skip** — a diff touching no list, no navigator, no animation, no native config, no `.ios`/`.android` split and no locale file earns a one-line verdict; do not walk the rubric to prove it.
 
 ## Common mistakes
 

@@ -109,6 +109,12 @@ procedure a Sonnet-class session follows in full and a Fable-class session may c
 once the skip-clause holds. Standing: **recorded** — no script reads the markers
 (`.claude/skills/authoring-skills/references/model-tier-scoping.md` in the marketplace repository).
 
+## Scripts
+
+| Script | Reach for it when |
+|---|---|
+| `scripts/i18n_parity.py [root] [--base-locale en] [--json]` | Checking translations before a merge: keys missing or extra per locale, placeholder mismatches (i18next `{{var}}` and `_one/_other`, vue-i18n `{var}` and `@:linked`), files it could not parse (PHP is parsed, never executed). Exit 0 parity, 1 findings, 2 usage or no base locale, 3 no locale files. Standing: gate where run; an identical copy ships in laravel (`pc_twin_files` keeps them in step) |
+
 ## Pairs well with
 
 - **laravel** — the PHP side, and the home of `inertia-best-practices`, which both agents load when installed

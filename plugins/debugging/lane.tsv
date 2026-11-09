@@ -20,3 +20,4 @@ debugging:systematic-debugging	skill	understand	incident-diagnosis	an error, fai
 # lane-cofire-ok: debugging:suggest testing:suggest
 debugging:suggest	mod	any	next-step-suggestion	main-loop turn end after the same Bash command (whitespace aside) failed a second time in this session with no passing run of it between, not refused or interrupted, no live phase sentinel, CC_SUGGEST not off, once per command per session	-
 debugging:fix-chain	hook	any	fix-commit-chain-signal	UserPromptSubmit after this session made two or more fix commits (fix/fixes/fixed/hotfix/bugfix subject, or a merged *fix* branch) touching a common file; once at two, once at four	debugging:remind
+debugging:probe-guard	hook	any	debug-probe-commit-consent	a git commit at a command position (not another git verb) whose staged diff, or with -a/--all the diff against HEAD, adds a line containing [DEBUG-; CC_PROBE_GUARD not off	-

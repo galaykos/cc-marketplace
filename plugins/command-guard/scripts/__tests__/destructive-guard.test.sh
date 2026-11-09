@@ -884,6 +884,125 @@ t0=$(ms_now); d=$(hook "$(bash_json "$big")" | jq -r '.hookSpecificOutput.permis
 expect allow $'git commit -m "$(cat <<\'EOF\'\nremove the git push --force origin main step\nEOF\n)" && bash -c \'npm test\''
 expect deny  $'export X="$(cat <<\'EOF\'\nphp artisan migrate:fresh\nEOF\n)"\nbash -c "$X"'
 
+# 0.9.6: rm -rf of a variable the same command had just set from mktemp asked (retro 2026-11-05 #23). TMP and TMPDIR are
+# unset: is_temp_path reads $tmp/ as the hook's own $TMP, which would pass a sub-path case by itself.
+printf '== a mktemp variable set in the same command\n'
+expect_mk() { local got; got=$(env -u TMP -u TMPDIR "$BASH_BIN" "$GUARD" --check "$2" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac); [ "$got" = "$1" ] && ok || bad "want $1, got $got (mktemp)" "$2"; }
+expect_mk allow 'o=$(mktemp -d); cd "$o" && git init -q; cd - >/dev/null; rm -rf "$o"'   # the retro's shape
+expect_mk allow 'tmp=$(mktemp -d) && rm -rf "$tmp"'
+expect_mk allow 'tmp=$(mktemp -d); rm -rf "${tmp}"'
+expect_mk allow 'tmp="$(mktemp -d)"; rm -rf "$tmp"'
+expect_mk allow 'tmp=`mktemp -d`; rm -rf "$tmp"'
+expect_mk allow 'tmp=$(mktemp); rm -rf "$tmp"'
+expect_mk allow 'tmp=$(mktemp -d "${TMPDIR:-/tmp}/cg.XXXXXX"); rm -rf "$tmp"'
+expect_mk allow 'tmp=$(mktemp -d 2>/dev/null || mktemp -d -t cg); rm -rf "$tmp"'
+expect_mk ask   'local tmp=$(mktemp -d); rm -rf "$tmp"'   # local outside a function fails and assigns nothing
+expect_mk ask   'local HOME=$(mktemp -d); rm -rf "${HOME:?}"/*'
+expect_mk ask   'declare -n HOME=$(mktemp -d); rm -rf "${HOME}"'   # an invalid nameref assigns nothing; HOME is never credited
+expect_mk allow "tmp=\$(mktemp -d); trap 'rm -rf \"\$tmp\"' EXIT; echo hi"
+expect_mk allow $'tmp=$(mktemp -d)\ncd "$tmp"\ngit init -q\ncd -\nrm -rf "$tmp"'
+expect_mk allow $'tmp=$(mktemp -d) # it\'s scratch\nrm -rf "$tmp"'
+# A failed mktemp leaves the variable empty: "$tmp" is then a no-op, "$tmp"/* is rm -rf /*. A path under it needs ${tmp:?},
+# or the only assignment's plain || exit / || { ...; exit; }. set -e and || return never count.
+expect_mk allow 'tmp=$(mktemp -d) || exit 1; rm -rf "$tmp"/*'
+expect_mk allow 'tmp=$(mktemp -d) || { echo no >&2; exit 1; }; rm -rf "$tmp/sub"'
+expect_mk ask   'set -euo pipefail; tmp=$(mktemp -d); rm -rf "$tmp/sub"'
+expect_mk ask   'set -e; tmp=$(mktemp -d); (cd "$tmp" && rm -rf "$tmp"/*)'
+expect_mk ask   'set -e; { set +e; }; tmp=$(mktemp -d); rm -rf "$tmp"/*'
+expect_mk ask   'tmp=$(mktemp -d) || return 1; rm -rf "$tmp"/*'
+expect_mk ask   'tmp=$(mktemp -d) || { echo "mktemp failed (exit $?)" >&2; }; rm -rf "$tmp"/*'
+expect_mk ask   'tmp=$(mktemp -d) || { echo no >&2 || exit 1; }; rm -rf "$tmp"/*'
+expect_mk ask   'tmp=$(mktemp -d) || exit 1 | tee log; rm -rf "$tmp"/*'   # a piped exit leaves only its subshell
+expect_mk allow "tmp=\$(mktemp -d) || exit 1; trap 'rm -rf \"\$tmp\"/*' EXIT"
+expect_mk ask   "tmp=\$(mktemp -d) || exit 1; trap 'rm -rf \"\$tmp\"/*' EXIT; tmp=\$(mktemp -d) || exit 1"
+expect_mk ask   $'tmp=$(mktemp -d) || exit 1\ncleanup() { rm -rf "$tmp"/*; }\ntrap cleanup EXIT\ntmp=$(mktemp -d) || exit 1'
+expect_mk allow 'tmp=$(mktemp -d); rm -rf "${tmp:?}"/*'
+expect_mk allow 'tmp=$(mktemp -d); rm -rf "${tmp:?}/sub"'
+expect_mk ask   'tmp=$(mktemp -d); rm -rf "$tmp"/*'
+expect_mk ask   'tmp=$(mktemp -d); rm -rf "$tmp/sub"'
+expect_mk ask   'tmp=$(mktemp -d) && rm -rf "$tmp/sub"'
+expect_mk ask   'local tmp=$(mktemp -d) || exit 1; rm -rf "$tmp"/*'   # local returns 0 whatever mktemp did
+expect_mk ask   'set -e; tmp=$(mktemp -d) && echo ok; rm -rf "$tmp"/*'  # errexit ignores a failure before &&
+expect_mk ask   'set -e; set +e; tmp=$(mktemp -d); rm -rf "$tmp"/*'
+# Reassigned anywhere, used before the assignment, a path that escapes it, or no assignment in this command.
+expect_mk ask   'tmp=$(mktemp -d); tmp=/etc; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); rm -rf "$tmp"; tmp=$HOME'
+expect_mk ask   'tmp=$(mktemp -d); read -r tmp < f; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); read -r tmp<paths.txt; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); mapfile -t tmp<f; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); read "tmp" < f; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); unset "tmp"; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); tmp[0]=/etc; rm -rf "$tmp"'
+expect_mk ask   "tmp=\$(mktemp -d); printf -v \"tmp\" %s /etc; rm -rf \"\$tmp\""
+expect_mk ask   "tmp=\$(mktemp -d); printf -vtmp %s /etc; rm -rf \"\$tmp\""
+expect_mk ask   'tmp=$(mktemp -d); unset tmp; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); for tmp in a b; do :; done; rm -rf "$tmp"'
+expect_mk ask   "tmp=\$(mktemp -d); printf -v tmp '%s' /; rm -rf \"\$tmp\""
+expect_mk ask   'tmp=$(mktemp -d); : "${tmp:=/}"; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); tmp+=/x; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); eval "$x"; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); . ./env.sh; rm -rf "$tmp"'
+expect_mk ask   'rm -rf "$tmp"; tmp=$(mktemp -d)'
+expect_mk ask   'tmp=$(mktemp -d) || exit 1; rm -rf "$tmp/../.."'
+expect_mk ask   'tmp=$(mktemp -d) || exit 1; rm -rf "$tmp/a/../../etc"'
+expect_mk ask   'tmp=$(mktemp -d); rm -rf "$tmp"*'
+expect_mk ask   'tmp=$(mktemp -d); rm -rf "$tmp2"'
+expect_mk ask   'rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d); rm -rf "$tmp" "$other"'
+expect_mk deny  'tmp=$(mktemp -d); rm -rf "$tmp" /'
+# An assignment that does not persist or may not run leaves an inherited value; a substitution that is not mktemp alone proves nothing.
+expect_mk ask   '( tmp=$(mktemp -d) ); rm -rf "$tmp"'
+expect_mk ask   'x=$(tmp=$(mktemp -d); echo); rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d) | cat; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d) & rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d) && echo ok & rm -rf "$tmp"'   # the & sends the whole && list to a subshell
+expect_mk ask   'tmp=$(mktemp -d) || { echo no; exit 1; } & wait; rm -rf "$tmp"'
+expect_mk ask   $'tmp=$(mktemp -d) &&\n  echo ok &\nwait\nrm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d) && if true; then :; fi & rm -rf "$tmp"'
+expect_mk allow 'tmp=$(mktemp -d) && echo ok >&2; rm -rf "$tmp"'
+expect_mk allow 'tmp=$(mktemp -d) && echo ok &>/dev/null; rm -rf "$tmp"'
+expect_mk ask   'declare -n tmp=$(mktemp -d); rm -rf "$tmp"'   # an invalid nameref assigns nothing
+expect_mk ask   'declare -i tmp=$(mktemp -d); rm -rf "$tmp"'   # a path is an arithmetic error
+expect_mk ask   'typeset -a tmp=$(mktemp -d); rm -rf "$tmp"'
+expect_mk ask   'declare -rA tmp=$(mktemp -d); rm -rf "$tmp"'
+expect_mk allow 'declare -r tmp=$(mktemp -d); rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d) true; rm -rf "$tmp"'
+expect_mk ask   '[ -n "$x" ] && tmp=$(mktemp -d); rm -rf "$tmp"'
+expect_mk ask   'if [ -n "$x" ]; then tmp=$(mktemp -d); fi; rm -rf "$tmp"'
+expect_mk ask   'f() { tmp=$(mktemp -d); }; rm -rf "$tmp"'
+expect_mk ask   '{ tmp=$(mktemp -d); }; rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -d; echo /); rm -rf $tmp'
+expect_mk ask   'tmp=$(mktemp -d >/dev/null); rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp -u); rm -rf "$tmp"'
+expect_mk ask   'tmp=$(mktemp --dry-run); rm -rf "$tmp"'
+expect_mk ask   'tmp=$(cat f); rm -rf "$tmp"'
+expect_mk ask   'mktemp() { echo /; }; tmp=$(mktemp); rm -rf "$tmp"'
+expect_mk ask   'PWD=$(mktemp -d); cd /; rm -rf "$PWD"'
+expect_mk ask   'echo "tmp=$(mktemp -d)"; rm -rf "$tmp"'
+expect_mk ask   $'# don\'t\n( tmp=$(mktemp -d) )\nrm -rf "$tmp"'
+# Text another shell expands (single quotes, an escaped $, a quoted heredoc fed to a shell) never sees this shell's unexported
+# variable, so "$tmp"/* is /* there; trap and an unquoted heredoc expand it here.
+expect_mk ask   "tmp=\$(mktemp -d) || exit 1; bash -c 'rm -rf \"\$tmp\"/*'"
+expect_mk ask   "tmp=\$(mktemp -d); ssh host 'rm -rf \"\$tmp\"'"
+expect_mk ask   "tmp=\$(mktemp -d); docker exec app sh -c 'rm -rf \"\$tmp\"'"
+expect_mk ask   'tmp=$(mktemp -d) || exit 1; sh -c "rm -rf \"\$tmp\"/*"'
+expect_mk ask   $'tmp=$(mktemp -d) || exit 1\nbash <<\'EOF\'\nrm -rf "$tmp"/*\nEOF'
+expect_mk ask   $'tmp=$(mktemp -d) || exit 1\nbash <<\\EOF\nrm -rf "$tmp"/*\nEOF'
+expect_mk allow $'tmp=$(mktemp -d) || exit 1\nbash <<EOF\nrm -rf "$tmp"/*\nEOF'
+expect_mk allow 'tmp=$(mktemp -d) || exit 1; bash -c "rm -rf $tmp/*"'
+# An unquoted heredoc body is the other shell's script: its assignment and guard never reach this shell.
+expect_mk ask   $'bash <<EOF\ntmp=$(mktemp -d) || exit 1\nEOF\nrm -rf "$tmp"/*'
+expect_mk ask   $'ssh host <<EOF\ntmp=$(mktemp -d) || exit 1\nEOF\nrm -rf "$tmp"/*'
+expect_mk ask   $'docker exec -i app sh <<-EOF\n\ttmp=$(mktemp -d) || exit 1\n\tEOF\nrm -rf "$tmp"/*'
+expect_mk ask   $'bash <<EOF\ntmp=$(mktemp -d) || exit 1\nrm -rf "$tmp"/*'   # no terminator: the body runs to the end
+expect_mk allow $'bash <<EOF\necho hi\nEOF\ntmp=$(mktemp -d) || exit 1\nrm -rf "$tmp"/*'
+expect_mk allow $'cat <<EOF >f\nhello\nEOF\ntmp=$(mktemp -d) || exit 1\nrm -rf "$tmp"/*'   # a body the strip dropped
+expect_mk allow $'python3 - <<\'PY\'\nprint(1 << 2)\nPY\ntmp=$(mktemp -d) || exit 1\nrm -rf "$tmp"/*'
+expect_mk allow 'x=$(cat <<<"hi"); tmp=$(mktemp -d) || exit 1; rm -rf "$tmp"/*'
+expect_mk allow $'tmp=$(mktemp -d)\ngit commit -m "$(cat <<\'EOF\'\nnotes\nEOF\n)"\nrm -rf "$tmp"'
+d=$(hook "$(bash_json 'o=$(mktemp -d); cd "$o" && git init -q; cd - >/dev/null; rm -rf "$o"')" -u TMP -u TMPDIR | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ -z "$d" ] && ok || bad "mktemp: the PreToolUse payload path is silent too" "verdict=$d"
+
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"
 

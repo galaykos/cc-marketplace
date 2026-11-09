@@ -49,6 +49,12 @@ Also ships the shared `backend-engineer` worker agent (PHP/Laravel) for implemen
 work; the review's fix list does not route to it (see above). With `skill-router` installed the skills load on their own as
 matching files are edited.
 
+## Scripts
+
+| Script | Reach for it when |
+|---|---|
+| `scripts/i18n_parity.py [root] [--base-locale en] [--json]` | Checking translations before a merge: keys missing or extra per locale, placeholder mismatches (`:name`, pluralised `\|` segments), files it could not parse (PHP is parsed, never executed). Exit 0 parity, 1 findings, 2 usage or no base locale, 3 no locale files. Standing: gate where run; an identical copy ships in web-dev (`pc_twin_files` keeps them in step) |
+
 ## Pairs well with
 
 - **web-dev** — the JS side: its `frontend-reviewer` loads `inertia-best-practices` from here when installed

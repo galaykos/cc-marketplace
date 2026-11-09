@@ -63,8 +63,12 @@ A `PreToolUse` hook, `hooks/no-ai-trailer.sh`, denies any history-writing git or
 into a git message file (`COMMIT_EDITMSG`, `MERGE_MSG`, `SQUASH_MSG`,
 `TAG_EDITMSG`, anything under `.git/`). It matches at a command position, so a
 wrapper (`sudo`, `bash -c`, `VAR=1 …`, an absolute path, any `git` global option)
-does not get past it. The deny reason tells the model to drop the lines and run
-the same command again.
+does not get past it. Each command is judged on its own words, pipeline and
+heredocs: a trailer in a heredoc append, a `grep` or an `echo` beside a clean commit
+passes (0.14.0), while a message that reaches the commit through a pipe (across a
+line break or out of a `{ }` or `( )` group too), a variable, a substitution, stdin
+(`-F -`, `< file`) or an `-F` file written in the same command is still denied. The deny
+reason tells the model to drop the lines and run the same command again.
 
 Why a hook and not a sentence: the host setting `attribution.commit: ""` in
 `~/.claude/settings.json` switches off the host's own trailer, and nothing else.
@@ -128,6 +132,7 @@ Standing markers per the marketplace convention (see
 | `git commit -F <pre-existing file>`, a repo `prepare-commit-msg` hook, `git config trailer.*`, a commit outside the session | **unenforceable** | the message never crosses a matched tool call; silence means "no known shape matched", not "history is clean" |
 | finish / clean-gone / worktree protocols | **recorded** | prose the model follows; nothing reads it back |
 | a suite pass reused by finish | **gate** for the freshness rule; **recorded** for the finish step that calls it | `scripts/__tests__/receipt-fresh.test.sh` drives the reader; a change the Misses line above names still reads fresh |
+| open inline review threads of a PR (`scripts/review-threads.sh`, cited by the review-exchange skill) | **gate** for the listing; **recorded** for re-verifying, replying and resolving only after the push and the user's go-ahead | `scripts/__tests__/review-threads.test.sh` drives it with a fake `gh` returning recorded GraphQL JSON: the unresolved filter, outdated threads, bot authors, an injected instruction printed as quoted data, the 100-thread note, every exit code; the script never replies or resolves |
 | which `[gone]` branches clean-gone offers to delete together | **gate** for the classification; **recorded** for the pick | `scripts/__tests__/gone-branches.test.sh` builds merged, squash-merged, rebase-merged, deleted-unmerged, committed-after-push and dirty-worktree branches and asserts each one's class |
 
 Fail-open, deliberately, both hooks: missing `jq`, unparseable input, any internal error —

@@ -133,6 +133,115 @@ asks, a Knex, TypeORM or Sequelize rollback still asks, and code sharing a line 
 opener is skipped.
 ```
 
+### judge_sql: what a rollback may drop (2026-11-08, database 0.11.10)
+
+```text
+Retro 2026-11-05 #19 (session 24d655d6, 10-29): the ask fired on the down() of a new
+create-table migration. Its message read "this change introduces", the wording before
+0.11.5, so that session ran 0.11.4 or older; on 0.11.9 the same migration was already
+silent. What 0.11.9 got wrong in the other direction: the cut dropped EVERY rollback,
+so a down() destroying a table the migration never made, `Schema::table('users', …)`
+in up() and `Schema::dropIfExists('users')` in down(), passed in silence. Reproduced
+on 0.11.9 for Laravel, Rails and Alembic.
+
+A create migration is defined by what up() (the text outside the rollback) creates:
+`Schema::create(<arg>`, `createTable(<arg>` (Doctrine's $schema), `create_table <tok>`
+(Rails, Alembic's op.create_table, newlines folded so autogenerate's multi-line call
+counts) and `CREATE TABLE [IF NOT EXISTS] <name>` (DB::statement, addSql, execute).
+The rollback is still cut from judging, but rollback_drops reads its drops first, in
+the shapes the drop rules already match: Schema::drop(IfExists)(<arg>,
+dropTable(IfExists)(<arg>, drop_table(<tok> / drop_table :<tok>, DROP TABLE [IF EXISTS]
+<a>[, <b>…]. A drop naming no created table asks, and so does any drop with no single
+name (dropAllTables, dropDatabase, DROP DATABASE/SCHEMA, dropAll, drop_all).
+
+Names compare as written, lowercased, with quotes, backslashes, brackets, spaces and
+a Ruby symbol's `:` removed, so `$tableNames['roles']` in up() matches the same
+expression in down() without evaluating it. An argument is cut at its first `,` or
+`)`, the same way on both sides, so `config('x.y')` matches itself.
+
+An Edit's new_string is a fragment, usually the down() alone: the target file on disk
+(PreToolUse, so before the edit) supplies what up() creates. A Write and a Bash write
+carry the whole file. Busybox awk ends a bracket expression at `\]`, so nm() puts `]`
+first; that one case failed under busybox before the change.
+
+Review fixes, same day, each reproduced by running the hook first. The cut skipped its
+opener line, so a one-line rollback, `public function down(): void {
+Schema::dropIfExists('users'); }`, Rails' `def down; drop_table :users; end`, Alembic's
+`def downgrade(): op.drop_table("user")`, was read by nothing; the opener line now belongs
+to the rollback. The cut also hid down() from every other rule, so
+`DB::statement('TRUNCATE TABLE users')` there was silent; now only the drop rules (DROP
+TABLE/DATABASE/SCHEMA, Schema::drop*, the DSL drops) read the text with the rollback cut
+out, and every other rule reads it whole. A create that may never run counted as made:
+`CREATE TABLE IF NOT EXISTS`, `if_not_exists` on a create_table line (Rails, Alembic), a
+create of a name tested by hasTable(, table_exists? or has_table(, and a create in a
+comment (`//` or `#` led by a blank, `;`, `{` or `}`, `/* … */`, a `*`-led docblock line);
+none counts now. For an Edit or MultiEdit the file on disk is read with the call's own
+replacements applied (each old_string replaced once, every one under replace_all, done in
+jq with split/join so no character is a pattern), so a MultiEdit turning
+Schema::create('users') into Schema::table('users') leaves no create behind. A jq without
+--rawfile (older than 1.6) reads the file unedited, the behaviour before the fix.
+
+Residual: schema-qualified on one side only (`public.users` vs `users`) asks; a
+bracket-quoted SQL Server name (`[dbo].[users]`) asks; a create through
+Schema::connection(...)->create pairs with a drop no rule reads either. A create in a
+Python docstring, in a block comment whose lines are not `*`-led, or after a SQL `--`
+still counts, and so does Alembic's `if_not_exists=True` on a line of its own. A name
+tested anywhere in up() is dropped from the creates, so an unconditional create beside
+an unrelated test of the same name asks. Comments are stripped on the create side only:
+a drop commented out inside down() still asks.
+```
+
+### judge_sql: SQL contexts (2026-11-08, database 0.11.10)
+
+```text
+Retro 2026-11-05 #19 (session 86fd417d): three React/TSX writes (app-logo.tsx,
+team-switcher.tsx, user-dropdown-menu.tsx from Laravel's React starter kit) asked
+"this change introduces TRUNCATE" and the run idled 20 min. Re-tested: the
+starter-kit class lists (`className="mb-0.5 truncate leading-tight …"`) ask on the
+guard before 0.11.4 with that exact message and are silent on 0.11.9. The nearest
+shapes that still asked on 0.11.9, all in .ts/.tsx: an enum member `TRUNCATE = "…"`,
+button text `TRUNCATE the log view`, "Drop table rows here", "Delete from favorites",
+"Update your account and set a new password", a link titled "Create index page",
+a `// TODO: drop table …` comment, and `/TRUNCATE (\w+)/.exec(line)`.
+
+So the SQL-keyword rules (DROP TABLE/DATABASE/SCHEMA, TRUNCATE, DELETE/UPDATE without
+WHERE, CREATE INDEX, the rewriting ALTER) read the whole text only in a SQL context:
+a .sql/.pgsql/.psql/.ddl file, or a path under migrations/, migration/, db/migrate/
+or alembic/. Anywhere else they read sql_spans: from a raw-query opener (query(,
+execute(, exec(, raw(, statement(, unprepared(, prepare(, addSql(, $executeRaw`,
+sql`, DB::select|insert|update|delete( and the driver variants) or a line naming a
+SQL client (psql, mysql, mariadb, sqlite3, sqlcmd, clickhouse-client) to where its
+parentheses and quotes close, across lines, with a heredoc it opens (<<SQL, <<<SQL,
+<<~SQL) to its terminator. `//` and a whitespace-led `#` end a line's scan, so an
+apostrophe in a comment does not hold the span open. The opener must not follow a
+word character, so useQuery( is no opener; RegExp .exec( opens one, which closes on
+its own line. The migration-DSL rows and the NoSQL rows keep reading the whole text:
+they match calls, not words a sentence can contain.
+
+Trade, pinned in the harness: SQL built in a variable and passed later
+(`const q = "TRUNCATE TABLE x"; await pool.query(q)`) asked before and is now silent.
+Review fix, same day: the call list missed common driver APIs, each asking on 0.11.9
+and silent on the first cut: Doctrine DBAL 3's executeStatement(, Python sqlite3's
+executescript(, node-sqlite3's db.run(", PHP's mysqli_query( and pg_query(, peewee's
+execute_sql(, diesel's sql_query(, postgres.js's sql.unsafe(, JPA's createNativeQuery(,
+and the clients pgcli, duckdb and `wrangler d1 execute`. Added, with any `*_query(` name;
+`.run(` only with a string literal opening its argument, since `scope.run(() => {…})`
+would hold the span open across a callback full of UI text. The span also started at
+the opener, so SQL earlier on its line was dropped: `em.createQuery("DELETE FROM t")
+.executeUpdate()`, `echo "DROP TABLE x;" | psql`. A client line, and a call chained on a
+call result (`)` then `.`, `?.` or `->` before the name), now print from the line start;
+any other opener prints from itself, so `/TRUNCATE (\w+)/.exec(line)` stays silent.
+
+Residual: a raw-call opener whose parenthesis never closes runs the span to the end
+of the edit; a regex literal holding a quote inside a span; a UI file under a
+migrations/ directory is read as SQL; a Ruby heredoc after `execute(<<~SQL)`, whose
+body follows the closed call; Java's jdbcTemplate.update( and C#'s CommandText;
+pg_query_params(, mycli, litecli, usql and any other call or client off the list;
+db.run(sql) with the statement in a variable or on the next line; SQL on the line
+above a chained opener that leads its own line; UI text naming a client (`mysql `)
+reads its whole line as SQL.
+```
+
 ### judge_sql: Laravel's Schema::drop*
 
 ```text
@@ -176,6 +285,8 @@ followed by whitespace and a name, so Tailwind's `truncate table-cell` stays sil
 any-case form skips a line carrying a class list (`className="truncate table w-full"`).
 Residual: a lowercase `truncate users` without TABLE passes silently, and a class string
 built outside an attribute or helper (`const c = "truncate table w-full"`) still asks.
+Since 0.11.10 that second residual is gone: outside a SQL context only raw-query spans
+are read (see "judge_sql: SQL contexts").
 ```
 
 ### judge_sql: lock hazards
