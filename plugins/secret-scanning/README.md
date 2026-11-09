@@ -134,12 +134,16 @@ standing is in the table at the top.
   `https://upload.higgsfield.ai/…` URL whose `X-Amz-Credential` and `X-Amz-Security-Token`
   values match the AWS and assigned rows. Masked, the URL cannot take the `PUT` the upload
   needs, so the model regenerated images instead. In the result of a tool named
-  `mcp__<server>__media_upload`, a match inside one of that URL's `X-Amz-*` values stays
-  unmasked. Everything else is masked as before: a key beside the URL or in another parameter,
-  the same URL in any other tool's result (a log, a commit), and every other presigned URL. The
-  write guard still denies the URL in a file. **Gate** — `tests/redact.test.ts`, "Higgsfield
-  upload URL", replays the firing; `scan-hook.test.sh` pins the write deny. Residual: the
-  transcript keeps that URL, which can upload to one path until it expires.
+  `mcp__<server>__media_upload`, two matches stay unmasked: the `ASIA…` key ID leading
+  `X-Amz-Credential` and the assigned-row match on `X-Amz-Security-Token`, each only while it
+  lies inside its own value. The URL and each value end at the first character outside
+  `[A-Za-z0-9%._~-]`, so a JSON-escaped newline ends them. Everything else is masked as before: a
+  key beside the URL or in another parameter, any other row's match inside those two values, a
+  long-term `AKIA…` key ID, the same URL in any other tool's result (a log, a commit), an errored
+  result, and every other presigned URL. The write guard still denies the URL in a file.
+  **Gate** — `tests/redact.test.ts`, "Higgsfield upload URL", replays the firing and runs each
+  must-still-mask case; `scan-hook.test.sh` pins the write deny. Residual: the transcript keeps
+  that URL, which can upload to one path until it expires.
 - **Errors and attached context.** An errored result whose error text, stored result or
   attached context holds a secret is answered with a refusal carrying the redacted error
   text. Context a hook seated beneath this one attached is passed on verbatim (CLI 2.1.291

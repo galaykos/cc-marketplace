@@ -516,20 +516,31 @@ and quoted in the `curl -X PUT` line the tool tells the model to run. Higgsfield
 same docs name the API credentials `HF_API_KEY_ID`/`HF_API_KEY_SECRET` and the legacy `hf-api-key`/`hf-secret` headers
 (…/authentication.md); the key format itself is not documented.
 
-The exception: in the successful result of a tool named `mcp__<server>__media_upload`, a match is left unmasked when it begins inside
-the value of an `X-Amz-*` query parameter of an `https://upload.higgsfield.ai/…?…` URL and ends by that URL's end. Every other match
-in the same result is masked as before: a Higgsfield key beside the URL, or one carried by a non-`X-Amz` parameter of the same URL.
-So is that URL in any other tool's result, Bash and Read included, so it stays masked in a log or in a commit's echoed message. So
-is an S3, R2 or any other host's presigned URL, and an errored `media_upload`. Nothing changed for writes: `scan.sh` still denies the
+The exception: in the successful result of a tool named `mcp__<server>__media_upload`, an `https://upload.higgsfield.ai/…?…` URL
+keeps two matches. One is the AWS row's match on the `ASIA…` key ID that leads `X-Amz-Credential`; the other is the assigned row's
+match on the `X-Amz-Security-Token` value, judged on its matched run, not on the span to the quote its mask would cover. Each must
+lie wholly inside its value. The URL's path and query and each value end at the first character outside the SigV4 query alphabet
+`[A-Za-z0-9%._~-]` (plus `/` in the path, `=` and `&` in the query). Every other match in the same result is masked as before: a
+Higgsfield key beside the URL, or one carried by another parameter of the same URL. So is that URL in any other tool's result,
+Bash and Read included, so it stays masked in a log or in a commit's echoed message. So is an S3, R2 or any other host's presigned URL, and an errored `media_upload`. Nothing changed for writes: `scan.sh` still denies the
 URL in a Write or a Bash write (the `ASIA…` key ID), and the mod never rewrites tool input. `tests/redact.test.ts`, "Higgsfield
 upload URL", replays the firing and runs each must-still-mask case; `scan-hook.test.sh` pins the write deny and the `curl -X PUT`
 that passes.
+
+The first cut (commit 92daeb35) kept any match that began inside any `X-Amz-*` value and ended by the URL's end, with the URL and
+each value running to the next `&`, quote, whitespace or `#`. Review the same day found four ways through it. A JSON-escaped `\n` (two
+characters) ended nothing, so `HF_API_KEY_SECRET=…` after the URL stayed unmasked. A userinfo URL in `X-Amz-Date` ran across `&db=`
+and kept its password. `X-Amz-Meta-*` kept a GitHub token, and `X-Amz-Credential` kept a long-term `AKIA…` key ID. Each now has a
+must-still-mask case in "Higgsfield upload URL", and each check fails at least one of them when reverted alone (2026-11-09, `claude
+plugin test` on a patched copy).
 
 LIMITATION: the transcript now keeps the signed URL as returned. Its credentials can PUT one object path until `X-Amz-Expires` runs
 out (86400 s in the replayed firing, one hour per the docs). The match is on the tool's name and the host, not on the server: any
 MCP server with a `media_upload` tool returning an `upload.higgsfield.ai` URL gets it. The policy lives in `redact.ts`, and
 `redact-core.ts` only takes the ranges (`Kept`). `scan.sh` has no counterpart, so `pattern-parity.test.sh` runs the core without
-ranges.
+ranges. A range names its row by label, so relabelling the AWS or assigned row in `patterns.tsv` silently ends the keep and the URL
+is masked again; the test copies the rows and does not read that file. A path or value holding a character outside the alphabet
+masks the same way.
 
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
 

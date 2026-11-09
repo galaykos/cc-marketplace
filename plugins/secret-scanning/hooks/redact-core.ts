@@ -1,7 +1,7 @@
 export type Pattern = { kind: 'secret' | 'assigned' | 'placeholder'; label: string; re: RegExp }
 
-/** A line's ranges a match may begin in, from `from` up to `to`, and stay unmasked when it also ends by `end`. */
-export type Kept = (line: string) => { from: number; to: number; end: number }[]
+/** A line's ranges, `from` up to `to`, inside which a match of the row labelled `label` stays unmasked. */
+export type Kept = (line: string) => { from: number; to: number; label: string }[]
 
 type Span = { start: number; end: number; ranks: number[]; opensKey: boolean }
 
@@ -164,7 +164,8 @@ function spansOf(text: string, pats: Pattern[], kept: Kept | null): Span[] {
   for (const line of text.split('\n')) {
     const folded = line.replace(FOLDABLE, ch => FOLDS[ch] ?? ch)
     const ranges = kept === null ? [] : kept(line)
-    const isKept = (start: number, end: number) => ranges.some(r => r.from <= start && start < r.to && end <= r.end)
+    const isKept = (label: string, start: number, end: number) =>
+      ranges.some(r => r.label === label && r.from <= start && end <= r.to)
 
     pats.forEach((pattern, rank) => {
       if (pattern.kind === 'placeholder') {
@@ -186,11 +187,12 @@ function spansOf(text: string, pats: Pattern[], kept: Kept | null): Span[] {
           continue
         }
 
-        if (pattern.kind === 'secret') {
-          if (isKept(found.index, end)) {
-            continue
-          }
+        // An assigned row is judged on its matched value, not on the span to the quote its mask would cover.
+        if (isKept(pattern.label, end - value.length, end)) {
+          continue
+        }
 
+        if (pattern.kind === 'secret') {
           const opensKey = match.startsWith('-----BEGIN ') && match.endsWith('PRIVATE KEY-----')
 
           spans.push({ start: offset + found.index, end: offset + end, ranks: [rank], opensKey })
@@ -203,10 +205,6 @@ function spansOf(text: string, pats: Pattern[], kept: Kept | null): Span[] {
         if (stops[closer] < end) {
           VALUE_STOPS[closer].lastIndex = end
           stops[closer] = VALUE_STOPS[closer].exec(line)?.index ?? line.length
-        }
-
-        if (isKept(end - value.length, stops[closer])) {
-          continue
         }
 
         spans.push({ start: offset + end - value.length, end: offset + stops[closer], ranks: [rank], opensKey: false })
@@ -584,7 +582,8 @@ function walked(
  * Walks arrays, plain objects (prototype Object.prototype or null) and Errors (every own property: message, stack,
  * cause); keys are never redacted, and a Map, Set or any other object comes back as received.
  * Labels come back in pattern-file order, so the first is the one scan.sh's deny would name.
- * With `kept`, a match that begins in a range it returns for its line and ends by that range's end is left unmasked.
+ * With `kept`, a match of the row a range for its line names, lying inside that range, is left unmasked; for an
+ * assigned row that is the matched value, not the span to the quote its mask would cover.
  */
 export function redact(value: unknown, pats: Pattern[], kept: Kept | null = null): { value: unknown; labels: string[] } {
   const found = new Set<number>()
