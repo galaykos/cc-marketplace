@@ -1,13 +1,14 @@
 # Astryx structure digest — packages, imports, CLI, themes, templates
 
-> Last verified: 2026-11-09 — https://raw.githubusercontent.com/meta/astryx/main/packages/core/CHANGELOG.md — npm:@astryxdesign/core@0.7
+> Last verified: 2026-09-26 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
 
 Read on demand from astryx-best-practices: structure only — packages, install,
 CSS and theme wiring, the CLI, the theme and template inventories. Astryx is
-**beta** (0.x, `0.7.11` the npm `latest` at the stamp above, published 2026-11-07,
-`canary` publishing several times a day — https://registry.npmjs.org/@astryxdesign/core;
-the 2026-11-09 re-read was every 0.7.0–0.7.11 Breaking Changes entry in the changelog
-against this file, and only 0.7.0 has any; the 2026-09-26 re-read was the 0.6.1–0.6.3
+**beta** (0.x, `0.6.3` on npm at the stamp above; `0.7.11` the npm `latest` on 2026-11-09,
+published 2026-11-07, `canary` publishing several times a day — https://registry.npmjs.org/@astryxdesign/core;
+the 2026-11-09 read was every 0.7.0–0.7.11 Breaking Changes entry in the core changelog,
+https://raw.githubusercontent.com/meta/astryx/main/packages/core/CHANGELOG.md, against this file, and only 0.7.0 has any — not an
+end-to-end re-read, so the stamp stays at 0.6; the 2026-09-26 re-read was the 0.6.1–0.6.3
 changelog; the full structure read is 2026-09-22's) — nothing here answers a props question, and a 0.x MINOR is where
 this file goes stale: 0.3 → 0.5 split the package, renamed a category and added
 the agent surface; 0.5 → 0.6 changed the CSS selector contract, added

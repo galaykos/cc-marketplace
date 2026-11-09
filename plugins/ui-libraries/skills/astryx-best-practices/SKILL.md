@@ -3,9 +3,7 @@ name: astryx-best-practices
 description: Use when building or reviewing UI with Astryx, Meta's open-source React design system — a project importing from `@astryxdesign/*` (core, cli, theme-* packages, StyleX xstyle) or running `astryx init|template|theme|component`. BETA 0.x: pin the installed version before advising.
 ---
 
-> Last verified: 2026-11-09 — https://raw.githubusercontent.com/meta/astryx/main/packages/core/CHANGELOG.md — npm:@astryxdesign/core@0.7
-> (0.7.0–0.7.11's Breaking Changes, the selector contract and the peers; the rest was last read
-> 2026-09-26 at https://astryx.atmeta.com/docs/getting-started against 0.6)
+> Last verified: 2026-09-26 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
 
 # Astryx best practices
 
@@ -99,10 +97,12 @@ the `tailwind-theme.css` bridge, `className` / `style`, then plain CSS against
 the `.astryx-*` target class plus reflected `data-*` attributes
 (`.astryx-button[data-variant="primary"]`) — the only selector surface since 0.7.0,
 which removed the bare prop/state classes (`.primary`, `.sm`, `.checked`) and renamed
-21 targets (`textarea` → `text-area`); from 0.6, `astryx upgrade --from <0.6.x> --apply`
+21 targets (`textarea` → `text-area`); from 0.6, `astryx upgrade --from <0.6.x> --apply --path .`
 runs the codemod. Field inputs (TextInput, Selector, Typeahead, the date and time
 inputs, CheckboxList, Slider and their siblings) take `containerXstyle` /
 `controlXstyle` (and `…ClassName`, `…Style`) since 0.7.0, never a root `xstyle`.
+These 0.7 facts are 0.7.0's Breaking Changes in the core changelog (https://raw.githubusercontent.com/meta/astryx/main/packages/core/CHANGELOG.md),
+read 2026-11-09; the stamp above is the last end-to-end read, against 0.6.
 No hardcoded colours or spacing, no `!important`, no wrapper `div` for margin,
 never a patch to compiled CSS.
 
