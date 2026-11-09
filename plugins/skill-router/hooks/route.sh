@@ -1,6 +1,6 @@
 #!/bin/bash
-# PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run) and the command itself against rules.tsv; prints at most NUDGE_CAP `high` plugin:skill nudges, none already loaded, and queues other content matches as pending_low.
-# Silent on targets outside the root, under taskmaster-docs/ or .claude/, git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; a .json/.y(a)ml queues no `low` row. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
+# PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run), the command itself, and an MCP call's tool name against rules.tsv; prints at most NUDGE_CAP `high` plugin:skill nudges, none already loaded, and queues other content matches as pending_low.
+# Silent on targets outside the root, under taskmaster-docs/ or .claude/, git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; a .json/.y(a)ml queues no `low` row; an MCP call other than create_new_file routes by name only. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth, an MCP name hooks.json's matcher does not admit. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -279,14 +279,26 @@ route_cmd_mask() {
     done < <(grep "^command"$'\t' "$rules" 2>/dev/null)
     bash_effects=$(cc_bash_write_effects "$root" "$effects_mark" "$bash_cmd" "$MAX_BASH_EFFECTS" "$sess")
   fi
+  # A `tool` row matches an MCP call's name and joins cmd_hits with that name as its subject; a path in the call's arguments is never read.
+  by_name=0
+  case "$tool" in *create_new_file) ;; mcp__*) by_name=1 ;; esac
+  if [ "$by_name" = 1 ]; then
+    while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
+      [ "${conf%$'\r'}" = high ] || continue
+      printf '%s' "$tool" | grep -qE "$pattern" 2>/dev/null || continue
+      marker="${marker%$'\r'}"; [ -n "$marker" ] || marker=-
+      cmd_hits="${cmd_hits}${skill}"$'\t'"${plugin}"$'\t'"${marker}"$'\t'"${tool}"$'\n'
+    done < <(grep "^tool"$'\t' "$rules" 2>/dev/null)
+  fi
   # Every call dates the marker, an Edit or a no-write command too, so a run's effects are only what changed since the previous call; PostToolUse runs after the tool, so dating here equals dating at exit.
   cc_bash_effects_mark "$root" "$effects_mark" "$sess"
   [ "$tool" != Bash ] || [ -n "$bash_targets" ] || [ -n "$bash_effects" ] || [ -n "$cmd_hits" ] || exit 0
+  [ "$by_name" = 0 ] || [ -n "$cmd_hits" ] || exit 0
 
   # Context key, not session key: a subagent shares its parent's session_id but has its own transcript.
   session_id=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null) || exit 0
   file_path=""
-  if [ "$tool" != Bash ]; then
+  if [ "$tool" != Bash ] && [ "$by_name" = 0 ]; then
     # pathInProject: the JetBrains MCP create_new_file key.
     file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null) || exit 0
     [ -n "$file_path" ] || exit 0
@@ -333,7 +345,7 @@ $bash_targets
 $bash_effects
 EOF_TARGETS
     [ "${#abs[@]}" -gt 0 ] || [ -n "$cmd_hits" ] || exit 0
-  else
+  elif [ "$by_name" = 0 ]; then
     p="$cwd/$file_path"
     case "$file_path" in /*) p="$file_path" ;; esac
     # Resolved only to test the root prefix (`../`); a directory that does not exist keeps the spelling it was given.

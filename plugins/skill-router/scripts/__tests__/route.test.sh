@@ -671,6 +671,67 @@ for p in 'commit the fix for the login bug' 'build the APK download page' 'merge
   grep -qF 'Your recent edits may need these skills' <<<"$fl" && ok || bad "hold neighbour: [$p] did not flush; got: ${fl:0:200}"
 done
 
+# 29. retro 2026-11-05 issue 8: a Blender or Meshy MCP call routes gamedev:asset-pipeline by its tool name, in one line, once per
+#     context, and never by a path in its arguments; an unrelated MCP call, a Higgsfield call and a .png or .glb edit stay silent.
+#     hooks.json admits a name each `tool` row matches, and each row compiles. The gamedev file rows route, their neighbours do not.
+mcp() { # cwd tool-name transcript [env...] — an MCP call's PostToolUse payload; its arguments name a .py file under the repo
+  local c="$1" n="$2" t="$3"; shift 3
+  jq -cn --arg c "$c" --arg n "$n" --arg tp "$t" --arg f "$c/tools/scene.py" \
+    '{hook_event_name:"PostToolUse",tool_name:$n,session_id:"sess",transcript_path:$tp,cwd:$c,
+      tool_input:{code:"import bpy",file_path:$f},tool_response:[{type:"text",text:"ok"}]}' | hook "$HOOK" "$@"
+}
+GD="$WS/gd"; mkrepo "$GD"; mkdir -p "$GD/tools" "$GD/src/world" "$GD/src/audio" "$GD/Assets/Models" "$GD/Assets/Scripts" "$GD/Assets/Packs/Kenney"
+printf 'import bpy\n' > "$GD/tools/scene.py"
+TOOL_NAMES='mcp__Blender__execute_blender_code mcp__blender__get_scene_info mcp__meshy__meshy_image_to_3d mcp__meshy-mcp-server__meshy_balance mcp__plugin_meshy_meshy__meshy_rig'
+for n in $TOOL_NAMES; do
+  out=$(mcp "$GD" "$n" "$(fresh)")
+  has_skill "$out" asset-pipeline && [ "$(skills <<<"$out" | grep -c .)" = 1 ] \
+    && [ "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -c .)" = 1 ] \
+    && ok || bad "tool row [$n]: expected one line naming gamedev:asset-pipeline alone, got: ${out:0:200}"
+done
+TG=$(fresh); out=$(mcp "$GD" mcp__Blender__execute_blender_code "$TG")
+grep -qF 'Load the `gamedev:asset-pipeline` skill for `mcp__Blender__execute_blender_code`' <<<"$out" && ok \
+  || bad "tool row: the subject does not quote the tool name: ${out:0:200}"
+out=$(mcp "$GD" mcp__meshy__meshy_text_to_3d "$TG")
+[ -z "$out" ] && ok || bad "tool row: asset-pipeline re-nudged in the same context: ${out:0:160}"
+for n in mcp__github__create_issue mcp__91037719-f36d-439c-a49c-805a84b65a0d__media_upload mcp__unityMCP__manage_scene; do
+  t=$(fresh); out=$(mcp "$GD" "$n" "$t")
+  [ -z "$out" ] && [ ! -e "$(statef "$GD" "$t")" ] && ok || bad "tool row [$n]: expected silence and no state, got: ${out:0:160}"
+done
+out=$(mcp "$GD" mcp__Blender__execute_blender_code "$(fresh)" CC_REMIND=off)
+[ -z "$out" ] && ok || bad "CC_REMIND=off: a Blender MCP call still routed: ${out:0:120}"
+printf '\211PNG\r\n\032\n' > "$GD/Assets/Models/hero.png"; printf 'glTF\002\0\0\0' > "$GD/Assets/Models/hero.glb"
+for f in Assets/Models/hero.png Assets/Models/hero.glb; do
+  t=$(fresh); out=$(edit "$GD" "$GD/$f" "$t")
+  [ -z "$out" ] && [ ! -e "$(statef "$GD" "$t")" ] && ok || bad "asset file [$f]: expected silence and no state, got: ${out:0:160}"
+done
+matcher=$(jq -r '.hooks.PostToolUse[] | select(.hooks[].command | test("hooks/route.sh")) | .matcher' "$SR/hooks/hooks.json" 2>/dev/null)
+grep -qE "$matcher" <<<mcp__github__create_issue && bad "hooks.json: the route.sh matcher admits an unrelated MCP tool" || ok
+while IFS=$'\t' read -r k p s rest; do
+  [ "$k" = tool ] || continue
+  printf '' | grep -qE "$p" 2>/dev/null; [ $? -le 1 ] && ok || bad "tool row does not compile: $p ($s)"
+  hit=""; for n in $TOOL_NAMES; do grep -qE "$p" <<<"$n" && { hit=$n; break; }; done
+  [ -n "$hit" ] && grep -qE "$matcher" <<<"$hit" && ok || bad "tool row $p ($s): no fixture name in TOOL_NAMES that it and the hooks.json matcher both admit"
+done < "$SR/rules.tsv"
+routes "$GD" src/world/Gen.ts "import seedrandom from 'seedrandom'
+export const rng = seedrandom(dailySeed)" seeded-generation
+routes "$GD" src/world/Roll.ts 'export const roll = () => Math.floor(Math.random() * 6) + new Random().next()' low-cognitive-load seeded-generation
+routes "$GD" src/audio/mix.ts 'export const TARGET_LUFS = -24 // home console, true peak -1 dBTP' game-platform-floors
+routes "$GD" src/audio/volume.ts 'export const masterVolumeDb = -6; export const subtitleFontSize = 26' low-cognitive-load game-platform-floors
+routes "$GD" Assets/Packs/Kenney/License.txt 'Creative Commons Zero, CC0 1.0' game-assets
+printf 'MIT License\n' > "$GD/LICENSE"; out=$(edit "$GD" "$GD/LICENSE" "$(fresh)")
+has_skill "$out" game-assets && bad "licence row: a LICENSE outside an asset directory routed game-assets" || ok
+TP=$(fresh); printf 'import bpy\nbpy.ops.export_scene.gltf(filepath="build/hero.glb")\n' > "$GD/tools/export_hero.py"
+edit "$GD" "$GD/tools/export_hero.py" "$TP" >/dev/null
+pend "$(statef "$GD" "$TP")" asset-pipeline && ok || bad "export row: a Blender glTF export script queued no asset-pipeline signal"
+TP=$(fresh); printf 'import bpy\nbpy.ops.export_scene.obj(filepath="print/hero.obj")\n' > "$GD/tools/print_hero.py"
+edit "$GD" "$GD/tools/print_hero.py" "$TP" >/dev/null
+pend "$(statef "$GD" "$TP")" blender-best-practices && ! pend "$(statef "$GD" "$TP")" asset-pipeline && ok \
+  || bad "export row: an OBJ export for printing queued asset-pipeline, or the bpy row stopped queuing"
+TP=$(fresh); printf 'using UnityEngine;\npublic class World { void Build(int seed) { Random.InitState(seed); } }\n' > "$GD/Assets/Scripts/World.cs"
+edit "$GD" "$GD/Assets/Scripts/World.cs" "$TP" >/dev/null
+pend "$(statef "$GD" "$TP")" seeded-generation && ok || bad "seed row: a Unity Random.InitState script queued no seeded-generation signal"
+
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }
 

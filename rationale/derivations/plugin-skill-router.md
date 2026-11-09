@@ -445,6 +445,31 @@ Doc and style files queue nothing: `token` in a spec or a CSS file queued securi
 the cost is a doc that really is about the concern (a security runbook) drawing no signal.
 ```
 
+### TOOL ROWS (0.31.0, 2026-11-09)
+
+Session retro 2026-11-05, issue 8: across the cowork (`5df215ae`/`64de927c`) and little-sprito (`5d6230d0`) sessions a
+Higgsfield → Meshy → Blender → Unity pipeline ran with no gamedev, blender or meshy skill loaded. Meshy decimation tore textures
+at the seams, and credits were spent with no confirmation. Every signal this hook had was a file. That work runs through MCP
+calls, and 0.30.2 had just dropped image and model files as targets, so the router had nothing to match.
+
+A `tool` row is an ERE matched with `grep -E` against the PostToolUse `tool_name`. Its hits join `cmd_hits` with the tool name as
+the subject, so ranking, the installed filter, the loaded check, the cap and the once-per-context one-shot are the command
+rows' own. An `mcp__*` call other than `*create_new_file` routes by name only. Otherwise a Blender or Meshy tool whose arguments
+carry a `file_path` (an import, a download target) would route as an edit of that file.
+
+The `hooks.json` matcher admits `mcp__.*([Bb]lender|[Mm]eshy)` only (unanchored `RegExp.test`, per
+code.claude.com/docs/en/hooks.md § Matcher patterns, read 2026-11-09). A plain `mcp__.*` would start the hook on every MCP call.
+Measured that day: 10.9 ms median for an unmatched MCP payload and 27.7 ms for a matched one that is already fired, 21 runs each
+on an empty git repo. The narrow matcher puts the cost on Blender and Meshy calls alone, and it pays for that with a second place to
+edit: a `tool` row the matcher does not admit never fires. `route.test.sh` case 29 checks that each `tool` row matches a fixture name
+the matcher also admits, and it compiles every `tool` row. `pc_rules_reachable` (scripts/lib/plugin-checks.sh) compiles `content` and
+`command` rows only.
+
+LIMITATION: Meshy reached through another server's tool does not route; the retro's Higgsfield `generate_3d` called
+`meshy_multi_image_to_3d` as a model name. Nor does a server whose name holds neither word, nor a claude.ai connector, which is named
+by UUID (Higgsfield's was `91037719-…`). The row fires on any Blender MCP call, a product render included, wherever gamedev is
+installed. The call's input (`execute_blender_code`'s `code`) is never matched against content rows.
+
 ## plugins/skill-router/hooks/route-prompt.sh
 
 Editor's note (2026-10-04, card 03): citations below that have moved since they were written — route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY); route.sh's "deliver block" is now the function `deliver_nudges`; `testing/hooks/test-shape.sh:90` is now near its line 157; "the block above the heredoc" is ### The protocol, not a catalog, below.
