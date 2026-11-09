@@ -388,3 +388,35 @@ After a block with no browser call since, the session declined: print, until a b
 ## plugins/ui-ux/scripts/contrast.mjs
 
 The twin of `plugins/craft-layer/template/craft-gates/contrast.mjs`, identical save its TWIN line (`pc_twin_files`). Its header points at that file's heading, `rationale/derivations/plugin-craft-layer.md` § `plugins/craft-layer/template/craft-gates/contrast.mjs`, where the comment text both copies carried until 2026-10-28 was moved verbatim. Standing: `recorded`.
+
+## plugins/ui-ux/scripts/axe-run.mjs
+
+Written 2026-11-09 (ui-ux 0.33.0, roadmap item D2). Standing of this text: `recorded`.
+
+### Why it exists
+
+Before it, `plugins/ui-ux/scripts/` held only `contrast.mjs`, so a ui-ux install without craft-layer had no rendered WCAG run at all. craft-layer's `gates.spec.ts` runs axe, but it needs craft-layer, `@playwright/test` and `@axe-core/playwright` in the project. `/ui-ux:audit` read the markup and the token block; nothing loaded the page. This script is the rendered pass that command runs, and step 5's static checklist still runs whatever it returns.
+
+### Choices
+
+- **Nothing is installed.** The driver resolves from the project's `node_modules` in the order `playwright`, `@playwright/test`, `playwright-core`, `puppeteer`; axe from `axe-core`, else the `axe-core` that `@axe-core/playwright` or `@axe-core/puppeteer` depends on (resolved from that package's own location, so a pnpm layout that does not hoist it still works). Both are resolved before any launch, so one run names every missing piece. A failed launch is the missing Chromium, also exit 3.
+- **`AXE_RUN_CHROMIUM`.** Measured on 2026-11-09 on the machine that wrote it: the only Playwright present (1.65.0-alpha-2026-10-30, in the npx cache) wanted `chromium_headless_shell-1252`, while builds 1234 and 1248 and Google Chrome 156 were installed. Without an override the rendered pass could not run anywhere on that machine. With `executablePath` pointed at either existing binary it launched. The variable names a binary already present; the script never fetches one.
+- **Tags** `wcag2a wcag2aa wcag21a wcag21aa wcag22aa`, the set craft-layer's `gates.spec.ts` uses. Output keeps only the `wcag*` tags, so the criterion is readable from the line.
+- **`color-contrast` stays on**, unlike `gates.spec.ts`, which turns it off because `contrast.mjs` is its gate of record. Here axe's rendered contrast covers what `contrast.mjs` cannot parse (hex, HSL, colour written in a class). axe-core before 4.14.0 (2026-10-05) mis-parsed `oklch(… none)` colours, which Tailwind v4 emits; its changelog lists "color-contrast: handle "none" and exponents in color strings" (#5422, references #4007). `/ui-ux:audit` step 3 says `contrast.mjs`'s verdict stands where both measured a pair.
+- **`iframes: false`.** axe is injected into the top frame only. With iframes on, axe asks each child frame to run and waits for an answer from a frame that has no axe. That wait was not measured here; turning it off removes it, and iframe content is named as missed.
+- **Page text is data.** A selector carries page-authored ids and attribute values. Each is stripped of control and line-separator characters, capped at 200 characters and printed JSON-quoted, so a page cannot add a line to the output or pose as a finding. `failureSummary` and the `html` snippet are not printed at all.
+- **Exit 4 on an HTTP status of 400 or more**, so an error page is never audited as if it were the page asked for.
+- **One render:** 1280×800, light scheme, at the `load` event, 30 s navigation timeout, 90 s watchdog.
+
+### Limits
+
+What axe cannot test (keyboard flow, screen-reader output, whether a label or alt text means anything); iframe content; states not on screen at load (hover, focus, open menus, data fetched later); dark mode; other viewports. A page that rewrites `window.axe` or the built-ins it uses can forge the result. The real-axe path was not exercised on the machine that wrote it: no `axe-core` was installed there, and the harness says so with a SKIP line.
+
+## plugins/ui-ux/scripts/__tests__/axe-run.test.sh
+
+Written 2026-11-09 with `axe-run.mjs`. Standing of this text: `recorded`.
+
+- The static half always runs: `node --check`, six usage errors (exit 2, named), `--help`, and four missing-piece projects built from fake packages: nothing at all, a driver without axe, axe without a driver, and axe reached only through `@axe-core/playwright` with a driver whose launch fails. Each must exit 3 naming exactly its missing piece, and the fake launch must never be called when axe is missing. The empty-project case skips itself when a `playwright` resolves from a parent directory of the temp dir, because there an empty project is not empty.
+- The rendered half needs a Playwright whose Chromium launches. It looks in `$AXE_RUN_PLAYWRIGHT`, `$CRAFT_GATES_PLAYWRIGHT`, then the npx cache. When the Playwright's own browser does not launch, it tries the Chromium builds under `~/.cache/ms-playwright` and a `chromium` or `google-chrome` on PATH, and passes the one that works as `AXE_RUN_CHROMIUM`. These cases run the real driver against a stub axe that flags each `<img>` without `alt` and throws on unexpected run options. An unreachable URL and a local server answering 404 must each exit 4. The stub tests the plumbing, the quoting and the exit codes, never axe's rules.
+- The real-axe half needs an `axe-core` or `@axe-core/playwright` in `$AXE_RUN_AXE` or beside that Playwright, and prints a SKIP line otherwise.
+- Mutation check, 2026-11-09: six single-edit breaks of the script (no control-character cleaning, unquoted selector, missing pieces exit 4, iframes on, always exit 0, tags unfiltered) each turned 1 to 3 cases FAIL.

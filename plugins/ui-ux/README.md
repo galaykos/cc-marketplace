@@ -151,6 +151,32 @@ nothing and exit 2, which is reported as *not measured*, never as a pass. And it
 grades the TOKEN BLOCK, not the rendered page — text over an image, a gradient, or
 a colour written straight into a class string is outside what it can see.
 
+## The rendered axe run
+
+`scripts/axe-run.mjs` loads a URL or a local HTML file in Chromium and runs axe-core's
+WCAG 2.0–2.2 A/AA rules on it: one line per failing element (rule id, impact, WCAG
+tags, quoted selector, help URL), or one JSON object with `--json`:
+
+```bash
+cd <project root> && node "${CLAUDE_PLUGIN_ROOT}/scripts/axe-run.mjs" http://localhost:5173/checkout
+node "${CLAUDE_PLUGIN_ROOT}/scripts/axe-run.mjs" --json dist/index.html
+```
+
+It uses only what the project already has, resolved from its `node_modules`:
+`playwright`, `@playwright/test`, `playwright-core` or `puppeteer`, and `axe-core`
+(directly, or through `@axe-core/playwright` / `@axe-core/puppeteer`). It installs
+nothing. Exit 0 clean, 1 violations, 2 usage, 3 a missing piece (stderr names it),
+4 the page did not load or axe failed. When the project's Playwright has no matching
+Chromium, `AXE_RUN_CHROMIUM=<path>` points it at a Chrome or Chromium already on the
+machine. `/ui-ux:audit` runs it as its rendered pass, and its static checklist still runs.
+
+**Standing: gate where run.** The exit codes are mechanical and
+`scripts/__tests__/axe-run.test.sh` pins them; its browser cases SKIP where no Chromium
+launches, and CI has none. **Limits:** axe tests a minority of WCAG (not keyboard flow,
+screen-reader output or meaning). It sees one 1280×800 light render at the load event,
+so hover, open menus, data fetched later and dark mode are not seen, and it skips
+iframes. A page that rewrites `window.axe` can forge the result.
+
 ## Evals
 
 `evals/` holds two cases, and they are not the same kind of thing:

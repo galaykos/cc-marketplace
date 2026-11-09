@@ -4,6 +4,12 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.33.0 — 2026-11-09
+
+- **`/ui-ux:audit` renders the page and runs axe.** New `scripts/axe-run.mjs` loads a URL or a local HTML file in Chromium and runs axe-core's WCAG 2.0–2.2 A/AA rules: one line per failing element (rule id, impact, WCAG tags, quoted selector, help URL), or `--json`. It uses the project's own Playwright or puppeteer and axe-core (or `@axe-core/playwright` / `@axe-core/puppeteer`) and installs nothing. A missing piece is named on stderr with exit 3; `AXE_RUN_CHROMIUM` can name a Chrome or Chromium already on the machine when the project's Playwright has none that matches. Selectors and page text are printed quoted, as data. The audit's new step 3 folds the lines in tagged `(axe)`, and the static checklist still runs. Standing: gate where run (`scripts/__tests__/axe-run.test.sh` pins the exit codes; its browser cases SKIP without a launchable Chromium, the real-axe cases without an installed axe-core).
+- **`/ui-ux:audit` runs craft-layer's finish linter when it is there.** Step 4 finds craft-layer's root (source checkout, then `claude plugin list --json`, then the plugin cache) and, when `template/craft-gates/finish-lint.mjs` exists, runs it and folds its findings in tagged `(finish)`; otherwise it says in one line that the lint did not run. Standing: agent-graded; no harness drives the command.
+- **shadcn facts come from the CLI before the style prefix.** `shadcn-best-practices` (base section and `references/bases.md`) and `shadcn-theming` read `config.base`, `config.style`, `project.tailwindVersion` and the CSS path from `npx --no shadcn@latest info --json` when `components.json` exists, and infer from the `style` prefix only when that run fails or is declined. `--no` stops npx from downloading silently in a non-TTY shell; when it would download, the skill says so and asks first. It names shadcn's own `shadcn` skill (`npx skills add shadcn/ui`), which fires on the same file. Standing: recorded.
+
 ## 0.32.3 — 2026-10-31
 
 - **`shadcn-theming` no longer says the only contrast checker is craft-layer's.** This plugin ships `scripts/contrast.mjs`, and `/ui-ux:theme` step 5 runs it on the accepted token set. The skill's contrast line now names it: a gate for oklch() tokens, agent-graded for hex or HSL tokens the script cannot parse (`skills/shadcn-theming/SKILL.md`).
