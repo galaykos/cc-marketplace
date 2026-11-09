@@ -13,6 +13,21 @@ description: Use when writing, reviewing or migrating Phaser game code — `phas
   its own, through the official guide above, apart from feature work.
 - Never paste a v3 snippet into a v4 project. Most tutorials, examples and answers are v3,
   and several v3 calls below still run in v4 and do nothing.
+- After writing v4 code, run the checker. It reads the `package.json` range; pass `--major 4`
+  when the range pins no single major. Exit 0 clean or not v4, 1 errors, 2 no `phaser`
+  dependency, no single major, or no `src/`:
+
+  ```bash
+  python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_phaser_v4.py" <project-dir> [--json] [--strict] [--src DIR]
+  ```
+
+  It reports `Math.PI2` (error) and `type: Phaser.CANVAS` (warning). It also reports a
+  `RenderTexture`/`DynamicTexture` created and drawn in one file that never calls `render()`
+  there (error). It skips comments and strings, and stays silent on Phaser 3.
+- Phaser ships its own agent skills: 28 folders under `skills/` in the phaser repo and in the
+  npm package (`node_modules/phaser/skills/`), among them `v3-to-v4-migration` and
+  `render-textures`. Phaser's README says to point the agent at that folder; there is no Claude
+  Code plugin or install command. Read the matching one for API detail this skill leaves out.
 
 ## Phaser 3 → 4: what memory writes
 
@@ -26,6 +41,14 @@ description: Use when writing, reviewing or migrating Phaser game code — `phas
 | `Phaser.Geom.Point` | `Phaser.Math.Vector2` — each Point method has a counterpart | removed |
 | crisp pixel art with no config | `pixelArt: true` in the game config (turns antialias off and `roundPixels` on), or `roundPixels: true` | `roundPixels` defaults to `false` in v4: sprites blur or shimmer while moving |
 | a custom `WebGLPipeline` / `PostFXPipeline` class | rewrite it as a v4 render node | does not port; never copy v3 renderer internals across |
+| `rt.draw(sprite)` on a `RenderTexture` or `DynamicTexture`, drawn at once | the draw calls only buffer commands; follow them with `rt.render()`, or give a `RenderTexture` `setRenderMode('redraw')` or `('all')` to render every frame | nothing appears until `render()` runs |
+| `Phaser.Math.PI2` | `Phaser.Math.TAU` (2π in v4) | removed: `undefined`, so every angle built on it is `NaN` |
+| compressed textures exported top-down, as in v3 | re-compress with the Y axis starting at the bottom (the compressor's "flip Y"); PNG and JPG need nothing | v4 uses GL orientation, and `setFlipY` does not touch compressed textures: their orientation is fixed |
+| `type: Phaser.CANVAS` as the safe renderer | `Phaser.AUTO` or `Phaser.WEBGL`; the new `Blend` filter recreates Canvas blend modes in WebGL | still runs, but deprecated: almost nothing new in v4 works there |
+
+The last four rows were read on 2026-11-09 from Phaser's own v4 migration guide (§7, §14, §6, §2,
+`https://github.com/phaserjs/phaser/blob/master/changelog/v4/4.0/MIGRATION-GUIDE.md`). The
+`setFlipY` and "almost nothing new" wording comes from `CHANGELOG-v4.0.0.md` beside it.
 
 ## Scene flow — the one restart nobody expects
 
@@ -62,6 +85,9 @@ Code for each, and the category helpers (`this.physics.nextCategory()`, `setColl
 | Read the major from the lockfile; never mix v3 and v4 snippets | agent-graded — a reviewer can check the lockfile was read; nothing fails the build |
 | The v3→v4 table | recorded — true at the `Last verified` stamp; `check-doc-staleness.sh --live` flags a newer `phaser` minor on npm, never what changed in it |
 | `setTintFill`, `TAU`, `roundPixels` | unenforceable here — Phaser itself does not throw, which is why they are in the table |
+| No `Math.PI2`, no `type: Phaser.CANVAS`, no drawn-but-unrendered texture in `src/` | gate where run — `check_phaser_v4.py` exits 1; running it is recorded. A texture rendered from another file is reported, and an aliased `Math` or a destructured `PI2` is missed |
+| Compressed textures re-compressed Y-up | unenforceable here — the orientation lives inside the binary texture, which nothing here reads |
+| The vendor-skills note | recorded — Phaser's README and the 4.2.1 npm file list, read on 2026-11-09 |
 | The Arcade footguns | recorded — read from Phaser 4.2.1's Arcade source; collision categories date from 3.70 by its `@since` tags |
 
 ## Anti-patterns
@@ -71,3 +97,4 @@ Code for each, and the category helpers (`this.physics.nextCategory()`, `setColl
 - **TAU rotation** — a quarter-turn written as `TAU` from v3 code, now a full turn.
 - **HUD relaunch** — `scene.launch('hud')` in a gameplay `create`, wiping the HUD every restart.
 - **One-sided mask** — a new collision category set on one side only.
+- **Unrendered texture** — `rt.draw()` with no `rt.render()`; v4 buffers the draw and shows nothing.
