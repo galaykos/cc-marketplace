@@ -2,6 +2,19 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.0 — 2026-11-09
+
+- **`inspect_glb.py` sizes KTX2 and WebP textures.** It reads the KTX2 header
+  (`KHR_texture_basisu`) and the WebP `VP8 `, `VP8L` and `VP8X` chunks (`EXT_texture_webp`), so
+  these images now count toward `--max-texture` instead of failing as unmeasured. Checked on real
+  files: Khronos sample KTX2 textures, and WebP files written by libwebp and Pillow. Standing: gate
+  for what it checks.
+- **A pointer to Khronos glTF-Validator** for the schema check `inspect_glb.py` does not do: the
+  2.0.0-dev.3.10 release binaries, `gltf_validator -o model.glb`, or the web page. Read on
+  2026-11-09. Standing: recorded.
+- **`meshy-generation` names its near misses.** Hand modelling and rigging go to `blender`, 2D art
+  to `gamedev:game-assets` or `pixel-art`. Standing: recorded.
+
 ## 0.2.1 — 2026-11-02
 
 - **Control-arm eval.** `evals/no-resubmit-unknown-create` covers a client timeout on create

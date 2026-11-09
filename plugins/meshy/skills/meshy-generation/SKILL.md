@@ -9,6 +9,10 @@ Find which client the project drives Meshy through before advising: `meshy-cli` 
 exit codes below are 0.7.x), the MCP server `@meshy-ai/meshy-mcp-server`, or raw HTTPS to
 `https://api.meshy.ai/openapi/`. The task, billing and file rules are the API's and hold for all three.
 
+Not this skill when the model is built, cleaned up or exported by hand in Blender
+(`blender:blender-best-practices`, rigs `blender:blender-rig-anim`), or the asset is 2D art
+(`gamedev:game-assets` checks it, `pixel-art:pixel-art-pipeline` makes sprite sheets).
+
 ## The rules, and who enforces each
 
 | Rule | Standing |
@@ -135,9 +139,16 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/inspect_glb.py" assets/hero.glb [more.glb
   decoding, so a Draco or meshopt file still counts.
 - Pass `--allow-ext` once for each required extension the target importer is known to support;
   every other one fails, because nothing here knows your engine's list.
-- Residuals: only PNG and JPEG are sized, so a KTX2 or WebP image fails `--max-texture` as
-  unmeasured; extents trust POSITION `min`/`max` and measure skinned meshes in bind pose; the
-  file is not validated against the glTF schema. Run the engine import for that.
+- Images are sized from their headers: PNG, JPEG, KTX2 (`KHR_texture_basisu`) and WebP
+  (`EXT_texture_webp`; VP8, VP8L or VP8X). Any other format fails `--max-texture` as unmeasured.
+  A file that requires either extension also needs `--allow-ext` for it.
+- Residuals: extents trust POSITION `min`/`max` and measure skinned meshes in bind pose; the file
+  is not validated against the glTF schema. Khronos glTF-Validator does that (**recorded**
+  pointer, checked 2026-11-09): take the `gltf_validator` binary for your OS from
+  github.com/KhronosGroup/glTF-Validator/releases (2.0.0-dev.3.10), run
+  `gltf_validator -o model.glb` for the JSON report (non-zero exit on an error), or drop the file
+  on https://github.khronos.org/glTF-Validator. The npm `gltf-validator` package is a library
+  with no CLI. Then run the engine import.
 - Meshy's own `meshy inspect faces --model <file> --max-faces N` gives the triangle count alone
   (exit 0 pass, 12 over, 13 unknown) and needs meshy-cli installed.
 

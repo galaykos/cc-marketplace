@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Measures .glb/.gltf files from their JSON: triangles per drawn mesh instance, PNG/JPEG sizes, required extensions, extents.
+"""Measures .glb/.gltf files from their JSON: triangles per drawn mesh instance, PNG/JPEG/KTX2/WebP sizes, required extensions, extents.
 Exit 1 on a broken budget, a required extension not allowed, or a missing external file; 2 if a file is not readable glTF 2.0.
 Does NOT decode or validate geometry: counts trust accessor counts, extents trust POSITION min/max, skinned meshes in bind pose."""
+# Why, limits, history: rationale/derivations/plugin-meshy.md § plugins/meshy/scripts/inspect_glb.py
 import argparse
 import base64
 import binascii
@@ -19,6 +20,7 @@ CHUNK_BIN = 0x004E4942
 MAX_JSON_BYTES = 64 * 1024 * 1024
 SNIFF_BYTES = 256 * 1024
 JPEG_SOF = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+KTX2_IDENTIFIER = b"\xabKTX 20\xbb\r\n\x1a\n"
 
 
 class Unreadable(Exception):
@@ -166,9 +168,28 @@ def drawn_meshes(doc):
         stack.extend((child, world) for child in reversed(node.get("children") or []))
 
 
+def webp_size(data):
+    """Canvas size from the first chunk: 'VP8 ' key frame, 'VP8L' header or 'VP8X' canvas (RFC 9649, RFC 6386)."""
+    chunk = data[12:16]
+    if chunk == b"VP8 " and len(data) >= 30 and data[23:26] == b"\x9d\x01\x2a":
+        width, height = struct.unpack("<HH", data[26:30])
+        return width & 0x3FFF, height & 0x3FFF
+    if chunk == b"VP8L" and len(data) >= 25 and data[20] == 0x2F:
+        bits = int.from_bytes(data[21:25], "little")
+        return (bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1
+    if chunk == b"VP8X" and len(data) >= 30:
+        return int.from_bytes(data[24:27], "little") + 1, int.from_bytes(data[27:30], "little") + 1
+    return None
+
+
 def image_size(data):
     if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR" and len(data) >= 24:
         return struct.unpack(">II", data[16:24])
+    if data[:12] == KTX2_IDENTIFIER and len(data) >= 28:
+        width, height = struct.unpack("<II", data[20:28])
+        return (width, max(height, 1)) if width else None
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return webp_size(data)
     if data[:2] != b"\xff\xd8":
         return None
     i = 2
@@ -272,7 +293,7 @@ def inspect(path, args):
     if args.max_texture is not None:
         failures += [f"image {i['index']} is {i['width']}x{i['height']} > --max-texture {args.max_texture}"
                      for i in images if i["width"] is not None and max(i["width"], i["height"]) > args.max_texture]
-        failures += [f"image {i['index']} size unknown (not PNG/JPEG or not found): not counted as within budget"
+        failures += [f"image {i['index']} size unknown (not PNG, JPEG, KTX2 or WebP, or not found): not counted as within budget"
                      for i in images if i["width"] is None]
     failures += [f"requires extension {e}; pass --allow-ext {e} if the importer supports it"
                  for e in required if e not in args.allow_ext]

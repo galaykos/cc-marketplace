@@ -84,9 +84,10 @@ The checker is stdlib-only Python 3, reads the files it is given and writes noth
 | The checker's own contract (counts, transforms, budgets, extensions, exit codes) | **gate** — `scripts/__tests__/inspect_glb.test.sh`, run by CI's plugin-harness step |
 
 The checker trusts the file's own accessor counts and POSITION bounds and does not validate it
-against the glTF schema. It sizes PNG and JPEG images only, so a KTX2 or WebP image fails
-`--max-texture` as unmeasured. Skinned meshes are measured in bind pose. It has no list of which
-extensions an engine supports: every required extension fails unless passed to `--allow-ext`.
+against the glTF schema; the skill points at Khronos glTF-Validator for that. It sizes PNG, JPEG,
+KTX2 and WebP images from their headers; any other format fails `--max-texture` as unmeasured.
+Skinned meshes are measured in bind pose. It has no list of which extensions an engine supports:
+every required extension fails unless passed to `--allow-ext`.
 Passing it says the counts are within budget, not that an engine imports the file.
 
 Measured on 2026-11-02, with a control arm: `evals/no-resubmit-unknown-create` passed 5/5 with
