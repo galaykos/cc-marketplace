@@ -148,6 +148,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_BPY_CHECK` | blender | on | Run check_bpy_scripts.py on a written .py that imports bpy, and add the removed or deprecated calls it f … |
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
+| `CC_CARD_STATUS` | task-runner | on | During a run with a card index, give the model a card_status tool that writes a card's status and refuse … |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
 | `CC_COMMENT_GUARD` | code-review | on | Refuse a write whose comments restate the code or pass the density ceiling: on or off |
 | `CC_COMPACT_STEER` | skill-router | on | When a phase sentinel, task-runner run or taskmaster ledger is on disk, tell the compaction summarizer t … |

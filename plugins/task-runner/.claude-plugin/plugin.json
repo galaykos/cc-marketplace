@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.52.0",
+  "version": "0.53.0",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence — held at Stop by candor's gate (clause 4) when candor is installed; without it a run can end by narration. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts, verification panels, scripts/dispatch-lint.sh, and the ultra-assess boost hook.",
   "author": {
     "name": "Ivan-WG",
@@ -54,6 +54,12 @@
       "title": "Pin the task board (CC_TASK_BOARD_PIN)",
       "description": "Reopen the task board after you close it while a run is active: on or off. Below 144 terminal columns the reopened board waits undrawn until the terminal is widened or you run /task-board. The environment variable CC_TASK_BOARD_PIN overrides this.",
       "default": false
+    },
+    "cc_card_status": {
+      "type": "boolean",
+      "title": "Card status tool (CC_CARD_STATUS)",
+      "description": "During a run with a card index, give the model a card_status tool that writes a card's status and refuses a parked status with no reason: on or off. The environment variable CC_CARD_STATUS overrides this.",
+      "default": true
     },
     "orchestration_boost": {
       "type": "boolean",
