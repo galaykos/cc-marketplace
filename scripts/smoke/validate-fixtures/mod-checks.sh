@@ -104,12 +104,12 @@ want  "the kit-harness copy is compared"             "mod-kit-drift kitfix/kit-h
 
 mkdir -p vocab-fixture/v || exit 2
 printf 'v:a\tmod\tany\t%s\ta checkable condition\t-\n' secret-output-redaction subagent-model-floor \
-  next-step-suggestion run-board program-status-line undeclared-control-noun > vocab-fixture/v/lane.tsv
+  run-board program-status-line undeclared-control-noun > vocab-fixture/v/lane.tsv
 out=$(pc_lanes_vocabulary vocab-fixture scripts/lane-vocabulary.txt 2>&1)
 if [ "$out" = "lane-vocab vocab-fixture/v/lane.tsv undeclared-control-noun" ]; then
-  pass "the five mod owns nouns pass the vocabulary check"
+  pass "the four mod owns nouns pass the vocabulary check"
 else
-  fail "the five mod owns nouns pass the vocabulary check" "want only the control noun, got: ${out:-<empty>}"
+  fail "the four mod owns nouns pass the vocabulary check" "want only the control noun, got: ${out:-<empty>}"
 fi
 
 if grep -qxF 'while IFS= read -r m; do err "$m"; done < <(pc_mod_modules plugins)' "$LIVE/scripts/validate.sh"; then

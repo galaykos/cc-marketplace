@@ -6,6 +6,10 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.16.0 — 2026-11-10
+
+- **The flake-hunt suggestion is removed.** `hooks/suggest.ts` offered `/testing:flake-hunt` when one test command both passed and failed with no change between. On the owner's machine it was never shown once between 2026-10-25 and 2026-11-10, and the sibling suggestions were accepted 0 times of 16 shown. The plugin ships no hooks module now; the classic hooks are unchanged, `/testing:flake-hunt` still runs when typed, and `CC_SUGGEST` no longer does anything here.
+
 ## 0.15.0 — 2026-11-08
 
 - **Mutation lens on the changed files.** New `scripts/mutation-lens.sh [--dir .] [--base <ref>] [--max-seconds N]` runs the project's own Infection, Stryker or mutmut 3 on the files changed vs the base (default: the merge-base with the default branch) and prints each surviving mutant as `path:line — mutator — what survived`, plus the score. Untested lines count as survivors, labelled. It never installs a tool: with none configured it exits 3 and names the config that would enable one. Exit 0 none survived, 1 survivors, 2 usage, 4 the tool failed or ran past the cap. `testing-best-practices` now says how to run it and what to do with a survivor, in place of the line that only named the tools. Standing: gate where run; `scripts/__tests__/mutation-lens.test.sh`, 57 checks with fake tools; each tool's output shape was checked against a real run (Infection 0.35.9, Stryker 10.1.1, mutmut 3.8.1). mutmut 2 is detected and not run.

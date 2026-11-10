@@ -131,6 +131,11 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    and copy its `missing:`/`partial:`/`uncovered:` lines into the final report under
    `Not delivered:` (exit 1 means a spec criterion has no done card; the run may still close).
    Standing: gate where run.
+   Then `bash "${CLAUDE_PLUGIN_ROOT}/scripts/park-check.sh" --index <index>`. Each
+   `unclassified:` card was parked on no stated reason: make its smallest step and run its
+   verify now, then park it with what that showed, or close it. Each `split-orphan:` is an
+   index error to fix. Re-run until it exits 0; the report groups parked cards by reason
+   (task-execution § Hard cards). Standing: gate where run.
    Then finish with BOTH completion gates, never one alone:
    - the full project check suite (catches lint/type/build regressions), run after the run's
      last commit through

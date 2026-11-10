@@ -51,3 +51,8 @@ worker's own default procedure wherever they differ.
    proved necessary stays; and this clause never argues a check DOWN. Clause 2's exact
    Verify command still runs, a card's Verify must still name a real test or asserted
    outcome, and a control that fails to discriminate is a gap to close, not fat to trim.
+10. A size verdict is not a result: "too large" or "infeasible" never ends a card. Make
+    its smallest step and run Verify first. Still too big for one sitting → commit what
+    you verified and return a **split**: child tasks, each with disjoint files, its change,
+    its verify command and what the parent may assume once it is done. Never a half-done
+    diff as done.

@@ -10,7 +10,7 @@
 # the requested scope; installed/disabled/absent each take their own branch;
 # projectPath must match this project (an entry for another project is NOT
 # installed here); one failing plugin never stops the walk and still exits 1;
-# `install` (dry-run too) never installs or enables prompt-coach and its skip row says
+# `install` (dry-run too) never installs or enables a game plugin and its skip row says
 # why, while `uninstall` still removes one installed by name;
 # `uninstall` keeps all-plugins unless --self, and with --self removes it LAST;
 # --dry-run and list mutate nothing; every usage and prerequisite error exits 2
@@ -189,31 +189,28 @@ out_has "FAIL row names the plugin and the stderr line" "FAIL (Error: beta refus
 out_has "summary counts the failure" "installed 2, enabled 0, skipped 0, failed 1 of 3 leaves at scope local"
 err_has "failures are repeated on stderr at the end" "beta: Error: beta refused by shim"
 
-# ---- 6b. opt-in: prompt-coach is never installed or enabled, and the row says why ---------
+# ---- 6b. opt-in: a game plugin is never installed or enabled, and the row says why --------
 MKO="$WS/mk-optin"; MARKETS_OPTIN="$WS/marketplaces-optin.json"
 mkdir -p "$MKO/.claude-plugin"
 jq -n '{name:"cc-plugins-marketplace",plugins:[
-  {name:"prompt-coach",source:"./plugins/prompt-coach"},
   {name:"godot",source:"./plugins/godot"},
   {name:"alpha",source:"./plugins/alpha"}]}' > "$MKO/.claude-plugin/marketplace.json"
 jq -n --arg loc "$MKO" '[{name:"cc-plugins-marketplace",source:"github",repo:"galaykos/cc-marketplace",installLocation:$loc}]' > "$MARKETS_OPTIN"
 installed
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- install --no-budget
-calls_are "install skips prompt-coach by construction" "plugin install alpha@$MK_NAME -s local"
-out_has "the prompt-coach row names why it is opt-in" "prompt-coach  skip (opt-in: bills a model call per prompt)"
-out_has "a game plugin row names why it is opt-in" "godot         skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)"
-out_has "the summary counts both opt-in skips" "installed 1, enabled 0, skipped 2, failed 0 of 3 leaves at scope local"
-installed "$(entry prompt-coach local false "$PROJ")"
+calls_are "install skips a game plugin by construction" "plugin install alpha@$MK_NAME -s local"
+out_has "a game plugin row names why it is opt-in" "godot  skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)"
+out_has "the summary counts the opt-in skip" "installed 1, enabled 0, skipped 1, failed 0 of 2 leaves at scope local"
+installed "$(entry godot local false "$PROJ")"
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- install --no-budget
-calls_are "a disabled prompt-coach is not re-enabled" "plugin install alpha@$MK_NAME -s local"
+calls_are "a disabled game plugin is not re-enabled" "plugin install alpha@$MK_NAME -s local"
 installed
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- install --dry-run --no-budget
-out_not "dry-run prints no install line for prompt-coach" "DRY  claude plugin install prompt-coach"
 out_not "dry-run prints no install line for a game plugin" "DRY  claude plugin install godot"
-out_has "dry-run summary counts the opt-in skips" "dry-run: would install 1, enable 0, skip 2 of 3 leaves at scope local"
-installed "$(entry prompt-coach local true "$PROJ")"
+out_has "dry-run summary counts the opt-in skip" "dry-run: would install 1, enable 0, skip 1 of 2 leaves at scope local"
+installed "$(entry godot local true "$PROJ")"
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- uninstall --no-budget
-calls_are "uninstall still removes a prompt-coach installed by name" "plugin uninstall prompt-coach@$MK_NAME -s local"
+calls_are "uninstall still removes a game plugin installed by name" "plugin uninstall godot@$MK_NAME -s local"
 
 # ---- 7. uninstall: all-plugins kept unless --self, and last with it ----------------------
 installed "$(entry alpha local true "$PROJ")" "$(entry beta local false "$PROJ")" "$(entry all-plugins local true "$PROJ")"

@@ -277,6 +277,37 @@ closing report is still checked against the run's records; candor's gate removes
 once they hold. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
 reminder everywhere.
 
+## A card is parked on evidence, never on an estimate
+
+Since 0.52.0. A worker that calls a card "too large" or "infeasible" has made a forecast, and
+a forecast no longer parks anything. The rules come from Anthropic's report of a 1,000-agent
+run on an early Claude Fable 5.2 (2026-11-09), where helpers judged 47 of 60 pieces infeasible
+within budget and the team then finished most of them.
+
+- **A parked status names its reason.** One of `evidence` (the failing output of a real
+  attempt), `misspec`, `needs-user`, `split` or `guard`, written
+  `parked (evidence: 3 cycles, TypeError at parse.py:41)`. A card with none of them gets its
+  smallest step and one verify run before it may be parked.
+- **Too big means split.** A worker that started a card and cannot fit it returns child tasks,
+  each with its files, verify command and the one thing the parent may assume. The
+  orchestrator appends them as cards, parks the parent as `parked (split: 14 15)`, and re-runs
+  it against its unchanged verify command when the children are done.
+- **A worker's forecast is sent back once.** A return that parks on a forecast is
+  re-dispatched with "attempt the first step"; a second one brings the card back inline.
+  A split may split once more; a third level parks the subtree as `needs-user`.
+- **`scripts/park-check.sh --index <00-INDEX.md>`** runs at close and prints every parked card
+  with no reason, and every split naming a child card that does not exist. Exit 0 clean, 1
+  findings, 3 no card table.
+
+Standing: the status shape is a **gate where run** (`scripts/__tests__/park-check.test.sh`, 15
+cases; `/task-runner:run` step 4 calls it and nothing forces the call). Whether a written
+reason is true is **recorded**: a worker can write `evidence` over a forecast. The source run
+proved theorems with a machine checker; no code run has measured these rules, and there is
+no eval for them. Text: task-execution § Hard cards, and clause 10 of the discipline preamble
+pasted into every dispatch. `guard` is the reason for a call a hook or permission refused
+with no fix named; the report's rule that a refusal is never routed around was left out,
+because `hooks/scope.sh` already refuses the out-of-scope write itself.
+
 ## Receipts
 
 `/task-runner:run` runs the closing suite, after the run's last commit, through
@@ -308,7 +339,7 @@ behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.s
 
 Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
 in `hooks/hooks.json` beside the classic hooks, which fire with or without it. It carries
-four features under three off switches.
+three features under two off switches.
 
 - **Subagent model floors** (`hooks/floors.ts`). A new spawn of an agent in
   `role-floors.md`'s registry runs at no less than its floor, and one naming no model (or
@@ -327,14 +358,6 @@ four features under three off switches.
   agent from a plugin your organization installed by policy skips this module,
   `allowManagedModsOnly` or not (per sec-default's docs, not measured). Off:
   `CC_SPAWN_FLOOR=off` or the `/config` option `cc_spawn_floor`; the variable wins.
-- **Run suggestion** (`hooks/suggest.ts`). After the main loop's `Write` tool writes
-  `taskmaster-docs/tasks/<slug>/00-INDEX.md` at the repository root while no run is
-  registered on this branch, the idle prompt box offers `/task-runner:run <that index>` at
-  the first turn end with no live phase sentinel; Tab accepts it and nothing runs until you
-  send it. Not offered for an index whose every card is closed or that `gate-pass.json`
-  names, nor again for an index already shown this session. Off: `CC_SUGGEST=off`,
-  environment only with no `/config` option, which also silences the next-step suggestions
-  of code-review, git-workflow, debugging and testing.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
   `task-runner  <phase> <k>/8  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>  check running <m>m`.
@@ -414,27 +437,21 @@ four features under three off switches.
   not measured). On 2.1.287 with mods on the module still registers its hooks (the version
   check runs inside them), and the board's `tool.call` hook matches every tool, not only
   `Write`. So that CLI's own bug — a plugin's `tool.call` hook breaking Bash and file search
-  in worktree subagents, fixed in 2.1.288 — applies even with all three switches off:
+  in worktree subagents, fixed in 2.1.288 — applies even with both switches off:
   upgrade the CLI or turn mods off.
 
 - **Counts** (since 0.49.0). One is added, in this plugin's own `$.store` (key `outcomes`),
-  to `floors.raised.<agent>` each time a spawn's tier is raised, and to `suggest.run.shown`,
-  then `.accepted` or `.passed`, each time the run suggestion is shown and your next prompt
-  sent `/task-runner:run` or something else: counts only, never text, on this machine only.
+  to `floors.raised.<agent>` each time a spawn's tier is raised: counts only, never text, on
+  this machine only.
   The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
   counting (`tests/floors.test.ts`, the shared kit's tests); what a count means is **recorded**.
 
 Residuals, stated:
 
-- **One shared suggestion slot.** The prompt box holds one suggestion, so when several
-  plugins offer one at the same turn end the last caller wins, and a suggestion shown and
-  then replaced counts as shown. Claude Code's own suggestion is not suppressed.
-- **`Write` only.** An index written through `Edit`, `MultiEdit` or a Bash command (a
-  redirect, a heredoc) gets no run suggestion.
 - **Terminal only.** The pane was verified live in a terminal on CLI 2.1.292, driven
   through pexpect. No other surface (desktop, web) has been verified.
 - **Fail-open.** A hook that errors passes the call through as if the module were absent:
-  a spawn runs unfloored, no suggestion is made, the line and the pane skip that refresh.
+  a spawn runs unfloored, the line and the pane skip that refresh.
 - **Ambiguous width.** `…` (a cut title) and `—` (a milestone header, the plain-run note)
   are ambiguous-width characters; a terminal that draws them double-width, as CJK-wide
   setups do, misaligns that row.
@@ -446,14 +463,13 @@ Residuals, stated:
   idle, a main-loop call waits for one `git` call at most every 2 s. `CC_TASK_BOARD=off`
   removes all of it. The idle gap is gated (above); the per-run count is not.
 
-Standing: **gate** — `tests/floors.test.ts`, `tests/suggest.test.ts` and
-`tests/board.test.ts` run under `claude plugin test` in CI (the marketplace repository's
+Standing: **gate** — `tests/floors.test.ts` and `tests/board.test.ts` run under `claude plugin test` in CI (the marketplace repository's
 `scripts/mod-tests.sh`), so a regression in a tested case fails the build, and the host's
 validator fails a `$.state` key that `types/index.d.ts` does not declare. A 2.1.291 test
 cannot read `$.state`, so the board state's `runActive` and `phase` are asserted only
 through the pane's rendered text. Untested here: the drawn screen (the test kit records
-text, so the `r:` and `t:` labels were seen only in the live run), whether the host's
-prompt box shows a suggestion, and the board's and the suggestion's error paths. The
+text, so the `r:` and `t:` labels were seen only in the live run) and the board's error
+paths. The
 live-view exemption in task-execution's "No status theater", which lets a board exist, is
 **recorded**: nothing checks that a view keeps no status of its own.
 

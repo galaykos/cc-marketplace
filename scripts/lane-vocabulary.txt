@@ -176,7 +176,6 @@ installed-version-pins
 invisible-character-report
 irreversible-command-or-repeated-attempt
 mockup-preview-consent
-next-step-suggestion
 non-destructive-command-equivalents
 open-program-announcement
 post-compaction-decision-recall
@@ -185,7 +184,6 @@ program-board
 program-level-delivery-ownership
 program-resume
 program-status-line
-prompt-coaching
 read-ledger-for-evidence
 registered-run-announcement
 reply-shape-contract

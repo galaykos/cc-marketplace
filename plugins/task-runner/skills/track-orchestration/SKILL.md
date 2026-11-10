@@ -71,10 +71,8 @@ per-track lifecycle is:
 - `queued` — eligible, waiting for a free slot or an unmet dependency to merge.
 - `running(worktree)` — dispatched to a track-worker in its worktree this wave.
 - `merged` — its branch merged clean into the run branch (with the commit sha).
-- `parked(reason)` — a merge conflict, an undeclared-overlap, or a timeout; retained
+- `parked (evidence: <which>)` — a merge conflict, an undeclared-overlap, or a timeout; retained
   for inspection and listed in the backlog.
-
-No separate dashboard or run board — the 00-INDEX view is the only one ("no status theater").
 
 ## Merge, park, and partial failure
 

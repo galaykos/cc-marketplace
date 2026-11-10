@@ -79,15 +79,11 @@ rule and the typed-token rule; this section does not restate them.
   (brain, toolchain-experts and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
-  absent and whose `--stack` token was not typed); `stack-scan`, `all-plugins` and
-  `prompt-coach` by construction (an installer of
+  absent and whose `--stack` token was not typed); `stack-scan` and `all-plugins`
+  by construction (an installer of
   everything inside a curated plan defeats the plan — name it instead, once, as
-  the door for a user who wants everything but prompt-coach; `prompt-coach` for the
-  reason `references/stack-relevance.md` gives, with or without `--yes`);
-  already-installed leaves.
-  **Standing: agent-graded** — `--full` is prose the model follows, and no script
-  stops it installing `prompt-coach`; the gated twin is `all-plugins.sh`, whose
-  harness proves the script behind `/all-plugins:install` skips it.
+  the door for a user who wants everything); already-installed leaves.
+  **Standing: agent-graded** — `--full` is prose the model follows.
 - What prints, in this order: the report header line (eligible count, installed
   count, detected stack with evidence); any fired `references/signals.md` `—`
   routing line; the **plan block** below; then the `Beyond this marketplace` block
@@ -101,12 +97,8 @@ rule and the typed-token rule; this section does not restate them.
   - `Excluded:` one line per excluded leaf — the class's evidence negated plus the
     token that would include it, e.g. `laravel — PHP / Laravel evidence absent (no
     laravel/framework, no @inertiajs/*); --stack laravel includes`.
-  - One count line for `stack-scan`, `all-plugins` and `prompt-coach` (by
-    construction), naming `prompt-coach` with its reason and the by-name command at
-    the run's scope — `opt-in: bills a model call per prompt; install it by name:
-    claude plugin install prompt-coach@cc-plugins-marketplace --scope <S>` — and
-    ending with the everything-door:
-    `want everything but prompt-coach, no plan: /all-plugins:install`.
+  - One count line for `stack-scan` and `all-plugins` (by construction), ending
+    with the everything-door: `want everything, no plan: /all-plugins:install`.
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
     (ui-ux / craft-layer, taskmaster / task-runner,

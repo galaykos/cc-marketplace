@@ -36,8 +36,7 @@ needs must travel inside the prompt itself:
 
 The test: paste the prompt into a fresh session with zero history. If
 it cannot be executed as-is, the contract is broken — fix the prompt,
-not the agent. A prompt that needs the conversation to make sense is a
-broken contract.
+not the agent.
 
 ## Compressed returns
 
@@ -156,12 +155,8 @@ the orchestrator Reads it and pastes it **verbatim** into every dispatch, and it
 
 ## Anti-patterns
 
-- **Context-dependent prompts.** "Fix the thing we discussed" to an agent that was not in it — garbage back.
-- **Prose-essay returns.** Paragraphs where five `file:line` lines would do; you pay per token.
-- **Evidence-free "done".** A completion claim with no command output is a stopped agent, not a finished task.
-- **Blind fan-out.** N workers on a work-list nobody verified — collisions and gaps, found at merge.
-- **Two writers, one file.** The last write wins silently; the first writer's work vanishes without an error.
-- **Uniform model for every stage.** Judge-tier for a rename sweep, or scout-tier on the final review.
-- **Re-doing delegated work yourself.** Dispatching a search then running it inline — pay once, not twice.
+Each breaks a rule above: a context-dependent prompt; a prose-essay return; an evidence-free "done"; blind
+fan-out; two writers on one file; one model for every stage. And **re-doing delegated work yourself**:
+dispatching a search, then running it inline.
 
 Fleet gaps, delegation retrofit, the apply-fixes contract: `references/fleet-and-apply.md`.

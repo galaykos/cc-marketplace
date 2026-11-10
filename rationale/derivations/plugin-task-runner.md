@@ -1224,6 +1224,34 @@ Residual: presence-of-phrase, not quality-of-contract — a scope lock that
 locks the wrong scope passes. The delegation-contracts skill's reader judges that part.
 ```
 
+## plugins/task-runner/scripts/park-check.sh
+
+Added 2026-11-10 with task-execution § Hard cards and preamble clause 10, from
+Anthropic's "Safely scaling multi-agent teams with Claude Fable 5.2" (2026-11-09,
+https://claude.dev/blog/safely-scaling-multi-agent-teams-with-fable-5-2/): 1,000 agents, an early Fable 5.2, a
+shared Postgres database and Git, 28.7 hours. What was taken, and the line of the report behind each:
+
+- Park on evidence, not an estimate: helpers judged 47 of 60 statements infeasible within budget, most were then
+  proved; "Agents tend to give up on hard problems and misjudge their difficulty."
+- Split a card that is too big: any helper could split a piece and "each piece could assume the pieces beneath
+  it"; the hardest statement became a tree of 2,418 tasks, up to 10 levels deep.
+
+What was not taken, and why. "A refused call is never routed around" (a classifier block stopped the team for a
+person's review; a block on a helper removed that helper, a block on the lead ended the run): drafted as preamble
+clause 11, then cut. task-runner's skill text sat 15 bytes under `pc_plugin_corpus`'s 160,000-byte cap, and
+`hooks/scope.sh` already refuses the out-of-scope write itself, so this was the rule with the least to add; `guard`
+stays as a park reason. The other two rules were paid for by folding `delegation-contracts` § Anti-patterns and
+`parallel-planning` § Failure modes into one paragraph each. A shared claim table that any worker writes: the report's own limit was about 100
+agents on one machine, this plugin caps a level at 6 and keeps one index writer, so a second writer buys a race
+and no throughput. Per-agent VMs, the network cut and the offline monitor: a harness's job, not a plugin's.
+Timed "keep going" reminders to the lead: candor's completion clause already refuses a registered run that stops
+without its gate pass.
+
+The script gates the one part a script can read, the shape of the status cell. It cannot tell `evidence` written
+over a forecast from a real one. Run on the three card sets under `taskmaster-docs/tasks/` on 2026-11-10: all
+exit 0 (no parked card in any). Nothing here is measured on a code run: the source proved theorems against a
+machine checker, and no eval with a control arm exists for these rules.
+
 ## plugins/task-runner/scripts/reduction-record.sh
 
 ### Header: THE POINT, the three traces, standing

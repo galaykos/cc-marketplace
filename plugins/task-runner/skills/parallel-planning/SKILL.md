@@ -119,16 +119,8 @@ The plan is priced once, then reality edits it:
 
 ## Failure modes this prevents
 
-- Fleet reflex: spawning agents for a serial chain — dependency levels of
-  width 1 gain zero from delegation, pay full overhead.
-- Merge-conflict parallelism: two agents editing one file; the file-set
-  disjointness gate exists for this.
-- Micro-delegation: S tasks shipped to agents that spend longer booting
-  than working.
-- Context-starved agents: delegating tasks that only make sense with the
-  conversation — the fresh-session gate catches these before they fail.
-- Trust-the-claim: skipping runner re-verification to make the speedup
-  number look better; re-verify cost is part of the honest estimate.
+Each is caught by a rule above: fleet reflex (agents for a width-1 chain), merge-conflict parallelism,
+micro-delegation, context-starved agents, trust-the-claim.
 
 ## Milestone tracks (--tracks)
 

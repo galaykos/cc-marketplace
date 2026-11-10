@@ -85,8 +85,7 @@ padding.
 
 **Everything for a stack.** `--full` installs every marketplace leaf that is any-stack
 or matches the detected stack and skips what is bound to a stack the repo does not
-have. It also skips prompt-coach, which installs only by name because it bills a model
-call per prompt. The stack→plugin table is
+have. The stack→plugin table is
 `skills/plugin-scout/references/stack-relevance.md`. Nothing installs until you
 confirm: the flag prints a plan first — the install list, what is already installed,
 every exclusion with its reason and the `--stack` token that would include it, the
@@ -244,7 +243,7 @@ Residuals, stated:
 - **devops** — `/devops:init` reuses the report instead of re-scanning
 - **approaches** (build-vs-buy skill) — decides whether a dependency should be added at all
 - **security** — broader security review beyond the dependency audit surface
-- **all-plugins** — the other install path: every plugin but opt-in prompt-coach and the game plugins, no
+- **all-plugins** — the other install path: every plugin but the opt-in game plugins, no
   picker, no stack filter.
   The suites that sat between the two were retired 2026-09-26; where two plugins must
   travel together (`craft-layer` with `ui-ux` and `ui-libraries`), the scout prints the

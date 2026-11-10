@@ -316,7 +316,7 @@ export function registerBoard(on: On, options: PluginOptions) {
     return r
   }).catch(($, e, next) => next(e))
 
-  // Matched on every turn id: the kit's run suggestion already holds this module's one unmatched turn.complete hook.
+  // Matched on every turn id.
   on('turn.complete', { turnId: /^/ }, async ($, e, next) => {
     const r = await next(e)
 
