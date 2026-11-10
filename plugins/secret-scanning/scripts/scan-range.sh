@@ -1,14 +1,14 @@
 #!/bin/bash
-# scan-range.sh <base>..<head> | --cached | <path>… — applies hooks/patterns.tsv (scan.sh's matching, through hooks/patterns.sh) to the lines a range or the index ADDED, or to whole files (a directory: its git-tracked files); prints `<file>:<line> <label> (<first 4>****, <n> chars)` per match, never a value. Exit 0 none, 1 a match, 2 nothing scanned.
-# Misses: a secret split across lines, a shape patterns.tsv does not list, a real value holding a placeholder word, binary files, a line a range removed (still in history), history outside the range, untracked files under a directory in git.
+# scan-range.sh <base>..<head> | --cached | --tracked | --outgoing [<rev>…] | <path>… — applies hooks/patterns.tsv (scan.sh's matching, through hooks/patterns.sh) to the lines a range, the index, the tracked tree against HEAD (what `commit -a` records) or each commit a push sends ADDED, or to whole files (a directory: its git-tracked files); prints `<file>:<line> <label> (<first 4>****, <n> chars)` per match, never a value; --outgoing names `<commit>:<file>:<line>`. Exit 0 none, 1 a match, 2 nothing scanned.
+# --outgoing: non-merge commits reachable from each <rev> (none: HEAD, not from @{upstream}) and from no remote-tracking ref. Misses: a secret split across lines, a shape patterns.tsv does not list, a real value holding a placeholder word, binary files, a line a range removed (still in history), history outside the range, untracked files under a directory in git, a merge commit's own changes.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/scan-range.sh
 
-# Output: a name holding a tab, newline, `"` or `\` prints in git's escapes, unquoted, in every mode (path mode prints other control characters raw); the count goes to stderr. Exit 2: no argument, a missing path, a range or index git cannot diff, an unusable patterns.tsv, no hooks/patterns.sh.
+# Output: a name holding a tab, newline, `"` or `\` prints in git's escapes, unquoted, in every mode (path mode prints other control characters raw); the count goes to stderr. Exit 2: no argument, a missing path, a range, index, tree or log git cannot read, a `-`-led <rev>, an unusable patterns.tsv, no hooks/patterns.sh.
 set -u
 export LC_ALL=C
 pat_file="$(cd "$(dirname "$0")/.." && pwd)/hooks/patterns.tsv"
 die() { printf 'scan-range: %s\n' "$1" >&2; exit 2; }
-[ $# -gt 0 ] || die "usage: scan-range.sh <base>..<head> | --cached | <path>..."
+[ $# -gt 0 ] || die "usage: scan-range.sh <base>..<head> | --cached | --tracked | --outgoing [<rev>...] | <path>..."
 
 tab=$'\t'
 . "$(dirname "$0")/../hooks/patterns.sh" 2>/dev/null || die "$(dirname "$0")/../hooks/patterns.sh is missing"
@@ -18,17 +18,39 @@ W=$(mktemp -d) || die "cannot make a temp dir"
 trap 'rm -rf "$W"' EXIT
 : > "$W/text"; : > "$W/loc"
 # text holds one scanned line per row and loc its `<file>TAB<line>`, so a match's row number names its place.
-if [ $# -eq 1 ] && { [ "$1" = --cached ] || { [[ $1 == *..* ]] && [ ! -e "$1" ]; }; }; then
-  git -c core.quotePath=false diff --no-color --no-ext-diff --no-textconv --src-prefix=a/ --dst-prefix=b/ -U0 "$1" -- > "$W/diff" 2>/dev/null \
-    || die "git cannot diff '$1' here"
+mode=path
+case "$1" in
+  --cached | --tracked) [ $# -eq 1 ] || die "$1 takes no other argument"; mode=$1 ;;
+  --outgoing) mode=$1 ;;
+  *) [ $# -eq 1 ] && [[ $1 == *..* ]] && [ ! -e "$1" ] && mode=range ;;
+esac
+if [ "$mode" != path ]; then
+  what=$1; shift
+  case "$mode" in
+    --cached) set -- diff --cached ;;
+    # An unborn HEAD diffs against the empty tree, as the commit would.
+    --tracked) b=$(git rev-parse -q --verify HEAD 2>/dev/null) || b=$(git hash-object -t tree /dev/null 2>/dev/null) || die "git cannot read HEAD here"
+      set -- diff "$b" ;;
+    --outgoing)
+      for r in "$@"; do case "$r" in '' | -*) die "a revision may not be empty or start with -: '$r'" ;; esac; done
+      if [ $# -eq 0 ]; then
+        set -- HEAD; u=$(git rev-parse -q --verify '@{upstream}' 2>/dev/null) && set -- HEAD "^$u"
+      fi
+      set -- log -p --no-merges --format='commit %h' "$@" --not --remotes ;;
+    range) set -- diff "$what" ;;
+  esac
+  git -c core.quotePath=false "$@" --no-color --no-ext-diff --no-textconv --src-prefix=a/ --dst-prefix=b/ -U0 -- > "$W/diff" 2>/dev/null \
+    || die "git cannot read '$what' here"
   # A ---/+++ pair is a header only between `diff --git` and the first hunk: an added line reading `++ x` shows as `+++ x`.
-  awk -v text="$W/text" -v loc="$W/loc" '
+  per=0; [ "$mode" = --outgoing ] && per=1
+  awk -v text="$W/text" -v loc="$W/loc" -v per="$per" '
+    per && /^commit [0-9a-f]+$/ { c = $2 ":"; hdr = 0; f = ""; next }
     /^diff --git / { hdr = 1; f = ""; next }
     # git pads a name holding a space with a tab and C-quotes one holding a control character, `"` or `\`: the escapes stay, the quotes go.
     hdr && /^\+\+\+ / { f = substr($0, 5); sub(/\t$/, "", f); if (f ~ /^".*"$/) f = substr(f, 2, length(f) - 2)
       if (f == "/dev/null") f = ""; else sub(/^b\//, "", f); next }
     /^@@ / { hdr = 0; match($0, /\+[0-9]+/); ln = substr($0, RSTART + 1, RLENGTH - 1) + 0; next }
-    f != "" && /^\+/ { print substr($0, 2) >> text; print f "\t" ln >> loc; ln++ }
+    f != "" && /^\+/ { print substr($0, 2) >> text; print c f "\t" ln >> loc; ln++ }
   ' "$W/diff"
 else
   : > "$W/files"

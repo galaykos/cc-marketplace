@@ -666,3 +666,46 @@ Misses: a secret split across lines (each line is matched alone), a shape patter
   word, binary files, a line a range removed (the secret is still in history), history outside the range, untracked files under a
   directory in git; in path mode a name's other control characters print raw.
 ```
+
+### --tracked and --outgoing (0.17.0, 2026-11-10)
+
+Added for `hooks/commit-scan.sh`. `--tracked` is what `git commit -a` records: `git diff <HEAD>` over the index's paths, so untracked files stay out; an unborn HEAD diffs against the empty tree (`git hash-object -t tree /dev/null`, so a SHA-256 repository gets its own). `--outgoing` reads `git log -p --no-merges`, one patch per commit, not one tree diff over the range: a secret one outgoing commit added and a later one deleted is absent from the tree diff but still sent. Merges are skipped because `log -p` prints no patch for them by default and `--first-parent` style diffs would re-read what the merged branch already pushed. With no revision it takes HEAD and excludes `@{upstream}`; every form excludes `--remotes`, so a commit another remote-tracking branch already holds is not reported (the roadmap row asked for `@{upstream}..HEAD`; that range alone re-reads commits a merge from `origin/main` brought in, which are already public). A `-`-led revision exits 2 because the revisions reach `git log` as arguments and `--output=<file>` would write a file. Measured: 1,040 commits of this repository's history, 362,013 added lines, 0.99 s.
+
+## plugins/secret-scanning/hooks/commit-scan.sh
+
+### Why it exists
+
+Roadmap Track 7, row S2 (`taskmaster-docs/integration-roadmap-2026-11-07.md`, from the 2026-10-31 cluster's rank 5): no hook ran `scan-range.sh --cached`. The write guard (`scan.sh`) reads Write/Edit text and Bash heredoc or echo writes; the PostToolUse lane only warns after an interpreter or `cp` write. A secret that reached the index any other way went into a commit and out with a push unread. A Stop-time model review of the diff (G2) was rejected in the same roadmap; this is the commit layer it pointed to.
+
+### Decisions
+
+- **Deny, not ask.** The safety brief prefers an ask unless the action is irreversible. A push is irreversible once it lands. A commit is not, but the dispatch for S2 said deny on a hit, and a committed secret is one push from public. The reason names the off switch, and under `claude -p` an ask would have been a deny anyway.
+- **Its own switch.** `CC_SECRET_COMMIT_SCAN` / `cc_secret_commit_scan`, not `CC_SECRET_SCAN`: the plugin gives each layer its own (`cc_secret_scan`, `cc_secret_redact`, `cc_secret_prompt`, `cc_unicode_scan`), and the write guard's off switch exists for a fixture write, which should not also open the commit.
+- **No value in the reason.** `scan-range.sh` prints the first four characters of each value; the hook drops that part, because the reason lands in the transcript and four characters of an assigned password are most of a short one. `file:line` and the label are enough to find it.
+- **Reading through `git add`.** The model's usual commit is `git add <files> && git commit -m …` in one Bash call. PreToolUse fires before the add runs, so `--cached` alone saw none of those files. An earlier `git add`/`git stage` for the same repository switches the commit to `--tracked` and adds the untracked files `git ls-files -o` lists for that add's pathspecs (whole repository for `-A` with none; none for `-u`, `-n`, `-p`, `-i`, `-e`, a pathspec file or a `$` word), read whole in path mode. `git add --dry-run` would list them exactly, but it runs the model's arguments as options; `ls-files` takes them only after `--`, as pathspecs.
+- **A tokenizer of its own.** No shared block splits a command (`templates/blocks/` has none). git-workflow's `no-ai-trailer.sh` `segments()` lowercases each segment and blanks quoted text, so a `-C "My Dir"` path is lost. command-guard's `split_segments` keeps heredoc body lines as segments and cuts on `{`/`}` inside `${HOME}`. debugging's `probe-guard.sh` regex (copied from no-ai-trailer) finds a commit but never resolves `cd dir &&` or `git -C dir`, which this row requires. So the awk walk here keeps case, drops quotes, heredoc bodies (top level and inside `$( )`, the `-m "$(cat <<'EOF' … EOF)"` shape Claude Code's commit instructions use), comments and redirection targets, marks a word holding `$` or a backtick as unknown, and follows `cd`/`pushd` to the end of the command.
+- **Caps.** A first push of a long history reads every commit. On this repository 1,040 commits took 0.99 s; `MAX_PUSH_COMMITS=1000` keeps the worst case near one second under the 10 s timeout, and past it the push is not scanned. `MAX_ADDED_FILES=1000` bounds `git add -A` in a tree with an unignored dependency directory. Both pass silently, stated in the header and README. What the host does with a hook it kills at the timeout was not measured here.
+- **Timeout 10 s**, the value `authoring-hooks` gives git work and the one the plugin's other hooks use.
+- **`core.fsmonitor` off for every git call** (`GIT_CONFIG_COUNT` in the environment, so `scan-range.sh`'s worktree diff inherits it). The hook runs before the permission prompt, in whatever directory the command names. A repository's `core.fsmonitor` command ran on a plain `git diff HEAD` there and did not run under the hook (probed 2026-11-10; the harness pins it, and the case fails without the override). debugging's `probe-guard.sh` passes `-c core.fsmonitor=false` for the same reason. Clean filters a worktree diff may run are not turned off: `git commit -a` runs them itself.
+
+### Measurements, 2026-11-10
+
+Interleaved runs on this machine (bash 5.3, git 2.53, mawk 1.3.4), median (max):
+
+| case | runs | ms |
+|---|---|---|
+| an empty `bash -c 'cat >/dev/null'`, for scale | 25 | 3.0 (3.4) |
+| a Bash call naming neither `commit` nor `push` (`ls -la && npm test`) | 25 | 2.3 (2.6) |
+| `git log --grep commit --oneline` (parsed, no action) | 25 | 5.0 (5.7) |
+| `git commit`, 1 staged file of 40 lines | 25 | 45.0 (47.0) |
+| `git commit`, 200 staged files, 8,000 lines | 25 | 53.0 (59.0) |
+| `git add -A && git commit`, 200 files already staged | 25 | 57.7 (61.0) |
+| `git add -A && git commit`, 200 untracked files, 8,000 lines | 15 | 88.1 (89.8) |
+| `git push`, 20 outgoing commits | 15 | 53.2 (55.1) |
+| `git push -u origin HEAD`, 1,040 outgoing commits, cap raised | 3 | ~1,000 |
+
+Before 0.17.0 no hook ran on these calls, so each figure is the added cost. The hot path stays under an empty bash process because the hook reads stdin with `read`, not `cat`, and exits on a `case` before `jq`.
+
+### Harness
+
+`scripts/__tests__/commit-scan.test.sh`, 41 cases against real PreToolUse payloads in a scratch repository with a bare remote. Against a stub hook that prints nothing, 18 fail: every deny and every reason assertion. Required pairs: a staged secret denies, a clean commit is silent; `-a` with an unstaged tracked secret denies, a plain commit beside it is silent; a secret an earlier outgoing commit added (a later one deleted it) denies `git push`, the same after `git push` is silent; a placeholder value is silent. Silent neighbours named by the row: `git log`, `git commit --dry-run`, `echo "git commit"`, `git push --dry-run`.
