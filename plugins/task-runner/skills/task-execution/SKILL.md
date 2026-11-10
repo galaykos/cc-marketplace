@@ -116,8 +116,7 @@ or parked, the run ENDS with a report, no self-restart.
 
 - Execute in index order, respecting `<depends-on>`; parallel groups (and disjoint
   same-worker S-card batches) may be delegated ONLY if file sets are disjoint — else serial.
-- Status lives in one place (the task index / todo list, e.g. taskmaster's
-  `00-INDEX.md`): pending → in_progress (exactly one) → done | parked (reason: detail). Task definitions stay immutable during the run.
+- Status lives in one place (the index `00-INDEX.md`; set it with `card_status` when listed): pending → in_progress (exactly one) → done | parked (reason: detail). Task definitions stay immutable during the run.
   The cell starts with that word (`done (<sha>) — note`); readers parse only the first word.
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked blocked-by, not attempted anyway.
 - DEVIATION LEDGER: execution departing from the task/plan — different approach, extra

@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.53.0 — 2026-11-10
+
+- **A `card_status` tool writes a card's status during a run (Claude Code ≥ 2.1.291).** A fourth feature of the hooks module, `hooks/status.ts`. While a run with a card index is registered on this branch, the model can call `mcp__task-runner__card_status` with `card`, `status` and, for a park, `reason`, `detail` and `children`; it rewrites that one status cell. It refuses a parked status with no reason or a forecast for one, a reason with no detail, a split naming a missing child or itself, a split parent reopened before its children are done, an unknown card or status, and any call from a subagent. So 0.52.0's park rule is checked when the status is written, not only by `park-check.sh` at close. The tool does not exist outside such a run, and it draws nothing. Off: `CC_CARD_STATUS=off` or the `cc_card_status` option. Editing the cell by hand still works and is not blocked. Standing: gate for the refusals (`tests/status.test.ts`, 15 cases, under `claude plugin test`); seen live once in a headless CLI session on 2.1.322; the Desktop app is not verified.
+
 ## 0.52.0 — 2026-11-10
 
 - **A card is parked on evidence, never on an estimate.** A parked status now opens with one of five reasons: `evidence`, `misspec`, `needs-user`, `split` or `guard`, as in `parked (evidence: 3 cycles, TypeError at parse.py:41)`. "Too large" and "infeasible" are forecasts and park nothing: the card gets its smallest step and one verify run first, and a worker return that parks on a forecast is re-dispatched once. From Anthropic's 1,000-agent report on an early Claude Fable 5.2 (2026-11-09), where helpers judged 47 of 60 pieces infeasible and the team then finished most of them. Text: task-execution § Hard cards. Standing: recorded; unmeasured on a code run.

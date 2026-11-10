@@ -111,7 +111,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    Exit 1 names a stray commit on another branch (stop and show the user; never reset it
    yourself) or a comment-heavy diff (send the card back to strip comments it did not ask
    for). Standing: gate where run; nothing forces the call.
-3. Update status in the index only; collect scope-lock follow-ups as a backlog
+3. Update status in the index only, through the `card_status` tool when it is listed (it refuses
+   a park with no reason; with mods off, edit the status cell by hand); collect scope-lock follow-ups as a backlog
    list, never as in-run detours. No status HTML — the index and the
    conversation are the run's views (per the task-execution skill).
 4. First the **whole-range review**: invoke `/code-review:review <start_sha>..HEAD` (Skill

@@ -95,6 +95,7 @@ real-component-design-render
 relational-schema-and-query-implementation
 reviewer-verdict-consent
 run-board
+card-status-write
 secret-handling-discipline
 seeded-generation
 slide-deck-authoring

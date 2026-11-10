@@ -339,7 +339,7 @@ behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.s
 
 Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
 in `hooks/hooks.json` beside the classic hooks, which fire with or without it. It carries
-three features under two off switches.
+four features under three off switches.
 
 - **Subagent model floors** (`hooks/floors.ts`). A new spawn of an agent in
   `role-floors.md`'s registry runs at no less than its floor, and one naming no model (or
@@ -430,6 +430,22 @@ three features under two off switches.
   `/config` option `cc_task_board` off; the variable wins. Off clears the line, the
   planning-phase `taskmaster` line too, at the next refresh and keeps the pane from opening, and a session started with it off has no
   `/task-board`.
+- **Card status tool** (`hooks/status.ts`, since 0.53.0). While a run with a card index is
+  registered on this branch, the model has one more tool, `mcp__task-runner__card_status`:
+  `card`, `status` (`pending`, `in_progress`, `done`, `parked`, `blocked`, `skipped`), and
+  for a park `reason` (`evidence`, `misspec`, `needs-user`, `split`, `guard`), `detail` and
+  `children`. It rewrites that card's status cell and nothing else in the index. It
+  refuses, and writes nothing, for: a parked status with no reason or a reason outside the
+  five (the refusal says a forecast is not a reason); a reason other than `split` with no
+  detail; a split naming no child, itself, or a card with no row; a split parent set to
+  anything but parked while a child it names is not done; an unknown card or status; a
+  detail holding a `|` or a line break; and any call from a subagent, since only the
+  orchestrator writes the index. This is the park rule of "A card is parked on evidence"
+  above, checked when the status is written, not at close. The tool is listed at session
+  start, or after the main loop's Bash runs `register-run.sh`, and in front of ToolSearch;
+  with no run, or a run with no index, it does not exist, so a session that runs no cards
+  pays nothing for it. It draws nothing, so it does not depend on the surface. Off:
+  `CC_CARD_STATUS=off` or the `/config` option `cc_card_status`; the variable wins.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
   2.1.288-2.1.290 the module passes every call through; either way the classic hooks work
   exactly as before. An organization that sets `allowManagedModsOnly` refuses the module
@@ -437,7 +453,7 @@ three features under two off switches.
   not measured). On 2.1.287 with mods on the module still registers its hooks (the version
   check runs inside them), and the board's `tool.call` hook matches every tool, not only
   `Write`. So that CLI's own bug — a plugin's `tool.call` hook breaking Bash and file search
-  in worktree subagents, fixed in 2.1.288 — applies even with both switches off:
+  in worktree subagents, fixed in 2.1.288 — applies even with all three switches off:
   upgrade the CLI or turn mods off.
 
 - **Counts** (since 0.49.0). One is added, in this plugin's own `$.store` (key `outcomes`),
@@ -448,6 +464,12 @@ three features under two off switches.
 
 Residuals, stated:
 
+- **The status tool is optional.** Nothing stops the model editing the status cell by hand,
+  and with mods off it must; `scripts/park-check.sh` at close is the backstop. Verified
+  live once, in a headless `claude -p` session on CLI 2.1.322: a park with detail "too
+  large" and no reason was refused, the same card with `evidence` was written. The Desktop
+  app has not been verified. A run that ends leaves the tool listed until the session
+  ends; a call then is refused with "No task-runner run".
 - **Terminal only.** The pane was verified live in a terminal on CLI 2.1.292, driven
   through pexpect. No other surface (desktop, web) has been verified.
 - **Fail-open.** A hook that errors passes the call through as if the module were absent:
@@ -463,7 +485,7 @@ Residuals, stated:
   idle, a main-loop call waits for one `git` call at most every 2 s. `CC_TASK_BOARD=off`
   removes all of it. The idle gap is gated (above); the per-run count is not.
 
-Standing: **gate** — `tests/floors.test.ts` and `tests/board.test.ts` run under `claude plugin test` in CI (the marketplace repository's
+Standing: **gate** — `tests/floors.test.ts`, `tests/board.test.ts` and `tests/status.test.ts` run under `claude plugin test` in CI (the marketplace repository's
 `scripts/mod-tests.sh`), so a regression in a tested case fails the build, and the host's
 validator fails a `$.state` key that `types/index.d.ts` does not declare. A 2.1.291 test
 cannot read `$.state`, so the board state's `runActive` and `phase` are asserted only
