@@ -64,7 +64,7 @@ Repeat until no eligible milestone remains:
    there is no per-card resolution to bind, and per-card skill priming is what carries
    the framework knowledge instead.
 4. **Await** the whole batch. Update `00-INDEX.md` statuses (only the orchestrator writes
-   it): `running(worktree)` → `merged` / `parked(reason)`.
+   it): `running(worktree)` → `merged` / `parked (evidence: <reason>)`.
 5. **Merge greens** (§Merge). A merge unblocks dependent milestones for the next wave.
 6. Interleave any now-unblocked **serial** milestones (run inline in the main tree).
 
@@ -136,7 +136,7 @@ The prompt to each track-worker contains, in order:
 ## Partial failure, timeouts, cleanup
 
 Per SKILL.md § Merge, park, and partial failure and § Preconditions: a timeout →
-`parked(timeout)`, worktree retained; a parked track's dependents are blocked, to the
+`parked (evidence: timeout)`, worktree retained; a parked track's dependents are blocked, to the
 backlog; merge the greens and gate what merged; empty merged set or a cascaded root →
 **failed / no-op**, never green. Every remove/delete targets ONLY this
 run's `<run-branch>-track-*` names, cross-checked against `git worktree list`; never

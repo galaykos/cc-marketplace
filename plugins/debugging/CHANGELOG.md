@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.12.0 — 2026-11-10
+
+- **The prompt-box suggestion is removed.** `hooks/suggest.ts` offered `/debugging:debug` after the same command failed twice. On the owner's machine it was never shown once between 2026-10-25 and 2026-11-10, and the four sibling suggestions were accepted 0 times of 16 shown. The plugin ships no hooks module now; the classic reminder, the fix-chain hook and the probe guard are unchanged, and `CC_SUGGEST` no longer does anything here.
+
 ## 0.11.0 — 2026-11-08
 
 - **`scripts/ci-triage.sh` reads a red CI run.** Through the `gh` CLI you already have (it never installs gh or logs in), it finds the newest failed GitHub Actions run on the current branch, or `--pr N`, `--run ID`, `--branch B`, with `--repo OWNER/REPO` for another repository. It prints the run URL, the failing job and step, that step's first error with a few lines of context, and the other failing steps. The first error is found in pytest, PHPUnit, Jest, Vitest, go test, compiler (gcc, tsc, rustc) and generic `Error:` output; when none matches, it prints the step's last lines and says so. The log is treated as untrusted: ANSI and control bytes are stripped, each line is cut at 240 bytes, at most 8 MiB is read, and it prints inside a fence labelled as CI log data, after a line telling the reader not to follow instructions in it. Job and step names, which a fork's PR controls, lose their double quotes and every list of them is labelled untrusted. Exit 0 found, 1 no failed run, 2 usage, 3 gh missing or not logged in, 4 any other gh failure, including a checkout with no GitHub remote. `systematic-debugging` and `/debugging:debug` run it first when the symptom is a red CI run. Standing: the script's behaviour is a gate where run (`scripts/__tests__/ci-triage.test.sh`, 40 cases, against a stub gh); that the model runs it first is recorded.

@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.36.0 — 2026-11-10
+
+- **The prompt-box review suggestion is removed.** `hooks/suggest.ts` offered `/code-review:review` after a turn that edited three or more code files. On the owner's machine its counter read 11 shown, 0 accepted. The plugin ships no hooks module now; the unreviewed-changes reminder, which speaks to the model, is unchanged, and `CC_SUGGEST` no longer does anything here.
+
 ## 0.35.0 — 2026-11-08
 
 - **Critical and high findings are re-checked in a fresh context.** `/code-review:review` no longer refutes its own `critical` and `high` findings in the context that raised them: it dispatches the `code-reviewer` agent once per such finding, all in one message, with the finding, the patch file and the false-positive checklist, and asks it to prove the finding wrong against the working file. A refuted finding is dropped, or downgraded with a note when only its severity fails; a confirmed one opens its problem clause with `[CONFIRMED]`. `medium` and `low` findings, a refuter that answers neither way, and every finding when the agent cannot be dispatched (headless) get the checklist in the review's own context and open with `[PLAUSIBLE]`; `ReportFindings`' `verdict` carries the same label. Cost: one agent run per critical or high finding. Standing: agent-graded.

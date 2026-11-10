@@ -34,7 +34,7 @@ user scope is emptied, and only a per-scope read can tell.
    line and stop. Never classify the settings files by hand instead.
 4. **Report** — one header line (`Sync — <project> → <local|project> scope`, the detected
    stack), then one line per non-empty class with its plugin names, in the script's order.
-   Name each `extra` row's tier (a tier-3 pick, opt-in `prompt-coach`, or `all-plugins`).
+   Name each `extra` row's tier (a tier-3 pick or `all-plugins`).
    A `note worktree` row prints: this is a linked worktree; local scope is recorded per
    path, so its installs cover this worktree alone — `--persist` writes the committed file
    every worktree checks out.

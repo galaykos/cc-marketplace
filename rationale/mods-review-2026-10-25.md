@@ -91,3 +91,20 @@ Size: about 4,650 lines of mod source outside the kit, plus 13 × 272 kit lines,
 
 The board change departs from the option text the owner picked ("skip subagent calls"):
 subagent calls are skipped only while the board is idle, for the reason in the table.
+
+## Decisions taken (2026-11-10, owner)
+
+Read from `scripts/mod-outcomes.sh` on the owner's machine, CLI 2.1.322, counts since the 2026-10-25 counter:
+
+| Mod | Count | Decision |
+|---|---|---|
+| code-review `suggest.ts` | 11 shown, 0 accepted, 8 passed | removed (code-review 0.36.0) |
+| task-runner `suggest.ts` | 3 shown, 0 accepted, 1 passed | removed (task-runner 0.52.0) |
+| git-workflow `suggest.ts` | 2 shown, 0 accepted, 2 passed | removed (git-workflow 0.15.0) |
+| debugging `suggest.ts`, testing `suggest.ts` | no store file: never shown | removed (debugging 0.12.0, testing 0.16.0) |
+| prompt-coach | 170 judged, 5 flagged, 5 ignored, 4 failed | plugin removed |
+
+Kept: secret-scanning `redact.ts`, task-runner floors (9 raises) and board, stack-scan `pins.ts`, skill-router
+`compact.ts`, session-hud, overseer status line, candor badge. The display-only ones have no counter, so nothing
+says either way. Left behind on purpose: `registerSuggestion` in the shared `cc-kit.ts`, now with no caller;
+deleting it bumps the seven plugins that still carry a kit copy.

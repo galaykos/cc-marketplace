@@ -29,7 +29,7 @@ const STATUSES: [RegExp, Status][] = [
 
 const cellsOf = (row: string) => row.split('|').map((c) => c.trim())
 
-// The cell hooks/announce.sh and hooks/suggest.ts count, not the header's: the last, or the one before a trailing pipe.
+// The cell hooks/announce.sh counts, not the header's: the last, or the one before a trailing pipe.
 // An empty cell is a card not started; any other word outside the vocabulary (a run wrote `committed <sha>`) is shown, not read as pending.
 function statusOf(cells: string[]): Status {
   const s = (cells.at(-1) || cells.at(-2) || '').toLowerCase()
@@ -60,7 +60,7 @@ export function parseIndex(md: string, slug: string): IndexModel | { error: stri
     }
   }
 
-  // Every card-shaped row, as hooks/announce.sh and hooks/suggest.ts count them; the header only places the columns.
+  // Every card-shaped row, as hooks/announce.sh counts them; the header only places the columns.
   const cards = lines
     .filter((l) => CARD_ROW.test(l))
     .map((row): Card => {

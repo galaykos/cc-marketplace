@@ -117,7 +117,7 @@ or parked, the run ENDS with a report, no self-restart.
 - Execute in index order, respecting `<depends-on>`; parallel groups (and disjoint
   same-worker S-card batches) may be delegated ONLY if file sets are disjoint — else serial.
 - Status lives in one place (the task index / todo list, e.g. taskmaster's
-  `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason). Task definitions stay immutable during the run.
+  `00-INDEX.md`): pending → in_progress (exactly one) → done | parked (reason: detail). Task definitions stay immutable during the run.
   The cell starts with that word (`done (<sha>) — note`); readers parse only the first word.
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked blocked-by, not attempted anyway.
 - DEVIATION LEDGER: execution departing from the task/plan — different approach, extra
@@ -151,6 +151,18 @@ discipline preamble, dispatch, then on return the scope check, its own re-verify
 negative-control. A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
 is the evidence. One failed re-verification sends the task back; a second reclaims it inline.
 
+## Hard cards: park on evidence
+
+A forecast ("too large", "infeasible") parks nothing. Preamble clause 10 binds you too.
+
+- A parked status opens with its reason: `evidence` (a real attempt's failing output), `misspec`, `needs-user`, `split`
+  or `guard` (a refused call, no fix named), as `parked (evidence: 3 cycles, <line>)`. A return parked on a forecast is
+  re-dispatched once with "attempt the first step"; a second is the second strike.
+- A **split**: check the children's files are disjoint, append each as the next-numbered card, mark the parent
+  `parked (split: <numbers>)`, re-run it against its unchanged verify once they close. A third level of splits parks `needs-user`.
+- At close, `scripts/park-check.sh --index <index>` lists parks with no reason (gate where run; a reason's truth is
+  recorded); each gets its first attempt.
+
 ## Evidence format
 
 Evidence recorded per task is literal: the exact command as run, its exit code, and
@@ -170,7 +182,4 @@ The run is complete only when:
    --isolate --changed <run's files>` in background Bash, `timeout: 7200000`, never a hand-built checkout) — the repo suite may be a static linter that never runs new code.
    `/task-runner:run` runs neither drift check: `/git-workflow:finish` runs **code-architecture:drift-review** (diff vs. what was ASKED; no suite checks that); run `/api-design:drift` by hand.
 4. The final report is a table: task / status / verify command / evidence line, plus the
-   parked list with reasons and the follow-up backlog collected by the scope lock, plus every UI group's Screens table.
-
-Claiming completion without the full-suite run is asserting, not verifying —
-work-verification (code-architecture plugin) applies to the whole run.
+   parked list grouped by reason and the follow-up backlog collected by the scope lock, plus every UI group's Screens table.

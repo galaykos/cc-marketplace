@@ -62,54 +62,6 @@ red-green regression proof for bug fixes (test must fail on unfixed code —
 revert-fail-restore when the fix already exists). Taskmaster card acceptance
 criteria double as the test list.
 
-## Mods (Claude Code ≥ 2.1.291)
-
-Since 0.13.0 the plugin also ships a hooks module, `hooks/suggest.ts`, listed under
-`modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without them.
-
-- **What.** At the end of a turn in which one test command (the same text, whitespace
-  aside) has both passed and failed in this session with nothing between those runs that
-  could have changed the code, the prompt box offers `/testing:flake-hunt` as a next-step
-  suggestion: Tab accepts it, and nothing runs until you send it. A fail, then a fix, then
-  a pass is not a flake and offers nothing.
-- **What counts as a possible change** (since 0.14.0). Every main-loop tool call except a
-  read-only one (`Read`, `Grep`, `Glob`, `LS`, `NotebookRead`, `WebFetch`, `WebSearch`,
-  `TodoWrite`, `ToolSearch`, `AskUserQuestion`, `Skill`) and a test run: a `Bash` command
-  such as `sed -i` or `git checkout`, an MCP tool, and an `Agent` dispatch, whose subagent
-  edits where this module cannot see. An edit tool that errored wrote nothing and does not
-  count; a `Bash` command that errored does. A test command chained after another step
-  (`sed -i … && npm test`) counts as a change too; `cd`, `export` and `echo` steps and a
-  pipe after the run (`npm test 2>&1 | tail`) do not. Until 0.13.3 only the four edit tools
-  counted, so a fix made through `Bash` or a subagent read as a flake. The cost of the
-  wider rule: a real flake whose two runs have any such call between them is not offered.
-- **Test commands** are `npm`/`pnpm`/`yarn`/`bun` `test` (with or without `run`), `vitest`,
-  `jest`, `pytest`, `phpunit`, `pest`, `artisan test`, `go test`, `cargo test`, `rspec`,
-  `mocha`, `playwright test` and `dotnet test`, a path prefix allowed
-  (`vendor/bin/pest`).
-- **When it stays silent.** While a phase sentinel is live (a taskmaster or task-runner run
-  owns the turn). Once shown for a command, not again for that command in this session.
-- **Off switch.** `CC_SUGGEST=off`, environment only, silences this and every other
-  next-step suggestion of this marketplace together.
-- **Counts** (since 0.14.0). Each time the prompt box reports this suggestion shown, and
-  whether your next prompt then sent the suggested command (`accepted`) or something else
-  (`passed`), one is added to `suggest.flake-hunt.shown`, `.accepted` or `.passed` in this
-  plugin's own `$.store` (key `outcomes`): counts only, never the text, on this machine only.
-  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
-  counting (the shared kit's tests); what a count says about the suggestion is **recorded**.
-- **CLI.** With mods off in the host, on a CLI below 2.1.287 (which loads no module), on
-  2.1.288-2.1.290, or with `CC_SUGGEST=off`, the module offers nothing and the classic hooks
-  work as before. On CLI 2.1.287 with mods on, the module still registers its `tool.call`
-  hook (the version check runs inside it), and that CLI's own bug — a plugin's `tool.call`
-  hook breaking Bash and file search in worktree subagents, fixed in 2.1.288 — applies even
-  with `CC_SUGGEST=off`: upgrade the CLI or turn mods off.
-- **Limits.** The prompt box holds one suggestion: when another plugin offers one at the
-  same turn end the later replaces the earlier, and Claude Code's own suggestion is not
-  suppressed. What was shown is kept in memory, so a new session offers it again. A failed
-  command is one the CLI answers as an error; how a non-zero exit reaches a hook was not
-  observed live (**recorded**, from the mods API's result shape).
-- **Standing.** The conditions above are a **gate**: `tests/suggest.test.ts` runs under
-  `claude plugin test` in CI. Whether a flagged pair is a real flake is the hunt's job.
-
 ## Pairs well with
 
 - **task-runner** — its verify commands are only as good as the tests behind them

@@ -1,7 +1,4 @@
 {
-  "modules": [
-    "./suggest.ts"
-  ],
   "hooks": {
     "UserPromptSubmit": [
       {
