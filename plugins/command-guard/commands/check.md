@@ -9,7 +9,21 @@ Classify `$ARGUMENTS` without executing anything.
 
 ## Steps
 
-1. If `$ARGUMENTS` is empty, ask which command to check and stop.
+1. If `$ARGUMENTS` is empty, ask which command to check and stop. If it is
+   `--settings`, lint the permission settings instead and skip steps 2–4:
+
+   ```bash
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/settings-lint.sh"
+   ```
+
+   It reads `.claude/settings.json`, `.claude/settings.local.json` and the user
+   `settings.json` as data and prints one `<file>: <key path>: <risk>` line per
+   finding. Exit `0` nothing found, `1` findings, `2` a file is not a JSON object
+   (named on its own line; the others are still read), `3` no `jq`. Report each
+   line as printed, grouped by file, and for each say what the safer setting is.
+   Never edit a settings file yourself, even when asked to "fix" one: show the
+   user the exact change and let them make it. Clean means only that none of the
+   listed shapes is present; managed settings and `--settings` files are not read.
 
 2. Run the guard in CLI mode. The command is passed as a single argument, so
    quote it:

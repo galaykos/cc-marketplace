@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config (config_kind); on Bash, the first such target of the first eight, or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config or the command-guard-strict file (config_kind); on Bash, the first such target of the first eight, or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
 # Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm, a quoted regenerate flag or one in a heredoc body no shell reads, phpstan's -b behind a script name. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
@@ -280,6 +280,7 @@ config_kind() {
   b=$(basename "$1")
   case "/$1" in
     */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "a Claude Code settings file"; return ;;
+    */.claude/command-guard-strict)                                                  echo "command-guard's strictness file"; return ;;
     */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration"; return ;;
     */.github/workflows/*.yml|*/.github/workflows/*.yaml)                             echo "a CI configuration"; return ;;
     */.husky/*|*/.git/hooks/*)                                                       echo "a git hook"; return ;;

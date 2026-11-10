@@ -137,6 +137,20 @@ bash_asks $'# don\'t keep the old baseline\nnpx eslint . --suppress-all' "bash: 
 out=$(CC_CONFIG_GUARD=off fire_bash "npx eslint . --suppress-all")
 [ -z "$out" ] && ok "CC_CONFIG_GUARD=off silences the regenerate ask" || bad "CC_CONFIG_GUARD=off silences the regenerate ask" "$out"
 
+# 0.10.0: the strictness file only adds asks and denies, so creating it is silent; editing an existing one (which can drop a line) asks.
+rm -f "$T/.claude/command-guard-strict"
+allows "$T/.claude/command-guard-strict" "creating command-guard-strict is silent (it can only add strictness)"
+printf 'ask ^npm publish\n' > "$T/.claude/command-guard-strict"
+asks "$T/.claude/command-guard-strict" "an Edit of an existing command-guard-strict asks"
+out=$(fire "$T/.claude/command-guard-strict" Write)
+case "$out" in *'"permissionDecision":"ask"'*"command-guard's strictness file"*) ok "a Write over an existing command-guard-strict asks, naming its kind" ;;
+  *) bad "a Write over an existing command-guard-strict asks, naming its kind" "${out:-<silent>}" ;; esac
+bash_asks "printf '' > .claude/command-guard-strict" "bash: truncating an existing command-guard-strict asks" command-guard-strict
+bash_asks "sed -i '/npm publish/d' .claude/command-guard-strict" "bash: sed -i on an existing command-guard-strict asks" command-guard-strict
+printf 'x\n' > "$T/.claude/command-guard-strict.bak"
+allows "$T/.claude/command-guard-strict.bak" "a file only named like it is silent"
+bash_allows "cat .claude/command-guard-strict" "bash: reading command-guard-strict is silent"
+
 printf '{}\n' > "$T/.claude-plugin-marker-absent"
 mkdir -p "$T/.claude-plugin" && printf '{"plugins":[]}\n' > "$T/.claude-plugin/marketplace.json"
 out=$(fire "$T/.claude/settings.json")

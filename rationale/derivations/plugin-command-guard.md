@@ -661,6 +661,45 @@ The host blocks a run past hooks.json's 15 s (onFailure: block), so a judgment s
 (12; the harness lowers it) is stopped and asks, in every mode: it has not ruled out a deny. No mktemp or sleep: unwatched.
 ```
 
+### Added 2026-11-10 (0.10.0): hook bypass, published review text, the strictness file
+
+Written for this release, not moved from code.
+
+`git_gh_bypass` / `check_git_gh`. Track 7 rows S1 and S4 of the 2026-11-07 integration roadmap: no hook
+asked on `--no-verify`, and merge and workflow edits were covered while publishing review text was not.
+Both are asks, not denies: each is often the user's own intent, and neither loses data. `-n` was read from
+git 2.53's own man pages on 2026-11-10: `--no-verify` for `commit` and `am`; `--dry-run` for `push`;
+`--no-stat` for `merge`, `rebase` and `pull`; `--no-commit` for `cherry-pick` and `revert`. The brief that
+asked for this said "commit and merge"; the docs say commit and am, and the code follows the docs.
+`cherry-pick` has no `--no-verify` in 2.53 (git rejects it); it is in the set because the roadmap row named
+it, and an ask before a command that fails anyway costs one prompt.
+
+The words are read with `rm_backslash_target`'s quote removal so a commit message naming `--no-verify` is
+one word, not a flag; `norm_cmd` strips quotes and would have made `git commit -m "fix --no-verify"` fire.
+The check runs once on the whole command (heredoc bodies stripped), not per `split_segments` segment:
+that splitter cuts on every brace, and `gh api repos/{owner}/{repo}/…` is gh's own placeholder syntax, so
+per segment the endpoint arrived as `repos/`. The word scan splits on a brace only when it stands alone
+as a word, as bash does. A case pattern over the normalised command runs first, so a command naming none
+of the shapes forks nothing. Measured through the hook, 21 interleaved runs each, against 0.9.6: after the
+first cut (per segment) `git status && ls -la` 30.4 → 30.2 ms and a 21-step commit-and-PR command 738.8 →
+747.0 ms; after the move to one call 29.1 → 28.9 ms and 690.9 → 689.2 ms.
+
+`gh pr merge` stays silent here: git-workflow's merge-checks hook asks on it, and two prompts for one
+call train the user to click through both.
+
+`apply_strict`. Row S3: a project file that can only add strictness. Entries are `ask` or `deny` plus an
+ERE, matched like the allow-file. "Can only add" is enforced by applying an entry through `set_verdict`,
+which never lowers a verdict, and by judging an entry that would lower one (`allow`, or `ask` on a built-in
+deny) against the verdict before any entry ran, so the skip is named in a note rather than silent. The file
+is read after the built-in rules and before the allow-file: both are the user's, the allow-file is the one
+place that releases a verdict, and keeping it last keeps that true. A malformed file is ignored whole, not
+line by line: half a rule set read is a rule set nobody wrote. The note is a `systemMessage` (shown to the
+user, per the hooks reference's JSON output table, read 2026-11-10), because the file is the user's and the
+model should not be the one to edit it. It repeats on every judged command while the file is broken; no
+state file keeps it to once. The 16,384-byte cap bounds the per-call regex work. The file is protected by
+config-guard's ask on an existing file, the same standing as `settings.json`; a plain `rm` passes, as it
+does for every config.
+
 ## plugins/command-guard/hooks/config-guard.sh
 
 ### Header
@@ -1071,3 +1110,35 @@ hook is its other ask tier and read only its own variable, so the documented set
 left an ask on every config write. Both values that mean "no ask tier" must silence it,
 and the value that does NOT mean that (`ask`) must leave it running.
 ```
+
+## plugins/command-guard/scripts/settings-lint.sh
+
+Written 2026-11-10 (0.10.0), not moved from code.
+
+Track 7 row S6: a settings and permissions linter as a mode of `/command-guard:check`, shipped as a script so
+no listed surface grows. Keys verified against the official settings reference
+(code.claude.com/docs/en/settings-reference.md, fetched 2026-11-10): `permissions.allow`, `.ask`, `.deny`,
+`.additionalDirectories`, `.defaultMode` (`auto` and `bypassPermissions` take no effect from project or
+local files since v2.1.257), `env` (an object of strings), `disableAllHooks` (boolean), and `pluginConfigs`
+(user or managed only; the host ignores project entries). Rule matching follows the permissions page
+(code.claude.com/docs/en/permissions.md, same day): `*` matches any text including spaces, a lone trailing
+` *` also matches the bare command, and `:*` at the end is the same as ` *`.
+
+The allow-rule check tests each rule against a fixed list of commands `destructive-guard.sh` asks on rather
+than parsing a rule's intent; `settings-lint.test.sh` runs every sample through `--check` so a sample that
+stops being ask-tier fails the build. The guard switches are those of the root README's off-switch table
+that refuse, ask or mask on a safety ground; style and Stop-gate switches (`CC_COMMENT_GUARD`,
+`CC_CANDOR_GATE`, …) are left out on purpose, and the harness holds each listed name to that table.
+`CLAUDE_DESTRUCTIVE_GUARD=deny-only` is flagged only in the user file, because the README recommends it
+for an automated run's project settings. An `off` value is matched case-insensitively, a /config boolean
+`false` too. Not read: managed settings, `--settings` files, `CLAUDE_CONFIG_DIR` other than as the user
+file's folder.
+
+## plugins/command-guard/scripts/__tests__/settings-lint.test.sh
+
+Written 2026-11-10 (0.10.0). Fixtures live under `mktemp -d`, outside any repository. Each finding kind is
+asserted with its file and key path, beside the nearest setting that must stay silent (`Bash(git status)`,
+`Bash(git log *)`, `acceptEdits`, a sibling directory, `disableAllHooks: false`, a switch set `on`, a non-guard
+switch set `off`, `pluginConfigs` in a project file). The two drift checks (samples ask-tier, switches in the
+README table) are the reason the harness reads the script's own lists by `sed`; the README check is skipped
+when the marketplace README is not found, as in an installed copy.

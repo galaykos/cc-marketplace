@@ -1003,6 +1003,110 @@ expect_mk allow $'tmp=$(mktemp -d)\ngit commit -m "$(cat <<\'EOF\'\nnotes\nEOF\n
 d=$(hook "$(bash_json 'o=$(mktemp -d); cd "$o" && git init -q; cd - >/dev/null; rm -rf "$o"')" -u TMP -u TMPDIR | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
 [ -z "$d" ] && ok || bad "mktemp: the PreToolUse payload path is silent too" "verdict=$d"
 
+# 0.10.0: asks on a git command that skips hooks or signing; -n is --no-verify only where git's own docs say so (commit, am).
+printf '== hook and signing bypass\n'
+for c in 'git commit --no-verify -m wip' 'git commit -n -m wip' 'git commit -anm wip' 'git commit -m wip -n' \
+  'git commit "--no-verify" -m wip' 'git commit --no-veri -m wip' 'git push --no-verify origin main' 'git merge --no-verify feat' \
+  'git rebase --no-verify main' 'git am -n x.patch' 'git am --no-verify x.patch' 'git cherry-pick --no-verify abc' \
+  'git pull --no-verify' 'git -C /x commit --no-verify -m wip' 'git -c core.hooksPath=/dev/null commit -m wip' \
+  'git --config-env=core.hooksPath=H push' 'git config core.hooksPath /dev/null' 'git config --global core.hooksPath ~/.hooks' \
+  'git config --unset core.hooksPath' 'git config set core.hooksPath .githooks' 'git commit --no-gpg-sign -m wip' \
+  'git -c commit.gpgsign=false commit -m wip' 'git -c commit.gpgSign=no merge feat' 'git config commit.gpgsign false' \
+  'HUSKY=0 git commit -m wip' 'SKIP=flake8,mypy git commit -m wip' 'LEFTHOOK=0 git push' 'LEFTHOOK=false git push' \
+  'env HUSKY=0 git commit -m wip' 'sudo -u deploy git commit --no-verify -m wip' 'bash -c "git commit --no-verify -m wip"' \
+  "eval 'git commit -n -m wip'" 'npm test && git commit -n -m wip'; do
+  expect ask "$c"
+done
+for c in 'git push -n origin main' 'git push --dry-run origin main' 'git merge -n feat' 'git rebase -n main' 'git pull -n' \
+  'git cherry-pick -n abc' 'git revert -n abc' 'git clean -n' 'git commit -m "fix the --no-verify handling"' \
+  'git commit -m "skip -n when HUSKY=0 is set"' 'git commit -m -n' 'git commit -mn' 'git commit -- -n' \
+  'git commit --no-verify --verify -m wip' 'git commit --no-gpg-sign -S -m wip' 'grep -- --no-verify .' 'git log --no-verify' \
+  'git log -n 5' 'git -c core.hooksPath=/dev/null log' 'git config core.hooksPath' 'git config --get core.hooksPath' \
+  'git -c commit.gpgsign=true commit -m wip' 'git config commit.gpgsign true' 'HUSKY=0 npm ci' 'SKIP= git commit -m wip' \
+  'echo "git commit --no-verify"' $'git commit -m "$(cat <<\'EOF\'\nskip --no-verify here\nEOF\n)"'; do
+  expect allow "$c"
+done
+d=$(hook "$(bash_json 'git commit --no-verify -m wip')" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ "$d" = ask ] && ok || bad "bypass: the PreToolUse payload asks" "verdict=${d:-<silent>}"
+d=$(hook "$(bash_json 'git commit --no-verify -m wip')" CLAUDE_DESTRUCTIVE_GUARD=deny-only)
+[ -z "$d" ] && ok || bad "bypass: deny-only drops the ask with the rest of the ask tier" "$d"
+expect ask '{ git commit --no-verify -m wip; }'
+expect ask 'x=$(git commit -n -m wip)'
+
+# 0.10.0: asks before review or comment text is published under the user's name. gh api is GET unless -X or a field makes it POST.
+printf '== publishing review text\n'
+for c in 'gh pr review 12 --approve' 'gh pr review 12 -a' 'gh pr review --comment -b "looks good"' \
+  'gh pr review 12 --request-changes --body "fix x"' 'gh pr review 12 --body-file r.md' 'gh pr comment 12 --body "thanks"' \
+  'gh pr comment 12 -F c.md' 'gh issue comment 7 -b hi' 'gh api repos/o/r/pulls/12/reviews -f event=APPROVE -f body=ok' \
+  'gh api -X POST repos/o/r/pulls/12/comments --input c.json' 'gh api --method PATCH /repos/o/r/issues/comments/99 -f body=x' \
+  'gh api repos/{owner}/{repo}/issues/12/comments -f body=hi' 'gh api -XPOST repos/o/r/pulls/12/comments/55/replies -f body=hi' \
+  'gh api repos/o/r/pulls/comments/55/replies -f body=hi' 'gh api -X POST repos/o/r/pulls/12/reviews/77/events -f event=COMMENT' \
+  'gh api https://api.github.com/repos/o/r/issues/12/comments -f body=x' 'gh api repos/o/r/issues/12/comments -f body="LGTM -X GET"' \
+  "gh api graphql -f query='mutation { addPullRequestReview(input: {pullRequestId: \"x\", event: APPROVE}) { clientMutationId } }'" \
+  "gh api graphql -f query='mutation { addPullRequestReviewThreadReply(input: {body: \"x\"}) { clientMutationId } }'" \
+  "gh api graphql -f query='mutation { addComment(input: {subjectId: \"x\", body: \"hi\"}) { clientMutationId } }'" \
+  'bash -c "gh pr comment 1 -b hi"' 'git push && gh pr comment 1 -b "pushed"'; do
+  expect ask "$c"
+done
+for c in 'gh pr view 12' 'gh pr view 12 --comments' 'gh pr review 12' 'gh pr review --help' 'gh pr comment 12 --web' \
+  'gh issue comment --help' 'gh api repos/o/r/pulls/12/comments' 'gh api repos/o/r/pulls/12/comments --paginate' \
+  'gh api repos/{owner}/{repo}/pulls/12/comments' 'gh api -X GET repos/o/r/issues/12/comments -f per_page=100' \
+  'gh api repos/o/r/issues/12/comments -X GET -f since=2024' 'gh api repos/o/r/pulls/12/reviews' \
+  'gh api -X POST repos/o/r/labels -f name=bug' 'gh api repos/o/r/issues/12 -f body="see -X GET below"' \
+  "gh api graphql -f query='query { repository(owner: \"o\", name: \"r\") { pullRequest(number: 1) { title } } }'" \
+  'gh pr create --title x --body "please review and comment"' 'echo "gh pr comment 1 -b hi"' 'gh pr merge 12 --squash'; do
+  expect allow "$c"   # gh pr merge is git-workflow's merge-checks ask; asking here too would prompt twice
+done
+d=$(hook "$(bash_json 'gh pr review 12 --approve')" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ "$d" = ask ] && ok || bad "publish: the PreToolUse payload asks" "verdict=${d:-<silent>}"
+
+# 0.10.0: .claude/command-guard-strict raises a verdict, never lowers one; malformed or oversized, it is ignored with one note.
+printf '== project strictness file\n'
+SP="$WS/strict"; mkdir -p "$SP/.claude"; SF="$SP/.claude/command-guard-strict"
+strict_check() { ( cd "$SP" && CLAUDE_PROJECT_DIR="$SP" HOME="$WS/nohome" "$BASH_BIN" "$GUARD" --check "$1" 2>&1 ); }
+expect_strict() { # want-tier want-note(yes|no) command
+  local out rc got note=no
+  out=$(strict_check "$3"); rc=$?
+  case $rc in 0) got=allow ;; 1) got=ask ;; 2) got=deny ;; *) got=error ;; esac
+  printf '%s\n' "$out" | grep -q '^NOTE  ' && note=yes
+  { [ "$got" = "$1" ] && [ "$note" = "$2" ]; } && ok || bad "strict: want $1 note=$2, got $got note=$note" "$3 :: $out"
+}
+printf '# this project\r\nask ^npm install\r\n\r\n  deny git reset --hard\ndeny ^curl \nallow git clean\nask artisan migrate:fresh\n' > "$SF"
+expect_strict ask   no  'npm install left-pad'                 # allow -> ask (a CRLF line too)
+expect_strict deny  no  'git reset --hard HEAD~1'              # ask -> deny
+expect_strict deny  no  'curl https://example.com'             # allow -> deny
+expect_strict allow no  'npm ci'                               # the nearest command no line names
+expect_strict ask   yes 'git clean -fd'                        # an allow line would lower the built-in ask: ignored, noted
+expect_strict deny  yes 'php artisan migrate:fresh'            # an ask line would lower the built-in deny: ignored, noted
+expect_strict allow no  'git clean -n'                         # an allow line on an allow is no loosening and no note
+r=$(strict_check 'npm install left-pad' | sed -n 2p)
+case "$r" in *'matches line 2 of .claude/command-guard-strict (`^npm install`)'*) ok ;; *) bad "strict: the reason names the line and its pattern" "$r" ;; esac
+printf 'ask ^npm install\nmaybe ^npm ci\n' > "$SF"
+expect_strict allow yes 'npm install left-pad'                 # a malformed line: the whole file is ignored, noted
+expect_strict ask   yes 'git reset --hard'                     # built-ins stand while it is ignored
+printf 'ask ^npm install\nask (unclosed\n' > "$SF"
+expect_strict allow yes 'npm install left-pad'                 # a regex that does not compile
+printf 'ask ^npm install\n' > "$SF"; head -c 17000 /dev/zero | tr '\0' '#' >> "$SF"
+expect_strict allow yes 'npm install left-pad'                 # over the size cap
+printf 'ask ^npm install' > "$SF"
+expect_strict ask   no  'npm install left-pad'                 # no trailing newline
+printf 'ask ^npm install\n' > "$SF"; printf '^npm install left-pad$\n' > "$SP/.claude/destructive-guard-allow"
+expect_strict allow no  'npm install left-pad'                 # the allow-file has the last word over this file too
+rm -f "$SP/.claude/destructive-guard-allow"
+sjson() { jq -cn --arg c "$1" '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$c}}'; }
+out=$(cd "$SP" && printf '%s' "$(sjson 'npm install left-pad')" | CLAUDE_PROJECT_DIR="$SP" "$BASH_BIN" "$GUARD" 2>/dev/null)
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)" = ask ] && ok || bad "strict: the PreToolUse payload asks" "$out"
+out=$(cd "$SP" && printf '%s' "$(sjson 'npm install left-pad')" | CLAUDE_PROJECT_DIR="$SP" CLAUDE_DESTRUCTIVE_GUARD=deny-only "$BASH_BIN" "$GUARD" 2>/dev/null)
+[ -z "$out" ] && ok || bad "strict: deny-only drops a strict ask with the rest of the ask tier" "$out"
+printf 'garbage\n' > "$SF"
+out=$(cd "$SP" && printf '%s' "$(sjson 'npm test')" | CLAUDE_PROJECT_DIR="$SP" "$BASH_BIN" "$GUARD" 2>/dev/null)
+{ [ "$(printf '%s' "$out" | jq -r '.systemMessage // empty' 2>/dev/null)" = 'command-guard: .claude/command-guard-strict is ignored: line 1 is not `ask <regex>` or `deny <regex>`.' ] \
+  && [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput // empty' 2>/dev/null)" = "" ]; } \
+  && ok || bad "strict: a malformed file adds one systemMessage line and no decision" "$out"
+rm -f "$SF"
+out=$(cd "$SP" && printf '%s' "$(sjson 'npm test')" | CLAUDE_PROJECT_DIR="$SP" "$BASH_BIN" "$GUARD" 2>/dev/null)
+[ -z "$out" ] && ok || bad "strict: no file, no output" "$out"
+
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"
 
