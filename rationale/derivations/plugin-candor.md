@@ -1037,6 +1037,37 @@ Above `if [ "$mode" = "block" ]; then`:
 Record which clause blocked, so only that clause stands down on the continuation.
 ```
 
+### Session keying (0.12.5, 2026-11-10, Track 7 item S5)
+
+Before 0.12.5 the state dir held one `blocked` record and one `last` line per clause for the
+whole repo, and clause 4's nudge was one `gate-nudge` file. Two sessions in one repo
+(measured with paired Stop payloads that differ only in `transcript_path` and `session_id`):
+
+- B's continuation read A's `blocked`, skipped the clause that blocked A, and deleted A's record.
+- B's block of a clause rewrote that clause's `last` line, so A's unchanged text was blocked again.
+- B with the same final text as A passed on A's `last` line.
+- Whichever session stopped first wrote the nudge, and the other's one block at that HEAD was gone.
+
+The key is `.transcript_path // .session_id`, hashed with `cksum`, as authoring-hooks asks.
+`blocked` and `last` keep their paths and carry the key as a line's first field. The
+smoke suites `evidence-gate-hook-tests.sh` and `completion-gate-hook-tests.sh` reset
+state with `rm -f` on those exact paths, so per-session file names would have let one
+case's bound leak into the next. The nudge is compared by mtime against the run
+sentinel, so a shared file would let one session's write freshen another's stale line.
+It is one file per session instead (`gate-nudge-<key>`; the bare name when the payload
+has neither field). Each rewrite keeps the newest 127 other lines. A nudge not newer
+than the sentinel is swept when another session blocks. A concurrent read-modify-write
+of the same file can still lose one session's line, which costs that session one more
+block. `inflight` records stay keyed on `session_id`, because a subagent shares it and
+the parent's Stop must count its own workers.
+
+The run records (`active-run.json`, `closed-run.json`, `gate-pass.json`, `nc/`, `rv/`,
+`bg/`, `rt/`, `reductions/`) stay repo-wide. `register-run.sh` resumes a run across
+sessions, and nothing records which session owns it. A second session in the repo is
+held once per HEAD by a run it did not register, and the block text tells it the run
+file may be left over. Its clean stop can also retire the first session's
+`closed-run.json`. Fixing that needs a decision on run ownership.
+
 ## plugins/candor/hooks/mode.sh
 
 ### Header: the shebang

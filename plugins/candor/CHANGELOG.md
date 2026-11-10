@@ -2,6 +2,11 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.5 — 2026-11-10
+
+- **Two sessions in one repo no longer spend each other's Stop-gate bounds.** The which-clause record (`blocked`) and the loop bound (`last`) were one per repo, and clause 4's one-block-per-HEAD nudge (`.claude/task-runner/gate-nudge`) too. So session B's continuation could skip the clause that blocked session A, B's block of a clause erased A's loop bound, and whichever session stopped first spent the other's one block at a HEAD. Each marker line now starts with the session's key (a checksum of the payload's `transcript_path`, else `session_id`), and the nudge is one file per session (`gate-nudge-<key>`; a payload with neither field keeps the old name). A nudge older than the run's registration is swept when another session blocks. Pinned by ten `scripts/__tests__/gate.test.sh` session cases on payloads that differ only in `transcript_path` and `session_id`; nine are red on 0.12.4. Standing: gate.
+- **Residual, recorded:** the registered run stays repo-wide, because a later session resumes it. A second session in the same repo is still held once per HEAD by a run it did not register, is told it may delete the run file, and its clean stop can retire the first session's `closed-run.json`.
+
 ## 0.12.4 — 2026-11-08
 
 - **No preamble for `asset-forge:art-reviewer`.** The new read-only reviewer joins the SubagentStart skip list, like every other agent with no Write or Edit. Standing: gate (`preamble-hook.test.sh` case 22 reads every marketplace agent).

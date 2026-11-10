@@ -359,14 +359,20 @@ root=$(cc_state_root "$cwd") || exit 0
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
 [ -n "$agent_id" ] && agent_sfx="-$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
+# Two sessions in one repo share the state dir: each marker line, and the nudge file, carries this context's key.
+ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
+ctxk=$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)
 
 # The host's stop_hook_active is shared by every Stop hook: only the clause this gate recorded as blocking stands down on its continuation.
 state_dir=$(cc_plugin_state "$root" candor)
 claimed="$state_dir/blocked$agent_sfx"
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
-  skip=$(cat "$claimed" 2>/dev/null)
-  rm -f "$claimed" 2>/dev/null
+  skip=$(awk -v k="$ctxk" '$1 == k && NF == 2 { v = $2 } END { print v }' "$claimed" 2>/dev/null)
+  if [ -n "$skip" ]; then
+    awk -v k="$ctxk" '$1 != k && NF == 2' "$claimed" > "$claimed.$$" 2>/dev/null
+    if [ -s "$claimed.$$" ]; then mv -f "$claimed.$$" "$claimed" 2>/dev/null; else rm -f "$claimed" "$claimed.$$" 2>/dev/null; fi
+  fi
 fi
 
 verdict=""
@@ -701,11 +707,13 @@ if [ "$verdict" = "run" ]; then
     run_msg="$run_msg
   This turn answered a pause request or a question, so the stop is allowed; the run's next work turn is checked again."
   elif [ "$run_mode" = "block" ]; then
-    # One block per HEAD: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
+    # One block per HEAD and context: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
     nudge="$root/.claude/task-runner/gate-nudge"
+    [ -z "$ctx" ] || nudge="$nudge-$ctxk"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
       pass_note="$run_owed"               # bounded at this HEAD — printed, not blocked
     elif printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
+      find "$root/.claude/task-runner" -maxdepth 1 -name 'gate-nudge-*' ! -name "${nudge##*/}" ! -newer "$RUN_SENTINEL" -delete 2>/dev/null
       block_turn "$run_msg" "$run_note"
     elif [ "$sha_active" != "true" ]; then
       # No writable marker, so no per-HEAD bound: honour the shared flag here only, or an unwritable state dir blocks forever.
@@ -1228,21 +1236,23 @@ report_verdict() {
     visual) case "$uv_mode" in warn) mode=warn ;; esac ;;
   esac
 
-  # Loop guard: one block per clause and final text, a line per clause, so two clauses on one unchanged text cannot take turns.
+  # Loop guard: one block per clause and final text, a line per context and clause, so two clauses on one unchanged text cannot take turns.
+  # Other contexts' lines are kept, the newest 127: a line older than that costs its session one more block.
   marker="$state_dir/last$agent_sfx"
   state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
-  if [ -r "$marker" ] && grep -qxF "$verdict $state" "$marker" 2>/dev/null; then
+  if [ -r "$marker" ] && grep -qxF "$ctxk $verdict $state" "$marker" 2>/dev/null; then
     pass_turn
   fi
   if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } \
-         && { grep -v "^$verdict " "$marker" 2>/dev/null; printf '%s %s\n' "$verdict" "$state"; } > "$marker.$$" 2>/dev/null \
+         && { awk -v k="$ctxk" -v v="$verdict" 'NF == 3 && !($1 == k && $2 == v)' "$marker" 2>/dev/null | tail -n 127; printf '%s %s %s\n' "$ctxk" "$verdict" "$state"; } > "$marker.$$" 2>/dev/null \
          && mv -f "$marker.$$" "$marker" 2>/dev/null; }; then
     # No marker, no per-text bound: honour the shared flag here only, so unwritable state cannot block the same turn forever.
     [ "$sha_active" = "true" ] && pass_turn
   fi
 
   if [ "$mode" = "block" ]; then
-    mkdir -p "$state_dir" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
+    mkdir -p "$state_dir" 2>/dev/null && { awk -v k="$ctxk" '$1 != k && NF == 2' "$claimed" 2>/dev/null | tail -n 127; printf '%s %s\n' "$ctxk" "$verdict"; } > "$claimed.$$" 2>/dev/null \
+      && mv -f "$claimed.$$" "$claimed" 2>/dev/null
   fi
 
   local msg note
