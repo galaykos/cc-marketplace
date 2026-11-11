@@ -1160,6 +1160,18 @@ check-receipt.sh — `run` runs a check from the repo root and records it in .cl
 Fresh: same HEAD, exit 0, its own log ending `exit 0`, and an unchanged digest of tracked changes, untracked files and root .env* files.
 ```
 
+### 2026-11-11 — the copied index kept no time
+
+`tree_digest` copied `.git/index` with plain `cp`, so the copy's mtime was the moment of the copy. Git treats an
+entry as possibly changed ("racily clean") only when the file's mtime is not older than the index's; with a newer
+index it trusts size and time. A same-size edit soon after the receipt (`echo b > a.txt` over `a`) could then go
+unseen and `check` printed `fresh`. Seen as `board-core.test.sh` "receipt agreement, stale" red in CI on PR #269
+(the push to master before it failed in the same step; its log was not readable, so that it was the same test is
+not confirmed). Loop in a fresh repo, 300 runs each, one machine (Linux 7.0, git on ext4): plain `cp` 6 wrongly
+fresh, `cp -p` 0. `git-workflow/scripts/receipt-fresh.sh` carries the same function and got the same change,
+unmeasured on its own. Not established: why the file's time and the index's time compare that way on this
+kernel; the fix is by measurement, not by a full account of the cause.
+
 ## plugins/task-runner/scripts/code-redteam-diff.sh
 
 ### Header

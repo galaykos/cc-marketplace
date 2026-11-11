@@ -30,7 +30,7 @@ tree_digest() {
   idx=$(git -C "$ROOT" rev-parse --git-path index) || return 1
   case "$idx" in /*) ;; *) idx="$ROOT/$idx" ;; esac
   tmp=$(mktemp "${TMPDIR:-/tmp}/receipt-index.XXXXXX") || return 1
-  if ! cp "$idx" "$tmp" 2>/dev/null; then rm -f "$tmp"; return 1; fi
+  if ! cp -p "$idx" "$tmp" 2>/dev/null; then rm -f "$tmp"; return 1; fi
   GIT_INDEX_FILE=$tmp
   if ! { git -C "$ROOT" ls-files -z --others --exclude-standard -- . ':(exclude).claude/' ':(exclude)taskmaster-docs/' &&
     git -C "$ROOT" ls-files -z --others --exclude-standard -- .claude/skills .claude/agents .claude/commands .claude/hooks .claude/settings.json &&
