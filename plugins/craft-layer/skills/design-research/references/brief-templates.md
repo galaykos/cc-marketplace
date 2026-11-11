@@ -93,9 +93,9 @@ Ambition: <the contract's pinned tier, and at `maximal` which surface carries th
   system, which capabilities make up the three, and which surface carries the escalation>.
 Banned vocabulary: <copied VERBATIM from the divergence record's negative-constraints block,
   or the literal word `none`>.
-Copy voice: <the run's `Voice:` line, copied from `craft/build-task.md` — person and address ·
-  sentence-length band · what it does with fragments, questions and imperatives · 2–3 literal
-  NEVERs. The four dimensions, the line shape and the standing split are owned by
+Voice: <the run's voice line, ON ONE LINE — person and address · sentence-length band · what
+  it does with fragments, questions and imperatives · 2–3 literal NEVERs. The four dimensions,
+  the line shape and the standing split are owned by
   `../../creative-direction/references/voice-contract.md`; this line CARRIES it, never
   re-derives it. An adjective ("confident", "warm") is not a value here — it survives into no
   sentence>.
@@ -122,9 +122,7 @@ name as a small caps label above it; what-it-buys as a plain list, no cards, no
 shadows. Interaction: the rail stays put while the list scrolls past it; the
 monthly/annual switch re-renders the figure in place. Motion: the figure
 interpolates on switch — nothing else animates in this section.
-Copy voice: second person, addresses the reader directly · 6–14 words a sentence ·
-fragments allowed as list items, never as headings · NEVER "everything you need",
-NEVER a two-clause imperative headline, NEVER "simple, powerful, flexible".
+Voice: second person, addresses the reader directly · 6–14 words a sentence · fragments allowed as list items, never as headings · NEVER "everything you need", NEVER a two-clause imperative headline, NEVER "simple, powerful, flexible".
 Responsive: rail becomes a sticky header strip at phone; the list keeps its measure.
 Patterns from stripe.com/pricing (tier hierarchy) and linear.app (restraint).
 ```
@@ -146,9 +144,10 @@ Rules:
   (`creative-direction/references/register-corpus.md`), and `Voice:` the voice gate — the one
   line whose ABSENCE is itself a scripted FAIL rather than a `not checked`
   (`creative-direction/references/voice-contract.md`).
-- **`Spine regions:` is ONE LINE, never wrapped.** `divergence.mjs` reads the line the key
-  sits on and nothing else, so every pair after a wrap is dropped in silence and a wrap before
-  a buyer slot skips the gate outright. Same hard rule, same words, as `concept-deck.md`'s
+- **`Spine regions:` and `Voice:` are ONE LINE each, never wrapped.** `divergence.mjs` reads the
+  line the key sits on and nothing else, so every pair after a wrap is dropped in silence and a
+  wrap before a buyer slot skips the gate outright; a NEVER wrapped onto the next line is never
+  read, and a line left with none FAILs. Same hard rule, same words, as `concept-deck.md`'s
   `Banned …` keys.
 - Reference token DIRECTION by adjective ("compact density"), never token values; the
   worker resolves them via `design-tokens`.

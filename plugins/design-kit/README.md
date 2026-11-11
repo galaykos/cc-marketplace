@@ -43,7 +43,13 @@ needs Node and installs `pptxgenjs` into `.design-kit/.cache/` after asking.
 live reload over Server-Sent Events injected into each page, `/_index.json` for
 scripts. `--lan` binds every interface so a phone on your network can open it — that
 is the only way a page leaves the machine through the server, and every skill says
-so before using it. Port 8123 belongs to the taskmaster/ui-ux mockup server and is
+so before using it. A LAN server ends itself after 60 minutes
+(`DESIGN_KIT_LAN_MINUTES`; `0` means no limit), and while one runs every later
+command says LAN mode is still on. The server never returns a dot-prefixed file or
+folder, `auth/`, its own state files (`workshop.json`, `decisions.jsonl`,
+`usage.jsonl`, `*.versions.json`) or a directory listing; every other file under
+`.design-kit/` is readable by whoever can reach the port, signed-in screenshots
+included. Port 8123 belongs to the taskmaster/ui-ux mockup server and is
 never used here. One write route exists, `/_decision` — loopback only, header-gated,
 append-only (see the next section); export and publish stay scripts.
 

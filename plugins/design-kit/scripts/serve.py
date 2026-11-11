@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: GET / a gallery (flow strip from workshop.json, a token badge per page), /_events SSE live reload (0.75 s mtime poll), /_index.json the listing with each page's tokens stamp, /<path> static with the reload snippet injected (never for a headless browser or ?static=1); POST /_decision, the one write route, appends a board's pick to <docroot>/decisions.jsonl — loopback only, X-Design-Kit-Decision header, <= 8 KiB of JSON, else 403 / 413 / 400. --lan binds 0.0.0.0; /_decision stays loopback.
-Misses: no auth (LAN mode is for your own network); export, restore and publish are scripts, not routes; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
+Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: GET / a gallery (flow strip from workshop.json, a token badge per page), /_events SSE live reload (0.75 s mtime poll), /_index.json the listing with each page's tokens stamp, /<path> static with the reload snippet injected (never for a headless browser or ?static=1); POST /_decision, the one write route, appends a board's pick to <docroot>/decisions.jsonl — loopback only, X-Design-Kit-Decision header, <= 8 KiB of JSON, else 403 / 413 / 400. Never served: a dot-prefixed file or folder, auth/, the state files in IGNORED, *.versions.json, a directory listing (404). /_decision also needs a loopback Host and, when sent, a loopback Origin. --lan binds 0.0.0.0 and exits after DESIGN_KIT_LAN_MINUTES (default 60; 0 = no limit); /_decision stays loopback.
+Misses: no auth (LAN mode is for your own network, and every page, image and other non-state file under the docroot is readable there, signed-in screenshots included); a page served from this origin can still POST /_decision, so a bundled page carrying third-party script can plant a pick; export, restore and publish are scripts, not routes; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
@@ -26,9 +26,33 @@ RELOAD_SNIPPET = (
     '</script>'
 )
 PAGE_EXT = (".html", ".htm")
-IGNORED = {".preview.pid", ".preview.url", "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl"}
+IGNORED = {".preview.pid", ".preview.url", ".preview.bind", "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl"}
+PRIVATE_DIRS = {"auth"}
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 DECISION_MAX = 8 * 1024
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
+
+def _servable(parts):
+    """False for state, session and hidden files: they sit in the docroot but are not pages."""
+    if not parts:
+        return True
+    if any(p.startswith(".") for p in parts) or parts[0].lower() in PRIVATE_DIRS:
+        return False
+    name = parts[-1].lower()
+    return name not in IGNORED and not name.endswith(".versions.json")
+
+
+def _loopback_host(value):
+    """True when a Host header or an Origin names this machine (a rebound DNS name does not)."""
+    if "//" not in value:
+        value = "//" + value
+    try:
+        return urlsplit(value).hostname in LOOPBACK_HOSTS
+    except ValueError:
+        return False
+
+
 TOKENS_META = re.compile(r'<meta\s+name="design-kit-tokens"\s+content="([0-9a-f]{12})[^"]*"', re.I)
 
 
@@ -214,7 +238,7 @@ def _gallery_html(pages, live=True, root=None):
             elif tok.get("current") is False:
                 badge = "<span class=\"badge stale\" title=\"design-system/tokens.json changed after this page was built — rebuild it\">tokens moved since build</span>"
             parts.append(
-                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" src=\"{href}\" title=\"{html.escape(p['title'])}\"></iframe>"
+                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" src=\"{href}?static=1\" title=\"{html.escape(p['title'])}\"></iframe>"
                 f"<div class=\"t\">{html.escape(p['title'])}{badge}</div><div class=\"p\">{html.escape(p['path'])} · {when}</div></a>"
             )
         parts.append("</div>")
@@ -246,6 +270,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
             path = "/index.html"
         full = self.translate_path(path)
+        if not _servable(os.path.relpath(full, self.root).split(os.sep) if full != self.root else []):
+            return self.send_error(HTTPStatus.NOT_FOUND)
         if os.path.isfile(full) and full.lower().endswith(PAGE_EXT):
             try:
                 with open(full, "rb") as fh:
@@ -259,12 +285,19 @@ class Handler(SimpleHTTPRequestHandler):
             return self._bytes(body, "text/html; charset=utf-8")
         return super().do_GET()
 
+    def list_directory(self, path):
+        self.send_error(HTTPStatus.NOT_FOUND)
+        return None
+
     def do_POST(self):
         path = urlsplit(self.path).path
         if path != "/_decision":
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
         if self.client_address[0] not in LOOPBACK:
             return self._reject(HTTPStatus.FORBIDDEN, "decisions are recorded from this machine only")
+        origin = self.headers.get("Origin")
+        if not _loopback_host(self.headers.get("Host") or "") or (origin and not _loopback_host(origin)):
+            return self._reject(HTTPStatus.FORBIDDEN, "decisions are recorded from a page opened on this machine's own address")
         if not self.headers.get("X-Design-Kit-Decision"):
             return self._reject(HTTPStatus.FORBIDDEN, "missing X-Design-Kit-Decision header")
         try:
@@ -372,6 +405,14 @@ def main(argv=None):
         return 4
     srv.daemon_threads = True
     stop = threading.Event()
+    try:
+        lan_minutes = float(os.environ.get("DESIGN_KIT_LAN_MINUTES", "60"))
+    except ValueError:
+        lan_minutes = 60.0
+    if args.lan and lan_minutes > 0:
+        timer = threading.Timer(lan_minutes * 60, srv.shutdown)
+        timer.daemon = True
+        timer.start()
     threading.Thread(target=_watch, args=(root, state, stop), daemon=True).start()
     print(f"design-kit: serving {root} on http://{bind}:{args.port}/", flush=True)
     try:

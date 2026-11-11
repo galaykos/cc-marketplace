@@ -1,6 +1,6 @@
 ---
 name: aceternity-best-practices
-description: Use when building or reviewing Aceternity UI (ui.aceternity.com) motion-heavy marketing/landing components — placement limits, motion deps, perf budgets, reduced-motion, theming.
+description: Use when building or reviewing motion-heavy marketing/landing components from Aceternity UI, Magic UI or React Bits — placement limits, motion deps, perf budgets, reduced-motion, theming.
 ---
 
 ## What Aceternity is — and where it belongs

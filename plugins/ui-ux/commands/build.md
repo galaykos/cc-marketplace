@@ -18,7 +18,7 @@ concept stage to avoid. When a decided line and a best-practice default conflict
 decided line wins and the conflict is reported — not quietly resolved toward the
 convention.
 
-1. Detect the stack from the repo (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind,
+1. Detect the stack from the repo (shadcn, ReUI, Aceternity, Astryx, Material UI, PrimeReact, Tailwind,
    Bootstrap, plain CSS3, Grid/Flexbox, React/Vue) so the right best-practice skill and
    token conventions apply. Any other component library — headless or styled — is governed
    by `ui-libraries:component-libraries` and its `references/library-map.md` (the `ui-libraries`
@@ -44,7 +44,7 @@ convention.
 
 3. Dispatch the `ui-ux-engineer` worker with the request, instructing it to apply this
    plugin's relevant skills: the matching stack best-practice skill (shadcn/tailwind here;
-   reui/aceternity/astryx/mui, or `component-libraries` for any other, from the `ui-libraries`
+   reui/aceternity/astryx/mui/primereact, or `component-libraries` for any other, from the `ui-libraries`
    plugin as `ui-libraries:<skill>`), `design-tokens` for
    spacing/type/radius/elevation/motion
    from the scale (no magic numbers), and `shadcn-theming` when colors are in play.

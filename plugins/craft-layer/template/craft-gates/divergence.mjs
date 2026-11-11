@@ -15,7 +15,7 @@ const SNAPSHOT = {
   ].join(' '),
 }
 
-// The violet/indigo band generated pages converge on; it never ages out of the recency window. Read in each token's own colour space.
+// The violet/indigo band generated pages converge on; it never ages out of the recency window. OKLCH hue: every notation is converted first.
 const DEFAULT_BAND = [275, 315]
 
 /** A corpus's own `verified:` stamp, never its mtime (the date bytes moved, not the date anyone reviewed it); proves only what the file says; an unstamped corpus shows its mtime, labelled so. */
@@ -76,44 +76,10 @@ const hueFamily = (h) => (WHEEL.find(([a, b]) => norm(h) >= a && norm(h) < b) ??
 
 const num = (s) => parseFloat(String(s).replace(/deg|%/g, ''))
 
-/** oklch(L C H) / hsl(H S% L%) / #rrggbb -> hue angle, or null when achromatic. */
-function toHue(value) {
-  const v = value.trim()
-  let m = v.match(/^oklch\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
-  if (m) return num(m[2]) === 0 ? null : norm(num(m[3]))
-  m = v.match(/^hsla?\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
-  if (m) return num(m[2]) === 0 ? null : norm(num(m[1]))
-  m = v.match(/^#([0-9a-f]{6})\b/i)
-  if (m) {
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255)
-    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
-    if (d === 0) return null
-    let h
-    if (max === r) h = 60 * (((g - b) / d) % 6)
-    else if (max === g) h = 60 * ((b - r) / d + 2)
-    else h = 60 * ((r - g) / d + 4)
-    return norm(h)
-  }
-  return null
-}
+/** 0..1 OKLCH chroma; only ranks tokens when no accent is named. */
+const toChroma = (value) => Math.min((toOklch(value)?.c ?? 0) / 0.37, 1)   // 0.37 is about the sRGB chroma ceiling
 
-/** 0..1 saturation comparable across notations; only ranks tokens when no accent is named. */
-function toChroma(value) {
-  const v = value.trim()
-  let m = v.match(/^oklch\(\s*([^\s,]+)[\s,]+([^\s,]+)/i)
-  if (m) return Math.min(num(m[2]) / 0.37, 1) // 0.37 is about the sRGB chroma ceiling
-  m = v.match(/^hsla?\(\s*([^\s,]+)[\s,]+([^\s,]+)/i)
-  if (m) return num(m[2]) / 100
-  m = v.match(/^#([0-9a-f]{6})\b/i)
-  if (m) {
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255)
-    const max = Math.max(r, g, b), min = Math.min(r, g, b)
-    return max === 0 ? 0 : (max - min) / max
-  }
-  return 0
-}
-
-/** oklch() / hsl() / #rrggbb -> { c, h } in OKLCH, one space for every notation unlike toHue; h null when achromatic, null when unparsed. */
+/** oklch() / hsl() / a bare `H S% L%` triplet / rgb() / #rgb[a] / #rrggbb[aa] -> { c, h } in OKLCH, one space for every notation; h null when achromatic, null when unparsed. */
 function toOklch(value) {
   const v = value.trim()
   let m = v.match(/^oklch\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
@@ -122,16 +88,22 @@ function toOklch(value) {
     return { c, h: c === 0 ? null : norm(num(m[3])) }
   }
   let rgb = null
-  m = v.match(/^#([0-9a-f]{6})\b/i)
-  if (m) rgb = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255)
+  m = v.match(/^#([0-9a-f]{3,8})\b/i)
+  if (m && [3, 4, 6, 8].includes(m[1].length)) {
+    const hex = m[1].length <= 4 ? [...m[1]].map((x) => x + x).join('') : m[1]
+    rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  }
+  m = v.match(/^rgba?\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
+  if (m) rgb = [m[1], m[2], m[3]].map((x) => (/%$/.test(x) ? num(x) / 100 : num(x) / 255))
   m = v.match(/^hsla?\(\s*([^\s,]+)[\s,]+([^\s,]+)[\s,]+([^\s,)/]+)/i)
+    ?? v.match(/^([\d.]+(?:deg)?)\s+([\d.]+%)\s+([\d.]+%)/)   // shadcn / Tailwind v3 write hsl with no function
   if (m) {
     const h = norm(num(m[1])), s = num(m[2]) / 100, l = num(m[3]) / 100
     const k = (n) => (n + h / 30) % 12
     const a = s * Math.min(l, 1 - l)
     rgb = [0, 8, 4].map((n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)))
   }
-  if (!rgb) return null
+  if (!rgb?.every(Number.isFinite)) return null
   const [r, g, b] = rgb.map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
   const L = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
   const M = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
@@ -142,17 +114,15 @@ function toOklch(value) {
   return { c, h: c < 1e-3 ? null : norm((Math.atan2(B, A) * 180) / Math.PI) }
 }
 
-const oklchHue = (value) => toOklch(value)?.h ?? null
-
 /** Accent-ish custom properties, in declaration order. */
 function readAccents(css) {
   const out = []
   const all = []
   for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;}]+)/g)) {
     const name = m[1]
-    const hue = toHue(m[2])
-    if (hue === null) continue
-    const entry = { name, value: m[2].trim(), hue, chroma: toChroma(m[2]), family: hueFamily(hue) }
+    const o = toOklch(m[2])
+    if (!o || o.h === null) continue
+    const entry = { name, value: m[2].trim(), hue: o.h, c: o.c, chroma: toChroma(m[2]), family: hueFamily(o.h) }
     all.push(entry)
     if (/accent|primary|brand/i.test(name)) out.push(entry)
   }
@@ -295,7 +265,7 @@ function brandEcho() {
 
 const ECHO_COLOUR = /oklch\([^)]*\)|hsla?\([^)]*\)|#[0-9a-f]{6}\b/gi
 
-// Under 0.05 OKLCH chroma an echoed colour is a tinted neutral ink, not an accent.
+// Under 0.05 OKLCH chroma a colour is a tinted neutral ink, not an accent: an echo of one exempts nothing, and the default band does not judge one (zinc sits at 286°).
 const ECHO_CHROMA_FLOOR = 0.05
 
 /** A `Brand echo:` value's accent hues (OKLCH) and the text outside parentheses a family must appear in whole-word. Misses 3-digit hex and named colours; "Inter" matches "Inter Display" and "not Inter". */
@@ -769,6 +739,10 @@ function emojiAsIcon(files) {
 
 const escapeLiteral = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, String.raw`\s+`)
 
+/* A table header, a label or a button set in caps is UI chrome, not an eyebrow: the eyebrow row skips copy inside one. */
+const EYEBROW = 'all-caps eyebrow'
+const CAPS_CHROME_RE = /<(th|tablehead|label|button)\b[\s\S]*?<\/\1\s*>/gi
+
 function copyRegister(files, lexicon, voice) {
   if (!files.length) return record('copy-register', 'SKIP', 'no shipped page source found to hold copy')
   /* The run's own NEVERs ride the lexicon as extra rows; whitespace is relaxed so a wrapped literal still matches. */
@@ -782,8 +756,10 @@ function copyRegister(files, lexicon, voice) {
   if (!compiled.length) return record('copy-register', 'SKIP', 'the copy lexicon compiled no patterns')
   const raw = []
   for (const { file, src } of files) {
+    const chrome = [...src.matchAll(CAPS_CHROME_RE)].map((m) => [m.index, m.index + m[0].length])
     for (const c of copyChunks(src)) {
       for (const { label, min, re } of compiled) {
+        if (label === EYEBROW && chrome.some(([a, b]) => c.at >= a && c.at < b)) continue
         re.lastIndex = 0
         const m = re.exec(c.text)
         /* A phrase can span a source line break; collapsed so the report stays one row. */
@@ -814,7 +790,7 @@ function copyRegister(files, lexicon, voice) {
       + `the repetition rows (eyebrow, trailing arrow) need ${Math.max(...compiled.map((c) => c.min))} distinct chunks before they do`)
 }
 
-/* utility-palette and utility-font: the category-default hue and family arriving through class strings, next/font imports or Google Fonts links, which accent-default-band and font-anti-corpus (CSS only) never see. Source-only, so they survive an exit-2 run. Misses: class lists built in variables or cn(), colours through props, in-band hex outside DEFAULT_SWATCHES where sRGB and oklch disagree, a Noto face through a class string. */
+/* utility-palette and utility-font: the category-default hue and family arriving through class strings, next/font imports or Google Fonts links, which accent-default-band and font-anti-corpus (CSS only) never see. Source-only, so they survive an exit-2 run. Misses: class lists built in variables or cn(), colours through props, a Noto face through a class string. */
 
 // indigo/violet/purple are derived from DEFAULT_BAND (500-step oklch hues 277.1/292.7/303.9; blue and fuchsia fall outside): re-derive them if the band moves.
 const UTIL_PROP = 'bg|text|border|from|via|to|ring|shadow|decoration|outline|fill|stroke'
@@ -824,9 +800,10 @@ const CLASS_HEX_RE = /\[#([0-9a-fA-F]{6})\]/g
 const STYLE_RE = /\bstyle\s*=\s*(?:\{\{([\s\S]*?)\}\}|"([^"]*)"|'([^']*)')/g
 const HEX_RE = /#([0-9a-fA-F]{6})\b/g
 
-const inBand = (h) => h !== null && h >= DEFAULT_BAND[0] && h <= DEFAULT_BAND[1]
+/** An OKLCH hue and chroma inside the default band; a tinted neutral is not judged. */
+const inBand = (h, c) => h !== null && c >= ECHO_CHROMA_FLOOR && h >= DEFAULT_BAND[0] && h <= DEFAULT_BAND[1]
 
-/* toHue reads hex in sRGB, where these in-band swatches fall below 275° (indigo-500 #6366f1: 238.7° sRGB, 277.1° oklch), so they are named: steps 400/500/600 of the three families. Converting hex to oklch would flip accent-default-band for every existing build. */
+/* Steps 400/500/600 of the three in-band families, named so the report says which default swatch a hex is; read in OKLCH they are inside the band anyway. */
 const DEFAULT_SWATCHES = new Set([
   '6366f1', '818cf8', '4f46e5',   // indigo 500 / 400 / 600
   '8b5cf6', 'a78bfa', '7c3aed',   // violet
@@ -851,20 +828,20 @@ function utilityPalette(files, kept) {
       }
       /* A hex in a class string skips the token layer by construction; band-gated, so chart series and third-party marks pass. */
       for (const h of cls.matchAll(CLASS_HEX_RE)) {
+        const o = toOklch(`#${h[1]}`)
         if (isDefaultSwatch(h[1])) {
-          all.push({ how: 'default swatch as hex', marker: `#${h[1]}`, file: rel(file), line: at, hue: oklchHue(`#${h[1]}`) })
+          all.push({ how: 'default swatch as hex', marker: `#${h[1]}`, file: rel(file), line: at, hue: o.h })
           continue
         }
-        const hue = toHue(`#${h[1]}`)
-        if (inBand(hue)) all.push({ how: `arbitrary value, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: h[0], file: rel(file), line: at, hue: oklchHue(`#${h[1]}`) })
+        if (inBand(o.h, o.c)) all.push({ how: `arbitrary value, ${o.h.toFixed(1)}° ${hueFamily(o.h)}, not a token`, marker: h[0], file: rel(file), line: at, hue: o.h })
       }
     }
     for (const s of src.matchAll(STYLE_RE)) {
       const decl = s[1] ?? s[2] ?? s[3] ?? ''
       const at = lineAt(src, s.index)
       for (const h of decl.matchAll(HEX_RE)) {
-        const hue = toHue(`#${h[1]}`)
-        if (inBand(hue)) all.push({ how: `inline style, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: `#${h[1]}`, file: rel(file), line: at, hue: oklchHue(`#${h[1]}`) })
+        const o = toOklch(`#${h[1]}`)
+        if (inBand(o.h, o.c)) all.push({ how: `inline style, ${o.h.toFixed(1)}° ${hueFamily(o.h)}, not a token`, marker: `#${h[1]}`, file: rel(file), line: at, hue: o.h })
       }
     }
   }
@@ -953,7 +930,19 @@ function utilityFont(files, corpus, kept) {
 /* poster-first: in the hero (the build task's plain-what anchor, else a `hero` id or class, else a file named for it), a <video> owes a poster and a canvas, R3F <Canvas>, Spline, Unicorn Studio or <model-viewer> owes a still image. A CSS gradient is not one (motion-tiers/references/hosted-runtimes.md § Arrival). */
 const HERO_MOTION = new Set(['video', 'canvas', 'Canvas', 'spline-viewer', 'Spline', 'model-viewer', 'UnicornScene'])
 const HERO_STILL_RE = /<(?:img|picture|Image)\b(?![^>]*\b(?:logo|icon|avatar|badge)\b)[^>]*>|\bposter\s*=|<\w*(?:Poster|Still)\b|background-image\s*:\s*url\(|\bbg-\[url\(/
-const HERO_ATTR_RE = /\b(?:id|class|className)\s*=\s*(?:"[^"]*\bhero\b[^"]*"|'[^']*\bhero\b[^']*'|\{\s*[`"'][^`"']*\bhero\b)/i
+const HERO_ATTRS_RE = /\b(?:id|class|className)\s*=\s*(?:"[^"]*\bhero\b[^"]*"|'[^']*\bhero\b[^']*'|\{\s*[`"'][^`"']*\bhero\b)/gi
+const VOID_TAG = /^(?:area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/i
+
+/** The nearest element whose balanced region holds `inner` (a region from regionAt whose tag holds `at`), or null. */
+function enclosing(src, at, inner) {
+  for (let lt = src.lastIndexOf('<', src.lastIndexOf('<', at) - 1), n = 0; lt >= 0 && n < 400; lt = src.lastIndexOf('<', lt - 1), n++) {
+    const t = /^<([A-Za-z][\w.:-]*)/.exec(src.slice(lt, lt + 80))
+    if (!t || VOID_TAG.test(t[1])) continue
+    const r = regionAt(src, lt + 1)
+    if (r && !r.selfClosing && r.end >= inner.end) return r
+  }
+  return null
+}
 
 /** The end of the opening tag at `i`, past quoted values and JSX `{…}`: `onCanPlay={() => go()}` does not close it. */
 function tagEnd(s, i) {
@@ -993,8 +982,13 @@ function posterFirst(files, spine) {
   const anchors = (spine?.map?.['plain-what'] ?? []).map((a) => a.replace(/^#/, ''))
   for (const { file, src } of files) {
     for (const a of anchors) keep(file, src, regionFor(src, a), `plain-what #${a}`)
-    const m = HERO_ATTR_RE.exec(src)
-    if (m) keep(file, src, regionAt(src, m.index), 'a hero id or class')
+    // Every hero id or class, not the first: a `hero-title` h1 ahead of the hero holds no motion.
+    for (const m of src.matchAll(HERO_ATTRS_RE)) {
+      const region = regionAt(src, m.index)
+      // A `hero-video` <video> or `hero-canvas` is the motion, not the hero: grade it in the element around it.
+      const motion = region && HERO_MOTION.has(region.tag)
+      keep(file, src, motion ? enclosing(src, m.index, region) ?? { ...region, start: src.lastIndexOf('<', m.index) } : region, 'a hero id or class')
+    }
     if (/hero/i.test(basename(file))) keep(file, src, { start: 0, end: src.length }, 'a file named for the hero')
   }
   if (!heroes.length) {
@@ -1318,6 +1312,12 @@ function readStamp(p) {
   return null
 }
 
+/** The one `Run:` stamp every resolved artifact carries, for this project; null when none does, they disagree, or it names another project. */
+function runStamp() {
+  const stamps = Object.values(ARTIFACT_PATHS).map((list) => firstExisting(list())).filter(Boolean).map(readStamp)
+  return stamps.length && stamps.every((s) => s && s === stamps[0]) && !foreignProject(stamps[0]) ? stamps[0] : null
+}
+
 const realish = (p) => { try { return realpathSync(p) } catch { return resolve(p) } }
 
 /** The stamp's third field when it names another project; a non-absolute or absent field is no mismatch. */
@@ -1445,7 +1445,7 @@ try {
 const accents = readAccents(css)
 if (!accents.length) {
   console.log(`\nnot measured: ${tokenPath} declares no parseable accent/primary/brand colour`)
-  console.log('(oklch(), hsl() and 6-digit hex are understood; an achromatic accent has no hue).')
+  console.log('(oklch(), hsl(), a bare `H S% L%` triplet, rgb() and hex are understood; an achromatic accent has no hue).')
   console.log('NOT MEASURED IS A FAILURE HERE — see the file header.')
   flushEarly()
   process.exit(2)
@@ -1466,7 +1466,7 @@ const families = [...new Set(cssFiles.flatMap((f) => {
 
 const drawn = readDraw()
 
-/* A last log row matching this run's draw or its hue family (the no-record fallback, applied always) is this run's own row: excluded with a note, so a re-run never fails as a repeat of itself. */
+/* A last log row carrying this run's draw, or this run's stamp slug and date, is this run's own row (audit.md appends it after the audit, so a re-run sees it): excluded with a note. A hue match is not identity: the previous run may share the hue, which is the repeat this gate exists to catch. */
 const logAll = readRunLog(notes)
 let log = logAll
 if (logAll.length) {
@@ -1475,34 +1475,38 @@ if (logAll.length) {
 
   const drawMatch =
     drawn && norm(last.draw) === norm(AXES.map((a) => drawn.draw[a]).join(' / '))
-  const hueMatch =
-    accents.length > 0 && norm(last['hue-family'] ?? '').includes(norm(accents[0].family))
+  const [instant, slug] = (runStamp() ?? '').split('·').map(norm)
+  const stampMatch = !!slug && norm(last['brief-slug']) === slug
+    && !!norm(last.date) && (norm(last.date) === instant || instant.startsWith(norm(last.date)))
 
-  if (drawMatch || hueMatch) {
+  if (drawMatch || stampMatch) {
     log = logAll.slice(0, -1)
     notes.push(
-      `last log row is THIS run's own record (matched on ${drawMatch ? 'draw' : 'hue family'})` +
+      `last log row is THIS run's own record (matched on ${drawMatch ? 'draw' : 'the Run: stamp\'s slug and date'})` +
         ' — excluded from the repeat assertions, because a run is not a repeat of itself',
     )
+  } else if (!drawn && !slug) {
+    notes.push('the last log row could not be tied to a run (no divergence-record draw, no single Run: stamp) — '
+      + 'graded as the previous run; if THIS run already appended it, its repeat verdicts compare it with itself')
   }
 }
 
 if (echo) notes.push(`brand-echo row found in ${echo.path} ("${echo.value}") — repeat assertions skipped`)
 
 {
-  const inBand = accents.filter((a) => a.hue >= DEFAULT_BAND[0] && a.hue <= DEFAULT_BAND[1])
-  const echoed = inBand.filter((a) => echoesHue(kept, oklchHue(a.value)))
-  const hit = inBand.find((a) => !echoed.includes(a))
+  const banded = accents.filter((a) => inBand(a.hue, a.c))
+  const echoed = banded.filter((a) => echoesHue(kept, a.hue))
+  const hit = banded.find((a) => !echoed.includes(a))
   const echoedNames = [...new Set(echoed.map((a) => a.name))]
   if (echoed.length) {
     notes.push(`accent-default-band: ${echoedNames.join(', ')} echo the kept brand named in ${echo.path} — not a finding`)
   }
   settle('accent-default-band', !!hit, hit ? Math.round(hit.hue) : '',
-    hit ? `${hit.name}: ${hit.value} — hue ${hit.hue.toFixed(1)}° (${hit.family}) is inside the `
+    hit ? `${hit.name}: ${hit.value} — OKLCH hue ${hit.hue.toFixed(1)}° (${hit.family}) is inside the `
       + `${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° category-default band. Reproduce: `
       + `grep -n '${hit.name}' ${tokenPath}` : '',
-    `accents at ${accents.map((a) => `${Math.round(a.hue)}° ${a.family}`).join(', ')} clear the `
-      + `${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° band`
+    `accents at ${accents.map((a) => `${Math.round(a.hue)}° ${a.family}${a.c < ECHO_CHROMA_FLOOR ? ' (a tinted neutral)' : ''}`).join(', ')} `
+      + `clear the ${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° OKLCH band`
       + (echoed.length ? ` or echo the kept brand (${echoedNames.join(', ')})` : ''))
 }
 

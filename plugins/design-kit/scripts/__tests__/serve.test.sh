@@ -32,6 +32,20 @@ for probe in "/../$(basename "$tmp").outside.txt" "/%2e%2e/$(basename "$tmp").ou
   curl -s --path-as-is "http://127.0.0.1:$port$probe" | grep -qE "OUTSIDE|root:" && { echo "FAIL: path traversal via $probe"; exit 1; }
 done
 rm -f "$tmp.outside.txt"
+# never served: hidden files, auth/, state files, version ledgers, directory listings
+mkdir -p "$tmp/auth" "$tmp/artifacts/.versions/a" "$tmp/shots"
+echo '{"cookies":[{"value":"SECRET"}]}' > "$tmp/auth/walk.json"
+echo '{"s":"SECRET"}' > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
+echo '<p>SECRET</p>' > "$tmp/artifacts/.versions/a/v1.html"; echo '{"s":"SECRET"}' > "$tmp/artifacts/a.versions.json"
+printf 'PNG' > "$tmp/shots/one.png"
+for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /usage.jsonl /.preview.pid /.preview.url /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
+  c="$(curl -s -o "$tmp/.resp" -w '%{http_code}' "http://127.0.0.1:$port$probe")"
+  [ "$c" = 404 ] || { echo "FAIL: $probe should be 404, got $c"; exit 1; }
+  grep -q "SECRET\|one.png" "$tmp/.resp" && { echo "FAIL: $probe leaked its content"; exit 1; }
+done
+[ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }
+# gallery thumbnails must not each hold an SSE connection (six fill a browser's per-host pool)
+case "$gal" in *'src="/decks/a.html?static=1"'*) ;; *) echo "FAIL: gallery iframe lacks ?static=1"; exit 1 ;; esac
 # /_decision: the one write route — loopback + header + size + JSON, append-only
 post() { curl -s -o "$tmp/.resp" -w '%{http_code}' -X POST "$@" "http://127.0.0.1:$port/_decision"; }
 c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' --data '{"board":"a.html","picked":1,"knobs":{},"text":{},"prompt":"pick 1"}')"
@@ -43,7 +57,12 @@ big="$(python3 -c 'print("{\"prompt\":\"" + "x"*9000 + "\"}")')"
 c="$(post -H 'X-Design-Kit-Decision: 1' --data "$big")"; [ "$c" = 413 ] || { echo "FAIL: oversize should be 413, got $c"; exit 1; }
 c="$(post -H 'X-Design-Kit-Decision: 1' --data 'not json')"; [ "$c" = 400 ] || { echo "FAIL: bad json should be 400, got $c"; exit 1; }
 c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data '{}' "http://127.0.0.1:$port/decks/a.html")"; [ "$c" = 501 ] || { echo "FAIL: POST elsewhere should be 501, got $c"; exit 1; }
-[ "$(wc -l < "$tmp/decisions.jsonl" | tr -d ' ')" = 1 ] || { echo "FAIL: rejected posts must not append"; exit 1; }
+ok_body='{"board":"a.html","picked":2,"prompt":"planted"}'
+c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Host: attacker.example' --data "$ok_body")"; [ "$c" = 403 ] || { echo "FAIL: a foreign Host should be 403, got $c"; exit 1; }
+c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Origin: http://attacker.example' --data "$ok_body")"; [ "$c" = 403 ] || { echo "FAIL: a foreign Origin should be 403, got $c"; exit 1; }
+c="$(post -H 'X-Design-Kit-Decision: 1' -H "Origin: http://127.0.0.1:$port" --data '{"board":"a.html","picked":3}')"; [ "$c" = 200 ] || { echo "FAIL: the page's own Origin should be 200, got $c"; exit 1; }
+c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":4}' "http://localhost:$port/_decision")"; [ "$c" = 200 ] || { echo "FAIL: localhost should be 200, got $c"; exit 1; }
+[ "$(wc -l < "$tmp/decisions.jsonl" | tr -d ' ')" = 3 ] || { echo "FAIL: rejected posts must not append"; exit 1; }
 
 # token badge: a stamped page vs ../design-system/tokens.json
 mkdir -p "$tmp.ds/design-system"; printf '{"color":{"a":{"$value":"#000"}}}' > "$tmp.ds/design-system/tokens.json"

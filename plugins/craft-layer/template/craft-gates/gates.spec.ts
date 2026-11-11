@@ -584,29 +584,25 @@ test.describe('prefers-reduced-motion: reduce', () => {
 
   /* "Reduce" means LESS motion, not none. Colour and opacity fades are the
      RECOMMENDED substitute for movement under this preference, so flagging them
-     would fail every correctly-built site. What must not survive is MOTION:
-     transforms, and animations that move something. */
+     would fail every correctly-built site. What must not survive is MOTION: a CSS
+     keyframe animation whose keyframes set a moving property, or a CSS transition
+     that RUNS on one — at load, or while the pointer rests on one of the first
+     HOVER_CAP controls. A transition list that only NAMES transform (Tailwind's
+     `transition`) moves nothing, and `transition: all` moves when a transform
+     changes, so the run is what is read. A frame or less (the 0.01ms reset) is a snap.
+     Misses: transitions started by focus, click or drag; hover on anything past
+     those controls; keyframes in a cross-origin sheet that already finished are
+     counted as moving, since their tracks cannot be read. */
   test('page renders, and no MOTION survives (fades may)', async ({ page }) => {
-    await page.goto(URL)
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-    const moving = await page.evaluate(() => {
-      const MOTION = /transform|translate|rotate|scale|top|left|right|bottom|margin|inset/
-      return [...document.querySelectorAll('body *')]
-        .filter((el) => {
-          const cs = getComputedStyle(el)
-          const live = (s: string) => s.split(',').some((d) => parseFloat(d) > 0)
-          const movesOnTransition = live(cs.transitionDuration) && MOTION.test(cs.transitionProperty)
-          // any running keyframe animation is suspect: we cannot read its tracks here
-          const movesOnAnimation = live(cs.animationDuration) && cs.animationName !== 'none'
-          return movesOnTransition || movesOnAnimation
-        })
-        .slice(0, 5)
-        .map((el) => `${el.tagName}.${(el.className?.toString() || '').slice(0, 40)}`)
-    })
+    await page.addInitScript(recordTransitions)
+    await openReduced(page)
+    await rendered(page)
+    await hoverControls(page, HOVER_CAP)
+    const moving = await page.evaluate(cssMotion)
     expect(moving, 'these still MOVE under reduced motion').toEqual([])
   })
 
-  /* WHY THE FOUR TESTS BELOW EXIST. The one above reads computed CSS, and
+  /* WHY THE FOUR TESTS BELOW EXIST. The one above reads CSS animations and transitions, and
      GSAP, Motion's JS path, anime.js, Lenis and every canvas runtime write
      nothing a stylesheet shows: a build ignoring the preference in all of them
      passed it. Each test below watches one channel the CSS read cannot, and
@@ -615,8 +611,8 @@ test.describe('prefers-reduced-motion: reduce', () => {
      (same page, preference honoured) must not.
 
      What none of them sees, stated so a green is not read as more than it is:
-     motion that starts only after an interaction (hover, click, drag, a
-     carousel arrow); a scroll container other than the window; a small
+     motion that starts only after an interaction (click, drag, a carousel
+     arrow, a hover the CSS test does not make); a scroll container other than the window; a small
      scrubbed element on a page past ~8 viewports, where the 32-stop walk
      stretches its step and may see it at fewer than three stops;
      `top`/`left`/`margin` animated by JS; tweens shorter than ~250ms; visible
@@ -769,10 +765,101 @@ test.describe('prefers-reduced-motion: reduce', () => {
 })
 
 /** Open BASE_URL and wait for a rendered heading when one comes — not asserting
-    it: the CSS test above owns that failure, and five copies of it help nobody. */
+    it: a page is never failed here for how many h1s it has. */
 async function openReduced(page: Page) {
   await page.goto(URL)
   await page.getByRole('heading', { level: 1 }).first().waitFor({ timeout: 5000 }).catch(() => {})
+}
+
+const rendered = (page: Page) => expect(page.locator('body'), 'the page rendered nothing visible').toBeVisible()
+
+const HOVER_CAP = 40
+
+/** Init script: each CSS transition that starts on a moving property and lasts longer than a frame. */
+function recordTransitions() {
+  const w = window as unknown as { __craftTransitions: string[] }
+  w.__craftTransitions = []
+  const MOTION = /^(?:transform|translate|rotate|scale|top|left|right|bottom|offset-(?:distance|path))$|^margin|^inset/i
+  addEventListener('transitionrun', (e) => {
+    const el = e.target
+    if (!(el instanceof Element) || !MOTION.test(e.propertyName)) return
+    const run = document.getAnimations().find((a) => a instanceof CSSTransition && a.transitionProperty === e.propertyName
+      && (a.effect as KeyframeEffect | null)?.target === el && ((a.effect as KeyframeEffect).pseudoElement ?? '') === e.pseudoElement)
+    const ms = run ? Number(run.effect?.getTiming().duration ?? 0)
+      : Math.max(...getComputedStyle(el, e.pseudoElement || null).transitionDuration.split(',').map((d) => parseFloat(d) * 1000))
+    if (!(ms > 1000 / 60)) return
+    const cls = (el.getAttribute('class') || '').trim().split(/\s+/)[0]
+    const who = `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${cls ? '.' + cls : ''}${e.pseudoElement}: a ${e.propertyName} transition`
+    if (!w.__craftTransitions.some((l) => l.startsWith(who))) w.__craftTransitions.push(`${who} ran (${Math.round(ms)}ms)`)
+  }, true)
+}
+
+/** Rest the pointer on each of the first `cap` controls with a box, two frames apiece. */
+async function hoverControls(page: Page, cap: number) {
+  const n = await page.evaluate((cap) => {
+    const w = window as unknown as { __craftHover: Element[] }
+    w.__craftHover = [...document.querySelectorAll('a[href], button, [role="button"], summary, label, select, input:not([type="hidden"]), [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => el.getClientRects().length > 0).slice(0, cap)
+    return w.__craftHover.length
+  }, cap)
+  for (let i = 0; i < n; i++) {
+    const at = await page.evaluate((i) => {
+      const el = (window as unknown as { __craftHover: Element[] }).__craftHover[i]
+      if (!el?.isConnected) return null
+      el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' })
+      const r = el.getBoundingClientRect()
+      return r.width > 0 && r.height > 0 ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null
+    }, i)
+    if (!at) continue
+    await page.mouse.move(at.x, at.y)
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null)))))
+  }
+  await page.mouse.move(0, 0)
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+}
+
+/** In-page: CSS keyframe animations longer than a frame whose keyframes set a moving property,
+    then the transitions recordTransitions saw. Opacity, colour and filter tracks are the allowed fade. */
+function cssMotion() {
+  const MOTION = /^(?:transform|translate|rotate|scale|top|left|right|bottom|offset-(?:distance|path))$|^margin|^inset/i
+  const name = (el: Element) => {
+    const cls = (el.getAttribute('class') || '').trim().split(/\s+/)[0]
+    return `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${cls ? '.' + cls : ''}`
+  }
+  const frames = new Map<string, Set<string>>()
+  const walk = (rules: CSSRuleList) => {
+    for (const r of rules) {
+      if (r instanceof CSSKeyframesRule) {
+        const props = new Set<string>()
+        for (const k of r.cssRules) for (const p of (k as CSSKeyframeRule).style) props.add(p)
+        frames.set(r.name, props)
+      } else if (r instanceof CSSImportRule) {
+        try { if (r.styleSheet) walk(r.styleSheet.cssRules) } catch { /* cross-origin */ }
+      } else if ('cssRules' in r) walk((r as CSSGroupingRule).cssRules)
+    }
+  }
+  for (const s of [...document.styleSheets, ...document.adoptedStyleSheets]) {
+    try { walk(s.cssRules) } catch { /* cross-origin: read from the running animation below */ }
+  }
+  const out: string[] = []
+  for (const el of document.querySelectorAll('body *')) {
+    const cs = getComputedStyle(el)
+    if (cs.animationName === 'none') continue
+    const durs = cs.animationDuration.split(',').map((d) => parseFloat(d) * 1000)
+    cs.animationName.split(',').map((n) => n.trim()).forEach((n, i) => {
+      if (n === 'none' || !(durs[i % durs.length] > 1000 / 60)) return
+      let props = frames.get(n)
+      if (!props) {
+        const run = el.getAnimations().find((a) => a instanceof CSSAnimation && a.animationName === n)
+        const kfs = (run?.effect as KeyframeEffect | null | undefined)?.getKeyframes()
+        if (kfs) props = new Set(kfs.flatMap((k) => Object.keys(k)).map((p) => p.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())))
+      }
+      const moves = props ? [...props].filter((p) => MOTION.test(p)) : ['tracks it could not read, so counted']
+      if (moves.length) out.push(`${name(el)}: @keyframes ${n} animates ${moves.join(', ')}`)
+    })
+  }
+  const all = [...out, ...((window as unknown as { __craftTransitions?: string[] }).__craftTransitions ?? [])]
+  return all.length > 6 ? [...all.slice(0, 6), `…and ${all.length - 6} more`] : all
 }
 
 /** Init script: record every Element.animate() from before the first page
@@ -994,8 +1081,8 @@ test.describe('forced-colors: active', () => {
   test.use({ contextOptions: { forcedColors: 'active' } })
 
   test('content survives Windows High Contrast', async ({ page }) => {
-    await page.goto(URL)
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await openReduced(page)
+    await rendered(page)
     const o = await overflow(page)
     expect(o.body, JSON.stringify(o.offenders)).toBeLessThanOrEqual(o.client)
   })
@@ -1005,14 +1092,15 @@ test.describe('forced-colors: active', () => {
 /* An app-craft floor, and a measurable one: a grid of interactive cells must be
    ONE tab stop with arrow keys inside, not one stop per cell. A 5x9 board is 45
    stops standing between a keyboard user and the rest of the page. This exact
-   check would have caught a real regression in a craft-layer demo build. */
+   check would have caught a real regression in a craft-layer demo build.
+   Grids and listboxes only: a plain <table> of row links is one stop per row by design. */
 test('no interactive grid floods the tab order', async ({ page }) => {
   await page.goto(URL)
   const r = await page.evaluate(() => {
     const vis = (el: Element) => (el as HTMLElement).offsetParent !== null
     const all = [...document.querySelectorAll<HTMLElement>('a[href],button,input,select,textarea,[tabindex]')]
       .filter((el) => vis(el) && el.tabIndex >= 0)
-    const worst = [...document.querySelectorAll('table, [role="grid"], [role="listbox"]')]
+    const worst = [...document.querySelectorAll('[role="grid"], [role="listbox"]')]
       .map((g) => ({
         grid: g.tagName + (g.getAttribute('role') ? `[${g.getAttribute('role')}]` : ''),
         stops: [...g.querySelectorAll<HTMLElement>('button,a[href],input,[tabindex]')]
@@ -1030,11 +1118,12 @@ test('no interactive grid floods the tab order', async ({ page }) => {
 /* --------------------------------------------------------------- trigger: zoom */
 /* 200% browser zoom halves the CSS-pixel viewport, which WCAG 1.4.4 requires
    content to survive. This is the cheapest high-yield trigger there is, and the
-   one most often never run. */
+   one most often never run. A phone halved is 195px, under the 320px WCAG 1.4.10
+   asks content to reflow at, so the phone case runs at 320. */
 for (const [label, w, h] of [
   ['desktop @200%', 640, 512],
   ['tablet @200%', 384, 512],
-  ['phone @200%', 195, 422],
+  ['phone @200% (320px reflow floor)', 320, 422],
 ] as const) {
   test(`no horizontal overflow at ${label}`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: h })

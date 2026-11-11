@@ -32,8 +32,14 @@ them there; nothing below restates them.
    does not bootstrap that layer.
 2. The namespace is `@reui` → `https://reui.io/r/{style}/{name}.json`. It is
    also in the shadcn CLI's built-in directory. ReUI's own docs set `style`
-   to `base-nova`; the value must be a style ReUI publishes, because it fills
-   the `{style}` segment of that URL.
+   to `base-nova`. The `{style}` segment does NOT fail on a style ReUI does not
+   publish: read 2026-11-11, `new-york` and `default` (the legacy shadcn values,
+   which mean Radix) both redirect to `base-nova`, whose items depend on
+   `@base-ui/react`. A Radix project that adds a ReUI item under its legacy style
+   therefore receives Base UI code — a second primitive set. Run
+   `npx shadcn@latest add @reui/<name> --dry-run` first and read the dependency
+   list; on a Radix project point the `@reui` registry at a `radix-*` style
+   (`radix-nova` answered with `radix-ui` that day).
 3. Items install as `npx shadcn@latest add @reui/<name>`. Stock shadcn
    components are NOT ReUI items and keep their bare name (`add button`).
    Templates are not registry items at all: download each from its page.
@@ -70,7 +76,11 @@ them there; nothing below restates them.
 
 ReUI layers extra semantic tokens onto the shadcn variable set —
 `--info`, `--success`, `--warning` and `--invert`, each with a `-foreground`
-pair. A theme that never defines them yields off-brand components, not errors.
+pair. Items carry them as `cssVars`, which the shadcn CLI WRITES into the theme
+CSS on install: read 2026-11-11, `badge` ships light and dark values for all four
+plus `--destructive-foreground`, in ReUI's own palette. An install can therefore add
+off-brand values or replace one the project already set — read the `--dry-run`
+diff, then set those tokens from the project's theme.
 
 ## Catalog groups (top-level, as fetched at the stamp date)
 

@@ -2,7 +2,9 @@
 
 > Last verified: 2026-09-26 — https://mui.com/material-ui/ — npm:@mui/material@9
 > (stable major: v9, `9.4.0` on npm that day; MUI X `9.14.0`. Per-major guides:
-> https://mui.com/material-ui/migration/ and https://mui.com/x/migration/)
+> https://mui.com/material-ui/migration/upgrade-to-v9/ and, per MUI X package,
+> `https://mui.com/x/migration/migration-<package>-v<N>/`. Read 2026-11-11: these URLs and
+> the Joy UI ones only — the two bare `/migration/` index pages answer 404.)
 
 Read on demand from mui-best-practices. Structure-stable material only:
 package family, import shape, the theme API surface, and what each major
@@ -66,7 +68,9 @@ const theme = createTheme({
 ## MUI X per major
 
 MUI X majors are separate from Material UI's: resolve `@mui/x-*` from the lockfile
-and read the matching guide under https://mui.com/x/migration/. Since v9 every MUI
+and read the matching guide, `https://mui.com/x/migration/migration-<package>-v<N>/`
+(`migration-data-grid-v8`, `migration-pickers-v8`, `migration-charts-v7`; the bare
+`/x/migration/` index is a 404). Since v9 every MUI
 X package peers on `@mui/material` `^7.3.0 || ^9.0.0` — a v5 or v6 core cannot
 take MUI X v9.
 
@@ -88,7 +92,7 @@ with these rows; a reviewer applying this skill is the only reader (agent-graded
 ## Joy UI
 
 Joy UI (`@mui/joy`) is not a v9 package. Its code and docs were removed from the
-main repo in v9 (docs now live at https://v7.mui.com/joy-ui/), MUI's 2026 roadmap
+main repo in v9 (docs now live at https://v7.mui.com/joy-ui/getting-started/), MUI's 2026 roadmap
 lists it "on hold" with no plans, and npm's last release is `5.0.0-beta.52`
 (March 2025), which depends on `@mui/system` 5.x.
 

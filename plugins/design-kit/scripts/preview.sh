@@ -9,7 +9,10 @@
 # `--stop` kills that PID. `--lan` binds 0.0.0.0 so a phone on the same network can
 # open it — that is the only path here that lets a page leave the machine, and the
 # command using it says so first; a pick made on that phone is not recorded (the
-# decision route is loopback-only). Standing: scripts/__tests__/preview.test.sh
+# decision route is loopback-only). The bind is recorded in <docroot>/.preview.bind:
+# `--lan` restarts a loopback server, a plain start reuses a LAN one and says it is
+# still open to the network, and serve.py ends a LAN server after
+# DESIGN_KIT_LAN_MINUTES (default 60). Standing: scripts/__tests__/preview.test.sh
 # drives start, idempotent restart, a served body, the URL file, and stop; nothing
 # proves a browser rendered.
 set -euo pipefail
@@ -21,18 +24,18 @@ while [ $# -gt 0 ]; do
     --lan) bind="0.0.0.0" ;;
     --port) port="$2"; shift ;;
     --docroot) docroot="$2"; shift ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "preview.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift
 done
 
-pidfile="$docroot/.preview.pid"; urlfile="$docroot/.preview.url"
+pidfile="$docroot/.preview.pid"; urlfile="$docroot/.preview.url"; bindfile="$docroot/.preview.bind"
 if [ "$stop" = 1 ]; then
   if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
-    kill "$(cat "$pidfile")" && rm -f "$pidfile" "$urlfile" && echo "preview: stopped"
+    kill "$(cat "$pidfile")" && rm -f "$pidfile" "$urlfile" "$bindfile" && echo "preview: stopped"
   else
-    rm -f "$pidfile" "$urlfile"; echo "preview: nothing running"
+    rm -f "$pidfile" "$urlfile" "$bindfile"; echo "preview: nothing running"
   fi
   exit 0
 fi
@@ -40,7 +43,16 @@ fi
 command -v python3 >/dev/null || { echo "preview.sh: python3 3.8+ is required (or open the .html files directly)" >&2; exit 3; }
 mkdir -p "$docroot"
 if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
-  echo "preview: already running — $(cat "$urlfile" 2>/dev/null || echo "http://127.0.0.1:$port/")"; exit 0
+  running="$(cat "$bindfile" 2>/dev/null || echo 127.0.0.1)"
+  if [ "$bind" = "0.0.0.0" ] && [ "$running" != "0.0.0.0" ]; then
+    kill "$(cat "$pidfile")" 2>/dev/null || true
+    for _ in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$(cat "$pidfile")" 2>/dev/null || break; sleep 0.1; done
+    rm -f "$pidfile" "$urlfile" "$bindfile"
+  else
+    echo "preview: already running — $(cat "$urlfile" 2>/dev/null || echo "http://127.0.0.1:$port/")"
+    if [ "$running" = "0.0.0.0" ] && [ "$bind" != "0.0.0.0" ]; then echo "preview: LAN mode is still on — any device on this network can open it; end it with --stop"; fi
+    exit 0
+  fi
 fi
 here="$(cd "$(dirname "$0")" && pwd)"
 lan_flag=""; [ "$bind" = "0.0.0.0" ] && lan_flag="--lan"
@@ -49,7 +61,7 @@ echo $! > "$pidfile"
 sleep 0.3
 kill -0 "$(cat "$pidfile")" 2>/dev/null || { rm -f "$pidfile"; echo "preview.sh: server did not start (port $port busy?)" >&2; exit 4; }
 host="127.0.0.1"; [ "$bind" = "0.0.0.0" ] && host="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 127.0.0.1)"
-echo "http://$host:$port/" > "$urlfile"
+echo "http://$host:$port/" > "$urlfile"; echo "$bind" > "$bindfile"
 echo "preview: http://$host:$port/"
 [ "$bind" = "0.0.0.0" ] && echo "preview: LAN mode — any device on this network can open it while the server runs; a pick made from another device is not recorded (loopback only)"
 exit 0

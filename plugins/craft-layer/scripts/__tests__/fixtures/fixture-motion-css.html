@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Reduced-motion CSS controls. Every line ending in a `defect` comment moves something under
+     `reduce`; craft-gates.test.sh derives the clean twin by deleting exactly those lines. The three
+     defects: a keyframe slide, a reveal whose `transition: all` runs on transform when the script adds
+     `.in`, and a card whose `transition: all` runs on transform on hover. Their neighbours must stay
+     silent: an opacity-only keyframe fade, a button whose transition list NAMES transform (Tailwind's
+     `transition`) while its hover changes colour only, a transform that snaps in 0.01ms, and two h1s. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tidewater berths</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #102030; background: #f6f8fa; }
+  section { padding: 32px 48px; }
+  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes slide { from { transform: translateY(24px) } to { transform: none } }
+  #fade { animation: fade 400ms ease both; }
+  .tw { transition-property: color, background-color, border-color, opacity, box-shadow, transform, translate, scale, rotate;
+        transition-timing-function: cubic-bezier(.4, 0, .2, 1); transition-duration: 150ms; background: #dde7f0; }
+  .tw:hover { background: #c6d6e4; }
+  #snap { transition: transform 0.01ms; }
+  #snap.in { transform: translateX(8px); }
+  .card { display: inline-block; padding: 16px; background: #cfe0ee; }
+  .reveal { transform: translateY(24px); }
+  .reveal.in { transform: none; }
+</style>
+<style>#slide { animation: slide 400ms ease both; }</style> <!-- defect -->
+<style>.reveal { transition: all 400ms ease; }</style> <!-- defect -->
+<style>.card { transition: all 300ms ease; } .card:hover { transform: translateY(-12px); }</style> <!-- defect -->
+</head>
+<body>
+<header><h1>Tidewater</h1></header>
+<main>
+  <section>
+    <h1>Berths for every boat in the harbour</h1>
+    <p id="fade">Bookings open every Monday at 09:00.</p>
+    <p id="slide">Winter rates start on 1 November.</p>
+    <div id="reveal" class="reveal">Forty harbours, one booking sheet.</div>
+    <div id="snap">Tide gauge</div>
+    <button id="tw" class="tw" type="button">Book a berth</button>
+    <a id="lift" class="card" href="/harbours/falmouth">Falmouth</a>
+  </section>
+</main>
+<script>
+  addEventListener('load', () => setTimeout(() => {
+    document.getElementById('reveal').classList.add('in')
+    document.getElementById('snap').classList.add('in')
+  }, 100))
+</script>
+</body>
+</html>

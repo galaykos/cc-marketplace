@@ -27,11 +27,14 @@ the digest. Before writing any Astryx code:
 1. Resolve the installed version from `package.json` / the lockfile
    (`@astryxdesign/core`). If React is below 19, stop and say so: the peer
    range is `>= 19.0.0`.
-2. Read props and examples for THAT version with `astryx component <Name>`
+2. Run the CLI as `npx @astryxdesign/cli …` unless `@astryxdesign/cli` is in the
+   project's `devDependencies`: bare `npx astryx` fetches an UNRELATED npm package
+   of that name. Every `astryx …` command below means that form.
+3. Read props and examples for THAT version with `astryx component <Name>`
    (`--props`, `--json`), or the component's page under
    `https://astryx.atmeta.com/components/<Name>` for the published one. Never
    recite an Astryx API from memory or from an older project.
-3. Prefer the typed sources — CLI `--json`, `astryx manifest`, or the MCP
+4. Prefer the typed sources — CLI `--json`, `astryx manifest`, or the MCP
    server at `https://astryx.atmeta.com/mcp` — over prose docs. When the
    docs and the CLI disagree, the installed version wins.
 

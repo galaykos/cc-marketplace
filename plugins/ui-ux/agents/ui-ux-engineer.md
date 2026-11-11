@@ -64,7 +64,7 @@ When the dispatch injects a `Read` path for a styling skill
 (`tailwind`/`shadcn`-best-practices here; `ui-libraries:mui-best-practices`, or
 `ui-libraries:component-libraries` for any other library), Read it first for
 stack-specific idioms — it is the authoritative source. The other library skills
-(`ui-libraries:` aceternity, reui, astryx) are injected by the orchestrator on
+(`ui-libraries:` aceternity, reui, astryx, primereact) are injected by the orchestrator on
 file-signal, not this agent's marker; plain CSS/Grid/Flexbox gets the model's own
 judgment — no skill to load.
 

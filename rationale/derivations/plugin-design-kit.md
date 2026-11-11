@@ -280,6 +280,10 @@ someone switches off within a day.
 
 ## plugins/design-kit/scripts/serve.py
 
+### 0.13.1, 2026-11-11 — what a review found being served
+
+A review on 2026-11-11 fetched `/auth/walk.json` (the saved login session the README tells users to keep there), `/workshop.json`, `/usage.jsonl`, `/.preview.pid`, `/artifacts/.versions/` and directory listings from a running server, all 200. After one `--lan` start, `preview.sh` reused the 0.0.0.0 server for every later loopback command; `ss` showed it still bound in a later call. A POST to `/_decision` with `Host: attacker.example` and `Origin: http://attacker.example` was stored. With ten pages in the gallery, a Playwright-driven Chrome stalled 8 s on any other request while the gallery tab was open, because each thumbnail iframe held an EventSource. Hence `_servable`, `list_directory` returning 404, the Host/Origin check, `?static=1` on thumbnails, `.preview.bind` and the LAN timer. Left open on purpose: no per-board token, since a page on the same origin can read the board's HTML and so any token in it.
+
 Moved verbatim on 2026-10-28: the module docstring (quotes removed; `--help` prints only its first line, which the file keeps) and the measurement date from `_wants_live`'s docstring.
 
 ### Module docstring
