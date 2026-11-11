@@ -7,7 +7,9 @@ Run the parallel-planning skill from this plugin on $ARGUMENTS (a taskmaster
 `00-INDEX.md`, a tasks directory, a plan document, or an inline list; default:
 the most recent `taskmaster-docs/tasks/*/00-INDEX.md`).
 
-1. Build the dependency graph and per-task file sets from the list.
+1. Build the dependency graph and per-task file sets from the list. For a directory of
+   cards, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/plan-overlap.sh" --dir <cards dir>` and
+   take its `level N:`, `overlap:` and `no-files:` lines as given.
 2. Compute levels, parallel groups, critical path, and the speedup estimate
    per the skill's model — show the arithmetic, not just the verdict, and
    label every speedup figure `(heuristic, unmeasured)`.

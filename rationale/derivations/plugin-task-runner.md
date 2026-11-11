@@ -1252,6 +1252,24 @@ over a forecast from a real one. Run on the three card sets under `taskmaster-do
 exit 0 (no parked card in any). Nothing here is measured on a code run: the source proved theorems against a
 machine checker, and no eval with a control arm exists for these rules.
 
+## plugins/task-runner/scripts/plan-overlap.sh
+
+Added 2026-11-11. `parallel-planning` steps 1-2 (topo-sort into levels, group a level's cards by disjoint file
+sets) were prose the model worked out from the cards on every plan; `card-set-lint.sh` checks that a card using a
+path depends on the card creating it, and nothing checked that two cards with no dependency between them write
+different paths. The prompt for it was outside the repo: one project's count of 124 failed multi-agent runs, 82 of
+them merge conflicts where both sides wrote correct code (github.com/0ozcharles/agent-coordination, a single
+unreviewed source, read 2026-11-11 as a search summary and not re-derived here). No run of this marketplace was
+measured failing that way, so the script is a calculator and a refusal, not a fix for a counted incident.
+First run on three card sets under `taskmaster-docs/tasks/`: `2026-10-06-ship-claude-code-mods` (30 cards, 13
+levels) printed one overlap, cards 11 and 27 both writing `plugins/secret-scanning/CHANGELOG.md`; the other two
+printed none. Only `mode="edit|create|new"` files count, so the `<must-not>` file every card repeats is not a
+write. Without `--group` the exit is 0 with overlaps printed, because a shared file inside a level is a normal
+plan input (those cards run serially), not a defect in the card set. Not caught: a write the card does not list,
+a glob or variable path, lock and generated files, a legacy card's free-text `Files` line, and what worktrees
+share outside git (ports, a local database, caches). Milestone-level `Files:` sets for `--tracks`
+(`track-orchestration/references/eligibility.md`, with its shared-file list) are still compared by the model.
+
 ## plugins/task-runner/scripts/reduction-record.sh
 
 ### Header: THE POINT, the three traces, standing

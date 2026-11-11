@@ -169,6 +169,27 @@ and it says nothing about whether the fan-out was a good idea — that is
 `/task-runner:plan`, which is prose. `CC_SPAWN_CAP=<n>` moves the first threshold;
 `CC_SPAWN_CAP=off` disables it.
 
+## Which cards can run at once
+
+`scripts/plan-overlap.sh --dir <cards dir>` prints a card set's dependency levels and every
+same-level pair of cards that write one path:
+
+```
+level 0: 01 02 03
+level 1: 04
+overlap: cards 01 and 03 both write src/billing/invoice.ts
+```
+
+`--group 01,02,03` asks one question, can these run at once, and exits 1 when two write one
+path, one depends on another, or one lists no `<file>` with a mode. A `dir/` entry covers
+the files under it. `/task-runner:plan` reads the levels; `/task-runner:run` calls `--group`
+before a parallel group or batch goes out.
+
+Standing: **gate where run** (`scripts/__tests__/plan-overlap.test.sh`, 20 cases); nothing
+forces the call. It reads what the cards list, so a file a card writes without listing it, a
+glob, a lock file a build rewrites and a legacy bold-label card's `Files` text are not seen.
+Ports, a local database and caches shared between worktrees are outside it too.
+
 ## What the run itself cost
 
 The completion report carries one line from `scripts/run-cost.sh`, beside the result:

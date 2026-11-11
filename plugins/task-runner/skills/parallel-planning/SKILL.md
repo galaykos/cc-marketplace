@@ -26,7 +26,10 @@ From the task list (taskmaster cards, a plan's steps, a todo list):
    on earlier levels. Cycles are a task-list bug — halt and report.
 2. Within each level, group tasks whose file sets are mutually disjoint.
    Shared-file tasks stay serial within the level (or get the shared edit
-   extracted into its own task — the better fix).
+   extracted into its own task — the better fix). For cards, steps 1-2 are
+   `scripts/plan-overlap.sh --dir <cards dir>`; before a parallel dispatch,
+   `--group <card,card>` exits 1 on a shared path, a dependency or a card with
+   no listed file (gate where run; an unlisted write is not seen).
 3. Critical path = the dependency chain with the largest summed size weight
    (S=1, M=3, L=8 — fixed heuristic weights, not measured durations).
 4. Theoretical speedup = serial cost / critical-path cost — the ceiling;
