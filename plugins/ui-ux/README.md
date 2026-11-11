@@ -145,9 +145,13 @@ owns the original and needs ui-ux, never the reverse, so before this copy
 existed a ui-ux install without craft-layer reached no
 contrast checker at all while three documents promised one.
 
-**Two honest limits.** It parses `oklch()` values under `:root` and `.dark` only:
-a Tailwind v3 HSL-triplet theme, a Bootstrap Sass target, or hex tokens resolve
-nothing and exit 2, which is reported as *not measured*, never as a pass. And it
+**Two honest limits.** It reads `oklch()`, hex, `rgb()`, `hsl()` and bare
+HSL-triplet values in CSS custom properties, light from every `:root`/`html` rule
+and dark from every `.dark`, `[data-theme=dark]`, `[data-mode=dark]` or
+`prefers-color-scheme: dark` rule; a translucent colour is composited over its
+surface. A token whose value is `var()`, `color-mix()` or a named colour, a token
+declared in `@theme`, and a Bootstrap Sass target are *not measured*, never a pass,
+and a build with no dark rule gets no dark verdict. And it
 grades the TOKEN BLOCK, not the rendered page — text over an image, a gradient, or
 a colour written straight into a class string is outside what it can see.
 

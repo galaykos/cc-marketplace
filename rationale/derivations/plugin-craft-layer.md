@@ -4,6 +4,13 @@ The text below was moved verbatim on 2026-10-04 from the files named in the `##`
 
 ## plugins/craft-layer/scripts/__tests__/craft-gates.test.sh
 
+### 0.60.1, 2026-11-11
+
+- The browser lookup probed bundled Chromium only, so on a machine with system Chrome 157 and no bundled build the reduced-motion controls SKIPped while `frame-time.test.sh` ran; it now uses frame-time's `how_launches` and passes `CRAFT_BROWSER_CHANNEL`. The same runner now also drives `fixture-motion-css.html` and `fixture-triggers.html` (keyboard grid, phone zoom, forced colours), each with a clean twin derived by deleting its `defect` lines.
+- Coverage honesty: the old first check grepped "clears every divergence assertion", which the code no longer prints, and the second fell through to `ok` whenever any row graded, which is always once tokens resolve (accent-default-band grades on every run that gets past exit 2). The first now asserts the coverage line counts the printed rows and the green names the graded count; a mutated terminator printing "clears every divergence assertion" fails it. The second is deleted: its all-SKIP shape is unreachable.
+- New divergence cases for the band in OKLCH, the run log's own row, poster-first on a motion element, the eyebrow row and the docs' `Voice:` examples. Each failed against the pre-change `divergence.mjs`, `gates.spec.ts` and docs (28 failures), except the own-stamp hue-repeat case, which guards the re-run and passed before too.
+
+
 ### Header
 
 ```text
@@ -338,6 +345,14 @@ the moment the length is consumed, so the deadline loop must not touch it again.
 ```
 
 ## plugins/craft-layer/template/craft-gates/divergence.mjs
+
+### 0.60.1, 2026-11-11 — what a review observed, and what changed
+
+- **Band in OKLCH for every notation.** Probes: `--primary: #6366f1` printed PASS "239° blue", `hsl(258 90% 66%)` PASS "258° blue", `#d946ef` FAIL "292.2° violet"; in OKLCH they are 277.1°, 292.2° and 322.1°. A shadcn v3 triplet `243 75% 59%` exited 2 ("no parseable accent"). `toHue` (sRGB/HSL hue) is gone; `toOklch` reads oklch, hex (3/4/6/8 digits), `rgb()`, `hsl()` and a bare triplet. The DEFAULT_BAND note above ("read in the token's OWN space") and the utility-palette note ("converting hex to oklch would change verdicts for every existing build ... stated here rather than done quietly") are superseded: it is now done, and said in the CHANGELOG. Measured with the change: zinc-900 `#18181b` and the stock shadcn v4 zinc primary `oklch(0.21 0.006 285.885)` sit at 286° with chroma 0.006 and the latter already FAILed before the change; the band now skips tokens under ECHO_CHROMA_FLOOR (0.05), the floor the echo already used for a tinted neutral. DEFAULT_SWATCHES only labels the report now; all nine read 277-306° in OKLCH.
+- **The run's own log row.** Probe: a log whose last row was `2026-11-08 | tide-app | blue`, no record, no stamp, a blue build: hue-repeat PASSed with the note "matched on hue family". The hue fallback in "The run's own log row" above assumed the first audit pass sees no row of its own, then applied the match on every pass; at audit time the last row is the previous run, so a back-to-back repeat was always excused. Identity is now the draw or the `Run:` stamp (slug equals `brief-slug`, the instant equals or starts with `date`); a stamp naming another project is not used. Residual: the log's `date` column is a day, so two runs of one slug on one day are not told apart without a draw.
+- **poster-first.** Probe: `<section><img alt="Crew on deck"><canvas id="hero-scene">` SKIPped ("carries no video, canvas or 3D element"): the region was the canvas's own inner text. Every hero id/class is now read, and one on a motion element is graded in its enclosing element (`enclosing`, void tags skipped, at most 400 tags back).
+- **The eyebrow row.** Probe: `<th>INVOICE NO</th><th>DUE DATE</th><th>NET TOTAL</th>` FAILed copy-register `[all-caps eyebrow]`. Copy inside `th`, `TableHead`, `label` and `button` no longer counts for that row; the other rows still read it. `sameness-fingerprint.md`'s "Declared limits" still says a data-table header row fires it; that stays true only for a header built from divs.
+
 
 Moved verbatim on 2026-10-28, with only each comment's leader removed (`//`, `/*`, `/**`, `*/`, a ` * ` gutter, and the continuation indent). `/craft-layer:audit` runs this file from the plugin against the user's project (`commands/audit.md` step 4, never a vendored copy); the file keeps a one-line form of each block where a reader needs it, and nothing where the code says it.
 
@@ -1185,6 +1200,10 @@ or ref) and the rest still fail. Remaining limit: a record path ending in the as
 
 ## plugins/craft-layer/template/craft-gates/contrast.mjs
 
+### 0.60.1, 2026-11-11 — why the block search became a rule scan
+
+A review on 2026-11-11 ran the script on a stock shadcn v4 `globals.css` with dark ink `oklch(0.2 0 0)` on `oklch(0.145 0 0)`: it printed "OK" and exited 0, because `css.indexOf('.dark')` landed on `@custom-variant dark (&:is(.dark *))` and the brace walk from there parsed `:root` again. With no `.dark` at all, `indexOf` returned -1 and the first block was graded as dark. `oklch(1 0 0 / 10%)` was split on whitespace and its alpha dropped, so the border passed at 19.80:1; `oklch(62% …)` gave `NaN:1`. The one test fixture had no dark block, no alpha and no percent, so all of it shipped green. Hence `ruleBlocks`, `parseColor` and `over`. Measured for the `shadcn-theming` rule: white on `oklch(L 0.19 H)` at hues 30/150/260/330 gives 5.36/4.34/5.01/5.38 at L 0.55 and 4.32/3.57/4.06/4.36 at L 0.60.
+
 Moved verbatim on 2026-10-28, leaders removed as above. `plugins/ui-ux/scripts/contrast.mjs` is the twin of this file, identical save its TWIN line (`pc_twin_files`), and points at this heading too. The header stays a `/* */` block in both copies because the twin's `# TWIN:` line must sit inside a comment.
 
 ### Header
@@ -1338,6 +1357,13 @@ between tags — the visible copy — is dropped, for every signature.
 
 ## plugins/craft-layer/template/craft-gates/finish-lint.mjs
 
+### 0.60.1, 2026-11-11 — what a review observed, and what changed
+
+- Probe page with `<input placeholder="Jane Doe">` reported `placeholder-copy stand-in-name`; the placeholder attribute now skips that one pattern.
+- Probe page with `document.addEventListener('click', (e) => e.target.closest('[data-toggle="modal"]') …)` reported the toggle as `dead-control no-handler`. Not fixed in code: `DOMDebugger.getEventListeners` on `document` says a click listener exists, not which controls it serves, and Tag Manager, click-outside handlers and analytics all put one there, so honouring it would make every dead control on such a page live. The header and `audit.md` now call it a false positive instead of a miss.
+- A fetching file whose list had no state branch was suppressed by `.catch((error) => console.error(error))` (the `\berror\s*\)` alternative) and by `const { data, isLoading } = useQuery(…)` with isLoading never read. The error pattern now takes `if (error)` instead of any `error)`, and bindings (`const|let|var` plus their name or pattern) are blanked before the state patterns run. Still counted: `error.message` and `error?` anywhere, including inside a catch.
+
+
 Written 2026-11-09 with the code (roadmap item D1, from G9 and alirezarezvani `design-qa`).
 
 Why it exists: every craft gate before it judged design decisions (hue, family, register, motion
@@ -1412,6 +1438,11 @@ bound through a prop, a store or a hook from another file; at most 200 Tab stops
 
 ## plugins/craft-layer/scripts/__tests__/finish-lint.test.sh
 
+### 0.60.1, 2026-11-11
+
+Three cases added for the fixes above: `ok-ph-name` (`placeholder="Jane Doe"`) in `fixture-finish.html` as a silent neighbour, and `Payments.tsx` (a catch handler), `Refunds.tsx` (an unread isLoading) and `Credits.tsx` (`if (error)`, must stay silent) in the source half. All three failed against the pre-change `finish-lint.mjs`.
+
+
 Written 2026-11-09. One fixture, `fixture-finish.html`, carries every defect on a line ending in a
 `defect` comment, each beside the nearest neighbour that must stay silent; the harness derives the
 clean twin by deleting those lines, so the twins cannot drift apart. The DOM cases run when a
@@ -1444,3 +1475,20 @@ and the "20 ms" frame took 874 ms. With the result kept, Chrome 156 measured p95
 under the 4x throttle and 16.7 ms (211 frames) on the clean twin. The check allows up to 51 ms
 because rAF deltas land on 60 Hz vsyncs and a frame on the third reads 50.0 or 50.1. The first case
 needs no browser: the spec's `FRAME_BUDGET_MS` must equal the p95 figure in `tier-budgets.md`.
+
+## plugins/craft-layer/template/craft-gates/gates.spec.ts
+
+### 0.60.1, 2026-11-11 — what a review observed, and what changed
+
+The file's long inline comments are not moved here yet; this section holds dated notes only.
+
+- Reduced-motion CSS test. Probes: a Tailwind-style `transition-property: …, transform, …` button whose hover changes background FAILed; `animation: fade 200ms both` (opacity only) FAILed; `transition: all 300ms` with `:hover { transform }` PASSed. It read transition-property and animation-name, not what moved. It now reads each keyframes rule's properties (CSSOM, then the running animation for a cross-origin sheet) and records `transitionrun` events on moving properties from page load, including while the pointer rests on each of the first 40 controls. Anything a frame long or shorter is a snap, so the 0.01ms reset passes. Misses: focus, click and drag, hover past those controls; an unreadable, finished keyframe animation is counted.
+- `getByRole('heading', { level: 1 })` is strict: a page with two h1s failed the reduced-motion and forced-colours tests with "strict mode violation". Both now wait for the first h1 and assert the body renders.
+- Keyboard grid test selected every `<table>`: twelve row links failed it, while `craft-reviewer.md` says it is scoped to grids and listboxes. It now reads `role="grid"` and `role="listbox"` only.
+- Phone zoom ran at 195px: a 302px code row failed it though WCAG 1.4.10 asks for reflow at 320px. The phone case is now 320px.
+
+## plugins/craft-layer/scripts/__tests__/layout-floors.test.sh
+
+### 0.60.1, 2026-11-11
+
+The browser lookup probed bundled Chromium only and SKIPped every case on a machine with system Chrome 157; it now uses `frame-time.test.sh`'s `how_launches` and passes `CRAFT_BROWSER_CHANNEL`. All six cases then ran and passed against the unchanged floors code.

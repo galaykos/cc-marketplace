@@ -1,5 +1,5 @@
 // finish-lint.mjs — craft-layer's UI finish linter, on the craft-gates Chromium driver: exit 1 on a dead control, placeholder copy, an empty list or table with no empty/loading/error state, or a Tab stop whose focus changes nothing visible; 0 clean; 2 not measured (no URL, the page did not load or did not finish within --timeout, CRAFT_EXPECT_TITLE unmatched, a bad argument); 3 no playwright package; 4 no Chromium that launches.
-// Run from the project root: `NODE_PATH=<project>/node_modules node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/finish-lint.mjs" --url <url> [--src <dir>] [--json] [--timeout <s>]`. Misses: one 1280x800 viewport; handlers delegated to document/body; a library button that always passes handlers (MUI ButtonBase, AntD Button) reads live; closed shadow roots and iframes; focus-indicator contrast; a phrase split across inline elements; the source half of the list rule reads only files that fetch.
+// Run from the project root: `NODE_PATH=<project>/node_modules node "${CLAUDE_PLUGIN_ROOT}/template/craft-gates/finish-lint.mjs" --url <url> [--src <dir>] [--json] [--timeout <s>]`. False positive: a control whose click handler is delegated to document, window or body (Bootstrap's data API, jQuery .on(document)) is reported dead; waive it by target. Misses: one 1280x800 viewport; a library button that always passes handlers (MUI ButtonBase, AntD Button) reads live; closed shadow roots and iframes; focus-indicator contrast; a phrase split across inline elements; the source half of the list rule reads only files that fetch.
 // Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/template/craft-gates/finish-lint.mjs
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve, relative, delimiter, basename, dirname } from 'node:path'
@@ -82,8 +82,11 @@ const COLLECTION_RE = /\.map\(\s*(?:async\s+)?(?:\([^()]*\)|[\w$]+)\s*=>\s*[(`]?
 const STATE_RE = [
   /\.length\s*(?:===?|!==?|>|<=?)\s*0\b|!\s*[\w$.?]+\.length\b|\.length\s*(?:\?|&&)|\bisEmpty\b|\{:else\}|\bv-else\b|<Empty\w*|\bnoResults?\b/,
   /\bis(?:Loading|Pending|Fetching)\b|\b(?:loading|pending)\s*(?:\?|&&|\)|===?)|<Skeleton|<Spinner|<Suspense\b|aria-busy|\{#await\b|['"](?:loading|pending)['"]/,
-  /\bisError\b|\berror\s*(?:\?|&&|\)|===?|\.message)|<ErrorBoundary|errorElement|\{:catch\b|\bonError\b/,
+  // `if (error)`, never a bare `error)`: that is also `.catch((error) => …)` and `console.error(error)`.
+  /\bisError\b|\berror\s*(?:\?|&&|===?|\.message)|\bif\s*\(\s*!?\s*(?:[\w$]+\??\.)*error\s*\)|<ErrorBoundary|errorElement|\{:catch\b|\bonError\b/,
 ]
+// A binding is not a branch: `const { data, isLoading } = …` with isLoading never read renders nothing.
+const DECL_RE = /\b(?:const|let|var)\s+(?:\{[^}]*\}|\[[^\]]*\]|[A-Za-z_$][\w$]*)/g
 
 function sourceFiles(dir, out = [], budget = { n: 0 }) {
   let entries
@@ -174,7 +177,9 @@ function sourcePass() {
       src = readFileSync(f, 'utf8')
     } catch { continue }
     report.static.files++
-    if (!FETCH_RE.test(src) || STATE_RE.some((re) => re.test(src)) || routeStates(f, root)) continue
+    if (!FETCH_RE.test(src)) continue
+    const read = src.replace(DECL_RE, ' ')
+    if (STATE_RE.some((re) => re.test(read)) || routeStates(f, root)) continue
     const fetched = fetchedNames(src)
     // A list counts only when it maps what was fetched: a module literal (LINKS.map) cannot be empty.
     const m = [...src.matchAll(COLLECTION_RE)].find((x) => {
@@ -337,6 +342,8 @@ function collect(o) {
     const t = String(raw || '').replace(/\s+/g, ' ').trim()
     if (!t) return
     for (const [id, re] of PH) {
+      // A placeholder attribute shows an example value: "Jane Doe" there is a hint, not a stand-in.
+      if (where === 'placeholder' && id === 'stand-in-name') continue
       if (!re.test(t)) continue
       const key = `${id}|${el ? f.name(el) : where}|${t.slice(0, 80)}`
       if (seen.has(key)) continue

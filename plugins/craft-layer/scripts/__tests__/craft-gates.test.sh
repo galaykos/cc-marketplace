@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # craft-gates.test.sh — runs divergence.mjs and contrast.mjs over defective/clean fixture controls and asserts each verdict, exit code and
-# coverage line, then gates.spec.ts's reduced-motion block, a tsc --strict compile and concept-deck.md's worked draw; fails if the repository's git status changes during the run.
-# Misses: the reduced-motion and type-check sections SKIP without a local Playwright, or typescript with its types, and CI installs neither.
+# coverage line, then gates.spec.ts's reduced-motion, keyboard-grid, phone-zoom and forced-colours tests, a tsc --strict compile and the docs' worked examples; fails if git status changes.
+# Misses: the browser controls SKIP without a Playwright whose Chromium (bundled, or a system Chrome channel) launches, the type check without typescript and its types; CI installs neither.
 # Why, limits, history: rationale/derivations/plugin-craft-layer.md § plugins/craft-layer/scripts/__tests__/craft-gates.test.sh
 set -u
 
@@ -202,6 +202,21 @@ if [ "$got" = "FAIL" ] && printf '%s\n' "$out" | grep -q 'voice NEVER'; then ok;
   bad "a NEVER literal in shipped copy did not reach copy-register (got $got)" \
       "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
 fi
+# A build task written from the plugin's own examples must clear the gate: the last fenced `Voice:` line in each
+# doc (brief-templates.md's filled example, voice-contract.md's canonical line), on the one line the gate reads.
+for doc in skills/design-research/references/brief-templates.md skills/creative-direction/references/voice-contract.md; do
+  line=$(awk '/^```/ { f = !f; next } f && /^Voice:/' "$here/../../$doc" | tail -1)
+  d="$WS/voice-doc-$(basename "$doc" .md)"; mkdir -p "$d/craft"; write_tokens "$d"
+  cp "$WS/voice/ok/page.html" "$d/page.html"
+  printf 'Spine regions: plain-what=#hero\n%s\n' "$line" > "$d/craft/build-task.md"
+  out=$(run_divergence "$d")
+  n=$(printf '%s\n' "$out" | sed -n 's/.*carries a `Voice:` line with \([0-9]*\) literal NEVER.*/\1/p')
+  if [ "$(state_of "$out" voice-contract)" = PASS ] && [ "${n:-0}" -ge 2 ]; then ok; else
+    bad "the Voice: example in $doc does not clear voice-contract with its NEVERs (line read: ${line:-none})" \
+        "$(printf '%s\n' "$out" | grep -E 'voice-contract' | head -1 | cut -c1-200)"
+  fi
+done
+
 d="$WS/voice-clean"; mkdir -p "$d/craft"; write_tokens "$d"
 cat > "$d/page.html" <<'HTML'
 <!doctype html><html lang="en"><body><main><section id="hero"><h1>Fieldnote for survey crews</h1>
@@ -449,20 +464,38 @@ if printf '%s\n' "$out" | grep -q 'EXIT=0'; then ok; else
   bad "waived violet-brand build did not exit 0" "$(printf '%s\n' "$out" | tail -3)"
 fi
 
-# Tailwind's indigo/violet/purple hexes read below the 275 floor in sRGB, so a fuchsia like #d946ef is what proves the hex path is wired.
-d="$WS/util-hex"; mkdir -p "$d/src"
-write_tokens "$d"
-cat > "$d/src/page.tsx" <<'TSX'
-export default function Page() {
-  return <main><h1 className="bg-[#d946ef]" style={{ color: '#c026d3' }}>Ship the thing</h1></main>
-}
-TSX
-out=$(run_divergence "$d")
-got=$(state_of "$out" utility-palette)
-if [ "$got" = "FAIL" ]; then ok; else
-  bad "arbitrary-value + inline-style hex path expected FAIL, got $got" \
-      "$(printf '%s\n' "$out" | grep -E 'utility-palette' | head -1)"
-fi
+# Hex is read in OKLCH: violet-700/800 (#6d28d9, #5b21b6: 262-263° in sRGB, 293° in OKLCH) are in the band
+# and not in DEFAULT_SWATCHES, so they prove the hex path is wired; fuchsia (#d946ef, 292° sRGB, 322° OKLCH) is outside it.
+for k in violet:FAIL:6d28d9:5b21b6 fuchsia:PASS:d946ef:c026d3; do
+  IFS=: read -r name want cls sty <<EOF
+$k
+EOF
+  d="$WS/util-hex-$name"; mkdir -p "$d/src"
+  write_tokens "$d"
+  printf 'export default function Page() {\n  return <main><h1 className="bg-[#%s]" style={{ color: '"'"'#%s'"'"' }}>Ship the thing</h1></main>\n}\n' "$cls" "$sty" > "$d/src/page.tsx"
+  out=$(run_divergence "$d")
+  got=$(state_of "$out" utility-palette)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "arbitrary-value + inline-style hex path on $name (#$cls, #$sty) expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'utility-palette' | head -1)"
+  fi
+done
+
+# accent-default-band reads every notation in OKLCH. Tailwind indigo-500 as hex, violet-500 as hsl() and the
+# shadcn v3 bare triplet are in the band; fuchsia hex is outside it; zinc (286°, chroma 0.006) is a neutral, not judged.
+for k in 'hex-indigo|#6366f1|FAIL' 'hsl-violet|hsl(258 90% 66%)|FAIL' 'triplet-indigo|243 75% 59%|FAIL' \
+         'hex-fuchsia|#d946ef|PASS' 'hex-zinc|#18181b|PASS' 'triplet-zinc|240 5.9% 10%|PASS' 'oklch-zinc|oklch(0.21 0.006 285.885)|PASS'; do
+  name=${k%%|*}; rest=${k#*|}; val=${rest%%|*}; want=${rest##*|}
+  d="$WS/band-$name"; mkdir -p "$d/src"
+  printf ':root { --background: 0 0%% 100%%; --primary: %s; --primary-foreground: 0 0%% 98%%; }\n' "$val" > "$d/src/index.css"
+  printf '<!doctype html><html lang="en"><body><main><h1>Harbour tide tables</h1></main></body></html>\n' > "$d/page.html"
+  out=$(run_divergence "$d")
+  got=$(state_of "$out" accent-default-band)
+  if [ "$got" = "$want" ] && ! printf '%s\n' "$out" | grep -q 'EXIT=2'; then ok; else
+    bad "accent-default-band on --primary: $val expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'accent-default-band|not measured|EXIT' | head -2)"
+  fi
+done
 
 # poster-first: the pair differs in the hero's two motion lines; a logo <img> is no still, a chart canvas outside the hero is no hero motion.
 for pair in "fixture-poster.html:FAIL" "fixture-poster-clean.html:PASS"; do
@@ -519,6 +552,55 @@ for k in poster bare; do
     if [ "$(state_of "$out" poster-first)" = FAIL ] && [ "$(printf '%s\n' "$line" | grep -o '<video> at src/Hero.tsx:5' | wc -l)" -eq 1 ]; then ok; else
       bad "a JSX hero <video> with an arrow handler and no poster fails, listed once" "$line"; fi
   fi
+done
+
+# A hero class on the <video>/<canvas> itself, behind a `hero-title` h1, is graded in the element around it.
+for k in video-bare:FAIL video-poster:PASS canvas-still:PASS canvas-bare:FAIL; do
+  name=${k%%:*}; want=${k##*:}
+  d="$WS/poster-self-$name"; mkdir -p "$d"; write_tokens "$d"
+  case $name in
+    video-bare)   body='<video class="hero-video" autoplay muted loop src="/media/harbour.mp4"></video>' ;;
+    video-poster) body='<video class="hero-video" autoplay muted loop poster="/media/harbour.avif" src="/media/harbour.mp4"></video>' ;;
+    canvas-still) body='<img src="/media/harbour.avif" alt="" width="640" height="360"><canvas id="hero-scene"></canvas>' ;;
+    canvas-bare)  body='<canvas id="hero-scene"></canvas>' ;;
+  esac
+  printf '<!doctype html><html lang="en"><body><main>\n<section>\n<h1 class="hero-title">Tide tables for forty harbours</h1>\n%s\n</section>\n</main></body></html>\n' "$body" > "$d/page.html"
+  out=$(run_divergence "$d"); line=$(printf '%s\n' "$out" | grep -E '^ +[A-Z]+ +poster-first ')
+  if [ "$(state_of "$out" poster-first)" = "$want" ] && { [ "$want" = PASS ] || printf '%s\n' "$line" | grep -q 'page.html:4'; }; then ok; else
+    bad "poster-first with the hero class on the motion element itself ($name) expected $want naming page.html:4" "$line"; fi
+done
+
+# The eyebrow row skips table headers, labels and buttons set in caps; three caps lines in body copy still fire it.
+for k in th:PASS p:FAIL; do
+  tag=${k%%:*}; want=${k##*:}
+  d="$WS/caps-$tag"; mkdir -p "$d"; write_tokens "$d"
+  if [ "$tag" = th ]; then
+    printf '<!doctype html><html lang="en"><body><main><h1>Invoices</h1><form><label>DUE DATE <input name="due"></label><button type="submit">SAVE AND CLOSE</button></form>\n<table><thead><tr><th>INVOICE NO</th><th>DUE DATE</th><th>NET TOTAL</th></tr></thead><tbody><tr><td>A-1</td><td>1 Dec</td><td>40</td></tr></tbody></table></main></body></html>\n' > "$d/page.html"
+  else
+    printf '<!doctype html><html lang="en"><body><main><p>INVOICE NO</p><h2>Invoices</h2><p>DUE DATE</p><h2>Dates</h2><p>NET TOTAL</p><h2>Totals</h2></main></body></html>\n' > "$d/page.html"
+  fi
+  out=$(run_divergence "$d")
+  if [ "$(state_of "$out" copy-register)" = "$want" ]; then ok; else
+    bad "copy-register on caps text in <$tag> expected $want" "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"; fi
+done
+
+# The run log's last row is this run's own only when it carries this run's draw or Run: stamp (slug and date).
+# audit.md appends the row AFTER the audit, so at audit time a matching hue there is the previous run: a repeat.
+log_project() { # dir slug-in-last-row date-in-last-row [stamp]
+  mkdir -p "$1/.craft-layer" "$1/src"; printf ':root { --primary: oklch(0.55 0.15 250); }\n' > "$1/src/index.css"
+  printf '<!doctype html><html lang="en"><body><main><h1>Harbour tide tables</h1></main></body></html>\n' > "$1/page.html"
+  printf '| date | brief-slug | hue-family | type-strategy | spine | signature | draw |\n|---|---|---|---|---|---|---|\n| 2026-11-01 | ferry-app | green | Fraunces | x | y | a / b / c / d / e |\n| %s | %s | blue | Fraunces | x | y | a / b / c / d / e |\n' "$3" "$2" > "$1/.craft-layer/run-log.md"
+  if [ -n "${4:-}" ]; then mkdir -p "$1/craft"; printf '# Offer contract\nRun: %s\n' "$4" > "$1/craft/offer-contract.md"; fi
+}
+for k in 'previous|tide-app|2026-11-08||FAIL' 'own-stamp|tide-app|2026-11-11|2026-11-11T09:30Z · tide-app · ROOT|PASS' \
+         'other-slug|ferry-app|2026-11-11|2026-11-11T09:30Z · tide-app · ROOT|FAIL'; do
+  IFS='|' read -r name slug date stamp want <<EOF
+$k
+EOF
+  d="$WS/log-$name"; log_project "$d" "$slug" "$date" "${stamp/ROOT/$WS/log-$name}"
+  out=$(run_divergence "$d")
+  if [ "$(state_of "$out" hue-repeat)" = "$want" ]; then ok; else
+    bad "hue-repeat with a blue last row ($name) expected $want" "$(printf '%s\n' "$out" | grep -E 'hue-repeat|note' | head -3)"; fi
 done
 
 # asset-manifest: three heavy assets (a video by kind, a 150 KB image, a 120 KB CSS texture); a 2 KB icon and a remote font are not heavy.
@@ -637,24 +719,13 @@ HTML
 out=$(run_divergence "$d")
 printf '%s\n' "$out" | grep -qE 'coverage: [0-9]+/[0-9]+ assertion' && ok || \
   bad "no coverage line on a partially-skipped run" "$(printf '%s\n' "$out" | tail -3)"
-if printf '%s\n' "$out" | grep -qE 'clears every divergence assertion'; then
-  bad "terminator claimed a clean sweep over a mostly-skipped run" \
+# The coverage line counts the rows as printed, and the green names that count, never the total.
+graded=$(printf '%s\n' "$out" | grep -cE '^ +(PASS|FAIL|WAIVED) ' || true)
+skipped=$(printf '%s\n' "$out" | grep -cE '^ +SKIP ' || true)
+if [ "$skipped" -gt 0 ] && printf '%s\n' "$out" | grep -qx "coverage: $graded/$((graded + skipped)) assertion(s) graded, $skipped SKIP (.*)" \
+   && printf '%s\n' "$out" | grep -qx "OK: the build clears the $graded divergence assertion(s) that could be graded."; then ok; else
+  bad "a mostly-skipped run's coverage line and terminator speak for the $graded graded of $((graded + skipped)) rows only" \
       "$(printf '%s\n' "$out" | tail -2)"
-else ok; fi
-
-d="$WS/allskip"; mkdir -p "$d"; write_tokens "$d"
-cat > "$d/page.html" <<'HTML'
-<!doctype html><html lang="en"><body><main><h1>Nothing here</h1></main></body></html>
-HTML
-out=$(run_divergence "$d")
-graded=$(printf '%s\n' "$out" | grep -cE '^\s+(PASS|FAIL|WAIVED) ' || true)
-if [ "$graded" -eq 0 ]; then
-  if printf '%s\n' "$out" | grep -qiE 'coverage:|0/|not measured|nothing was graded'; then ok; else
-    bad "all-SKIP run printed no coverage qualifier" \
-        "terminator was: $(printf '%s\n' "$out" | grep -iE '^OK:|assertion' | tail -1)"
-  fi
-else
-  ok  # some assertion graded; coverage honesty is not under test in this shape
 fi
 
 d="$WS/notokens"; mkdir -p "$d"
@@ -702,6 +773,60 @@ if [ -n "$n" ] && [ "$n" -gt 0 ]; then ok; else
       "$(printf '%s\n' "$out" | grep -i coverage | head -1)"
 fi
 
+# The dark theme is the rule named `.dark`, not the first text match: stock shadcn v4
+# puts `@custom-variant dark (&:is(.dark *))` above it, and a text search graded :root twice.
+contrast_in() { ( cd "$1" && node "$CONTRAST" 2>&1; printf 'EXIT=%s\n' "$?" ); }
+dark_of() { printf '%s\n' "$1" | sed -n '/^DARK$/,/^coverage/p'; }
+d="$WS/contrast-dark"; mkdir -p "$d/src"
+cat > "$d/src/index.css" <<'CSS'
+@custom-variant dark (&:is(.dark *));
+/* .dark { --foreground: oklch(1 0 0); } */
+:root { --background: oklch(1 0 0); --foreground: oklch(0.145 0 0); --input: oklch(0.4 0 0); }
+.dark { --background: oklch(0.145 0 0); --foreground: oklch(0.2 0 0); --input: oklch(1 0 0 / 10%); }
+CSS
+out=$(contrast_in "$d")
+if dark_of "$out" | grep -qE 'FAIL body text +1\.[0-9]+:1'; then ok; else
+  bad "an unreadable dark body text was not failed under @custom-variant dark" "$(dark_of "$out" | head -3)"
+fi
+if printf '%s\n' "$out" | grep -q 'EXIT=1'; then ok; else bad "a failing dark theme did not exit 1" "$(printf '%s\n' "$out" | tail -2)"; fi
+# A 10% white border on a near-black ground is about 1.3:1; read as opaque white it "passed" at 19.8:1.
+if dark_of "$out" | grep -qE 'FAIL control border +1\.[0-9]+:1'; then ok; else
+  bad "a translucent border was not composited over its surface" "$(dark_of "$out" | grep 'control border' | head -1)"
+fi
+
+d="$WS/contrast-nodark"; mkdir -p "$d/src"
+cat > "$d/src/index.css" <<'CSS'
+:root { --background: #fff; --foreground: #000; }
+CSS
+out=$(contrast_in "$d")
+if dark_of "$out" | grep -q 'not measured: no .dark' && ! dark_of "$out" | grep -qE 'PASS|FAIL'; then ok; else
+  bad "a build with no dark rule was given dark verdicts" "$(dark_of "$out" | head -3)"
+fi
+if printf '%s\n' "$out" | grep -qE 'PASS body text +21\.00:1' && printf '%s\n' "$out" | grep -q 'EXIT=0'; then ok; else
+  bad "hex tokens were not measured (#000 on #fff is 21.00:1)" "$(printf '%s\n' "$out" | grep -E 'body text|EXIT' | head -2)"
+fi
+
+# Notations the same colour can be written in must give the same ratio, and never NaN.
+d="$WS/contrast-notations"; mkdir -p "$d/src"
+for v in 'oklch(62.8% 0.2577 29.23)|oklch(0.628 0.2577 29.23deg)' 'hsl(0 100% 50%)|0 100% 50%' 'rgb(255 0 0)|#f00' 'hsla(0, 100%, 50%, 1)|#ff0000ff'; do
+  printf ':root { --background: oklch(1 0 none); --foreground: %s; }\n[data-theme="dark"] { --background: #000; --foreground: %s; }\n' "${v%%|*}" "${v##*|}" > "$d/src/index.css"
+  out=$(contrast_in "$d")
+  if printf '%s\n' "$out" | grep -qE 'FAIL body text +4\.00:1' && dark_of "$out" | grep -qE 'PASS body text +5\.25:1' && ! printf '%s\n' "$out" | grep -q NaN; then ok; else
+    bad "pure red written as $v did not measure 4.00:1 on white and 5.25:1 on black" "$(printf '%s\n' "$out" | grep 'body text')"
+  fi
+done
+cat > "$d/src/index.css" <<'CSS'
+@media (prefers-color-scheme: dark) { :root { --background: #000; --foreground: #fff; } }
+:root { --background: #fff; --foreground: var(--brand-ink); }
+CSS
+out=$(contrast_in "$d")
+if printf '%s\n' "$out" | sed -n '/^LIGHT$/,/^DARK$/p' | grep -q 'body text .*not measured (--foreground is not a colour value'; then ok; else
+  bad "a var() token was not reported as not measured" "$(printf '%s\n' "$out" | grep 'body text' | head -1)"
+fi
+if dark_of "$out" | grep -qE 'PASS body text +21\.00:1'; then ok; else
+  bad "a prefers-color-scheme: dark rule was not read as the dark theme" "$(dark_of "$out" | head -2)"
+fi
+
 # Exit 0, 1 and 2 are all verdicts; any other code is a crash.
 d="$WS/bare"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-shape-clean.html" "$d/page.html"
 out=$(run_divergence "$d")
@@ -722,22 +847,28 @@ if [ "$before" = "$after" ]; then ok; else
   bad "divergence.mjs wrote into the project it measured" "$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -5)"
 fi
 
-# Nothing is installed (no network): an existing Playwright is used, and only if its Chromium launches.
-pw_launches() { # node_modules-dir -> exit 0 when its chromium starts
+# Nothing is installed (no network): an existing Playwright is used, and only if its bundled Chromium or a system Chrome launches.
+how_launches() { # node_modules-dir -> prints "bundled" or "chrome" for the first that starts
   node -e '
-    const t = setTimeout(() => process.exit(3), 20000)
-    require(process.argv[1] + "/playwright").chromium.launch()
-      .then((b) => b.close()).then(() => { clearTimeout(t); process.exit(0) }, () => process.exit(1))
-  ' "$1" >/dev/null 2>&1
+    const t = setTimeout(() => process.exit(3), 30000)
+    const { chromium } = require(process.argv[1] + "/playwright")
+    ;(async () => {
+      for (const [how, o] of [["bundled", {}], ["chrome", { channel: "chrome" }]]) {
+        try { const b = await chromium.launch(o); await b.close(); console.log(how); clearTimeout(t); process.exit(0) } catch {}
+      }
+      process.exit(1)
+    })()
+  ' "$1" 2>/dev/null
 }
-PW=""
+PW=""; HOW=""
 for nm in ${CRAFT_GATES_PLAYWRIGHT:-} $(ls -dt "$HOME"/.npm/_npx/*/node_modules 2>/dev/null); do
   [ -f "$nm/playwright/cli.js" ] || continue
-  if pw_launches "$nm"; then PW="$nm"; break; fi
+  if HOW=$(how_launches "$nm"); then PW="$nm"; break; fi
 done
+channel=""; [ "$HOW" = chrome ] && channel=chrome
 
 if [ -z "$PW" ]; then
-  printf 'SKIP  reduced-motion runtime controls: no Playwright whose Chromium launches (looked in $CRAFT_GATES_PLAYWRIGHT and ~/.npm/_npx) — the three fixture-motion-* controls did NOT run\n'
+  printf 'SKIP  browser controls: no Playwright whose Chromium (bundled, or a system Chrome channel) launches (looked in $CRAFT_GATES_PLAYWRIGHT and ~/.npm/_npx) — the fixture-motion-* and fixture-triggers controls did NOT run\n'
 else
   # The runner and the spec must share one Playwright instance, so the shim points at the package the CLI comes from.
   shim="$WS/pw/node_modules"; mkdir -p "$shim/@playwright/test" "$shim/@axe-core/playwright"
@@ -755,16 +886,21 @@ else
       > "$shim/@axe-core/playwright/index.js"
   fi
 
-  # rm_verdicts <fixture> -> one "<key> <passed|failed|…> <error text>" line per test.
+  # Clean twins: the page with its `<!-- defect -->` lines deleted, so it differs from the defective one in nothing else.
+  for fx in fixture-motion-css fixture-triggers; do grep -v '<!-- defect -->' "$FIXTURES/$fx.html" > "$WS/$fx-clean.html"; done
+
+  # rm_verdicts <fixture> -> one "<key> <passed|failed|…> <error text>" line per test (a fixture, else a derived twin in $WS).
   rm_verdicts() {
     local run="$WS/rm-${1%%.html}"; mkdir -p "$run"
-    local url; url=$(node -p 'require("url").pathToFileURL(process.argv[1]).href' "$FIXTURES/$1")
-    ( cd "$run" && BASE_URL="$url" NODE_PATH="$shim" PLAYWRIGHT_JSON_OUTPUT_NAME="$run/report.json" \
+    local page="$FIXTURES/$1"; [ -f "$page" ] || page="$WS/$1"
+    local url; url=$(node -p 'require("url").pathToFileURL(process.argv[1]).href' "$page")
+    ( cd "$run" && BASE_URL="$url" CRAFT_BROWSER_CHANNEL="$channel" NODE_PATH="$shim" PLAYWRIGHT_JSON_OUTPUT_NAME="$run/report.json" \
         node "$PW/playwright/cli.js" test --config "$GATES/playwright.config.ts" \
-        --grep 'prefers-reduced-motion' --reporter=json >/dev/null 2>"$run/stderr" )
+        --grep 'prefers-reduced-motion|floods the tab order|phone @200|High Contrast' --reporter=json >/dev/null 2>"$run/stderr" )
     node -e '
       const keys = [["page renders", "css"], ["JS motion", "js"], ["canvas:", "canvas"],
-                    ["smooth-scroll:", "smooth"], ["video:", "video"]]
+                    ["smooth-scroll:", "smooth"], ["video:", "video"], ["no interactive grid", "grid"],
+                    ["no horizontal overflow at phone", "phone"], ["content survives", "forced"]]
       let r; try { r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")) } catch { process.exit(0) }
       const walk = (s) => [...(s.specs || []), ...(s.suites || []).flatMap(walk)]
       for (const spec of (r.suites || []).flatMap(walk)) {
@@ -782,10 +918,14 @@ else
     "fixture-motion-canvas.html:css=passed js=passed canvas=failed smooth=passed video=passed" \
     "fixture-motion-clean.html:css=passed js=passed canvas=passed smooth=passed video=passed" \
     "fixture-motion-video.html:video=failed" \
-    "fixture-motion-video-clean.html:video=passed"
+    "fixture-motion-video-clean.html:video=passed" \
+    "fixture-motion-css.html:css=failed" \
+    "fixture-motion-css-clean.html:css=passed" \
+    "fixture-triggers.html:grid=failed phone=failed forced=passed" \
+    "fixture-triggers-clean.html:grid=passed phone=passed forced=passed css=passed"
   do
     fx=${pair%%:*}; want=${pair#*:}
-    [ -f "$FIXTURES/$fx" ] || { bad "reduced-motion fixture missing" "$fx"; continue; }
+    [ -f "$FIXTURES/$fx" ] || [ -f "$WS/$fx" ] || { bad "browser control fixture missing" "$fx"; continue; }
     out=$(rm_verdicts "$fx")
     if [ -z "$out" ]; then
       bad "reduced-motion suite produced no verdicts on $fx" "$(tail -3 "$WS/rm-${fx%%.html}/stderr" 2>/dev/null)"
@@ -809,18 +949,27 @@ smooth|Lenis smooth-scrolled a wheel event' ;;
       fixture-motion-canvas.html) need='canvas|canvas\[#scene\] 320x160: [0-9.]+% then' ;;
       fixture-motion-video.html)  need='video|video#hero-loop \(
 video|video#shadow-loop inside <clip-player> \(' ;;
+      fixture-motion-css.html)    need='css|p#slide: @keyframes slide animates transform
+css|div#reveal\.reveal: a transform transition ran
+css|a#lift\.card: a transform transition ran' ;;
+      fixture-triggers.html)      need='grid|DIV\[grid\] contributes 10 tab stops
+phone|overflow 4[0-9]{2}>320' ;;
       *)                          need="" ;;
     esac
     while IFS= read -r n; do
       [ -n "$n" ] || continue
       k=${n%%|*}; what=${n#*|}
       if printf '%s\n' "$out" | awk -v k="$k" '$1 == k' | grep -qE "$what"; then ok; else
-        bad "reduced-motion '$k' on $fx did not name $what" \
+        bad "browser control '$k' on $fx did not name $what" \
             "$(printf '%s\n' "$out" | awk -v k="$k" '$1 == k' | cut -c1-240)"
       fi
     done <<EOF
 $need
 EOF
+    # The silent neighbours: a fade, a transition list that only names transform, a 0.01ms snap.
+    if [ "$fx" = fixture-motion-css.html ] && printf '%s\n' "$out" | awk '$1 == "css"' | grep -qE '#fade|#tw|#snap'; then
+      bad "reduced-motion 'css' on $fx named a silent neighbour (#fade, #tw or #snap)" "$(printf '%s\n' "$out" | awk '$1 == "css"' | cut -c1-300)"
+    elif [ "$fx" = fixture-motion-css.html ]; then ok; fi
   done
 fi
 

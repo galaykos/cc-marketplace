@@ -104,7 +104,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    "Untitled", John/Jane Doe), an empty list or table with no empty, loading or error text in its section,
    and a Tab stop whose focus changes nothing visible; its source half flags a file that fetches and maps
    the fetched list with no such branch (a Next.js `loading`/`error` file counts as one). Standing: **gate**
-   where run. It misses: one 1280x800 viewport; a handler delegated to `document` or `body`; a dead button
+   where run. A control whose click handler is delegated to `document`, `window` or `body` (Bootstrap's
+   data API, jQuery `.on(document, …)`) is reported dead — a false positive; waive it by target. It
+   misses: one 1280x800 viewport; a dead button
    from a library that always passes handlers (MUI `ButtonBase`, AntD `Button`), which reads live; closed
    shadow roots and iframe contents; focus-ring contrast and size; a phrase split across inline elements; a
    list fetched in another file. Exit 1 is a FINDING, waivable in `waivers.json` under the
@@ -154,7 +156,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    both set → the suite runs and writes shots into `<project>/.craft-layer/shots/`.
 
    **What the suite's reduced-motion trigger sees — standing `gate` for what it samples, and only that.**
-   Under `prefers-reduced-motion: reduce` it fails the build on: CSS transitions/keyframes that move ·
+   Under `prefers-reduced-motion: reduce` it fails the build on: a CSS keyframe animation whose keyframes
+   move something, or a CSS transition that runs on a moving property at load or while the pointer rests
+   on one of the first 40 controls (a transition list that only names `transform` moves nothing) ·
    any `Element.animate()`/WAAPI animation whose keyframes move (Motion's accelerated path), recorded
    from before the first page script, so a finished entrance still counts · an element whose computed
    transform keeps changing with the page at rest (a rAF tween or loop — GSAP, Motion's JS path,
@@ -163,8 +167,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    400ms apart (three.js/R3F, Lottie/Rive canvas, Spline, shader presets) · Lenis smoothing a wheel
    scroll, or `scroll-behavior: smooth` · a looping or >5s `<video>` still playing with no `controls`
    and no pause button beside it. It does NOT see: motion that starts only after an interaction
-   (hover, click, drag, a carousel arrow — an auto-advancing carousel is caught only when a slide
-   change lands inside a sample window); a scroll container other than the window; `top`/`left`/
+   (click, drag, focus, a hover past those 40 controls, a carousel arrow — an auto-advancing
+   carousel is caught only when a slide change lands inside a sample window); a scroll container
+   other than the window; `top`/`left`/
    `margin` animated by JS; tweens under ~250ms; canvases past the first four; closed shadow roots,
    and open ones for the transform walk (the video and canvas checks pierce them); anything inside an
    iframe; elements past the first 1,500 on screen at a scroll stop;

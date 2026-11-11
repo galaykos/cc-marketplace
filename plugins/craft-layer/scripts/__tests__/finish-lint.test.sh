@@ -106,10 +106,31 @@ export default async function Page() {
 TSX
 printf 'export default function Loading() { return <p>Loading invoices…</p> }\n' > "$p2/app/invoices/loading.tsx"
 sed 's/invoices/payouts/g' "$p2/app/invoices/page.tsx" > "$p2/app/payouts/page.tsx"
+# A catch handler's `(error)` and a destructured isLoading nothing reads are not branches; `if (error)` is.
+cat > "$p2/src/Payments.tsx" <<'TSX'
+export function Payments() {
+  const [rows, setRows] = useState([])
+  useEffect(() => { fetch('/api/payments').then((r) => r.json()).then(setRows).catch((error) => console.error(error)) }, [])
+  return <ul>{rows.map((p) => <li key={p.id}>{p.ref}</li>)}</ul>
+}
+TSX
+cat > "$p2/src/Refunds.tsx" <<'TSX'
+export function Refunds() {
+  const { data, isLoading } = useQuery({ queryKey: ['refunds'], queryFn: () => fetch('/api/refunds').then((r) => r.json()) })
+  return <ul>{data.map((r) => <li key={r.id}>{r.ref}</li>)}</ul>
+}
+TSX
+cat > "$p2/src/Credits.tsx" <<'TSX'
+export function Credits() {
+  const { data, error } = useSWR('/api/credits', (u) => fetch(u).then((r) => r.json()))
+  if (error) return <p>Could not load credits.</p>
+  return <ul>{data.map((c) => <li key={c.id}>{c.ref}</li>)}</ul>
+}
+TSX
 out=$( cd "$p2" && BASE_URL= node "$LINT" 2>&1 )
 got=$(printf '%s\n' "$out" | grep -E '^ +FAIL +stateless-collection +no-state-branch' | awk '{ print $4 }' | sort | tr '\n' ' ')
-if [ "$got" = "app/payouts/page.tsx:4 src/Orders.tsx:8 src/Team.tsx:5 " ]; then ok; else
-  bad "source half: the fetched list in Team.tsx, the effect-set list in Orders.tsx and the payouts page are found; the literal LINKS.map and the page with loading.tsx are not" "got: $got"; fi
+if [ "$got" = "app/payouts/page.tsx:4 src/Orders.tsx:8 src/Payments.tsx:4 src/Refunds.tsx:3 src/Team.tsx:5 " ]; then ok; else
+  bad "source half: the fetched list in Team.tsx, the effect-set lists in Orders.tsx and Payments.tsx (a .catch((error) => …) is no branch), Refunds.tsx (an unread isLoading is none) and the payouts page are found; the literal LINKS.map, Credits.tsx's if (error) and the page with loading.tsx are not" "got: $got"; fi
 
 mkdir -p "$proj/.craft-layer"
 printf '[{"check":"stateless-collection","value":"no-state-branch","reason":"the invoice list is always seeded by the import"},{"check":"focus-ring","value":"*"}]\n' > "$proj/.craft-layer/waivers.json"
@@ -165,7 +186,7 @@ focus-ring no-focus-indicator input#fr-bare-input.bare'
   if [ "$rc" -eq 1 ] && [ -z "$missing" ]; then ok; else
     bad "every defect line in fixture-finish.html is found, exit 1" "exit $rc; missing: $(printf '%s' "$missing" | tr '\n' ';') $(tail -2 "$WS/defective.stderr")"; fi
   if [ -z "$extra" ]; then ok; else
-    bad "no silent nearest neighbour is reported (#anchor with a real id, TODO in <code> or an editor, a kanban TODO, Untitled document, delegated, parent-React and late-hydrated handlers, No invoices yet, an empty state three levels up, aria-busy, a toast viewport, a live region, box-shadow, focus-within and peer rings)" \
+    bad "no silent nearest neighbour is reported (#anchor with a real id, TODO in <code> or an editor, a kanban TODO, Untitled document, delegated, parent-React and late-hydrated handlers, No invoices yet, an empty state three levels up, aria-busy, a toast viewport, a live region, a placeholder="Jane Doe" example value, box-shadow, focus-within and peer rings)" \
       "$(printf '%s' "$extra" | tr '\n' ';')"; fi
 
   notes=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).notes.join("\n"))' "$WS/defective.json" 2>/dev/null)

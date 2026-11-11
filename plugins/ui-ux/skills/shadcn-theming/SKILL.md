@@ -95,13 +95,15 @@ detection rules, checked against the shadcn theming and Tailwind v4 docs.
 
 - App shells start from the neutral base; a marketing or signature surface picks its
   GROUND deliberately — neutral base + swapped `primary` IS the accent swap.
-- Express the brand as `primary` in oklch: pick hue, then set lightness ~0.55–0.65
-  (light mode) so white foreground passes contrast; `ring` follows primary.
+- Express the brand as `primary` in oklch: pick hue, then set lightness ≤ ~0.55
+  (light mode) so a white foreground reaches 4.5:1 — greens need ~0.50, and 0.60
+  measures 3.6–4.4:1 on any hue; `ring` follows primary.
 - Chroma ≤ 0.03 binds dense data surfaces; a hero ground follows the brief instead.
 - Contrast floors: 4.5:1 for body text on its surface, 3:1 for large text and UI
   boundaries — check every pair, both modes, before showing anything. Standing:
-  gate for oklch() tokens — `/ui-ux:theme` step 5 runs `scripts/contrast.mjs` (exit 1
-  a pair fails, 2 not measured); agent-graded for hex or HSL tokens it cannot parse.
+  gate where run — `/ui-ux:theme` step 5 runs `scripts/contrast.mjs` (exit 1 a pair
+  fails, 2 not measured) on oklch, hex, rgb and hsl tokens; agent-graded for a
+  `var()`, `color-mix()` or Sass value, which it prints as not measured.
 
 ## Dark mode is a second design, not an inversion
 

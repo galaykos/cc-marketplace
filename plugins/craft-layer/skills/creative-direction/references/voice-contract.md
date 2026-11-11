@@ -3,7 +3,7 @@
 The concept deck names an **editorial voice** and, until this file existed, that name
 reached the build as a typographic role (`concept-deck.md` Part 5) and nothing else. Brand
 voice was a slot name, not a capability: the whole marketplace held one operational rule
-about copy craft — the `Copy voice:` line in
+about copy craft — the voice line in
 `../../design-research/references/brief-templates.md` — and it lived inside a per-section
 brief the audit never reads. This file promotes it to a run-level contract and gives the
 gate something to grade.
@@ -36,13 +36,12 @@ One line, the same shape and the same lane as `Banned vocabulary:`, written by
 `/craft-layer:craft` step 5 onto `craft/build-task.md`:
 
 ```
-Voice: first person plural to a named crew lead · 6–14 words a sentence · fragments as list
-items, never as headings; imperative only on the CTA · NEVER "everything you need", NEVER
-"simple, powerful, flexible", NEVER "we're excited to announce"
+Voice: first person plural to a named crew lead · 6–14 words a sentence · fragments as list items, never as headings; imperative only on the CTA · NEVER "everything you need", NEVER "simple, powerful, flexible", NEVER "we're excited to announce"
 ```
 
 Dimensions are separated by `·`; the NEVERs are `NEVER "<literal>"` items, comma separated,
-anywhere on the line. Nothing to ban is NOT a legitimate value here — a voice with no
+anywhere on the line. Let the line be long: the gate reads the line the key sits on and nothing
+else, so a NEVER wrapped onto the next line is never read. Nothing to ban is NOT a legitimate value here — a voice with no
 NEVERs has no machine-readable half, so the gate says so rather than passing.
 
 **Where the NEVERs come from.** The concept's own vocabulary, not a category list. Take the

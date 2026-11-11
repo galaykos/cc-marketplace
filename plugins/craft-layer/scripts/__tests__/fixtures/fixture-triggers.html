@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Keyboard, zoom and forced-colours controls. Every line ending in a `defect` comment trips one of
+     those tests; craft-gates.test.sh derives the clean twin by deleting exactly those lines. Defects: a
+     role="grid" whose ten cells are ten tab stops, and a 400px strip that overflows a 320px viewport.
+     Neighbours that must stay silent: a <table> of twelve row links (one stop per row is right for a
+     list), a 262px code row wider than 195px but inside the 320px reflow floor, and two h1s. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidewater invoices</title>
+<style>
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #102030; background: #f6f8fa; }
+  main { padding: 8px; }
+  .code { display: flex; gap: 6px; } .code input { box-sizing: border-box; width: 36px; flex: none; }
+  .strip { width: 400px; }
+</style>
+</head>
+<body>
+<header><h1>Tidewater</h1></header>
+<main>
+  <h1>Invoices</h1>
+  <table>
+    <caption>Open invoices</caption>
+    <thead><tr><th>Invoice</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>A-101</td><td><a href="/invoices/101">Open</a></td></tr>
+      <tr><td>A-102</td><td><a href="/invoices/102">Open</a></td></tr>
+      <tr><td>A-103</td><td><a href="/invoices/103">Open</a></td></tr>
+      <tr><td>A-104</td><td><a href="/invoices/104">Open</a></td></tr>
+      <tr><td>A-105</td><td><a href="/invoices/105">Open</a></td></tr>
+      <tr><td>A-106</td><td><a href="/invoices/106">Open</a></td></tr>
+      <tr><td>A-107</td><td><a href="/invoices/107">Open</a></td></tr>
+      <tr><td>A-108</td><td><a href="/invoices/108">Open</a></td></tr>
+      <tr><td>A-109</td><td><a href="/invoices/109">Open</a></td></tr>
+      <tr><td>A-110</td><td><a href="/invoices/110">Open</a></td></tr>
+      <tr><td>A-111</td><td><a href="/invoices/111">Open</a></td></tr>
+      <tr><td>A-112</td><td><a href="/invoices/112">Open</a></td></tr>
+    </tbody>
+  </table>
+  <div class="code"><input aria-label="Code digit 1"><input aria-label="Code digit 2"><input aria-label="Code digit 3"><input aria-label="Code digit 4"><input aria-label="Code digit 5"><input aria-label="Code digit 6"></div>
+  <div role="grid" aria-label="Berth map"><div role="row"><button role="gridcell">1</button><button role="gridcell">2</button><button role="gridcell">3</button><button role="gridcell">4</button><button role="gridcell">5</button><button role="gridcell">6</button><button role="gridcell">7</button><button role="gridcell">8</button><button role="gridcell">9</button><button role="gridcell">10</button></div></div> <!-- defect -->
+  <div class="strip">Harbour dues are payable on arrival at every berth.</div> <!-- defect -->
+</main>
+</body>
+</html>

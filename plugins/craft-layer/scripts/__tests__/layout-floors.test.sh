@@ -2,7 +2,7 @@
 # layout-floors.test.sh — runs gates.spec.ts's layout-floors test on a fixture breaking every floor and asserts the test passes,
 # layout-floors.json records each break with a stamp audit.md step 8 can date, a floors test that dies leaves no file behind,
 # and three probe pages that once produced false values (hidden nav items, grid decoration, a wrapper-painted dark page) read true.
-# Misses: SKIPs without a local Playwright whose Chromium launches (CI installs none); the stale rule is audit.md's prose, restated here.
+# Misses: SKIPs without a Playwright whose Chromium (bundled, or a system Chrome channel) launches (CI installs none); the stale rule is audit.md's prose, restated here.
 set -u
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -12,20 +12,26 @@ FIXTURE="$here/fixtures/fixture-floors-broken.html"
 [ -f "$FIXTURE" ] || { printf 'FAIL: fixture not found at %s\n' "$FIXTURE"; exit 1; }
 command -v node >/dev/null 2>&1 || { printf 'SKIP: node not installed, so no Chromium to launch\n'; exit 0; }
 
-pw_launches() { # node_modules-dir -> exit 0 when its chromium starts
+how_launches() { # node_modules-dir -> prints "bundled" or "chrome" for the first that starts
   node -e '
-    const t = setTimeout(() => process.exit(3), 20000)
-    require(process.argv[1] + "/playwright").chromium.launch()
-      .then((b) => b.close()).then(() => { clearTimeout(t); process.exit(0) }, () => process.exit(1))
-  ' "$1" >/dev/null 2>&1
+    const t = setTimeout(() => process.exit(3), 30000)
+    const { chromium } = require(process.argv[1] + "/playwright")
+    ;(async () => {
+      for (const [how, o] of [["bundled", {}], ["chrome", { channel: "chrome" }]]) {
+        try { const b = await chromium.launch(o); await b.close(); console.log(how); clearTimeout(t); process.exit(0) } catch {}
+      }
+      process.exit(1)
+    })()
+  ' "$1" 2>/dev/null
 }
-PW=""
+PW=""; HOW=""
 for nm in ${CRAFT_GATES_PLAYWRIGHT:-} $(ls -dt "$HOME"/.npm/_npx/*/node_modules 2>/dev/null); do
   [ -f "$nm/playwright/cli.js" ] || continue
-  if pw_launches "$nm"; then PW="$nm"; break; fi
+  if HOW=$(how_launches "$nm"); then PW="$nm"; break; fi
 done
+channel=""; [ "$HOW" = chrome ] && channel=chrome
 [ -n "$PW" ] || {
-  printf 'SKIP: no Playwright whose Chromium launches (looked in $CRAFT_GATES_PLAYWRIGHT and ~/.npm/_npx) — the floors fixture did NOT run\n'
+  printf 'SKIP: no Playwright whose Chromium (bundled, or a system Chrome channel) launches (looked in $CRAFT_GATES_PLAYWRIGHT and ~/.npm/_npx) — the floors fixture did NOT run\n'
   exit 0
 }
 
@@ -55,7 +61,7 @@ project="$WS/project"; mkdir -p "$project"
 FLOORS="$project/.craft-layer/layout-floors.json"
 
 run_floors() { # expect-title report-name [project-dir base-url] -> the CLI's exit status
-  ( cd "${3:-$project}" && BASE_URL="${4:-$url}" CRAFT_EXPECT_TITLE="$1" CRAFT_PRIMARY_ACTION='Start the trial' NODE_PATH="$shim" \
+  ( cd "${3:-$project}" && BASE_URL="${4:-$url}" CRAFT_EXPECT_TITLE="$1" CRAFT_PRIMARY_ACTION='Start the trial' CRAFT_BROWSER_CHANNEL="$channel" NODE_PATH="$shim" \
       PLAYWRIGHT_JSON_OUTPUT_NAME="$WS/$2.json" node "$PW/playwright/cli.js" test \
       --config "$GATES/playwright.config.ts" --grep 'layout floors' --reporter=json >/dev/null 2>"$WS/$2.stderr" )
 }

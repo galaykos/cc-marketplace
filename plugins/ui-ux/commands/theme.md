@@ -51,9 +51,10 @@ accent swap.
    `cd <project root> && CRAFT_TOKEN_SOURCE=<that file> node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"`.
    Exit 1 prints every pairing below its WCAG 2 threshold — fix those steps and
    re-run before showing anything. Exit 2 means it resolved no token and measured
-   nothing, which is not a pass either. It parses `oklch()` values only, so a
-   Tailwind v3 HSL-triplet or Bootstrap Sass target will exit 2: say the tokens
-   were judged by reading and NOT measured, rather than repeating this command's
+   nothing, which is not a pass either. It reads `oklch()`, hex, `rgb()`, `hsl()`
+   and bare HSL-triplet values in CSS custom properties, so a Bootstrap Sass target
+   will exit 2 and a `var()` or `color-mix()` token prints as not measured: say those
+   tokens were judged by reading and NOT measured, rather than repeating this command's
    own "contrast-checked" claim over an unmeasured build.
 6. On acceptance: show the diff against the real target for the detected stack —
    `globals.css` (plus `tailwind.config` mappings on v3), or the Sass partial
