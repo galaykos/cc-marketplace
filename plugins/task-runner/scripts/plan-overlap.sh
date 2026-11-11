@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
-# plan-overlap.sh — computes a card set's dependency levels and the same-level card pairs that write one path (a `dir/` entry covers what is under it). With --group, exit 1 when the named cards cannot run at once: two write one path, one depends on another, or one lists no written file.
-# Misses: a file a card writes but does not list, a path built from a glob or variable, generated and lock files a build rewrites, a legacy bold-label card's `Files` text (reported as no-files), shared ports, databases and caches.
+# plan-overlap.sh — computes a card set's dependency levels and the same-level card pairs that write one path (a `dir/` entry covers what is under it). --group exits 1 when the named cards cannot run at once (shared path, a dependency, no written file). --index prints each milestone of a 00-INDEX.md as eligible for a track or serial, with the file or dependency that decides it.
+# Misses: a file a card writes but does not list, a path built from a glob or variable, generated and lock files a build rewrites, a legacy bold-label card's `Files` text (reported as no-files), a milestone `Files:` line that omits a card's file, shared ports, databases and caches.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/plan-overlap.sh
 set -uo pipefail
 
 PROG=plan-overlap
-usage() { printf '%s: usage: %s --dir <cards dir> [--group <card,card,...>]\n' "$PROG" "$PROG" >&2; exit 3; }
+usage() { printf '%s: usage: %s --dir <cards dir> [--group <card,card,...>] | --index <00-INDEX.md>\n' "$PROG" "$PROG" >&2; exit 3; }
 
-dir=""; group=""; has_group=0
+dir=""; group=""; has_group=0; index=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dir) [ $# -ge 2 ] || usage; dir=$2; shift 2 ;;
     --group) [ $# -ge 2 ] || usage; group=$2; has_group=1; shift 2 ;;
+    --index) [ $# -ge 2 ] || usage; index=$2; shift 2 ;;
     *) usage ;;
   esac
 done
+if [ -n "$index" ]; then
+  [ -f "$index" ] && [ "$has_group" = 0 ] || usage
+  [ -n "$dir" ] || dir=$(dirname "$index")
+fi
 [ -n "$dir" ] && [ -d "$dir" ] || usage
 
 norm() { local n; n=$(printf '%s' "$1" | sed 's/^0*//'); printf '%s' "${n:-0}"; }
@@ -50,11 +55,52 @@ if [ "$has_group" = 1 ]; then
   [ "$members" -ge 2 ] || { printf '%s: --group needs at least two cards\n' "$PROG" >&2; exit 3; }
 fi
 
-printf '%s' "$facts" | awk -F'\t' -v grouped="$has_group" '
+if [ -n "$index" ]; then
+  ms=""; found_ms=0
+  while IFS= read -r line; do
+    case "$line" in
+      '##'*[Mm]ilestone\ *)
+        ms=$(printf '%s' "$line" | sed -E 's/^#+ +[Mm]ilestone +([^ ]+).*/\1/'); found_ms=1; add "ms	$ms" ;;
+      '#'*) ms="" ;;
+      Files:*)
+        [ -n "$ms" ] || continue
+        while IFS= read -r p; do
+          p=$(printf '%s' "$p" | sed -E -e 's/[[:space:]]*\([^)]*\)//g' -e 's/^[[:space:]]+//' -e 's/[[:space:]]+$//' -e 's/:[0-9]+(-[0-9]+)?$//' -e 's#^\./##')
+          [ -n "$p" ] && add "msfile	$ms	$p"
+        done < <(printf '%s\n' "${line#Files:}" | tr ',' '\n') ;;
+      Cards:*)
+        [ -n "$ms" ] || continue
+        for c in $(printf '%s' "${line#Cards:}" | grep -oE '[0-9]+'); do add "mscard	$ms	$(norm "$c")"; done ;;
+    esac
+  done < "$index"
+  [ "$found_ms" = 1 ] || { printf '%s: no "### Milestone <id>" heading in %s\n' "$PROG" "$index" >&2; exit 3; }
+fi
+
+printf '%s' "$facts" | awk -F'\t' -v grouped="$has_group" -v by_milestone="${index:+1}" '
   $1 == "card"  { shown[$2] = $3; order[++nc] = $2; next }
   $1 == "dep"   { nd[$2]++; dep[$2, nd[$2]] = $3; next }
   $1 == "file"  { nf[$2]++; file[$2, nf[$2]] = $3; next }
   $1 == "group" { member[++ng] = $2; asked[$2] = $3; next }
+  $1 == "ms"     { mo[++nm] = $2; next }
+  $1 == "msfile" { mf[$2]++; mfile[$2, mf[$2]] = $3; next }
+  $1 == "mscard" { mc[$2]++; mcard[$2, mc[$2]] = $3; next }
+  function shared_file(p,    b) {
+    b = p; sub(/.*\//, "", b)
+    return b == "marketplace.json" || p == "README.md" || p == "CHANGELOG.md" || p == "ROADMAP.md" || b == "package.json" || b == "package-lock.json" || b ~ /\.lock$/ || index(p, ".github/workflows/") == 1 || index(p, "scripts/") == 1
+  }
+  function ms_shared(a, b,    i, j, p, q) {
+    for (i = 1; i <= mf[a]; i++) for (j = 1; j <= mf[b]; j++) {
+      p = mfile[a, i]; q = mfile[b, j]
+      if (covers(p, q)) return q
+      if (covers(q, p)) return p
+    }
+    return ""
+  }
+  function ms_needs(a, b,    i, j) {
+    for (i = 1; i <= mc[a]; i++) for (j = 1; j <= mc[b]; j++)
+      if ((mcard[a, i] in shown) && (mcard[b, j] in shown) && reach(mcard[a, i], mcard[b, j])) return 1
+    return 0
+  }
   function level(a,    i, d, l, best) {
     if (a in lv) return lv[a]
     if (a in visiting) { cyclic = 1; return 0 }
@@ -92,6 +138,18 @@ printf '%s' "$facts" | awk -F'\t' -v grouped="$has_group" '
     max = 0
     for (i = 1; i <= nc; i++) { l = level(order[i]); if (l > max) max = l }
     if (cyclic) { print "plan-overlap: the cards <depends-on> each other in a cycle; card-set-lint.sh names it" > "/dev/stderr"; exit 3 }
+    if (by_milestone) {
+      for (i = 1; i <= nm; i++) {
+        a = mo[i]; why = ""
+        if (mf[a] == 0) why = "no Files: line, so nothing proves it disjoint"
+        for (k = 1; k <= mf[a] && why == ""; k++) if (shared_file(mfile[a, k])) why = "shared file " mfile[a, k]
+        for (j = 1; j <= nm && why == ""; j++) if (j != i) { s = ms_shared(a, mo[j]); if (s != "") why = "overlaps " mo[j] " on " s }
+        printf "milestone %s: %s\n", a, why == "" ? "eligible" : "serial — " why
+      }
+      for (i = 1; i <= nm; i++) for (j = 1; j <= nm; j++)
+        if (i != j && ms_needs(mo[i], mo[j])) printf "after: %s needs %s merged first\n", mo[i], mo[j]
+      exit 0
+    }
     if (grouped) {
       for (i = 1; i <= ng; i++) if (!(member[i] in shown)) {
         printf "plan-overlap: no card %s in this set\n", asked[member[i]] > "/dev/stderr"; exit 3

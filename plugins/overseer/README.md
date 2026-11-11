@@ -166,6 +166,24 @@ the build; `scripts/__tests__/status-core.test.sh` holds the milestone rule to
 screen) and the git call per writing call, which no test counts. That a subagent's tool call
 leaves the line to the next main-loop one is a gate (`tests/status-line.test.ts`).
 
+## Running unattended
+
+A hands-off program waits for as long as a permission prompt waits. Two host settings change
+that. Both are yours to set; overseer never edits settings.
+
+- **`permissions.denyInsteadOfPrompting: true`** in `~/.claude/settings.json` or `--settings`
+  (Claude Code ≥ 2.1.319). A tool call that would wait on a permission prompt is denied and the
+  turn continues, in terminal sessions, subagents and teammates. A card that needed the denied
+  call should then park with task-runner's `guard` reason and show up in the report, instead
+  of the run sitting idle.
+- **`CLAUDE_CODE_SUBAGENT_EFFORT`** (≥ 2.1.316) sets the effort subagents run at when nothing
+  else names one, instead of the session's. The host docs do not say how it ranks against an
+  agent's own `effort`.
+
+Standing: **recorded**. Both lines are from the host changelog and settings page as read on
+2026-11-11; neither was run under an overseer program, and the park-on-denial behaviour is
+expected, not tested.
+
 ## Standing of the rules
 
 | Rule | Standing |

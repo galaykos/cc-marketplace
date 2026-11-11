@@ -185,10 +185,57 @@ path, one depends on another, or one lists no `<file>` with a mode. A `dir/` ent
 the files under it. `/task-runner:plan` reads the levels; `/task-runner:run` calls `--group`
 before a parallel group or batch goes out.
 
-Standing: **gate where run** (`scripts/__tests__/plan-overlap.test.sh`, 20 cases); nothing
-forces the call. It reads what the cards list, so a file a card writes without listing it, a
-glob, a lock file a build rewrites and a legacy bold-label card's `Files` text are not seen.
-Ports, a local database and caches shared between worktrees are outside it too.
+`--index <00-INDEX.md>` answers the same question for milestones, which is what `--tracks`
+needs:
+
+```
+milestone M0: serial — shared file scripts/lib/plugin-checks.sh
+milestone M1: eligible
+milestone M2: serial — overlaps M3 on plugins/task-runner/hooks/hooks.json
+after: M1 needs M0 merged first
+```
+
+A milestone is serial when it has no `Files:` line, touches a shared file (`marketplace.json`,
+a root `README.md`/`CHANGELOG.md`/`ROADMAP.md`, `package.json`, a lock file, `.github/workflows/`,
+`scripts/`), or overlaps another milestone.
+
+Standing: **gate where run** (`scripts/__tests__/plan-overlap.test.sh`, 35 cases); nothing
+forces the call. It reads what the cards and the index list, so a file a card writes without
+listing it, a glob, a lock file a build rewrites and a legacy bold-label card's `Files` text
+are not seen.
+
+## A port block per track
+
+Worktrees isolate files, not ports. `scripts/track-ports.sh claim --id <track>` prints one
+sentence, `Ports 4100-4109 are this track's (<track>): bind every server and test listener
+there, never on a default port.`, for a block no other claim holds and nothing listens on.
+`--tracks` appends it to the track's `env-notes.md`, which every worker reads, and releases
+the block when the track's worktree is removed. `list` prints the claims; `--count` and
+`--base` size and place the block. Claims live in the main repository's
+`.claude/task-runner/ports/`, so every worktree sees them.
+
+Standing: **gate where run** for the allocation (`scripts/__tests__/track-ports.test.sh`, 21
+cases); that a worker's server uses the block is **recorded**. A port hardcoded in the
+project's config ignores it. A local database, caches and a Docker daemon are still shared.
+
+## Review per card, or once for the run
+
+On a run of 8 or more cards, `/task-runner:run` asks once before the first card:
+
+- **Range review**: no per-card reviewer and no per-card negative control. The close runs
+  one whole-range review, one red-team round with the test-teeth lens, and the suite once.
+- **Per-card review**: every card gets its reviewer pass and negative control.
+
+A `Goal:` run takes range without asking; a smaller run stays per-card with no question.
+The choice is written as a `Verify: range` line in the index, the same marker overseer has
+written since 0.8.0.
+
+Why it is offered: on one 19-card run, 19 of the first 28 agents were reviewers or fixers
+of review findings. What range gives up: a bug is found at the close, across every card,
+not while the card that caused it is still open. Under range, a reviewer skip or a declared
+reduction is recorded without asking you, as on an overseer run. Standing: **agent-graded**
+for the question; the marker's effect on what the completion gate owes is a **gate** with
+candor installed. No range run started this way has been measured yet.
 
 ## What the run itself cost
 
