@@ -106,6 +106,18 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    ignored by the clause. It also seeds `.claude/task-runner/env-notes.md` once, with "never
    read `.env`"; the preamble has every worker read it, so write an environment fact there
    (a host binary's path, a container shim, a capped test command), never into each dispatch.
+   **Review mode — ask once on a run of 8 or more cards whose index has no `Verify:` line.**
+   Before the first card, `AskUserQuestion`: "Range review (Recommended)" — no per-card reviewer
+   and no per-card negative control; the close runs one whole-range review, one red-team round
+   with the test-teeth lens and the suite once — or "Per-card review" — every card gets its
+   reviewer pass and negative control, as on a plain run. Under a `Goal:` marker take range
+   without asking. On range, write the exact line `Verify: range` near the top of the index,
+   unprefixed, and say so beside the run plan; the task-execution skill's "Range verification"
+   paragraph is then the procedure (worker verify through `check-receipt.sh run --name card-<id> --`,
+   your re-verify its `check`, close as that paragraph lists). Fewer than 8 cards, or a `Verify:`
+   line already there: no question. Why 8 is a choice and what a range run gives up:
+   `rationale/derivations/plugin-task-runner.md` § `plugins/task-runner/commands/run.md`.
+   Standing: agent-graded for the question; the marker's effect is a gate with candor installed.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional

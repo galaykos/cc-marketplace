@@ -14,22 +14,15 @@ warning.
 
 ## Normalization (before any comparison)
 
-A card's `Files` entries are free-text (`src/billing/invoice.ts:88 (current: …)`).
-Normalize each to a canonical repo-relative path:
-
-1. Strip a trailing `:line` (and `:line-range`) suffix.
-2. Strip any parenthetical annotation `(…)` and surrounding whitespace.
-3. Resolve to a repo-relative path (no `./`, no absolute prefix).
-4. A directory entry (trailing `/`) is a **prefix**: it overlaps any path beneath it.
-
-The milestone's file-set is the set of normalized paths across all its cards.
+`scripts/plan-overlap.sh --index <00-INDEX.md>` applies this page and prints each milestone's
+verdict. A `Files` entry is free text (`src/billing/invoice.ts:88 (current: …)`): it loses its
+`:line` suffix, any `(…)` annotation and a leading `./`; a directory entry (trailing `/`)
+overlaps every path beneath it. The milestone's file-set is those paths across all its cards.
 
 ## Disjointness
 
-Two milestones are **file-disjoint** when their normalized file-sets have an empty
-intersection, treating a directory entry as covering everything under its prefix.
-`foo.ts:88` and `foo.ts:120` normalize to the same `foo.ts` and therefore **overlap**
-(they are NOT disjoint) — this is the false-negative the normalization exists to prevent.
+Two milestones are **file-disjoint** when their file-sets share no path. `foo.ts:88` and
+`foo.ts:120` are both `foo.ts`, so they overlap.
 
 ## Dependency roll-up
 

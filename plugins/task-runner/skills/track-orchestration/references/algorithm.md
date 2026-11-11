@@ -27,8 +27,9 @@ inherited cwd.
    `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` or
    `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
 
-Classify each milestone from its normalized `Files:` set per `eligibility.md` § Verdict;
-the rest are **serial milestones** (orchestrator, main tree, dependency order). No `Files:`
+Run `"${CLAUDE_PLUGIN_ROOT}/scripts/plan-overlap.sh" --index <00-INDEX.md>` and take its lines as given
+(`eligibility.md` says what it applies): `eligible` milestones may be tracks, `after:` lines order the
+waves; the rest are **serial milestones** (orchestrator, main tree, dependency order). No `Files:`
 lines, or 0–1 milestone eligible → warn and fall back to `task-execution`. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## 2. Wave loop (strict dependency waves — fork-join)
@@ -48,6 +49,7 @@ Repeat until no eligible milestone remains:
    git worktree add .claude/worktrees/<run-branch>-track-<slug> <run-branch>-track-<slug>
    mkdir -p <wt>/.claude/task-runner
    cp .claude/task-runner/.gitignore .claude/task-runner/env-notes.md <wt>/.claude/task-runner/
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/track-ports.sh" claim --id <slug> >> <wt>/.claude/task-runner/env-notes.md
    ```
 3. **Dispatch** the wave as ONE `Workflow` `agent()` batch (this blocks until all
    return — that is why scheduling is wave-granular, not rolling). Each track-worker
@@ -129,7 +131,7 @@ The prompt to each track-worker contains, in order:
    and `effort`, passed in as `agent()` parameters (per its skill) — it never reads the index
    itself, so an unpassed tier means it silently runs native.
 3. **Green** → delete merged track branches, `git worktree remove` their (clean)
-   worktrees, drop the lock, hand off to `git-workflow:finish` on the run branch.
+   worktrees, `track-ports.sh release --id <slug>` each, drop the lock, hand off to `git-workflow:finish` on the run branch.
 4. **Red** → do NOT rollback. Preserve the run branch, all track branches, and their
    worktrees; report the failure and point the user at the retained branches for bisection.
 

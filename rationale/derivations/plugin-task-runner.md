@@ -1282,6 +1282,16 @@ a glob or variable path, lock and generated files, a legacy card's free-text `Fi
 share outside git (ports, a local database, caches). Milestone-level `Files:` sets for `--tracks`
 (`track-orchestration/references/eligibility.md`, with its shared-file list) are still compared by the model.
 
+### 2026-11-11 — `--index`, milestones
+
+`track-orchestration/references/eligibility.md` (normalize, intersect, shared-file list, dependency roll-up) was
+applied by the model. `--index` applies it: one `milestone <id>: eligible | serial — <why>` line each, then
+`after:` lines. Run on `2026-10-06-ship-claude-code-mods`: M1 eligible, the other five serial (two on a shared
+file, three overlapping on `plugins/task-runner/hooks/hooks.json`). The first version read a `Files:` line with
+`read` over output that had no final newline and dropped the last path, which printed M1 as having no files; the
+harness case "the last path on a Files line is read" is that bug. Not applied: an absolute path prefix is not
+made repo-relative. Exit is 0 with verdicts printed; the caller decides what to do with one eligible milestone.
+
 ## plugins/task-runner/scripts/reduction-record.sh
 
 ### Header: THE POINT, the three traces, standing
@@ -1649,6 +1659,18 @@ Target set moved: new files carrying the pattern that were not frozen. A file
 added mid-run is the case a one-shot grep cannot see at all.
 ```
 
+## plugins/task-runner/scripts/track-ports.sh
+
+Added 2026-11-11. Tracks run in separate worktrees and share every port. No run of this marketplace was counted
+failing on a port collision: the prompt was a write-up of parallel agent sessions (alexlavaee.me, read 2026-11-11
+through a fetch summary) noting that no standard allocator exists and that worktrees also share a local database,
+the Docker daemon and caches. The user chose ports only. The output is a sentence, not `KEY=value`, because the
+one channel that reaches every worker is `env-notes.md`, which the discipline preamble has it read; nothing can
+make a project's dev server take a port from there, so a hardcoded port is the residual. The registry sits under
+the git common dir's parent so a claim made from a worktree lands in the main repository. `mkdir` is the lock; one
+older than a minute is taken over, since a killed claimer leaves it behind. Block size 10 and base 4100 are
+choices. "Nothing listens" is a connect to 127.0.0.1 at claim time only.
+
 ## plugins/task-runner/scripts/worker-check.sh
 
 Added 2026-11-07 (Track 1 PL4; `rationale/session-retro-2026-11-05.md` issue 18). Workers added 206 lines of unasked
@@ -1658,4 +1680,21 @@ called by the runner after each worker. Thresholds (20 lines and 30%) are a choi
 in a 40-line file stays silent, a docblock per function trips it. Not caught: a migration run against the dev
 database (d89db2df) leaves no diff, so no script here sees it; track-orchestration's `<run-branch>-track-*`
 branches are exempt from the stray check.
+
+## plugins/task-runner/commands/run.md
+
+### 2026-11-11 — the review-mode question
+
+`Verify: range` (per-card reviewer and negative control dropped; one range review, one teeth red-team round and
+one suite at close) existed since overseer 0.8.0 and task-runner 0.50.0, and only overseer wrote it. A plain 19-card run in another project
+(session a94479ce, D2, 2026-11-11) was measured from its transcript 51 minutes in: 28 agents, 9 building a card,
+13 reviewing or re-reviewing, 6 fixing or reworking after review; cards 01, 04 and 07 were each reworked and card
+04 was on a second fix round. That run's own account says the per-card reviews found real defects (an invalid
+UTF-8 URL rejected by PostgreSQL, a churn figure reading 0%, unbounded queries); those were not checked here.
+`rationale/session-retro-2026-11-05.md` § 1 is the earlier evidence the other way: per-card reviewers passed cards
+the range review then found critical. The user chose "ask at run start" over a flag or a new default. The
+threshold of 8 cards is a choice, not a measurement. Side effect, not designed: `hooks/rv-consent.sh` treats a
+`Verify: range` index as a run with nobody to answer and records a reduction without asking, so an interactive
+range run loses that prompt. The procedure page is overseer's `references/range-verify.md`; a plain run without
+overseer installed has the one paragraph in `task-execution/SKILL.md` and the lines in `run.md`.
 

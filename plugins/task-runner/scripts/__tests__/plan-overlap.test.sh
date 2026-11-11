@@ -70,5 +70,64 @@ expect "a dependency cycle is exit 3, not a plan" 3 "cycle" "level" --
 reset
 expect "an empty directory is a usage error" 3 "no cards" "" --
 
+# --index: milestones of a 00-INDEX.md
+reset
+card 01 none '<file path="src/a/x.ts" mode="create"/>'
+card 02 none '<file path="src/b/y.ts" mode="create"/>'
+card 03 01 '<file path="src/c/z.ts" mode="create"/>'
+card 04 none '<file path="README.md" line="1" mode="edit">x</file>'
+index() { # <Files of A> <Files of B>
+  cat > "$T/00-INDEX.md" <<EOT
+# Index
+
+Files: not/a/milestone.ts
+
+## Milestones
+
+### Milestone A — first
+Files: $1
+Cards: 01
+
+### Milestone B — second
+Files: $2
+Cards: 02
+
+### Milestone C — third
+Files: src/c/z.ts:12 (current: inline), ./src/c/w.ts
+Cards: 03
+
+### Milestone D — close-out
+Files: src/d/, README.md
+Cards: 04
+
+### Milestone E — unlisted
+Cards: 04
+
+## Notes
+Files: src/a/
+EOT
+}
+ix() { local name=$1 want=$2 has=$3 lacks=$4; expect "$name" "$want" "$has" "$lacks" -- --index "$T/00-INDEX.md"; }
+index 'src/a/' 'src/b/y.ts'
+ix "disjoint milestones are eligible" 0 "milestone A: eligible" ""
+ix "the last path on a Files line is read" 0 "milestone B: eligible" ""
+ix "a :line suffix, an annotation and ./ are stripped" 0 "milestone C: eligible" ""
+ix "a milestone touching a shared file is serial" 0 "milestone D: serial — shared file README.md" ""
+ix "a milestone with no Files line is serial" 0 "milestone E: serial — no Files: line" ""
+ix "a card dependency across milestones is an order line" 0 "after: C needs A merged first" ""
+ix "an unrelated pair has no order line" 0 "" "after: B"
+ix "a Files line outside any milestone is ignored" 0 "" "milestone A: serial"
+index 'src/a/' 'src/a/x.ts'
+ix "the same milestone overlapping another's directory is serial" 0 "milestone A: serial — overlaps B on src/a/x.ts" ""
+ix "and so is the other side" 0 "milestone B: serial — overlaps A on src/a/x.ts" ""
+index 'src/a/x.ts:3' 'src/a/x.ts:90'
+ix "two line numbers in one file overlap" 0 "milestone B: serial — overlaps A on src/a/x.ts" ""
+index 'scripts/x.sh' 'pkg/yarn.lock'
+ix "scripts/ and a lock file are shared files" 0 "milestone A: serial — shared file scripts/x.sh" ""
+ix "a nested lock file too" 0 "milestone B: serial — shared file pkg/yarn.lock" ""
+printf '# Index\n\nno milestones here\n' > "$T/00-INDEX.md"
+ix "an index with no milestone heading is a usage error" 3 "no \"### Milestone" ""
+expect "--index with --group is a usage error" 3 "usage" "" -- --index "$T/00-INDEX.md" --group 01,02
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]
