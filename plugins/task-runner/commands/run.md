@@ -68,6 +68,9 @@ absent), consult `parallel-planning`'s `Dispatch:` recommendation
   dispatches each same-worker disjoint S-batch as one agent per
   `skills/task-execution/references/routing.md` § Batch dispatch — one commit per card,
   and per-card verify + negative-control + scope check + reviewer pass on return.
+  Before any `DELEGATE` group or `BATCH` goes out, run
+  `bash "${CLAUDE_PLUGIN_ROOT}/scripts/plan-overlap.sh" --dir <cards dir> --group <card,card,...>`;
+  exit 1 names the pair that cannot run at once, and those cards run one after the other.
 - `Dispatch: workflow-tracks` → engage the `--tracks` path, but only under the **Run-now
   confirmation** (interactive) or a **`Goal:` marker** (hands-off), AND only if track
   preconditions hold (non-base run branch + clean tree + per-milestone `Files:` sets). If

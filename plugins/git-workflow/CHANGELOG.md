@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.13.5; earlier versions have no entries rather than invented ones.
 
+## 0.15.1 — 2026-11-11
+
+- **A suite receipt no longer reads fresh after a same-size edit made soon after it was written.** `scripts/receipt-fresh.sh` hashes the working tree through a copy of the git index, and the copy got a new modification time, so git could trust a changed file's size and time and miss the edit. The copy now keeps the index's time (`cp -p`), as task-runner's `check-receipt.sh` does from 0.54.0. Measured on that script in a fresh repo: 6 of 300 runs wrongly fresh before, 0 of 300 after; this copy was not measured separately.
+
 ## 0.15.0 — 2026-11-10
 
 - **The finish suggestion is removed.** `hooks/suggest.ts` offered `/git-workflow:finish` after task-runner's green gate on an unpushed branch. On the owner's machine its counter read 2 shown, 0 accepted, and `/task-runner:run` already asks what should happen to the branch. The plugin ships no hooks module now; the merge checks and the AI-attribution guard are unchanged, and `CC_SUGGEST` no longer does anything here.

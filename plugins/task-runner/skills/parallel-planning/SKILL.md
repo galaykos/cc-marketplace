@@ -24,9 +24,9 @@ From the task list (taskmaster cards, a plan's steps, a todo list):
 
 1. Topo-sort into levels: level 0 = no dependencies, level N = depends only
    on earlier levels. Cycles are a task-list bug — halt and report.
-2. Within each level, group tasks whose file sets are mutually disjoint.
-   Shared-file tasks stay serial within the level (or get the shared edit
-   extracted into its own task — the better fix).
+2. Per level, group tasks with disjoint file sets. Shared-file tasks
+   stay serial (better: extract the shared edit into its own task).
+   Cards: `scripts/plan-overlap.sh --dir <dir>` does 1-2.
 3. Critical path = the dependency chain with the largest summed size weight
    (S=1, M=3, L=8 — fixed heuristic weights, not measured durations).
 4. Theoretical speedup = serial cost / critical-path cost — the ceiling;
