@@ -93,7 +93,12 @@ per card (`references/range-verify.md`). Per-card review was
 30–50 % of each card's wall time and passed cards the range review then found critical
 (`rationale/session-retro-2026-11-05.md` § 1, in the marketplace repository).
 
-Add a `## Rigour` block (next section) before handing over. Hand it over as
+Add a `## Rigour` block (next section), then gate the brief before handing over:
+`program.sh dispatch check <abs>/milestones/<id>/brief.md --kind brief` (the `Verify: range`
+line, `## Acceptance`, `## Scope`, a skill path that exists). A gated brief is recorded like
+a dispatch, so the skills it lists satisfy the kind's groups at `accept` and the taskmaster
+route owes no reviewer of yours just to carry a pin (**gate**; that task-cards copied the
+skills into the cards is **agent-graded**). Amend the brief and you gate it again. Hand it over as
 `/taskmaster:task <brief>` (interactive; grill treats the acceptance lines as CLEAR rows and
 asks only about what the brief left open), `/taskmaster:task ultra <brief>` when the profile
 is adversarial, or hands-off: `/taskmaster:task goal-lean <brief>` (lean/standard: autonomy
@@ -122,7 +127,7 @@ volume are not signals: they made every game milestone `adversarial` (retro abov
 | 1 | irreversible or data surface: kind `auth`/`api`/`data-model`/`form`, or Scope touches auth, session, payment, PII, migration, money arithmetic | kind, § Scope |
 | 2 | a numeric or parsing contract in the acceptance lines (computed value, format, range, parser) | § Acceptance |
 | 3 | shared blast radius — `Primitives to ADD` non-empty, tokens/layout/middleware a later milestone consumes, two-plus dependants | brief, roadmap |
-| 4 | reviewer history — the previous milestone's `findings.md` has a major from the range review or the red-team (first milestone: 0) | `milestones/*/findings.md` |
+| 4 | reviewer history — the previous milestone's `findings.md` has a reproduced `critical`/`high` that bought a fix dispatch (first milestone: 0; a milestone that needed none resets it) | `milestones/*/findings.md` |
 
 - **signal 1 → never lean**, whatever the sum (`dispatch check` WARNs on a lean surface kind).
 - **sum ≤ 1 → `lean`**: `/taskmaster:task <brief>`; the run's range review and teeth lens,
@@ -208,9 +213,16 @@ contradicts a product that ships five fixed ones).
 Review the diff `git -C <root> diff <base>...<branch>` against <skill abs paths>.
 You are read-only: you write no file and run no command that changes the tree.
 MODEL: <opus | inherit — the seat table>
-One line per finding: `path:line — severity — problem — fix`. Severity-sorted.
-Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when none.
+Report only lines this diff added or changed; a defect already on <base> goes under LATER.
+BLOCKING (max 10 lines): `path:line — critical|high — problem — fix` — only what breaks an
+acceptance line in <brief abs path>, loses or exposes data, or fails for a real user.
+LATER (max 5 lines): anything lower. It is recorded as a suggestion, not fixed now.
+RETURN `CLEAN` when BLOCKING is empty.
 ```
+
+Only BLOCKING lines can buy a fix, and only once reproduced; LATER lines go to
+`program.sh suggestion add --from <id>`. A reviewer asked for "findings" returns thirty,
+and each one fixed is a re-walk (`acceptance.md` step 6).
 
 No preamble: that file is worker discipline and its clauses contradict a seat that writes
 nothing. Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
@@ -220,6 +232,10 @@ taskmaster path the run's close already reviewed the range (`Verify: range`); th
 is for the direct-worker path and the extra lenses a `standard` profile adds.
 
 ## Follow-up to a worker that is still alive
+
+Every follow-up is one of the milestone's three fix dispatches; so is a fresh worker sent to
+fix, which you name `<n>-fix.md` so `dispatch check` counts it (**gate** on the count: the
+fourth is refused; a fix under another name is not counted, **recorded**). Batch the items.
 
 A second message to a running worker IS a dispatch: one that skips `dispatch/` and the
 gate leaves the record with a fix cycle no prompt explains. Write it to `dispatch/<n>-followup.md`
@@ -242,5 +258,5 @@ Widths: 375, 768, 1280. Report one line per acceptance line per width:
 `<line> — <width> — PASS|FAIL — <evidence file> — <note>`. Max 40 lines.
 ```
 
-The overseer records the returned lines with `program.sh evidence add`; a FAIL is a
-finding for the fix loop, not a reason to soften the acceptance line.
+The overseer records the returned lines with `program.sh evidence add`; a FAIL on an
+acceptance line buys a fix (`acceptance.md` step 6), never a softened line.

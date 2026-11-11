@@ -17,7 +17,8 @@ evidence is machine-local by nature.
   milestones/<id>/
     brief.md              # the milestone brief handed to the pipeline (dispatch-prompts.md § Brief)
     dispatch/<n>.md       # every prompt dispatched directly, as sent, after `program.sh dispatch check`
-                          # (a follow-up message to a live worker too: <n>-followup.md, --kind followup)
+                          # (a follow-up message to a live worker too: <n>-followup.md, --kind followup;
+                          # a fresh worker sent to fix: <n>-fix.md — both count toward the three-fix cap)
     findings.md           # reviewer findings and what was done with each; points at decisions.md rows
     evidence/             # screenshots, console dumps, test output the accept step recorded
   archive/<slug>-<at>/    # a closed program: its program.json (evidence paths rewritten to the
@@ -73,7 +74,7 @@ guess, so `milestone set --size <X> --reason` may correct it (history keeps the 
 unset until the brief is scored — `dispatch-prompts.md` § Rigour) says what scrutiny the
 milestone buys; `dispatch check --milestone` WARNs while unset or contradicted by the card
 index (**WARN**). `milestones/<id>/dispatch/.gated` is written by `dispatch check` (checksum,
-kind, file, gating time per exit 0; a row written before 0.7.4 has no time and still counts); `accept` reads only files listed there and unchanged since, and its earliest gating time can start the milestone's clock. `model` (`opus|auto`, set by `init
+kind, file, gating time per exit 0; a row written before 0.7.4 has no time and still counts; a brief gated with `--kind brief` is the row `../brief.md`); `accept` reads only files listed there and unchanged since, and its earliest gating time can start the milestone's clock. `model` (`opus|auto`, set by `init
 --model`, default `opus`) is the tier every dispatch's `MODEL:` line must respect
 (**gate**); a program written before the field exists reads as `opus`. `foreign_session_reason` at the
 program level is set only by `init --foreign-session`; while it is non-empty every

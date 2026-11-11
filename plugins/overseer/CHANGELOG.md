@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 — 2026-11-11
+
+A program kept finding things to fix: any confirmed finding bought a fix cycle, each fix voided the whole acceptance walk, and "three cycles, then park" was prose that restarted in every phase.
+
+- **Only a reproduced critical/high finding or a failed acceptance line buys a fix.** Anything lower, anything that also shows on the base branch, and a miss on a screen the milestone did not touch becomes a `program.sh suggestion add` row. The reviewer template now returns `BLOCKING` (max 10) and `LATER` (max 5) instead of up to 30 findings, and reviews only lines the diff changed. `console-clean` means no error the milestone introduced. Standing: agent-graded.
+- **A milestone buys three fix dispatches, and `dispatch check` counts them.** Every follow-up and every worker file named `*fix*` counts, across review and acceptance. The fourth is refused (exit 2) with the instruction to park; `--over-cap "<why>"` passes it and writes the reason to `decisions.md`. Not counted: a fix sent under another name, and cycles inside a taskmaster run.
+- **Acceptance triages once, before recording.** Protocol step 6 is new: finish the walk, the charter check, the product look and the console read, sort every finding in one pass, send all fixes as one dispatch, then walk again as a regression pass. The product look moved from the accept step to step 4, so it no longer runs after the evidence is recorded.
+- **A gated brief carries the skill pins on the taskmaster route.** `dispatch check <brief> --kind brief` checks the `Verify: range` line, `## Acceptance`, `## Scope` and an existing skill path, and records the brief in `dispatch/.gated`. `accept` counts its pins and no longer warns about a missing reviewer when a gated brief exists. Until now an M+ milestone had no prompt of the overseer's own, so `accept` could only be satisfied by dispatching reviewers, and each returned findings.
+- **Rigour signal 4 needs a reproduced critical/high that bought a fix dispatch**, not any major in the previous milestone's findings; a milestone that needed none resets it.
+- **`init --hands-off` without `--budget-tokens` prints a WARN.** It still starts.
+
+Not changed: every fix still makes all required evidence rows stale. The code did change, so the walk is repeated; the cap and the single batched dispatch bound how often.
+
 ## 0.9.0 — 2026-11-07
 
 - **A token budget that `dispatch check` enforces.** `program.sh init --budget-tokens <n>` and `program.sh budget --tokens <n>|off` set `budget_tokens` in `program.json`. Once this session has spent that many tokens since the program began, `dispatch check` refuses every dispatch (exit 2). The refusal says to write what the milestone did not buy to `decisions.md` and ask the user to raise the budget (hands-off: park the milestone). `status` prints the budget. Spend comes from the shared process-cost block, which reads this session's transcripts only, so a fresh session counts from zero, and an unreadable spend WARNs instead of blocking. `/overseer:start` accepts `--budget-tokens <n>`. Standing: gate; 11 new cases in `scripts/__tests__/program.test.sh`.

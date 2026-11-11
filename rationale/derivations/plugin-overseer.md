@@ -298,6 +298,17 @@ in full); what was not bought goes to decisions.md by instruction (recorded). Th
 `/goal`, verified on code.claude.com/docs/en/goal on 2026-11-07: a session-scoped prompt Stop hook, condition up to
 4,000 characters, works with `claude -p`, and the docs suggest a turn clause to bound it.
 
+**2026-11-11, fix cap and gated brief (0.10.0).** The user's report: the overseer "always has things to fix, kind of
+in a loop". Read from the text, not measured in a new run: any confirmed finding bought a cycle (SKILL.md step 4),
+"three cycles, then park" appeared in four places and no script counted it, every follow-up made all nine evidence
+rows stale, and on the taskmaster route `accept` demanded a gated dispatch and the kind's pins although the overseer
+writes no prompt there, so reviewers were dispatched to carry pins and each returned findings. Retro 2026-11-05 issue 5
+has the same shape one layer down (5 fix rounds, 84 agents, 1,366 min, each round introducing a new high).
+`fix_cycles` counts by what `.gated` already records: kind `followup`, or kind `worker` with `fix` in the basename.
+A name is the only signal available without a new field in `.gated`, whose rows older releases wrote. Misses: a fix
+dispatched under another name, and task-runner's own cycles. The stale-evidence gate was left as it is: a narrower
+"only the kinds the fix touched" rule would need the worker to declare its own blast radius.
+
 ## plugins/overseer/scripts/capability-scan.sh
 
 ### Header

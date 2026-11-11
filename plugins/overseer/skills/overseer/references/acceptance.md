@@ -6,8 +6,8 @@ kinds are recorded — these nine for every kind with a screen (the `ui` evidenc
 each with a `--file` that exists at record time and still exists at
 accept time, and each recorded after the last gated worker or follow-up dispatch (**gate**,
 exit 2 otherwise; a screenshot deleted after recording un-accepts; a walk before the last
-fix cycle is re-run, not re-dated). Nine rows on one file and a milestone with no gated
-reviewer dispatch each draw a WARN, not a refusal.
+fix cycle is re-run, not re-dated). Nine rows on one file, and a milestone with neither a
+gated reviewer dispatch nor a gated brief, each draw a WARN, not a refusal.
 That the file was LOOKED AT is a **gate** since 0.4.0: `hooks/track-read.sh` ledgers every
 `Read` while a program is open, and `evidence add` refuses a file no Read in this session
 touched since it last changed (a re-captured screenshot is unread again). Open the artifact
@@ -25,7 +25,7 @@ never silent.
 | `viewport:mobile` | the feature walked at 375 px wide | screenshot; no horizontal scroll; primary action reachable; tap targets measured |
 | `viewport:tablet` | same at 768 px | screenshot |
 | `viewport:desktop` | same at 1280 px | screenshot |
-| `console-clean` | browser console and network panel read after the walk, since the last navigation | the dump — zero errors, or each one named and fixed |
+| `console-clean` | browser console and network panel read after the walk, since the last navigation | the dump — zero errors the milestone introduced; one that also shows on the base branch is named in the note and recorded as a suggestion, not fixed here |
 | `keyboard` | the full path driven with Tab, Enter, Space and Escape only, from page load to the success feedback, including the destructive action's confirm | screenshot with the focus ring visible on the primary action, plus the key sequence in the note |
 | `motion` | `prefers-reduced-motion: reduce` emulated — Playwright MCP: `browser_run_code_unsafe` with `await page.emulateMedia({ reducedMotion: 'reduce' })` (verified; `browser_evaluate` cannot), Chrome MCP: DevTools rendering — and the walk repeated | screenshot; the note says which animations stopped and that none looped |
 
@@ -88,27 +88,43 @@ the loading state the charter promised must be seen, not inferred from the code)
    before accept. For any marketing or summary surface (a homepage, a dashboard card, an
    onboarding screen): every capability, noun and count it shows exists in a done or
    queued milestone with the same words — the overseer is the only one who sees all the
-   milestones, so this check is yours, not a reviewer's. For an `integration` milestone
+   milestones, so this check is yours, not a reviewer's. Take your own product look
+   here, before anything is recorded (full-page screenshots at 1280 and 375, light and
+   dark): reviewers grade code against a spec; only you grade the spec against the
+   product. For an `integration` milestone
    (or the last one when every branch already contains the others) the walk crosses
    features in one tree — landing page → sign in → each feature in the order a new user
    meets them — and that walk is the evidence, not a re-run of each milestone's own.
 5. **Read the console** after the walk, not before: hydration warnings, 404s on assets,
    failed XHRs are findings. Read since the last navigation — a log carrying an earlier
    wrong-port error is not "clean because we fixed it".
-6. **Record**, one call per item. A browser tool writes screenshots only inside its own
+6. **Triage once, before recording anything.** Finish steps 3 to 5 first, then sort every
+   finding from the whole walk in one pass. Recording first means the first fix voids all
+   nine rows (the stale-evidence gate), and fixing as you go means one re-walk per finding.
+   - **Buys a fix:** a brief acceptance line that FAILs, or a reproduced `critical`/`high`
+     on something this milestone built or changed. Softening an acceptance line to make it
+     pass is the one edit this protocol forbids.
+   - **A suggestion** (`program.sh suggestion add --from <id>`), never a fix here:
+     everything lower; anything that also shows on the base branch; a miss against the
+     list below on a screen the milestone did not touch.
+   - Send ALL the fixes as ONE dispatch (`<n>-followup.md` to a live worker, `<n>-fix.md`
+     to a fresh one), then walk again. The second walk is a regression pass over the same
+     lines: a new observation below the bar is a suggestion, not another cycle.
+   - A milestone buys three fix dispatches, counted across review and acceptance
+     (**gate** — `dispatch check` refuses the fourth). Then park it with the failing line as
+     the reason. `--over-cap "<why>"` is for the user who asked for one more; hands-off parks.
+7. **Record**, one call per item. A browser tool writes screenshots only inside its own
    allowed roots (the Playwright MCP: its `.playwright-mcp/` dir under the session cwd);
    save there, then move the files into `milestones/<id>/evidence/`, `Read` each one (the
    read gate refuses a file this session never opened), then record:
    `program.sh evidence add --id m1 --kind browser-happy --note "upload → toast" --file <png>`.
-7. **Accept.** `program.sh accept --id m1`. Exit 2 lists what is missing; produce it.
-   Take your own product look first (full-page screenshots at 1280 and 375, light and
-   dark) — reviewers grade code against a spec; only you grade the spec against the
-   product.
-8. **A FAIL is a finding.** It goes back through the bounded fix loop (three cycles), then
-   the milestone is parked with the failing line as the reason. Softening an acceptance
-   line to make it pass is the one edit this protocol forbids.
+8. **Accept.** `program.sh accept --id m1`. Exit 2 lists what is missing; produce it.
 
 ## What the browser walk is checking for, beyond "it renders"
+
+On the screens this milestone built or changed. A miss is a failed line when the brief's
+acceptance names it or it blocks the path a user takes; otherwise step 6 makes it a
+suggestion (**agent-graded**).
 
 - The primary action is findable without instructions; the empty state tells a new user
   what to do; an error names the fix and keeps the input.

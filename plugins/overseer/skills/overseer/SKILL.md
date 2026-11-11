@@ -31,7 +31,7 @@ can die between any two steps and `/overseer:resume` re-enters at the recorded o
 ### Discover (write `discovery.md` and `capabilities.tsv` in the program dir)
 
 0. **Right session.** `program.sh init` refuses a session opened in another directory
-   (the pipeline commands are unreachable from there): restart in the project, or `--foreign-session "<why>"` and take every
+   (its pipeline is unreachable): restart in the project, or `--foreign-session "<why>"` and take every
    fallback (**gate**). `init --model opus|auto` (default `opus`) fixes the tier.
 1. **Project inventory.** Stack and versions (`/stack-scan:report` when installed, else
    manifests, lockfiles, `Dockerfile`s); existing routes, pages, models, migrations; the
@@ -94,6 +94,7 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    execution: never re-ask before the run. Let taskmaster hand off to task-runner
    (`--tracks` only for two-plus track-eligible milestones); when the index appears,
    confirm it carries `Verify: range`, diff its decisions against the brief's and record each delta.
+   Gate the brief too (`dispatch check <brief> --kind brief`): its pins count at `accept`.
    Size S, or no taskmaster: cards from the brief, one scope-locked worker
    per disjoint file set. Every prompt you dispatch is written
    to `milestones/<id>/dispatch/<n>.md` and passed through `program.sh dispatch check
@@ -102,14 +103,15 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    line, no preamble; every kind a `MODEL:` the tier and seat allow and a skill pinned by
    an existing absolute path (**gate**); exit 0 lands in `dispatch/.gated`, all `accept`
    counts. A second message to a running worker is a dispatch too — `<n>-followup.md`,
-   `--kind followup`, gated too. WARNs: a dense card; with `--milestone` (implied by the
-   path) unpinned kind groups, a skipped pipeline on M+, and rigour: unset, a lean surface
-   kind, a card index whose boost marker contradicts it. Status → `building`.
+   `--kind followup`, gated too. Status → `building`.
 4. **Review.** The run's close reviewed the range and ran the teeth lens: never repeat
    either. Add only a reviewer the capability map names that it did not run (ui-ux on a
-   screen) — a dispatch: `dispatch/<n>-review-<name>.md`, `--kind reviewer`. A severity is a hypothesis: reproduce a `critical` in the
-   browser before it buys a fix cycle. Confirmed findings go back through step 3, three
-   cycles, then park. Independent milestones may run in parallel (`references/worktree.md`).
+   screen) — `dispatch/<n>-review-<name>.md`, `--kind reviewer`. **Only a reproduced
+   `critical`/`high`, or a failed acceptance line, buys a fix**; anything lower, or already
+   on the base branch, is a `program.sh suggestion add` row. One batched fix dispatch
+   (`<n>-followup.md`; fresh worker `<n>-fix.md`); a milestone's fourth is refused and it
+   parks (**gate**).
+   Independent milestones may run in parallel (`references/worktree.md`).
 5. **Accept.** Status → `accepting`. Run `references/acceptance.md`: suite green (the run's
    fresh receipts, re-run only if stale), then the
    feature driven in a real browser — happy path with its success feedback in frame, error
@@ -121,10 +123,9 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    is re-walked, not re-dated. Every state the charter promised is checked against what
    shipped: a mismatch is a fix or a recorded amendment.
 6. **Finish.** With git-workflow installed, offer `/git-workflow:finish`; else offer three
-   destinations via AskUserQuestion, each spelled out: **merge locally** (fast-forward or
-   merge into the base branch here, no review), **push and open a PR** (push the branch and
-   open a pull request for review), **keep the branch open** (leave it as it is and come
-   back). Hands-off or headless: keep the branch and record the
+   destinations via AskUserQuestion, each spelled out: **merge locally** (into the base,
+   no review), **push and open a PR**, **keep the branch open**.
+   Hands-off or headless: keep the branch and record the
    next command. Merging to the base branch is the user's act, never yours.
 7. **Next.** `program.sh next`. Hands-off: deliver it, and the one after, until `next`
    prints none. Interactive: ask
@@ -169,7 +170,8 @@ prompts; taskmaster's seats follow the session model (residual).
 | No `done` without the kind's evidence set — the nine of Deliver 5 with a screen, `tests` + `run-log` without one (`kinds.tsv` profile) — each a file that exists, recorded after the last gated worker | **gate** — `accept` exits 2 |
 | Milestone id, status and evidence kind come from the fixed vocabularies | **gate** — `program.sh` refuses others |
 | The Deliver step-3 prompt rules (preamble, scope lock, verify, return shape, `MODEL:`, an existing skill path) | **gate when run** — `dispatch check`; running it is **agent-graded**; unrun, the prompt is outside the record |
-| A milestone of kind K reaches `done` only once a checked, unchanged dispatch pins a skill from each of K's groups by an existing path | **gate** — `accept` exits 2; an uninstalled group is a WARN |
+| A milestone of kind K reaches `done` only once a checked, unchanged dispatch or brief pins a skill from each of K's groups by an existing path | **gate** — `accept` exits 2; an uninstalled group is a WARN |
+| A milestone buys three fix dispatches (follow-ups, `*fix*` workers) | **gate** — `dispatch check` exits 2; the severity floor is **agent-graded**; a taskmaster run's own cycles are task-runner's |
 | An M+ milestone goes through taskmaster; a direct worker on one is recorded | **WARN** — `dispatch check --milestone`; the row is **recorded** |
 | Every milestone has a rigour profile; a surface kind is never lean; the index's boost marker agrees with it | **WARN** on form — `dispatch check --milestone`; the four-signal score is **agent-graded** |
 | Every brief carries `Verify: range`: its run owes a range review and a teeth lens, no per-card review or control | **gate** (candor clause 4); writing the line is **agent-graded** |
@@ -186,8 +188,7 @@ prompts; taskmaster's seats follow the session model (residual).
   Its twin: accept m1, print "resume later", exit with nobody there.
 - **Tests-as-acceptance.** A green suite closing a milestone nobody opened in a browser.
 - **Pipeline by exception.** Every milestone "too well specified for grill", hand-dispatched.
-- **Rigour by size.** "M, so no boost" / "hands-off, so boost all": the letter is volume;
-  the four signals say what a wrong build costs.
+- **Rigour by size.** "M, so no boost" / "hands-off, so boost all": score the four signals.
 - **Silent scope creep.** A milestone that grew a second feature — park the extra as m<N+1>.
 - **Marketing ahead of the product.** A homepage naming stages, roles or counts no
   milestone ships (acceptance.md, product-truth check).

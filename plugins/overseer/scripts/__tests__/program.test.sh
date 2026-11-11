@@ -18,7 +18,9 @@
 # passes a complete one (0), `--kind reader|reviewer` drops the scope/verify checks and demands a RETURN shape
 # and a read-only statement, a relative state-file mention or an unstopped dev server is a WARN; skill-path.sh
 # resolves the newest cache dir that has the file and a project skill; `close` refuses with open milestones (2), archives otherwise, and
-# init may follow; capability-scan flags a CI trigger that misses the base branch and never emits
+# init may follow; a gated brief (--kind brief: Verify: range, sections, a pin) satisfies accept's dispatch and pin gates and silences the
+# no-reviewer WARN; a milestone's fourth fix dispatch (follow-up or *fix* worker) is refused unless --over-cap records why; hands-off
+# without a budget WARNs; capability-scan flags a CI trigger that misses the base branch and never emits
 # `unknown` as an installed name. The harness never touches the live repo (mktemp only).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -812,6 +814,57 @@ expect 2 "budget refuses a non-number" -- P13 budget --tokens lots
 expect 0 "budget off" -- P13 budget --tokens off
 expect 0 "budget off: dispatch passes again" -- env CLAUDE_CODE_SESSION_ID=sess-b OVERSEER_ROOT="$W13" HOME="$H13" "$PS" dispatch check "$D13" --kind worker --milestone m1
 rm -rf "$W13" "$H13"
+
+# ---- convergence: a gated brief carries the pins on the taskmaster route; a milestone buys three fix dispatches ----
+W14=$(mktemp -d); H14=$(mktemp -d); git -C "$W14" init -q -b main 2>/dev/null || git -C "$W14" init -q
+P14() { env OVERSEER_ROOT="$W14" HOME="$H14" "$PS" "$@"; }
+S14="$W14/.claude/overseer"
+expect 0 "hands-off init without a budget still starts" -- P14 init --goal g --slug c --hands-off --reason "headless"
+grep -q "hands-off with no token budget" "$WS/err" && ok || bad "hands-off with no budget WARNs"
+P14 decision add --assumed --text a --alternative b --rationale r >/dev/null 2>&1
+P14 milestone add --id m1 --title t --branch ov/m1 --kind library --size M --rigour lean >/dev/null 2>&1
+P14 milestone add --id m2 --title t --branch ov/m2 --kind library --size S --rigour lean >/dev/null 2>&1
+P14 milestone set --id m1 --status building >/dev/null 2>&1
+mkdir -p "$W14/.claude/skills/proj" "$W14/sk" "$S14/milestones/m1" "$S14/milestones/m2/dispatch"
+printf 'x\n' > "$W14/.claude/skills/proj/SKILL.md"; printf 'x\n' > "$W14/sk/SKILL.md"
+printf 'suite ok\n' > "$W14/t.txt"; printf 'run ok\n' > "$W14/r.txt"
+P14 evidence add --id m1 --kind tests --note n --file "$W14/t.txt" >/dev/null 2>&1
+P14 evidence add --id m1 --kind run-log --note n --file "$W14/r.txt" >/dev/null 2>&1
+expect 2 "accept without any gated file" -- P14 accept --id m1
+grep -q "gate the brief instead" "$WS/err" && ok || bad "the no-dispatch refusal names the brief gate"
+B14="$S14/milestones/m1/brief.md"
+brief14() { printf '# m1\n## Acceptance\n- [ ] x\n## Scope\nTouch: a\n## Skills to read\n- %s\n## Verify\nmake test\n%s\n' "$1" "$2" > "$B14"; }
+brief14 "$W14/sk/SKILL.md" ""
+expect 2 "a brief without Verify: range is refused" -- P14 dispatch check "$B14" --kind brief
+grep -q "Verify: range" "$WS/err" && ok || bad "brief refusal names the missing line"
+expect 2 "--kind brief refuses a file that is not a milestone brief" -- P14 dispatch check "$W14/t.txt" --kind brief
+brief14 "$W14/sk/SKILL.md" "Verify: range"
+expect 0 "a complete brief gates" -- P14 dispatch check "$B14" --kind brief
+grep -q "pins stack" "$WS/err" && ok || bad "a brief missing a kind group WARNs: $(cat "$WS/err")"
+grep -qE '^[0-9]+ brief \.\./brief\.md [0-9T:Z-]+$' "$S14/milestones/m1/dispatch/.gated" && ok || bad "the brief is recorded in .gated"
+expect 2 "accept still refuses a group the brief does not pin" -- P14 accept --id m1
+grep -q "never send a reviewer only to carry a pin" "$WS/err" && ok || bad "unpinned refusal points at the brief"
+brief14 "$W14/.claude/skills/proj/SKILL.md" "Verify: range"
+expect 2 "an edited brief is no longer gated" -- P14 accept --id m1
+expect 0 "the brief gates again" -- P14 dispatch check "$B14" --kind brief
+expect 0 "accept on the taskmaster route: a gated brief, no dispatch of the overseer's own" -- P14 accept --id m1
+grep -q "no gated reviewer" "$WS/err" && bad "a gated brief still drew the no-reviewer WARN" || ok
+fu14() { printf 'Fix cycle — same preamble and rules as your card %s/dispatch/1.md; same TOUCH ONLY set; same VERIFY; same RETURN shape.\n1. %s\n' "$S14/milestones/m2" "$1" > "$S14/milestones/m2/dispatch/$1"; }
+for n in 1-followup.md 2-followup.md; do fu14 "$n"; expect 0 "fix dispatch $n within the cap" -- P14 dispatch check "$S14/milestones/m2/dispatch/$n" --kind followup; done
+wprompt "$S14/milestones/m2/dispatch/3-fix.md" "$W14/sk/SKILL.md"
+expect 0 "a worker named *fix* is the third fix dispatch" -- P14 dispatch check "$S14/milestones/m2/dispatch/3-fix.md" --kind worker
+fu14 4-followup.md
+expect 2 "the fourth fix dispatch is refused" -- P14 dispatch check "$S14/milestones/m2/dispatch/4-followup.md" --kind followup
+grep -q "spent its 3 fix dispatches" "$WS/err" && grep -q "parked" "$WS/err" && ok || bad "cap refusal says to park: $(cat "$WS/err")"
+grep -q "4-followup" "$S14/milestones/m2/dispatch/.gated" && bad "a refused fix dispatch was recorded" || ok
+wprompt "$S14/milestones/m2/dispatch/5-fix-b.md" "$W14/sk/SKILL.md"
+expect 2 "a fourth fix sent as a worker is refused too" -- P14 dispatch check "$S14/milestones/m2/dispatch/5-fix-b.md" --kind worker
+expect 0 "re-checking a counted fix dispatch is not a new cycle" -- P14 dispatch check "$S14/milestones/m2/dispatch/2-followup.md" --kind followup
+wprompt "$S14/milestones/m2/dispatch/6-card.md" "$W14/sk/SKILL.md"
+expect 0 "a worker that is not a fix is outside the cap" -- P14 dispatch check "$S14/milestones/m2/dispatch/6-card.md" --kind worker
+expect 0 "--over-cap passes the fourth" -- P14 dispatch check "$S14/milestones/m2/dispatch/4-followup.md" --kind followup --over-cap "user asked"
+grep -q "over the cap of 3 on m2: 4-followup.md | - | user asked" "$S14/decisions.md" && ok || bad "--over-cap writes a decision row"
+rm -rf "$W14" "$H14"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
