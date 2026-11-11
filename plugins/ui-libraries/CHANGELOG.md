@@ -2,6 +2,14 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.0 — 2026-11-11
+
+- **Single-purpose components in the library map**: Sonner (toasts), Vaul (bottom drawer), cmdk (command menu) and NumberFlow (animated numbers), each with its package, version, styling channel and docs URL. `component-libraries` now says these four jobs are not hand-built: use what the manifest has, else the one library the map names. Vaul's own README calls the repo unmaintained, so the row sends new Base UI work to the library's own Drawer.
+- **Two registry rows**: Beautiful UI (AI-product surfaces such as streaming text and approval cards; a shadcn registry reached by URL, with its own `foundation` stylesheet) and RareUI (animated marketing effects; its own CLI).
+- **A pointer to Emil Kowalski's `pick-ui-library` skill** for single jobs the map does not cover.
+
+Standing: recorded — read from npm and each project's own pages on 2026-11-11. Not checked: an MCP server for any of the six, and Beautiful UI's licence beyond its site footer.
+
 ## 0.4.1 — 2026-11-11
 
 - **ReUI: a legacy shadcn style gets Base UI items, and installs write to the theme.** `reui.md` said the registry's `{style}` value "must be a style ReUI publishes", which reads as a wrong style failing. It does not fail: `new-york` and `default` redirect to `base-nova`, so a Radix project receives `@base-ui/react` code. The reference now says so, with the `--dry-run` check and the `radix-*` styles to use. It also said missing extra tokens give off-brand components; items in fact ship `cssVars` the CLI writes into the theme, `--destructive-foreground` among them.

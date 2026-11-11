@@ -21,6 +21,11 @@ to go for the rest.
 - No library and no design system? Say so and build with Tailwind or plain CSS
   under the project's tokens — do not install one unasked. A decided
   `Stack:`/`Locks:` line in the dispatch outranks this rule.
+- A toast stack, a draggable bottom drawer, a command menu or an animated number is
+  not hand-built. Use what the manifest already has for that job; if nothing does, the
+  map's Single-purpose components section names one library per job (Sonner, cmdk,
+  NumberFlow, and the project library's own Drawer). Naming and adding one for that job
+  is not a second component library. Standing: **agent-graded**.
 - The project IS an organisation's own service or platform app — said in the brief or
   evident in the repo: a GOV.UK domain (`gov.uk/myservice`, `myservice.service.gov.uk`,
   `myblog.blog.gov.uk` — not every `*.gov.uk` site), a US federal `.gov` site, a Shopify app's
