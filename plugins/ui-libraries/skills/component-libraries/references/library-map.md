@@ -18,6 +18,10 @@
 > Read 2026-11-11: the Mantine, Chakra UI, Ant Design and Nuxt UI notes, from npm and each
 > library's own migration page; the Ark UI, Reshaped and Skeleton docs URLs (the old ones 404).
 > No other row was re-read that day.
+>
+> Read 2026-11-11: the Single-purpose components section and the Beautiful UI and RareUI rows,
+> new that day — versions, licences and peers from npm, install routes from each project's own
+> page, README or registry JSON. Their Library MCP cells were not checked.
 
 Read on demand from `component-libraries`. A row with no sibling skill is governed
 by the SKILL.md rules plus its docs URL.
@@ -50,6 +54,27 @@ by the SKILL.md rules plus its docs URL.
 | PrimeReact | v11: `@primereact/ui`, `@primereact/core`, `@primeuix/themes`, `primereact`; v10: `primereact` alone plus `primereact/resources/*.css` imports | v11: `<PrimeReactProvider theme={{ preset: Aura }}>` — presets Aura, Material, Lara, Nora from `@primeuix/themes`, `definePreset` tokens rendered as `--p-*` CSS variables, per-instance `dt` prop | https://primereact.dev | `@primereact/mcp` (npm, repo primefaces/primereact-nextchapter) | v11 (Jul 2026, `11.1.0` at the stamp) is a rewrite under a paid-above-thresholds licence with a key — sibling skill `primereact-best-practices`. v10 (`10.9.9`, MIT) stays on npm's `v10-stable` tag. primereact.org 301s to primereact.dev |
 | Fluent UI, Primer, Blueprint | `@fluentui/react-components`, `@primer/react`, `@blueprintjs/core` | each ships a provider + tokens | vendor docs | Primer: `@primer/mcp` (npm, repo primer/react); Fluent UI, Blueprint: none found | corporate systems; stay inside them |
 
+## Single-purpose components (one job each — use it, do not hand-build the job)
+
+A toast stack, a drag-to-dismiss drawer, a command menu and an animated number are each a
+job a model writes by hand, badly: focus and dismissal, swipe physics, type-ahead, digit
+transitions. Each has one small library. They sit BESIDE the project's component library,
+not against §1's one-library rule — but install one only when nothing already in the
+manifest does the job, and say so when you add it.
+
+| Job | Library | Signal | Styling | Docs | Notes |
+|---|---|---|---|---|---|
+| Toasts | Sonner | `sonner` (`2.0.8`, MIT; React 18 or 19) | `<Toaster>` props, `toastOptions.classNames`, or `unstyled` | https://sonner.emilkowal.ski | one `<Toaster />` per app. In a shadcn project add shadcn's own `sonner` component, never a second toast system — `ui-ux:shadcn-best-practices`, its `references/bases.md` |
+| Bottom drawer | Vaul | `vaul` (`1.1.2`, December 2024, MIT) | unstyled parts, your classes | https://vaul.emilkowal.ski | its README says the repo is UNMAINTAINED. Existing use is fine; for new work on a Base UI project use the library's own Drawer instead — shadcn's Base UI drawer does not use vaul (`bases.md`) |
+| Command menu (⌘K) | cmdk | `cmdk` (`1.1.1`, MIT; React 18 or 19) | unstyled, `[cmdk-*]` attribute selectors | https://cmdk.paco.me | shadcn's `command` component wraps it — add that in a shadcn project |
+| Animated numbers | NumberFlow | `@number-flow/react` (`0.6.2`), `@number-flow/vue` (`0.5.2`), `@number-flow/svelte` (`0.4.2`); core `number-flow`; MIT | CSS variables and `::part()` on its custom element | https://number-flow.barvian.me | 0.x: read the installed version's docs. Formats through `Intl.NumberFormat`; check it under `prefers-reduced-motion` — `ui-ux:motion-best-practices` |
+
+The same four, and picks for other single jobs (OTP inputs, drag and drop, virtualised
+lists, charts), are in Emil Kowalski's `pick-ui-library` skill (github.com/emilkowalski/skills,
+MIT, read 2026-11-11). It lists Sonner, cmdk and NumberFlow; it does not list Vaul.
+
+Standing: **recorded** — no script reads a manifest against this section.
+
 ## PrimeReact 11 — now a sibling skill
 
 Since 2026-09-26 PrimeReact has its own skill in this plugin, `primereact-best-practices`:
@@ -74,6 +99,8 @@ reviewer applying `component-libraries` is its only reader (agent-graded).
 | ReUI, Aceternity UI | shadcn-style registries | shadcn CSS vars | https://reui.io/docs, https://ui.aceternity.com/components | ReUI: hosted `https://mcp.reui.io/api/mcp`, sign-in required (its `initialize` answer), https://reui.io/docs/claude. Aceternity: none of its own — its CLI page points at the shadcn MCP over its registry, https://ui.aceternity.com/docs/cli | sibling skills in this plugin, `reui-best-practices` and `aceternity-best-practices`; no npm version to pin |
 | Magic UI | `npx shadcn@latest add @magicui/<name>` (in shadcn's registry directory — no `components.json` entry needed); files land as `components/ui/<name>.tsx`; motion items (`number-ticker.tsx`, `border-beam.tsx`) import `motion/react`, CSS-only items (`marquee.tsx`, `shimmer-button.tsx`) add keyframes and CSS variables to the theme CSS instead | Tailwind classes plus colour props with hex defaults (BorderBeam `colorFrom`/`colorTo`, ShimmerButton `shimmerColor`) | https://magicui.design/docs | `@magicuidesign/mcp` (npm: "Official MCP server for Magic UI"); https://magicui.design/docs/mcp | marketing effects, governed by `aceternity-best-practices`; owned code once added, no npm version to pin; MIT |
 | React Bits | `npx shadcn@latest add @react-bits/<Name>-<JS\|TS>-<CSS\|TW>` (`CountUp-TS-TW`), or jsrepo; files land as `components/<Name>.tsx` (`CountUp.tsx`, `Aurora.tsx`) | none — colours and motion through props with hex defaults (Aurora `colorStops`) | https://reactbits.dev/get-started/installation | none found (community servers only) | marketing effects, governed by `aceternity-best-practices`; owned code once added; deps per item (CountUp `motion`, Aurora the WebGL library `ogl`). Licence MIT + Commons Clause: free inside an application, website or product, never sold or redistributed as components |
+| Beautiful UI | `npx shadcn@latest add https://www.beautifului.dev/r/<name>.json` — a shadcn registry reached by URL; not in shadcn's registry directory on 2026-11-11, so no `@namespace`. Files land under `components/primitives/` (`ApprovalCard.tsx`, `StreamingText.tsx`) | its own `foundation` item (`app/beautifui/foundation.css`), which every item pulls in as a registry dependency — a second variable layer beside the project's theme, to be pointed at the project's tokens | https://www.beautifului.dev | not checked | AI-product surfaces: streaming text, thinking and loading states, approval card, tool chips, task rows, chat composer, prompt bar (27 registry items that day). Owned code once added; MIT per its site footer; no npm version to pin |
+| RareUI | `npx rareui add <component>` (npm `rareui`, a CLI, `0.1.6`); or copy from the site | Tailwind classes; the CLI's `init` edits the Tailwind config | https://rareui.in/docs | not checked | animated marketing effects, governed by `aceternity-best-practices`; owned code once added; MIT. Built for React 19, Tailwind v4 and Motion 12 per its README. A small project (CLI last published December 2025): read the file it adds before keeping it |
 | Catalyst | component files (`link.tsx`, `button.tsx` and siblings) importing `@headlessui/react`, `motion` and `clsx` — no Catalyst npm package | Tailwind's default theme (colour palette, spacing, shadows), changed through `@theme`; no variable layer of its own | https://catalyst.tailwindui.com/docs | none found | Tailwind Plus (paid): a zip downloaded from the account, `javascript/` or `typescript/` folder copied in, owned from then on; built for Tailwind v4. Wire `link.tsx` to the router (`Headless.DataInteractive` around the Next.js, Remix or Inertia link) |
 | Tremor | copied files plus its `chartUtils.ts`, `cx`, `focusRing` utilities; deps `recharts`, `@radix-ui/react-*`, `tailwind-variants`, `@remixicon/react` | Tailwind palette NAMES in `chartUtils.ts` `chartColors` (`blue`, `emerald`, …) — not CSS variables | https://www.tremor.so/docs/getting-started/installation | none found | copy-paste charts and dashboard parts on Recharts + Radix; React 18.2+, Tailwind v4; not in the shadcn CLI directory. The npm `@tremor/react` (`3.18.7`, Jan 2025, peer React 18, Tailwind v3 era) is the legacy product: do not install it on React 19 or Tailwind v4. Point `chartColors` at the theme's chart tokens, or the charts fork the palette |
 | Untitled UI React | `@untitledui/*` starter or copied files | Tailwind v4 `@theme` | https://www.untitledui.com/react | hosted `https://www.untitledui.com/react/api/mcp` (answered `initialize`); https://www.untitledui.com/react/integrations/mcp | Tailwind + React Aria; open core, paid Pro |
