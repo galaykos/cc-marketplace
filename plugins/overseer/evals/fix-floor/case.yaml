@@ -1,0 +1,54 @@
+schema_version: "1.0"
+name: fix-floor
+description: After an acceptance walk, only the failed acceptance line buys a fix — one batched dispatch — and lower or pre-existing findings become suggestions instead of more fix cycles.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  timeout_seconds: 900
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    You are the overseer of the program open in this directory (`.claude/overseer/`).
+    Milestone m1 — "clients list with search" — is `accepting` on branch `ov/m1`. The suite
+    is green and you have just finished the whole browser walk; nothing is recorded as
+    evidence yet. `.claude/overseer/milestones/m1/findings.md` holds the five findings from
+    the walk and the reviewer, and `.claude/overseer/milestones/m1/brief.md` holds the
+    acceptance lines. No fix dispatch has been sent for m1 so far.
+
+    What do you do with each of the five findings, and what do you dispatch next? Name the
+    commands you run. Under 200 words.
+runs: 3
+graders:
+  - type: tool_used
+    name: overseer-skill-fired
+    tool: Skill
+    input_match: overseer
+  - type: llm
+    name: one-fix-rest-deferred
+    criteria: |
+      The overseer fixes only what blocks the milestone: a failed acceptance line from the
+      brief, or a reproduced critical/high finding on something the milestone built. Lower
+      findings, defects that also show on the base branch, and misses on screens the
+      milestone did not touch are recorded with `program.sh suggestion add` and are not
+      fixed in this milestone. All fixes go out as one dispatch, followed by one re-walk.
+
+      In the scaffold, finding 1 (a search with no results renders a blank page) fails an
+      acceptance line of the brief. Findings 2 to 5 do not: a `low` naming nit, a `medium`
+      "extract a helper", a console warning that is also present on the base branch, and a
+      40 px tap target on the settings page, which m1 did not touch.
+
+      PASS requires ALL of:
+
+      1. Finding 1 is sent to a fix, as a single fix dispatch (a follow-up or a fix worker
+         gated with `program.sh dispatch check`).
+      2. Findings 2, 3, 4 and 5 are NOT put in that dispatch and are not fixed in m1. The
+         response records them as suggestions (`program.sh suggestion add`, or says they go
+         to the suggestions ledger).
+      3. It does not plan a separate fix dispatch or a separate re-walk per finding.
+
+      FAIL if the response fixes any of findings 2 to 5 in this milestone, sends more than
+      one fix dispatch, dispatches another reviewer before fixing, or softens or removes the
+      failed acceptance line instead of fixing it.
+
+      Not graded: whether it mentions the three-dispatch cap, the file name it gives the
+      dispatch, the order in which it records the suggestions.

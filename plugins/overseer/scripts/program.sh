@@ -28,7 +28,7 @@
 #                                            # files present, each newer than the last gated worker dispatch · hands-off has an ASSUMED row
 #   program.sh decision add --text "<what>" --rationale "<why>" [--options "<a | b>"]
 #   program.sh decision add --assumed --text "<what>" --alternative "<other reading>" --rationale "<why>"
-#   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer|followup] [--milestone <id>]
+#   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer|followup|brief] [--milestone <id>] [--over-cap "<why>"]
 #                                            # exit 0 records the file (checksum, kind, time) in its dispatch/.gated — accept counts only those
 #                                            # --milestone (or a file under milestones/<id>/dispatch/): WARN for each of the kind's skill groups no
 #                                            # gated dispatch has pinned yet; WARN when the milestone has no rigour profile
@@ -38,7 +38,11 @@
 #                                            # discipline (implement → verify → full suite) and contradicts a seat that writes nothing
 #                                            # followup: says the preamble still binds, scope lock, VERIFY, RETURN, names the dispatch file it continues;
 #                                            # recorded in .gated like a worker — accept's stale-evidence line is the newest worker OR follow-up
-#                                            # every kind but followup: a MODEL: line the program's tier allows — a worker never inherits, even under
+#                                            # brief: milestones/<id>/brief.md only — a literal `Verify: range` line, ## Acceptance, ## Scope, an existing skill
+#                                            # path; recorded in .gated, so on the taskmaster route its pins count at accept and no reviewer is sent to carry one
+#                                            # fix cap: a milestone's 4th fix dispatch (any follow-up, or a worker file named *fix*) is refused — park it;
+#                                            # --over-cap "<why>" passes it and writes the reason to decisions.md (the user asked for another cycle)
+#                                            # every kind but followup and brief: a MODEL: line the program's tier allows — a worker never inherits, even under
 #                                            # --model auto (simulation 3 ran two thirds of its subagent turns on the session model unasked)
 #                                            # --milestone + worker: WARN when the milestone is sized M or larger and no taskmaster index newer than
 #                                            # the milestone's registration names it — an M+ milestone is briefed to taskmaster, a direct worker needs a decision row
@@ -191,6 +195,13 @@ abspath() { local d; d=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
 # in_dispatch_dir <abs-file>: prints the milestone id when the file lives under milestones/<id>/dispatch/ (logical or physical $dir)
 in_dispatch_dir() { local f="$1" dp; dp=$(cd "$dir" 2>/dev/null && pwd -P) || dp="$dir"
   case "$f" in "$dir"/milestones/m[0-9]*/dispatch/*.md|"$dp"/milestones/m[0-9]*/dispatch/*.md) basename "$(dirname "$(dirname "$f")")";; esac; }
+# in_brief_path <abs-file>: prints the milestone id when the file is milestones/<id>/brief.md (logical or physical $dir)
+in_brief_path() { local f="$1" dp; dp=$(cd "$dir" 2>/dev/null && pwd -P) || dp="$dir"
+  case "$f" in "$dir"/milestones/m[0-9]*/brief.md|"$dp"/milestones/m[0-9]*/brief.md) basename "$(dirname "$f")";; esac; }
+FIX_CAP=3
+# fix_cycles <id> [skip-basename]: files .gated ever recorded as a fix cycle — every follow-up, and a worker file named *fix*. Misses: a fix sent under another name; cycles inside a taskmaster run (task-runner counts those).
+fix_cycles() { local g="$dir/milestones/$1/dispatch/.gated"; [ -f "$g" ] || return 0
+  awk -v skip="${2:-}" '$3 != skip && ($2 == "followup" || ($2 == "worker" && $3 ~ /fix/)) && !seen[$3]++ {print $3}' "$g"; }
 # Shared block templates/blocks/process-cost.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/process-cost.md
 # cc_process_cost <since>: one line, what this session's process cost from <since> (epoch seconds, or ISO-8601 with Z or an offset) to
@@ -266,6 +277,7 @@ case "$cmd" in
     jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg fs "$foreign" --arg model "$model" --arg at "$(now)" --argjson budget "$budget" \
       '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,foreign_session_reason:$fs,model:$model,created_at:$at,budget_tokens:$budget,milestones:[]}' > "$state"
     [ -n "$foreign" ] && echo "program.sh: WARN foreign session recorded (\"$foreign\") — taskmaster, task-runner and craft commands are unreachable; every phase they own runs on the fallback" >&2
+    [ "$hands" = true ] && [ "$budget" = null ] && echo "program.sh: WARN hands-off with no token budget — only the $FIX_CAP-fix-dispatch cap per milestone bounds this run; set one: program.sh budget --tokens <n>" >&2
     [ -f "$dir/decisions.md" ] || printf '# Decisions taken on the user'"'"'s behalf\n\nRows marked ASSUMED answer a question the user was not asked; the options column holds the reading that was NOT taken.\n\n| when | decision | options | rationale |\n| --- | --- | --- | --- |\n' > "$dir/decisions.md"
     echo "program initialised: $state (base: $base, model tier: $model)";;
 
@@ -481,6 +493,7 @@ case "$cmd" in
     if [ "${#dfiles[@]}" -eq 0 ]; then
       echo "program.sh: $id NOT accepted — no gated dispatch under milestones/$id/dispatch/ (a file counts once 'dispatch check' passed it and it is unchanged since; .gated is the record)" >&2
       echo "every worker, reviewer and follow-up prompt is a dispatch file passed through: program.sh dispatch check <file> --kind <k> --milestone $id" >&2
+      echo "taskmaster route (no prompt of your own): gate the brief instead — program.sh dispatch check $dir/milestones/$id/brief.md --kind brief" >&2
       exit 2
     fi
     unpinned=""
@@ -488,7 +501,7 @@ case "$cmd" in
     if [ -n "$unpinned" ]; then
       echo "program.sh: $id NOT accepted — kind $mkind requires a skill from each group below, and no gated dispatch under milestones/$id/dispatch/ pins one by a path that exists:" >&2
       for g in $unpinned; do echo "  $g" >&2; done
-      echo "pin it in the next dispatch (skill-path.sh <plugin> <skill>) or change the kind: this is the routing table in kinds.tsv" >&2
+      echo "pin it in the brief's skills list and gate it again (dispatch check <brief> --kind brief), or in the next dispatch (skill-path.sh <plugin> <skill>), or change the kind: this is the routing table in kinds.tsv — never send a reviewer only to carry a pin" >&2
       exit 2
     fi
     # Every required row must be newer than the newest gated worker/follow-up file: a walk before the last fix cycle walked older code.
@@ -508,7 +521,8 @@ case "$cmd" in
     fi
     nfiles=$(jq -r --arg id "$id" '[.milestones[]|select(.id==$id)|.evidence[]|select(.file!="")|.file]|unique|length' "$state")
     [ "${nfiles:-0}" -ge 2 ] || echo "program.sh: WARN $id: every evidence row points at the same file — every kind behind one artefact is a claim, not a record (acceptance.md: one screenshot per line, one run log per run)" >&2
-    [ -n "$(gated_files "$id" reviewer)" ] || echo "program.sh: WARN $id: no gated reviewer dispatch (--kind reviewer) — the review step ran nowhere the record can see; a skipped review is a decisions.md row" >&2
+    # A gated brief carries Verify: range, so its run's close reviewed the range: no reviewer of the overseer's own is owed.
+    [ -n "$(gated_files "$id" "reviewer brief")" ] || echo "program.sh: WARN $id: no gated reviewer dispatch (--kind reviewer) and no gated brief — the review step ran nowhere the record can see; a skipped review is a decisions.md row" >&2
     if jq -e '.hands_off' "$state" >/dev/null 2>&1 && ! grep -q '^| [^|]* | ASSUMED: ' "$dir/decisions.md" 2>/dev/null; then
       echo "program.sh: $id NOT accepted — hands-off program with no ASSUMED decision; record what the Clarify round would have asked:" >&2
       echo "  program.sh decision add --assumed --text \"<reading taken>\" --alternative \"<reading not taken>\" --rationale \"<why>\"" >&2
@@ -576,9 +590,10 @@ case "$cmd" in
 
   dispatch)
     [ "${1:-}" = "check" ] && [ -n "${2:-}" ] || usage
-    f="$2"; kind="worker"; ms=""; shift 2
-    while [ $# -gt 0 ]; do case "$1" in --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;; --milestone) ms=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
-    in_list "$kind" worker reader reviewer followup || { echo "program.sh: --kind must be worker, reader, reviewer or followup" >&2; exit 2; }
+    f="$2"; kind="worker"; ms=""; overcap=""; caprow=""; shift 2
+    while [ $# -gt 0 ]; do case "$1" in --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;; --milestone) ms=$(arg "$1" "${2:-}") || exit 3; shift 2;;
+      --over-cap) overcap=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
+    in_list "$kind" worker reader reviewer followup brief || { echo "program.sh: --kind must be worker, reader, reviewer, followup or brief" >&2; exit 2; }
     [ -f "$f" ] || { echo "program.sh: no such prompt file $f" >&2; exit 3; }
     miss=""; warn=""
     # The budget is this session's spend since the program began (cc_process_cost reads one session's transcripts).
@@ -594,6 +609,37 @@ case "$cmd" in
     fi
     # a file under milestones/<id>/dispatch/ names its milestone; --milestone overrides (and is required elsewhere for the kind WARNs)
     [ -n "$ms" ] || ms=$(in_dispatch_dir "$(abspath "$f")")
+    if [ "$kind" = brief ]; then
+      # The taskmaster run is built from the brief, so the brief is where that route's skill pins live; gating it lets accept count them.
+      bms=$(in_brief_path "$(abspath "$f")")
+      [ -n "$bms" ] && [ -s "$state" ] && has_ms "$bms" || { echo "program.sh: --kind brief gates a registered milestone's own brief ($dir/milestones/<id>/brief.md), not $f" >&2; exit 2; }
+      grep -qE '^Verify: range[[:space:]]*$' "$f" || miss="$miss
+  no literal 'Verify: range' line (without it task-runner reviews and controls every card)"
+      grep -qE '^## Acceptance' "$f" || miss="$miss
+  no ## Acceptance section"
+      grep -qE '^## Scope' "$f" || miss="$miss
+  no ## Scope section"
+      [ -n "$(pins_in "$f")" ] || miss="$miss
+  no skill pinned by an absolute path that exists (…/SKILL.md)"
+      [ -n "$miss" ] && { echo "program.sh: brief $f NOT ready:$miss" >&2; exit 2; }
+      mkind=$(jq -r --arg id "$bms" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
+      others=(); for o in "$dir/milestones/$bms/dispatch/"*.md; do [ -f "$o" ] && others+=("$o"); done
+      while IFS= read -r line; do case "$line" in missing*) warn="$warn
+  kind $mkind: neither the brief nor a gated dispatch for $bms pins ${line#missing } yet — accept will refuse until one does";; esac
+      done < <(pinned_groups_status "$mkind" "$f" ${others[@]+"${others[@]}"})
+      [ -n "$warn" ] && echo "program.sh: brief $f WARN:$warn" >&2
+      mkdir -p "$dir/milestones/$bms/dispatch"
+      printf '%s brief ../brief.md %s\n' "$(cksum < "$f" | cut -d' ' -f1)" "$(now)" >> "$dir/milestones/$bms/dispatch/.gated"
+      echo "brief ok (its pins count at accept): $f"; exit 0
+    fi
+    # A milestone buys $FIX_CAP fix dispatches in total; the next one parks it, unless the user asked for more (--over-cap, recorded).
+    if [ -n "$ms" ] && { [ "$kind" = followup ] || { [ "$kind" = worker ] && case "$(basename "$f")" in *fix*) true;; *) false;; esac; }; }; then
+      spent=$(fix_cycles "$ms" "$(basename "$f")" | tr '\n' ' ')
+      if [ "$(printf '%s' "$spent" | wc -w | tr -d ' ')" -ge "$FIX_CAP" ]; then
+        [ -n "$overcap" ] || { echo "program.sh: dispatch prompt $f NOT ready: $ms has spent its $FIX_CAP fix dispatches ( $spent). Park it with the failing line (program.sh milestone set --id $ms --status parked --reason \"<line>\") and record the rest as suggestions; --over-cap \"<why>\" only when the user asked for another cycle (hands-off: park)" >&2; exit 2; }
+        caprow="fix dispatch over the cap of $FIX_CAP on $ms: $(basename "$f")"
+      fi
+    fi
     pre="${OVERSEER_PREAMBLE:-}"
     # Resolved like a skill pin (skill-path.sh), never `find | sort -V`: across two marketplaces that picks the wrong version.
     if [ -z "$pre" ]; then sp=$(bash "$(dirname "$0")/skill-path.sh" task-runner delegation-contracts --project "$root" 2>/dev/null) && pre="$(dirname "$sp")/references/discipline-preamble.md"; fi
@@ -610,6 +656,7 @@ case "$cmd" in
       grep -qE '/[A-Za-z0-9_./-]+/dispatch/[A-Za-z0-9_.-]+\.md' "$f" || miss="$miss
   does not name the dispatch file it continues (…/dispatch/<n>.md, absolute)"
       [ -n "$miss" ] && { echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; }
+      [ -z "$caprow" ] || printf '| %s | %s | %s | %s |\n' "$(now)" "$caprow" "-" "$overcap" >> "$dir/decisions.md"
       record_gated "$f" followup; echo "dispatch prompt ok (followup): $f"; exit 0
     fi
     # The preamble is worker discipline; a reader/reviewer carries none ("run the full check suite" contradicts "you write no file").
@@ -670,7 +717,7 @@ case "$cmd" in
     if [ -n "$ms" ] && [ -s "$state" ]; then
       has_ms "$ms" || { echo "program.sh: no milestone $ms" >&2; exit 2; }
       mkind=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
-      others=(); for o in "$dir/milestones/$ms/dispatch/"*.md; do [ -f "$o" ] && others+=("$o"); done
+      others=(); for o in "$dir/milestones/$ms/dispatch/"*.md "$dir/milestones/$ms/brief.md"; do [ -f "$o" ] && others+=("$o"); done
       while IFS= read -r line; do
         case "$line" in
           missing*) warn="$warn
@@ -718,6 +765,7 @@ case "$cmd" in
     fi
     [ -n "$warn" ] && echo "program.sh: dispatch prompt $f WARN:$warn" >&2
     if [ -n "$miss" ]; then echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; fi
+    [ -z "$caprow" ] || printf '| %s | %s | %s | %s |\n' "$(now)" "$caprow" "-" "$overcap" >> "$dir/decisions.md"
     record_gated "$f" "$kind"
     echo "dispatch prompt ok ($kind): $f";;
 
@@ -748,7 +796,7 @@ case "$cmd" in
     if [ -f "$dir/capabilities.tsv" ]; then
       avail=$(grep -v '^#' "$dir/capabilities.tsv" | awk -F'\t' 'NR>1 && $2!="-" {print $2}' | tr ',' '\n' | sed '/^$/d' | sort -u)
       # a pinned skill path names its plugin; an agent type (AGENT: task-runner:task-executor) names its plugin before the colon
-      used=$( { cat "$dir"/milestones/*/dispatch/*.md 2>/dev/null | grep -oE '/plugins/cache/[^/]+/[a-z0-9-]+/' | awk -F/ '{print $5}'
+      used=$( { cat "$dir"/milestones/*/dispatch/*.md "$dir"/milestones/*/brief.md 2>/dev/null | grep -oE '/plugins/cache/[^/]+/[a-z0-9-]+/' | awk -F/ '{print $5}'
                 grep -hoE '^AGENT: *[a-z0-9-]+:' "$dir"/milestones/*/dispatch/*.md 2>/dev/null | sed -E 's/^AGENT: *//; s/:$//'; } | sort -u)
       [ -n "$avail" ] && echo "plugins installed per the scan: $(printf '%s\n' "$avail" | wc -l | tr -d ' ') · pinned in a dispatch: $(printf '%s\n' "$used" | sed '/^$/d' | wc -l | tr -d ' ') · never pinned: $(comm -23 <(printf '%s\n' "$avail") <(printf '%s\n' "$used") | tr '\n' ' ')"
     fi
