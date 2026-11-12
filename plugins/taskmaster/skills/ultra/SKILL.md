@@ -68,12 +68,10 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
 - REASONING roles (red-team, coverage gap-judgment, card-verify, synthesis) dispatch at the
   boosted tier; mechanical/breadth roles (recon scouts, `opinion-lens`) stay NATIVE. Ladder,
   reachable set, and sizing table: `references/dispatch-tiers.md`.
-- grill: extra clarifying rounds; no early ledger exit on first CLEAR sweep.
 - spec-redteam: runs ALWAYS; blind adversaries via either dispatch mechanism (the Workflow
   tool or the Agent tool), N=3 as a CEILING (2 at small radius) — spec-redteam sizes N
   from its own gate.
-- coverage-check: runs ALWAYS before handoff; loop-until-dry, stop at two dry rounds or the
-  3-round cap.
+- coverage-check: runs ALWAYS before handoff; its own loop decides the stop (zero findings ends it).
 - recon: up to 3 parallel lenses via either dispatch mechanism (the Workflow tool or the
   Agent tool), else one inline scout (NATIVE).
 - card-verify: one fan-out pass per card via either dispatch mechanism (the Workflow tool

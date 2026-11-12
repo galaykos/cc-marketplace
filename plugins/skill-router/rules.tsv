@@ -12,7 +12,7 @@
 # every shadcn row nudged a `.tsx` in a repo with no components.json. Per-row and opt-in;
 # an unprefixed alternative keeps the fire-if-uncertain default. It replaced the
 # `||!@base~.` default-deny tail 0.18.0 put on four rows — same behaviour, one mechanism.
-# nudge-last: low-cognitive-load solid-principles a11y-audit
+# nudge-last: a11y-audit
 # route.sh sends at most two nudges per edit and ranks these last: each matches every file of
 # its language, so the next such edit draws it again, where a path-specific stack skill may
 # never recur. A skill over the cap is not spent. route.test.sh case 6 fails a name no glob row routes.
@@ -28,9 +28,6 @@
 # co-fire-ok: *.vue a11y-audit shadcn-best-practices
 # co-fire-ok: *.blade.php a11y-audit laravel-best-practices
 # co-fire-ok: *.tsx nextjs-best-practices react-native-best-practices
-# co-fire-ok: *.ts low-cognitive-load solid-principles
-# co-fire-ok: *.js low-cognitive-load solid-principles
-# co-fire-ok: *.py low-cognitive-load solid-principles
 # Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
 # These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
 # accumulate into one session digest (route.sh queue_low_matches). Several firing on one file is the
@@ -58,31 +55,13 @@
 # stack_markers, so only the generic pairs need blessing.
 # co-fire-ok: *.sql sql-best-practices mariadb-best-practices
 # co-fire-ok: **/migrations/** sql-best-practices mariadb-best-practices
-# co-fire-ok: *.go low-cognitive-load solid-principles
-# co-fire-ok: *.rb low-cognitive-load solid-principles
-# co-fire-ok: *.rs low-cognitive-load solid-principles
-# low-cognitive-load judges code shape; the accessibility, framework and library skills on the same file judge other things, so both fire.
-# co-fire-ok: *.tsx low-cognitive-load a11y-audit
-# co-fire-ok: *.tsx low-cognitive-load shadcn-best-practices
-# co-fire-ok: *.tsx low-cognitive-load nextjs-best-practices
-# co-fire-ok: *.tsx low-cognitive-load react-native-best-practices
-# co-fire-ok: *.jsx low-cognitive-load a11y-audit
-# co-fire-ok: *.jsx low-cognitive-load shadcn-best-practices
-# co-fire-ok: *.vue low-cognitive-load a11y-audit
-# co-fire-ok: *.vue low-cognitive-load shadcn-best-practices
-# co-fire-ok: *.vue low-cognitive-load component-libraries
-# co-fire-ok: *.php low-cognitive-load laravel-best-practices
 #
-# LIMITATION (honest scope): NOT routed by any rule — code-smells, reuse-hygiene,
-# yagni-check, plan-before-code, and the rest of code-architecture beyond the two
-# routed below. comment-discipline is ABSENT here on purpose: its own
+# LIMITATION (honest scope): NOT routed by any rule — every code-architecture skill
+# (low-cognitive-load and solid-principles included, from 0.32.0: they matched every source
+# file, and code-architecture's coding-entry skill loads the first before the first edit),
+# code-smells and reuse-hygiene. comment-discipline is ABSENT here on purpose: its own
 # PreToolUse/PostToolUse hook is the delivery channel, and a routing row would be
-# redundant — do not "fix" that. Plain source
-# edits (*.ts / *.js / *.py / *.go / *.rb / *.rs) route to low-cognitive-load +
-# solid-principles, once per skill per session. *.tsx / *.jsx / *.vue / *.php edits
-# route to low-cognitive-load ONLY, no solid-principles: the first three skip
-# dotfiles, *.php skips a .blade.php view and dotfiles. PHP config, routes and lang array files
-# keep the route on purpose — they are code, and the nudge is once per session.
+# redundant — do not "fix" that.
 # **/migrations/** routes to sql-best-practices plus the detected engine skill
 # (blessed pairs above).
 #
@@ -121,22 +100,6 @@ glob	*.sql	sql-best-practices	database	high
 glob	**/migrations/**	sql-best-practices	database	high
 glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	**/migrations/**	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
-glob	*.ts	low-cognitive-load	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.ts	solid-principles	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.js	low-cognitive-load	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.js	solid-principles	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
-glob	*.py	low-cognitive-load	code-architecture	high
-glob	*.py	solid-principles	code-architecture	high
-glob	*.go	low-cognitive-load	code-architecture	high
-glob	*.go	solid-principles	code-architecture	high
-glob	*.rb	low-cognitive-load	code-architecture	high
-glob	*.rb	solid-principles	code-architecture	high
-glob	*.rs	low-cognitive-load	code-architecture	high
-glob	*.rs	solid-principles	code-architecture	high
-glob	*.tsx	low-cognitive-load	code-architecture	high	!@base~^\.
-glob	*.jsx	low-cognitive-load	code-architecture	high	!@base~^\.
-glob	*.vue	low-cognitive-load	code-architecture	high	!@base~^\.
-glob	*.php	low-cognitive-load	code-architecture	high	!@base~(\.blade\.php$|^\.)
 # The only stack row that carried no marker at all: a Go module with `components/`,
 # and a Blade app with no Tailwind in it, both drew the Tailwind skill. The `?` prefix
 # is what makes "no package.json" mean no, instead of maybe.
@@ -350,8 +313,6 @@ glob	**/.design-kit/film/**	film	design-kit	high
 # manifest: a .cs file is Unity's only beside ProjectVersion.txt and Godot's only beside project.godot.
 # blender, meshy and pixel-art rows added 2026-10-30 — rationale/gamedev-art-import-2026-10-30.md.
 # The blender *.py row co-fires with the two language-wide discipline rows on purpose: nudge-last ranks them after it.
-# co-fire-ok: *.py low-cognitive-load blender-best-practices
-# co-fire-ok: *.py solid-principles blender-best-practices
 glob	*.gd	godot-best-practices	godot	high
 glob	*.gdshader	godot-best-practices	godot	high
 glob	export_presets.cfg	godot-best-practices	godot	high

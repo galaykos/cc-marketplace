@@ -131,9 +131,9 @@ slug=$(printf '%s' "$C" | tr -c '[:alnum:]' '-')
 
 # 4c. directory globs match the ROOT-relative path: a checkout that merely lives under a
 #     directory named `tests/` must not draw the testing row on every file it edits.
-D="$WS/tests/d"; mkdir -p "$D/src"; git -C "$D" init -q; printf 'package d\n' > "$D/src/thing.go"
-out=$(edit "$D" "$D/src/thing.go" "$WS/t-d.jsonl")
-has_skill "$out" low-cognitive-load && ok || bad "root-relative: *.go did not route at all; got: ${out:0:200}"
+D="$WS/tests/d"; mkdir -p "$D/src"; git -C "$D" init -q; printf 'select 1;\n' > "$D/src/thing.sql"
+out=$(edit "$D" "$D/src/thing.sql" "$WS/t-d.jsonl")
+has_skill "$out" sql-best-practices && ok || bad "root-relative: *.sql did not route at all; got: ${out:0:200}"
 has_skill "$out" testing-best-practices && bad "root-relative: **/tests/** matched a directory ABOVE the repo root" || ok
 
 # 5. the one-shot holds across an Edit then a Bash write of the same signal
@@ -148,22 +148,22 @@ has_skill "$out" laravel-best-practices && bad "one-shot: the Bash write re-nudg
 out=$(bashw "$E" "printf 'select 1;\\n' > app/report.sql" "$TE")
 has_skill "$out" sql-best-practices && ok || bad "one-shot: a NEW signal through Bash in the same context did not route; got: ${out:0:200}"
 
-# 6. one command, three files → ONE envelope of at most two nudges: the file-shape rows (laravel, sql) beat the language-wide
-#    low-cognitive-load, which is not spent and rides the next edit of that language
+# 6. one command, three files → ONE envelope of at most two nudges: the file-shape rows (laravel, sql) beat the nudge-last
+#    a11y-audit, which is not spent and rides the next edit of that file
 F="$WS/f"; mkrepo "$F"; TF="$WS/t-f.jsonl"
 out=$(bashw "$F" "cat > app/Models/Order.php <<'A'
 <?php
 A
-printf 'select 1;\\n' > app/orders.sql; echo 'package f' > app/f.go" "$TF")
+printf 'select 1;\\n' > app/orders.sql; echo 'export const F = () => <div />' > app/F.tsx" "$TF")
 [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && ok || bad "multi-file: expected one envelope line, got $(printf '%s\n' "$out" | grep -c .)"
 [ "$(skills <<<"$out" | grep -c .)" = 2 ] && ok || bad "cap: expected 2 nudges on one call, got [$(echo $(skills <<<"$out"))]"
 for s in laravel-best-practices sql-best-practices; do
   has_skill "$out" "$s" && ok || bad "multi-file: $s missing from the envelope"
 done
-has_skill "$out" low-cognitive-load && bad "cap: the language-wide low-cognitive-load took a slot from a file-shape row" || ok
-jq -e '.fired | index("low-cognitive-load") | not' "$(statef "$F" "$TF")" >/dev/null 2>&1 && ok || bad "cap: a skill over the cap was marked fired"
-out=$(edit "$F" "$F/app/f.go" "$TF")
-has_skill "$out" low-cognitive-load && ok || bad "cap: the skill over the cap did not ride the next edit; got: ${out:0:200}"
+has_skill "$out" a11y-audit && bad "cap: the nudge-last a11y-audit took a slot from a file-shape row" || ok
+jq -e '.fired | index("a11y-audit") | not' "$(statef "$F" "$TF")" >/dev/null 2>&1 && ok || bad "cap: a skill over the cap was marked fired"
+out=$(edit "$F" "$F/app/F.tsx" "$TF")
+has_skill "$out" a11y-audit && ok || bad "cap: the skill over the cap did not ride the next edit; got: ${out:0:200}"
 last=$(sed -n 's/^# nudge-last:[[:space:]]*//p' "$SR/rules.tsv")
 [ -n "$last" ] && ok || bad "cap: rules.tsv carries no '# nudge-last:' line"
 for s in $last; do
@@ -202,6 +202,12 @@ routes() { # dir relpath content skill [not-skill] — write the file, Edit it i
   o=$(edit "$d" "$d/$f" "$(fresh)")
   has_skill "$o" "$want" && ok || bad "$f: $want not routed inline; got: ${o:0:200}"
   if [ -n "$avoid" ]; then has_skill "$o" "$avoid" && bad "$f: $avoid routed (wrong route)" || ok; fi
+}
+silent() { # dir relpath content not-skill — a NEGATIVE for a content row; the sibling `routes` case on the same file shape proves the row can fire
+  local d="$1" f="$2" body="$3" avoid="$4" o
+  mkdir -p "$(dirname "$d/$f")"; printf '%s\n' "$body" > "$d/$f"
+  o=$(edit "$d" "$d/$f" "$(fresh)")
+  has_skill "$o" "$avoid" && bad "$f: $avoid routed (wrong route)" || ok
 }
 
 # 10. a content row marked `high` fires INLINE, once per context, and never enters the digest
@@ -390,18 +396,17 @@ edit "$N" "$N/src/pages/Reads.tsx" "$(fresh)" PATH="$HS:$PATH" HEAD_LOG="$WS/hea
 reads=$(grep -c 'Reads\.tsx' "$WS/head.log" 2>/dev/null)
 [ "$reads" = 1 ] && ok || bad "one read per target: Reads.tsx was read ${reads:-0} times in one call"
 
-# 17. low-cognitive-load on .php/.tsx/.jsx/.vue; a negative also asserts a skill that proves the edit routed
+# 17. no row routes the two design-principle skills (removed in 0.32.0: they matched every source file). Each case names a skill
+#     that proves the edit routed, so the absence is not a silent hook; a plain source file with no other row stays silent.
 K="$WS/k"; mkrepo "$K"
-routes "$K" app/Models/Invoice.php '<?php class Invoice {}' low-cognitive-load
-routes "$K" resources/js/Card.tsx 'export const Card = () => <div />' low-cognitive-load
-routes "$K" resources/js/Row.jsx 'export const Row = () => <tr />' low-cognitive-load
-routes "$K" resources/js/Panel.vue '<template><section /></template>' low-cognitive-load
-routes "$K" resources/js/.scratch.tsx 'export const x = <div />' a11y-audit low-cognitive-load
-routes "$K" resources/views/invoice.blade.php '<div>{{ $total }}</div>' laravel-best-practices low-cognitive-load
-routes "$K" resources/js/.scratch.jsx 'export const y = <div />' a11y-audit low-cognitive-load
-routes "$K" resources/js/.scratch.vue '<template><i /></template>' a11y-audit low-cognitive-load
-routes "$K" .php-cs-fixer.php '<?php return [];' laravel-best-practices low-cognitive-load
-routes "$K" config/app.php '<?php return [];' low-cognitive-load
+routes "$K" app/Models/Invoice.php '<?php class Invoice {}' laravel-best-practices low-cognitive-load
+routes "$K" app/Models/Ledger.php '<?php class Ledger {}' laravel-best-practices solid-principles
+routes "$K" resources/js/Card.tsx 'export const Card = () => <div />' a11y-audit low-cognitive-load
+for f in lib/tool.py cmd/main.go lib/util.ts; do
+  mkdir -p "$K/$(dirname "$f")"; printf 'x\n' > "$K/$f"
+  out=$(edit "$K" "$K/$f" "$(fresh)")
+  [ -z "$out" ] && ok || bad "$f: a plain source file with no stack row must stay silent; got: ${out:0:200}"
+done
 
 # 18. doc and style files queue nothing; a harness frame does not flush the digest, a human prompt does
 D="$WS/d"; mkrepo "$D"; TD="$WS/t-d.jsonl"
@@ -468,9 +473,9 @@ for f in "$WS/outside-x/tool.py" "../outside-x/tool.py"; do
 done
 out=$(bashw "$X" "printf 'select 1;\\n' > scratch/q.sql" "$(fresh)")
 [ -z "$out" ] && ok || bad "gitignored Bash target: expected silence, got: ${out:0:160}"
-printf 'x = 1\n' > "$X/tool.py"
-out=$(edit "$X" "$X/tool.py" "$(fresh)")
-has_skill "$out" low-cognitive-load && ok || bad "tracked .py beside the excluded ones did not route; got: ${out:0:200}"
+printf 'select 1;\n' > "$X/q.sql"
+out=$(edit "$X" "$X/q.sql" "$(fresh)")
+has_skill "$out" sql-best-practices && ok || bad "tracked .sql beside the excluded ones did not route; got: ${out:0:200}"
 
 # 21. a skill this context already loaded is not nudged: its "Base directory for this skill" line, a Read of its SKILL.md, or a
 #     qualified Skill call in the transcript. The PROJECT's copy of the same bare name loaded, read or called bare does not count.
@@ -483,7 +488,9 @@ printf '<?php\n' > "$Y/app/Models/Plan.php"; : > "$Y/database/migrations/2026_01
 TY="$WS/t-y-loaded.jsonl"; tline_base "$(sdir laravel laravel-best-practices)" > "$TY"
 out=$(edit "$Y" "$Y/app/Models/Plan.php" "$TY")
 has_skill "$out" laravel-best-practices && bad "loaded (Skill base dir): laravel re-nudged; got: ${out:0:200}" || ok
-has_skill "$out" low-cognitive-load && ok || bad "loaded: an unloaded skill on the same edit stopped firing; got: ${out:0:200}"
+out=$(edit "$Y" "$Y/database/migrations/2026_01_01_000000_create_plans.php" "$TY")
+has_skill "$out" laravel-best-practices && bad "loaded: laravel re-nudged on a second file; got: ${out:0:200}" || ok
+has_skill "$out" sql-best-practices && ok || bad "loaded: an unloaded skill on the same edit stopped firing; got: ${out:0:200}"
 TY="$WS/t-y-read.jsonl"; tline_read "$(sdir database sql-best-practices)/SKILL.md" > "$TY"
 out=$(edit "$Y" "$Y/database/migrations/2026_01_01_000000_create_plans.php" "$TY")
 has_skill "$out" sql-best-practices && bad "loaded (SKILL.md Read): sql re-nudged; got: ${out:0:200}" || ok
@@ -545,9 +552,9 @@ PY" "$TK")
   mkdir -p "$K/database"; printf 'select 1;\n' > "$K/database/report.sql"
   edit "$K" "$K/database/report.sql" "$(fresh)" >/dev/null
   out=$(bashw "$K" "python3 - <<'PY'
-open('app/svc.go', 'w').write('package app\n')
+open('app/Svc.tsx', 'w').write('export const Svc = () => <div />\n')
 PY" "$(fresh)")
-  has_skill "$out" low-cognitive-load && ok || bad "effects: the go file python wrote did not route; got: ${out:0:200}"
+  has_skill "$out" a11y-audit && ok || bad "effects: the tsx file python wrote did not route; got: ${out:0:200}"
   has_skill "$out" sql-best-practices && bad "effects: the file an Edit changed before this run was read again as its write" || ok
 else
   echo "SKIP 24: python3 not available"
@@ -718,9 +725,9 @@ while IFS=$'\t' read -r k p s rest; do
 done < "$SR/rules.tsv"
 routes "$GD" src/world/Gen.ts "import seedrandom from 'seedrandom'
 export const rng = seedrandom(dailySeed)" seeded-generation
-routes "$GD" src/world/Roll.ts 'export const roll = () => Math.floor(Math.random() * 6) + new Random().next()' low-cognitive-load seeded-generation
+silent "$GD" src/world/Roll.ts 'export const roll = () => Math.floor(Math.random() * 6) + new Random().next()' seeded-generation
 routes "$GD" src/audio/mix.ts 'export const TARGET_LUFS = -24 // home console, true peak -1 dBTP' game-platform-floors
-routes "$GD" src/audio/volume.ts 'export const masterVolumeDb = -6; export const subtitleFontSize = 26' low-cognitive-load game-platform-floors
+silent "$GD" src/audio/volume.ts 'export const masterVolumeDb = -6; export const subtitleFontSize = 26' game-platform-floors
 routes "$GD" Assets/Packs/Kenney/License.txt 'Creative Commons Zero, CC0 1.0' game-assets
 printf 'MIT License\n' > "$GD/LICENSE"; out=$(edit "$GD" "$GD/LICENSE" "$(fresh)")
 has_skill "$out" game-assets && bad "licence row: a LICENSE outside an asset directory routed game-assets" || ok

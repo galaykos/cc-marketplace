@@ -116,9 +116,8 @@ catch (e) { throw isUniqueViolation(e) ? new EmailTaken() : e; }
 
 Standing: **recorded** — nothing checks that the order was walked (adapted from
 dietrichgebert/ponytail v4.10.0, MIT). Reach: before code exists, only `coding-entry` loads this
-section, beside the description's own match; after an edit, skill-router (when installed)
-suggests it on .ts and .js source files (not config, .d.ts, .min.js or dotfiles), .tsx, .jsx and
-.vue files (not dotfiles), .php files (not Blade views or dotfiles), and .py, .go, .rb and .rs files — not .java.
+section, beside the description's own match. skill-router routed it after every source edit
+until its 0.32.0, which removed the row: nothing suggests it after an edit now.
 
 ## KISS and DRY
 

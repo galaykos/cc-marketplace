@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.32.0 — 2026-11-12
+
+- **`low-cognitive-load` and `solid-principles` are no longer routed after an edit.** Their 16 rows matched every `.ts`, `.js`, `.py`, `.go`, `.rb`, `.rs`, `.tsx`, `.jsx`, `.vue` and `.php` source file, so they fired on comment-only and moved-unchanged edits and were declined in one line in the sessions sampled on 2026-11-12. code-architecture's `coding-entry` skill already loads `low-cognitive-load` before the first edit; both skills stay reachable by description. A plain source file with no stack row now draws no nudge. What an installer loses: the post-edit design reminder on a file no other row matches. Pinned by `route.test.sh` case 17, which fails if either skill routes again. Not measured: whether fewer nudges raises the load rate of the ones that remain.
+- **The prompt digest no longer asks for a dismissal.** "Your recent edits may need these skills: … Load each one that applies." The clause "or say in one line why it does not" is gone: it produced a dismissal line on most prompts and no load.
+
 ## 0.31.2 — 2026-11-12
 
 - **The PixiJS routing row is gone with the plugin.** `rules.tsv` no longer nudges `pixijs-best-practices` on a `pixi.js` import; the `pixijs` plugin left the marketplace on 2026-11-12.

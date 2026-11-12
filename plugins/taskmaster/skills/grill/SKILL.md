@@ -162,10 +162,10 @@ assumption list, or the user says "enough". Then:
 
 1. Decide the implementation approach when the settled requirements admit two or more
    structurally different implementations (new module vs extend, sync vs async, rewrite vs
-   strangler) and the task is not mechanical. approaches plugin installed → run its blind
-   panel per `approaches:approach-deliberation` `references/blind-panel.md` — it owns the
-   persona roster, the dispatch contract, and the proceed rule (surface the pick for
-   approval; never self-approve it). WRITE its marker `<repo root>/.claude/approaches/deliberated.json`
+   strangler) and the task is not mechanical. approaches plugin installed → follow
+   `approaches:approach-deliberation`: its inline slate by default, its blind panel
+   (`references/blind-panel.md`) only for rework of existing code. It owns the mechanism
+   choice and the proceed rule (surface the pick for approval; never self-approve it). WRITE its marker `<repo root>/.claude/approaches/deliberated.json`
    after: unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates
    the settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks,
    or when an upstream brainstorm design already recorded the approach.
