@@ -125,7 +125,7 @@ state_of() { # state_of <name> — installed | disabled | absent
 
 opt_in() { # opt_in <name> — why `install` leaves it out by construction; empty for every other leaf
   case "$1" in
-    godot|unity-traps|unreal|phaser|pixijs|gamedev|blender|meshy|pixel-art)
+    godot|unity-traps|unreal|phaser|gamedev|blender|meshy|pixel-art)
       printf 'opt-in: game plugin, /stack-scan:suggest installs it in a game repo' ;;
   esac
 }

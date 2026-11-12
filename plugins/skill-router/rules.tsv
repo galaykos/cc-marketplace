@@ -367,7 +367,6 @@ glob	*.spriteatlasv2	unity-best-practices	unity-traps	high
 glob	*.uproject	unreal-best-practices	unreal	high
 content	(UCLASS\(|GENERATED_BODY\(\))	unreal-best-practices	unreal	high
 content	(from ['"]phaser['"]|\bnew Phaser\.(Game|Scene)\b)	phaser-best-practices	phaser	high
-content	(from ['"]pixi\.js['"]|\bnew PIXI\.)	pixijs-best-practices	pixijs	high
 content	(import|from)[[:space:]]+(bpy|bpy_extras|bmesh)([.[:space:]]|$)	blender-best-practices	blender	high
 content	blender(\.exe)?[[:space:]]+(-b|--background)[[:space:]]	blender-best-practices	blender	high
 glob	*.py	blender-best-practices	blender	high	?blender_manifest.toml~schema_version

@@ -8,7 +8,7 @@ uninstall reverses both. One script does the work, with one exit code; the two c
 only relay it. A "leaf" is any plugin in the marketplace's `marketplace.json`; there are
 no bundles to skip. Every leaf includes `all-plugins` itself: `install` covers it (normally a
 `skip`), and `uninstall` keeps it unless `--self`. The game plugins — `godot`, `unity-traps`,
-`unreal`, `phaser`, `pixijs`, `gamedev`, `blender`, `meshy` and `pixel-art` — are left out by
+`unreal`, `phaser`, `gamedev`, `blender`, `meshy` and `pixel-art` — are left out by
 construction: `install` never installs or enables one, and prints it as a
 `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row, while
 `uninstall` and `list` treat it like any other plugin. Their

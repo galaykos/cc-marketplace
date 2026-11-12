@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.1 — 2026-11-12
+
+- **The description and README no longer name `pixijs` as a companion.** That plugin left the
+  marketplace on 2026-11-12; the other four engine plugins are unchanged.
+
 ## 0.3.0 — 2026-11-09
 
 - **`check_steam_build.py` flags two Steam test leftovers.** `steam-appid-txt-shipped` fires when

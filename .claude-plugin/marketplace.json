@@ -190,14 +190,9 @@
       "description": "Phaser skill carrying only what changed from Phaser 3 to 4 and still gets written the v3 way: preFX/postFX and BitmapMask replaced by filters, setLighting, setTintFill reduced to a console error, Math.TAU corrected from π/2 to 2π, Geom.Point removed, roundPixels off by default, pipelines rewritten as render nodes; plus the scene.launch restart and three Arcade Physics footguns (two-sided collision masks, onFloor on dynamic bodies, drag under acceleration). Reads the lockfile before advising."
     },
     {
-      "name": "pixijs",
-      "source": "./plugins/pixijs",
-      "description": "PixiJS pointer skill: links the official v8 docs, the v7→v8 migration guide and the PixiJS team's own agent skills. Its v7→v8 table was retired on 2026-11-09: 4 control-armed cases on opus showed no lift on the rows judged most likely missed (now regression guards)."
-    },
-    {
       "name": "gamedev",
       "source": "./plugins/gamedev",
-      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal, phaser, pixijs)."
+      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal, phaser)."
     },
     {
       "name": "blender",
@@ -308,6 +303,7 @@
     "ebitengine": null,
     "roblox": null,
     "unity": "unity-traps",
-    "prompt-coach": null
+    "prompt-coach": null,
+    "pixijs": null
   }
 }
