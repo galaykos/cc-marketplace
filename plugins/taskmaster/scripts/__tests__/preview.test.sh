@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives scripts/preview.sh: start serves the docroot and records pid/URL, a second start reuses it, --lan over a loopback server is refused, --stop ends only a pid that is serve.py on this docroot, a busy port fails cleanly.
+# Drives scripts/preview.sh: start serves the docroot and records pid/URL, a second start reuses it, --lan over a loopback server is refused, --stop ends only a pid that is serve.py on this docroot, a busy port fails cleanly, two starts at once leave one server, a live pid nothing can name is exit 6, --lan relays the loopback URL.
 # Misses: exit 3 (python3 absent) is not exercised; the LAN half needs a non-loopback address and skips without one.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -100,16 +100,61 @@ key="$(tr -d '\n' < "$D/.preview.key" 2>/dev/null)"
 [ "$rc" = 0 ] && [ -n "$key" ] && ok || bad "--lan start" "rc=$rc, key file empty or missing: $out"
 case "$out" in *"preview: http://"*":$port/?key=$key"*) ok ;; *) bad "--lan URL" "$out" ;; esac
 case "$out" in *"preview: LAN mode:"*"0.05 minutes"*) ok ;; *) bad "--lan notice" "$out" ;; esac
+case "$out" in *"preview: On this machine: http://127.0.0.1:$port/ "*) ok ;; *) bad "--lan loopback URL" "$out" ;; esac
 case "$(cat "$D/.preview.url")" in *"?key=$key") ok ;; *) bad "--lan .preview.url" "$(cat "$D/.preview.url")" ;; esac
 [ "$(mode "$D/.preview.url")" = 0o600 ] && ok || bad "--lan .preview.url mode" "$(mode "$D/.preview.url")"
 lanpid="$(cat "$D/.preview.pid")"
 out="$(bash "$P" --docroot "$D" --port "$port")"
 case "$out" in *"already running"*"?key=$key"*"LAN mode is still on"*) ok ;; *) bad "plain start over LAN" "$out" ;; esac
+case "$out" in *"preview: On this machine: http://127.0.0.1:$port/ "*) ok ;; *) bad "plain start over LAN: loopback URL" "$out" ;; esac
 for _ in $(seq 1 80); do kill -0 "$lanpid" 2>/dev/null || break; sleep 0.1; done
 kill -0 "$lanpid" 2>/dev/null && bad "LAN limit" "the LAN server outlived PREVIEW_LAN_MINUTES=0.05" || ok
 out="$(bash "$P" --docroot "$D" --port "$port")"
 case "$out" in *"preview: http://127.0.0.1:$port/"*) ok ;; *) bad "start after LAN expiry" "$out" ;; esac
 bash "$P" --docroot "$D" --stop >/dev/null
+
+# ---- two starts at once: one server, one URL, and --stop still ends it ----------
+D2="$T/race"; mkdir -p "$D2"; printf '<!doctype html><p>RACE</p>\n' > "$D2/current.html"
+abs2="$(cd "$D2" && pwd -P)"
+for round in 1 2 3; do
+  rport="$(free_port)"
+  bash "$P" --docroot "$D2" --port "$rport" > "$T/race1" 2>&1 & r1=$!
+  bash "$P" --docroot "$D2" --port "$rport" > "$T/race2" 2>&1 & r2=$!
+  wait "$r1"; c1=$?; wait "$r2"; c2=$?
+  [ "$c1" = 0 ] && [ "$c2" = 0 ] && ok || bad "race $round exit" "want 0 and 0, got $c1 and $c2: $(cat "$T/race1" "$T/race2")"
+  u1="$(grep -o "http://127.0.0.1:$rport/" "$T/race1" | head -n 1)"; u2="$(grep -o "http://127.0.0.1:$rport/" "$T/race2" | head -n 1)"
+  [ -n "$u1" ] && [ "$u1" = "$u2" ] && ok || bad "race $round URL" "both starts must print the URL: $(cat "$T/race1") | $(cat "$T/race2")"
+  n="$(pgrep -f "serve.py --docroot $abs2 --port" | wc -l | tr -d ' ')"
+  [ "$n" = 1 ] && ok || bad "race $round servers" "want 1 serve.py on the docroot, got $n"
+  out="$(bash "$P" --docroot "$D2" --stop)"
+  case "$out" in *"preview: stopped"*) ok ;; *) bad "race $round stop" "$out" ;; esac
+  n="$(pgrep -f "serve.py --docroot $abs2 --port" | wc -l | tr -d ' ')"
+  [ "$n" = 0 ] && ok || { bad "race $round stop" "$n serve.py left on the docroot"; pkill -f "serve.py --docroot $abs2 --port"; }
+  [ -e "$D2/.preview.lock" ] && bad "race $round lock" ".preview.lock left behind" || ok
+done
+
+# ---- no usable ps: /proc names the server; a live pid nothing can name is exit 6, its pid file kept ----
+mkdir -p "$T/bin"; printf '#!/bin/sh\nexit 1\n' > "$T/bin/ps"; chmod +x "$T/bin/ps"
+if [ -r /proc/self/cmdline ]; then
+  bash "$P" --docroot "$D" --port "$port" >/dev/null
+  pidp="$(cat "$D/.preview.pid")"
+  out="$(PATH="$T/bin:$PATH" bash "$P" --docroot "$D" --port "$port" 2>&1)"; rc=$?
+  [ "$rc" = 0 ] && case "$out" in *"already running"*) true ;; *) false ;; esac && ok || bad "no ps: live server" "rc=$rc: $out"
+  [ "$(cat "$D/.preview.pid" 2>/dev/null)" = "$pidp" ] && ok || bad "no ps: pid file" "the live server's pid file was removed or replaced"
+  bash "$P" --docroot "$D" --stop >/dev/null
+else echo "SKIP: no /proc — the ps-less identification is not exercised"; fi
+python3 -c 'import os,time
+pid=os.fork()
+if pid==0: os._exit(0)
+print(pid,flush=True); time.sleep(30)' > "$T/zpid" & extra="$extra $!"
+for _ in $(seq 1 30); do [ -s "$T/zpid" ] && break; sleep 0.1; done
+zpid="$(cat "$T/zpid")"
+for args in "--stop" "--port $port"; do
+  echo "$zpid" > "$D/.preview.pid"
+  PATH="$T/bin:$PATH" bash "$P" --docroot "$D" $args >/dev/null 2>&1; rc=$?
+  [ "$rc" = 6 ] && [ "$(cat "$D/.preview.pid" 2>/dev/null)" = "$zpid" ] && ok || bad "unnamed live pid ($args)" "want exit 6 and the pid file kept, got $rc and $(cat "$D/.preview.pid" 2>/dev/null)"
+done
+rm -f "$D/.preview.pid"
 
 # ---- bad arguments -------------------------------------------------------------
 bash "$P" --port abc >/dev/null 2>&1; rc=$?

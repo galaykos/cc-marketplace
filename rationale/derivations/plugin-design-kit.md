@@ -134,6 +134,10 @@ arguments, 2 the browser or the server was unreachable — and they pass through
 here unchanged, so a wired-up caller reads the same number either way.
 ```
 
+### status: no URL for a dead server (2026-11-12)
+
+`dk status` printed `.preview.url` whenever the file existed, so after a `kill -9` it printed a dead URL. It now prints it only when `.preview.pid` names a live pid (`os.kill(pid, 0)`, pid > 0). Residual: a recycled pid reads as live; the launcher's `ours()` check is not repeated here. Red: `FAIL: dk status printed a URL for a killed server`.
+
 ## plugins/design-kit/scripts/snapshot.sh
 
 Moved verbatim on 2026-10-28. The header is what `--help` prints (`usage` echoes line 2 down to `set -euo pipefail`), so it keeps its usage text and loses only the history: the two paragraphs below are as they stood, and the file keeps them minus the session finding, the measurement date and the scattered-dir story. The pointer sits after `set -euo pipefail`, out of the help. The `#` lines inside the python heredocs are code and stay.
@@ -304,6 +308,16 @@ The spec asked for a 303 to the clean URL. Measured in Chrome (`google-chrome --
 
 Residuals: plain HTTP, so the key crosses the network in clear; the key sits in the URL, so it lands in the phone's history and in any chat it is pasted into; a container or VM on this machine reaching the LAN address needs the key; nothing rotates the key but `--stop`; the 403 page is the stock `http.server` error page.
 
+### 0.14.0 review, 2026-11-12 — one target parse, cookies split by hand, the key file never followed
+
+A review of commit `e8d64997`, before release, found these; each harness case ran red first.
+
+- **Check and open read different paths.** `do_GET` checked `translate_path(urlsplit(self.path).path)`, the stdlib's `send_head` opened `translate_path(self.path)`, and `translate_path` ran `urlsplit` again. For the absolute-form target `http://x//auth/walk.json` the check saw `/walk.json` (host `auth`) and the open saw `//auth/walk.json`: 200 with the file on Python 3.14.4, and the same for `//.preview.key` and `//decisions.jsonl`. `do_HEAD` skipped the check (`HEAD /auth/walk.json` 200). The stdlib folds an origin-form `//x` to `/x` (gh-87389), which is why the old probes passed. Now `split_target` parses the target once, `send_head` (GET and HEAD) answers 404 unless `_servable`, and the stdlib branch it falls through to opens `translate_path(self.path)`, the same pure mapping. Page injection moved into `send_head`, so HEAD reports the injected length. Red: `FAIL: HEAD /auth/walk.json should be 404, got 200`, then `FAIL: GET http://x//auth/walk.json should be 404, got 200`.
+- **SimpleCookie.** `SimpleCookie.load` returns an empty jar when any cookie in the header breaks its grammar (`theme=dark mode`, a valueless `flag`, `x=a"b`), so the key cookie was lost and a phone got 403 while that other cookie lived. Split by hand, exact name. Red: four unit cases `wanted pass, got deny`.
+- **The key file.** `_lan_key` read with `open()`, wrote with `O_CREAT|O_TRUNC` and `chmod`-ed by path, all through a symlink at `.preview.key`. Now it opens `O_NOFOLLOW|O_NONBLOCK` and checks `fstat` (an `lstat` first would leave a gap before the open); anything but a regular file holding a key is unlinked and replaced `O_EXCL|O_NOFOLLOW` at 0600; a directory there is exit 4. Red: `FAIL: .preview.key is still a symlink after a --lan start`.
+- **The idle clock and POST.** Every finished request reset the idle clock, key-gate 403s included, and `do_POST` never called the gate (a keyless POST got 501). Now only a request `_gate` admitted resets it, and `do_POST` calls `_gate` first; a right `?key=` on a POST passes without the cookie page, and `/_decision` stays loopback-only. Red: `FAIL: a POST from a LAN peer without the key should meet the key gate (403), got 501`. The idle case was written after its fix, then run against HEAD's serve.py in a scratch copy: `FAIL: 403s from a LAN peer without the key kept the server from its idle exit`.
+- **State files on a self-exit.** Any exit through `serve_forever` (idle, LAN timer, Ctrl-C) now runs `_drop_state`: `.preview.pid`, `.url` and `.bind` go when the pid file still holds this process's pid. A SIGTERM from `--stop` skips it; the launcher removes them. Red: `FAIL: serve.py left its pid or url file after an idle exit`. This supersedes the 0.14.0 note above that a self-exit leaves the files.
+
 ### 0.13.1, 2026-11-11 — what a review found being served
 
 A review on 2026-11-11 fetched `/auth/walk.json` (the saved login session the README tells users to keep there), `/workshop.json`, `/usage.jsonl`, `/.preview.pid`, `/artifacts/.versions/` and directory listings from a running server, all 200. After one `--lan` start, `preview.sh` reused the 0.0.0.0 server for every later loopback command; `ss` showed it still bound in a later call. A POST to `/_decision` with `Host: attacker.example` and `Origin: http://attacker.example` was stored. With ten pages in the gallery, a Playwright-driven Chrome stalled 8 s on any other request while the gallery tab was open, because each thumbnail iframe held an EventSource. Hence `_servable`, `list_directory` returning 404, the Host/Origin check, `?static=1` on thumbnails, `.preview.bind` and the LAN timer. Left open on purpose: no per-board token, since a page on the same origin can read the board's HTML and so any token in it.
@@ -384,6 +398,10 @@ DESIGN_KIT_LAN_MINUTES (default 60). Standing: scripts/__tests__/preview.test.sh
 drives start, idempotent restart, a served body, the URL file, and stop; nothing
 proves a browser rendered.
 ```
+
+### 2026-11-12, review of 0.14.0 — the recorded pid must be this server
+
+`--stop` and the `--lan` restart signalled the recorded pid after `kill -0` only, and since the idle exit a stale pid file is routine. `ours()` now follows taskmaster's launcher: `ps -ww -p <pid> -o args=`, else `/proc/<pid>/cmdline`, must show `serve.py --docroot <dir> --port`, where `<dir>` is the absolute docroot this launcher now passes or the docroot as given, which a server started by the previous launcher shows. Not ours: left running, its state removed, a fresh server started. Alive and named by neither: exit 6, nothing signalled, state kept. Red: `FAIL: --stop killed a recorded pid that is not serve.py`; then, with a `ps`-only `ours()`, `FAIL: with no usable ps a live server was not recognised: preview.sh: server did not start (port 21450 busy?)`. That run left its server running with its pid file deleted, the defect itself; it was killed by pid. The unnamed case uses a zombie (alive to `kill -0`, empty `/proc/<pid>/cmdline`) under a `ps` that exits 1. Not done: no lock, unlike taskmaster's launcher, so two starts at once can both launch and one fail on the port.
 
 ## plugins/design-kit/scripts/artifact-bundle.py
 

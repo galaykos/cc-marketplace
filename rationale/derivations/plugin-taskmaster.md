@@ -523,6 +523,12 @@ Exit 3 (python3 missing) is not exercised by `scripts/__tests__/preview.test.sh`
 that a model calls the launcher rather than starting serve.py by hand: the skills say so
 (agent-graded at best, recorded in practice).
 
+### Review fixes (2026-11-12, still 0.57.0)
+
+- **A lock around check-and-start.** It ran unlocked and every start truncated `.preview.log`. With two starts at once, the harness's three rounds on the unfixed launcher printed `FAIL race 1 URL: … | preview: already running — ` (no URL), `FAIL race 2 stop: preview: nothing running` with one serve.py left (the loser deleted the winner's pid file), and `FAIL race 3 exit: want 0 and 0, got 4 and 4` with no server at all. Now `take_lock` holds `mkdir .preview.lock` (owner pid inside, removed by an EXIT trap; INT, TERM and HUP exit through it) around check-and-start and around `--stop`. A waiter polls for 15 s, takes over a lock whose owner is dead or that named no owner for 2 s, else exits 4. The loser then finds the winner's server and URL and never truncates its log; a failed start removes the pid file only while it holds its own pid. Residual: two waiters that judge one stale lock at the same moment can both take it.
+- **No usable `ps`.** `ours()` read a `ps` failure as "not ours", and the start path then deleted a live server's pid file. `/proc/<pid>/cmdline` is now the fallback; a pid alive to `kill -0` that neither names is exit 6, with nothing signalled or removed. Red: `FAIL no ps: live server: rc=4: … Address already in use` and `FAIL unnamed live pid (--stop): want exit 6 and the pid file kept, got 0`.
+- **The loopback URL.** The launcher relays serve.py's `On this machine:` line on start and reads it back from the log on reuse. Red: `FAIL --lan loopback URL` and `FAIL plain start over LAN: loopback URL`.
+
 ## plugins/taskmaster/scripts/skills-stamp-lint.sh
 
 ### Header
@@ -951,3 +957,11 @@ day that a keyed link followed from another site then got 403 (the browser withh
 SameSite=Strict cookie on that redirect), so the grant is a 200 page with a meta refresh; that page
 was checked with curl only on this server, not in a browser; a symlink in the docroot is followed
 out of it (checked by hand on 2026-11-12, not in the harness).
+
+### Review fixes (2026-11-12, still 0.57.0)
+
+- **Restore from this machine under `--lan`.** `.preview.url` holds the network URL. A page opened from it on this machine reaches the server from the LAN address, so Restore (loopback peer and local Host only) answers 403. serve.py now also prints `On this machine: http://127.0.0.1:<port>/`. Red: `FAIL LAN: loopback URL printed`.
+- **A key file that is not UTF-8.** `load_or_create_key` caught `OSError` only, so `UnicodeDecodeError` escaped after the port was bound. Red: `FAIL non-UTF-8 key file: serve.py did not start: … UnicodeDecodeError`.
+- **A symlinked key file.** It was read, truncated and chmod-ed through the link. Red: `FAIL symlinked key file: still a symlink`, `… its target was changed: 0o600`, `FAIL dangling key symlink: serve.py created the symlink's target`. Now as design-kit's: an `O_NOFOLLOW|O_NONBLOCK` open whose `fstat` must say regular file, else unlink and create `O_EXCL|O_NOFOLLOW` at 0600. The key is loaded before the port is bound; an error there exits 1.
+- **403s and the idle clock.** `handle()` touched the clock after every connection, key-gate 403s included; now only a connection whose request `lan_gate` admitted does. Red: `FAIL LAN: idle clock: 403s from a peer without the key kept the server from its idle exit`.
+- **Restore is a rename.** It copied over `current.html` in place, so a kill mid-copy left it truncated. It now copies to a `mkstemp` file `.restore-*.tmp` (dot-named: never served, never pushed), gives it `current.html`'s mode and `os.replace`s it. The kill itself is not reproduced; the harness pins the mechanism: a new inode and no dot file left. Red: `FAIL restore is a rename: current.html was written in place (same inode)`. Residual: a kill mid-copy leaves the temp file.

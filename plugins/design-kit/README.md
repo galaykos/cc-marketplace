@@ -60,7 +60,11 @@ command says LAN mode is still on and prints its URLs with the key.
 
 Every server, LAN or not, exits after 4 hours with no request and no open page
 (`DESIGN_KIT_IDLE_MINUTES`, default 240; `0` turns it off). An open tab counts, since its
-reload client holds a stream; the next `dk` verb starts a fresh server.
+reload client holds a stream; a request refused for want of the key does not. A server that
+ends itself removes its pid, URL and bind files, `dk status` prints no URL for a dead server,
+and the next `dk` verb starts a fresh one. `--stop` and a `--lan` restart signal the recorded
+pid only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid neither can
+name stops the launcher with exit 6 and is left alone).
 
 The server never returns a dot-prefixed file or
 folder, `auth/`, its own state files (`workshop.json`, `decisions.jsonl`,
@@ -79,7 +83,8 @@ every `plugins/*/scripts/__tests__/*.test.sh`). The key is a **gate** twice: eve
 peer, key and cookie case as a unit, and end to end from this machine's own network
 address, which the server sees as a non-loopback peer (that half skips on a machine
 without one). The idle limit is a **gate**: a 3-second limit, held off by requests and by
-an open stream, in both modes. The reload client is a **gate** for the text injected
+an open stream, in both modes, and not by 403s. The never-served list is a **gate** for GET and
+HEAD, with origin- and absolute-form request targets. The reload client is a **gate** for the text injected
 (the status bar, the retry, the reload, no external asset, at most 800 bytes); its
 behaviour in a browser, and a keyed link followed from another site, were run once in
 Chrome on 2026-11-12 — **recorded**. Nothing proves a browser rendered a page — **recorded**.

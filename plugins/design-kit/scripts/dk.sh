@@ -369,7 +369,16 @@ spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.u
 import os
 steps = m.flow_steps(os.path.abspath(dk))
 print(" → ".join(f"{l} [{d}]" for l, d, s in steps))
-u = open(os.path.join(dk, ".preview.url")).read().strip() if os.path.exists(os.path.join(dk, ".preview.url")) else ""
+def alive():
+    try:
+        pid = int(open(os.path.join(dk, ".preview.pid")).read().strip())
+        if pid <= 0:
+            return False
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+u = open(os.path.join(dk, ".preview.url")).read().strip() if alive() and os.path.exists(os.path.join(dk, ".preview.url")) else ""
 print("server: " + (u or "not running"))
 PY
     log ok ;;

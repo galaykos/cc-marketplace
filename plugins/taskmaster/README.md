@@ -280,18 +280,22 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   a reload event. Gate: `serve.test.sh`. Misses: a symlink in the docroot is followed out of it.
 - **Launcher.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" [--docroot DIR] [--port N] [--lan]`
   starts the server only when this docroot's server is not running and prints its URL either way;
-  `--stop` ends it after checking the recorded pid really is serve.py on that docroot. Exit codes are
-  in its header. Gate: `preview.test.sh`. That the skills call it instead of starting serve.py by
+  `--stop` ends it after checking the recorded pid really is serve.py on that docroot (by `ps`, else
+  `/proc`; a live pid neither can name is exit 6 and left alone). Two starts at once take turns on
+  `.preview.lock`, so they leave one server and print one URL. Exit codes are in its header. Gate:
+  `preview.test.sh`. That the skills call it instead of starting serve.py by
   hand is recorded only.
 - **LAN key.** With `--lan`, a device on the network needs the key carried in the printed URL (then a
-  cookie); without it, 403. Restore works from this machine only. The key lives in
-  `.preview.key` and survives restarts; delete it to rotate. Gate: `serve.test.sh`, where the remote
+  cookie); without it, 403. Restore works from this machine only, and only from a page opened on the
+  loopback URL the launcher prints as `On this machine:`; at your desk, open that one, not the network
+  URL. The key lives in `.preview.key` and survives restarts; delete it to rotate. A symlink or a file
+  that is not a key there is replaced, never followed. Gate: `serve.test.sh`, where the remote
   peer is the machine's own network address (skipped on a machine with none) plus a unit test of the
   peer rule. Misses: plain HTTP, so the key is readable on the network; the cookie is per host, not
   per port.
 - **Time limits.** A LAN server exits after `PREVIEW_LAN_MINUTES` (default 60), and every server
-  after `PREVIEW_IDLE_MINUTES` (default 240) with no request and no open event stream; 0 turns either
-  off. An open tab holds a stream, so it keeps the server up. Gate: `serve.test.sh`, with limits of
+  after `PREVIEW_IDLE_MINUTES` (default 240) with no request and no open event stream; a request
+  refused for want of the key does not count; 0 turns either off. An open tab holds a stream, so it keeps the server up. Gate: `serve.test.sh`, with limits of
   seconds.
 - **Reconnect.** A page built from the shell shows a "Preview server stopped" bar when serve.py's
   event stream drops, and reloads once the server answers again; on the lower rungs it polls as

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects, the Host/Origin guard, the stream cap.
+# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
 # Misses: anything only a browser does (the shell's reload client never runs here); IPv6 peers.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -123,9 +123,15 @@ kill "$sse_pid" 2>/dev/null
 # ---- /_restore -----------------------------------------------------------------
 restore() { code -X POST -H 'Content-Type: application/json' -H 'Expect:' "$@" "$base/_restore"; }
 printf 'LIVE\n' > "$D/current.html"
+inode() { python3 -c 'import os,sys;print(os.stat(sys.argv[1]).st_ino)' "$1"; }
+dots() { ls -A "$D" | grep '^\.' | tr '\n' ' '; }
+ino="$(inode "$D/current.html")"; dots_before="$(dots)"
 got="$(restore -H 'X-Preview-Restore: 1' --data '{"name":"2026-01-01-a.html"}')"
 [ "$got" = 200 ] && ok || bad "restore accept" "want 200, got $got: $(cat "$T/resp")"
 grep -q PASS-A "$D/current.html" && ok || bad "restore copy" "current.html was not overwritten by the ledger pass"
+# a kill mid-copy must not leave current.html truncated: the copy lands in a temp file, then one rename
+[ "$(inode "$D/current.html")" != "$ino" ] && ok || bad "restore is a rename" "current.html was written in place (same inode)"
+[ "$(dots)" = "$dots_before" ] && ok || bad "restore temp file" "dot files before: $dots_before after: $(dots)"
 printf 'LIVE\n' > "$D/current.html"
 got="$(restore --data '{"name":"2026-01-01-a.html"}')"
 [ "$got" = 403 ] && ok || bad "restore without header" "want 403, got $got"
@@ -267,6 +273,7 @@ if start "$D4" "$p" --lan; then
   m="$(python3 -c 'import os,sys;print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$D4/.preview.key" 2>/dev/null)"
   [ "$m" = 0o600 ] && ok || bad "key file mode" "want 0o600, got $m"
   grep -q "^Serving .*/?key=$key " "$T/log.$p" && ok || bad "key in the printed URL" "$(head -n 1 "$T/log.$p")"
+  grep -q "^On this machine: http://127.0.0.1:$p/ " "$T/log.$p" && ok || bad "LAN: loopback URL printed" "$(cat "$T/log.$p")"
   kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
   if start "$D4" "$p" --lan; then
     [ "$(cat "$D4/.preview.key" | tr -d '\n')" = "$key" ] && grep -q "?key=$key " "$T/log.$p" && ok \
@@ -313,7 +320,43 @@ except OSError:
     grep -qF 'content="0;url=/evil.example/"' "$T/grant2" && ok || bad "LAN: no protocol-relative refresh target" "$(head -c 300 "$T/grant2")"
   fi
   kill "$srv" 2>/dev/null
+  # the idle clock counts only requests that pass the key gate: a stream of 403s does not hold the server up
+  if [ -n "$ip" ]; then
+    p="$(free_port)"
+    if PREVIEW_IDLE_MINUTES=0.03 PREVIEW_LAN_MINUTES=0 start "$D4" "$p" --lan; then
+      for _ in $(seq 1 80); do kill -0 "$srv" 2>/dev/null || break; curl -s -o /dev/null --max-time 1 "http://$ip:$p/current.html"; sleep 0.1; done
+      kill -0 "$srv" 2>/dev/null && bad "LAN: idle clock" "403s from a peer without the key kept the server from its idle exit" || ok
+      kill "$srv" 2>/dev/null
+    else bad "LAN idle server" "did not start"; fi
+  fi
 else bad "LAN key server" "did not start"; fi
+
+# ---- the key file: never followed through a symlink, a bad one is replaced --------
+D5="$T/keyfile"; mkdir -p "$D5"; printf 'x\n' > "$D5/current.html"
+mode_of() { python3 -c 'import os,sys;print(oct(os.lstat(sys.argv[1]).st_mode & 0o777))' "$1"; }
+printf '\377\376 not utf-8\n' > "$D5/.preview.key"
+p="$(free_port)"
+if start "$D5" "$p" --lan; then
+  k5="$(tr -d '\n' < "$D5/.preview.key")"
+  [ "${#k5}" -ge 16 ] && grep -q "?key=$k5 " "$T/log.$p" && ok || bad "non-UTF-8 key file" "not replaced by a fresh key: $(head -n 2 "$T/log.$p")"
+  kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
+else bad "non-UTF-8 key file" "serve.py did not start: $(tail -n 2 "$T/log.$p")"; fi
+OUT="Outside_key_0123456789abcdefghijk"; printf '%s\n' "$OUT" > "$T/key.target"; chmod 644 "$T/key.target"
+rm -f "$D5/.preview.key"; ln -s "$T/key.target" "$D5/.preview.key"
+p="$(free_port)"
+if start "$D5" "$p" --lan; then
+  [ -L "$D5/.preview.key" ] && bad "symlinked key file" "still a symlink" || ok
+  grep -q "?key=$OUT" "$T/log.$p" && bad "symlinked key file" "the key was read through the symlink" || ok
+  [ "$(cat "$T/key.target")" = "$OUT" ] && [ "$(mode_of "$T/key.target")" = 0o644 ] && ok || bad "symlinked key file" "its target was changed: $(mode_of "$T/key.target")"
+  [ "$(mode_of "$D5/.preview.key")" = 0o600 ] && ok || bad "replaced key file mode" "want 0o600, got $(mode_of "$D5/.preview.key")"
+  kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
+else bad "symlinked key file" "serve.py did not start: $(tail -n 2 "$T/log.$p")"; fi
+rm -f "$D5/.preview.key"; ln -s "$T/key.planted" "$D5/.preview.key"
+p="$(free_port)"
+if start "$D5" "$p" --lan; then
+  [ -e "$T/key.planted" ] && bad "dangling key symlink" "serve.py created the symlink's target" || ok
+  kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
+else bad "dangling key symlink" "serve.py did not start: $(tail -n 2 "$T/log.$p")"; fi
 
 echo "serve.py tests: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

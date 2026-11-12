@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar and reloads when the server is back; POST /_decision, the one write route, appends a pick to decisions.jsonl — loopback peer, Host and Origin, X-Design-Kit-Decision header, <= 8 KiB of JSON, else 403 / 413 / 400. Never served (404): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request and no open stream.
+Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar and reloads when the server is back; POST /_decision, the one write route, appends a pick to decisions.jsonl — loopback peer, Host and Origin, X-Design-Kit-Decision header, <= 8 KiB of JSON, else 403 / 413 / 400. Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
 Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision, so a bundled page carrying third-party script can plant a pick; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
@@ -9,16 +9,17 @@ import argparse
 import hashlib
 import hmac
 import html
+import io
 import json
 import os
 import posixpath
 import re
 import secrets
+import stat
 import sys
 import threading
 import time
 from http import HTTPStatus
-from http.cookies import CookieError, SimpleCookie
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlsplit
 
@@ -53,13 +54,29 @@ def lan_gate(key, peer, query, cookie):
     want = key.encode()
     if hmac.compare_digest((parse_qs(query).get("key") or [""])[0].encode(), want):
         return "set"
-    jar = SimpleCookie()
+    # Split by hand: SimpleCookie drops the whole header when any other cookie in it is malformed for it.
+    for part in (cookie or "").split(";"):
+        name, sep, value = part.strip().partition("=")
+        if sep and name == KEY_COOKIE and hmac.compare_digest(value.encode(), want):
+            return "pass"
+    return "deny"
+
+
+def split_target(target):
+    """A target's (path, query), origin- or absolute-form, fragment dropped: the one parse routes, the gate and send_head share."""
+    if target.startswith("/"):
+        path, _, query = target.split("#", 1)[0].partition("?")
+        return path, query
     try:
-        jar.load(cookie or "")
-    except CookieError:
-        pass
-    got = jar.get(KEY_COOKIE)
-    return "pass" if got is not None and hmac.compare_digest(got.value.encode(), want) else "deny"
+        u = urlsplit(target)
+    except ValueError:
+        return target, ""
+    return u.path or "/", u.query
+
+
+def _parts(path):
+    """A target path's docroot-relative segments; none climbs out."""
+    return [p for p in posixpath.normpath(unquote(path)).split("/") if p and p not in (".", "..")]
 
 
 def without_key(path, query):
@@ -69,18 +86,27 @@ def without_key(path, query):
 
 
 def _lan_key(root):
-    """Reuses <docroot>/.preview.key so a restart keeps the URL; mints one when absent or malformed. Mode 0600."""
+    """Reuses .preview.key only as a regular file holding a key; anything else is unlinked, never followed, and replaced O_EXCL at 0600."""
     p = os.path.join(root, KEY_FILE)
     try:
-        with open(p, encoding="ascii") as fh:
-            key = fh.read().strip()
-    except (OSError, ValueError):
-        key = ""
-    if not re.fullmatch(r"[A-Za-z0-9_-]{22,}", key):
-        key = secrets.token_urlsafe(16)
-        with os.fdopen(os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as fh:
-            fh.write(key + "\n")
-    os.chmod(p, 0o600)
+        fd = os.open(p, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+    except OSError:
+        fd = None
+    if fd is not None:
+        with os.fdopen(fd, "rb") as fh:
+            if stat.S_ISREG(os.fstat(fd).st_mode):
+                key = fh.read(256).decode("ascii", "replace").strip()
+                if re.fullmatch(r"[A-Za-z0-9_-]{22,}", key):
+                    if hasattr(os, "fchmod"):
+                        os.fchmod(fd, 0o600)
+                    return key
+    try:
+        os.unlink(p)
+    except FileNotFoundError:
+        pass
+    key = secrets.token_urlsafe(16)
+    with os.fdopen(os.open(p, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600), "w") as fh:
+        fh.write(key + "\n")
     return key
 
 
@@ -309,10 +335,11 @@ class Handler(SimpleHTTPRequestHandler):
     def _gate(self):
         """True to go on; else the cookie page of a first keyed visit, or the 403, has been sent.
         That page redirects by meta refresh, not 303: a 303 ends a link followed from another site, where Chrome withholds a SameSite=Strict cookie."""
-        u = urlsplit(self.path)
-        verdict = lan_gate(self.key, self.client_address[0], u.query, self.headers.get("Cookie"))
-        if verdict == "set":
-            clean = html.escape(without_key(u.path, u.query))
+        path, query = split_target(self.path)
+        verdict = lan_gate(self.key, self.client_address[0], query, self.headers.get("Cookie"))
+        self._admitted = verdict != "deny"
+        if verdict == "set" and self.command != "POST":
+            clean = html.escape(without_key(path, query))
             body = f'<!doctype html><meta http-equiv="refresh" content="0;url={clean}"><a href="{clean}">Open the preview</a>'.encode()
             self.send_response(HTTPStatus.OK)
             self.send_header("Set-Cookie", f"{KEY_COOKIE}={self.key}; Path=/; HttpOnly; SameSite=Strict")
@@ -322,52 +349,60 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             if self.command != "HEAD":
                 self.wfile.write(body)
-        elif verdict == "deny":
+            return False
+        if verdict == "deny":
             self.send_error(HTTPStatus.FORBIDDEN, "this preview needs its key: open the LAN URL that carries ?key=")
-        return verdict == "pass"
+        return self._admitted
 
     def do_HEAD(self):
         if self._gate():
             super().do_HEAD()
 
     def handle_one_request(self):
+        self._admitted = False
         try:
             super().handle_one_request()
         finally:
-            self.state["last"] = time.monotonic()
+            if self._admitted:
+                self.state["last"] = time.monotonic()
 
     def translate_path(self, path):
-        path = urlsplit(path).path
-        path = posixpath.normpath(unquote(path))
-        parts = [p for p in path.split("/") if p and p not in (".", "..")]
-        return os.path.join(self.root, *parts)
+        return os.path.join(self.root, *_parts(split_target(path)[0]))
+
+    def send_head(self):
+        """GET and HEAD: 404 unless servable; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
+        path = split_target(self.path)[0]
+        parts = _parts(path)
+        if not _servable(parts):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return None
+        full = os.path.join(self.root, *parts)
+        if os.path.isdir(full) and path.endswith("/"):
+            full = next((os.path.join(full, i) for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))), full)
+        if not (os.path.isfile(full) and full.lower().endswith(PAGE_EXT)):
+            return super().send_head()
+        try:
+            with open(full, "rb") as fh:
+                body = fh.read()
+        except OSError:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return None
+        i = body.lower().rfind(b"</body>")
+        if i >= 0 and b"data-design-kit-reload" not in body and self._wants_live():
+            body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
+        self._head(len(body), "text/html; charset=utf-8")
+        return io.BytesIO(body)
 
     def do_GET(self):
         if not self._gate():
             return
-        path = urlsplit(self.path).path
+        path = split_target(self.path)[0]
         if path == "/_events":
             return self._events()
         if path == "/_index.json":
             return self._json(_walk_pages(self.root))
-        if path in ("/", "/index.html"):
-            if not os.path.exists(os.path.join(self.root, "index.html")):
-                return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
-            path = "/index.html"
-        full = self.translate_path(path)
-        if not _servable(os.path.relpath(full, self.root).split(os.sep) if full != self.root else []):
-            return self.send_error(HTTPStatus.NOT_FOUND)
-        if os.path.isfile(full) and full.lower().endswith(PAGE_EXT):
-            try:
-                with open(full, "rb") as fh:
-                    body = fh.read()
-            except OSError:
-                return self.send_error(HTTPStatus.NOT_FOUND)
-            low = body.lower()
-            i = low.rfind(b"</body>")
-            if i >= 0 and b"data-design-kit-reload" not in body and self._wants_live():
-                body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
-            return self._bytes(body, "text/html; charset=utf-8")
+        if path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
+            return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
         return super().do_GET()
 
     def list_directory(self, path):
@@ -375,8 +410,9 @@ class Handler(SimpleHTTPRequestHandler):
         return None
 
     def do_POST(self):
-        path = urlsplit(self.path).path
-        if path != "/_decision":
+        if not self._gate():
+            return
+        if split_target(self.path)[0] != "/_decision":
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
         if self.client_address[0] not in LOOPBACK:
             return self._reject(HTTPStatus.FORBIDDEN, "decisions are recorded from this machine only")
@@ -423,7 +459,7 @@ class Handler(SimpleHTTPRequestHandler):
         """Headless browsers taking a screenshot or a print must not get the
         reload snippet: its open EventSource never goes idle, so a virtual-time
         budget never expires and the capture hangs. `?static=1` opts any client out."""
-        if "static=1" in (urlsplit(self.path).query or ""):
+        if "static=1" in split_target(self.path)[1]:
             return False
         return "headless" not in (self.headers.get("User-Agent") or "").lower()
 
@@ -457,12 +493,15 @@ class Handler(SimpleHTTPRequestHandler):
     def _html(self, text):
         self._bytes(text.encode(), "text/html; charset=utf-8")
 
-    def _bytes(self, body, ctype):
+    def _head(self, length, ctype):
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Content-Length", str(length))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
+
+    def _bytes(self, body, ctype):
+        self._head(len(body), ctype)
         self.wfile.write(body)
 
 
@@ -484,6 +523,21 @@ def _idle_exit(srv, state, limit_s, stop):
             return
 
 
+def _drop_state(root):
+    """On the way out: remove .preview.pid, .url and .bind while the pid file still names this process (not a successor's)."""
+    try:
+        with open(os.path.join(root, ".preview.pid"), encoding="ascii") as fh:
+            if fh.read().strip() != str(os.getpid()):
+                return
+    except (OSError, ValueError):
+        return
+    for name in (".preview.url", ".preview.bind", ".preview.pid"):
+        try:
+            os.unlink(os.path.join(root, name))
+        except OSError:
+            pass
+
+
 def _minutes(name, default):
     try:
         return float(os.environ.get(name, default))
@@ -502,7 +556,11 @@ def main(argv=None):
     state = {"version": 0, "last": time.monotonic(), "streams": 0}
     Handler.root = root
     Handler.state = state
-    Handler.key = _lan_key(root) if args.lan else None
+    try:
+        Handler.key = _lan_key(root) if args.lan else None
+    except OSError as exc:
+        print(f"serve.py: cannot keep the LAN key in {os.path.join(root, KEY_FILE)} — {exc}", file=sys.stderr)
+        return 4
     bind = "0.0.0.0" if args.lan else "127.0.0.1"
     try:
         srv = ThreadingHTTPServer((bind, args.port), Handler)
@@ -531,6 +589,7 @@ def main(argv=None):
     finally:
         stop.set()
         srv.server_close()
+        _drop_state(root)
     return 0
 
 

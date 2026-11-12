@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths, /_decision, token badges, stop.
-# LAN key: lan_gate and without_key as a unit, then end to end from this machine's own network address (a non-loopback peer); that half skips without one.
+# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), /_decision, token badges, stop.
+# LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer); that half skips without one.
 # Misses: the reconnect bar and the cookie page in a browser, and a real second device (both run once by hand in Chrome, 2026-11-12).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -45,11 +45,22 @@ mkdir -p "$tmp/auth" "$tmp/artifacts/.versions/a" "$tmp/shots"
 echo '{"cookies":[{"value":"SECRET"}]}' > "$tmp/auth/walk.json"
 echo '{"s":"SECRET"}' > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
 echo '<p>SECRET</p>' > "$tmp/artifacts/.versions/a/v1.html"; echo '{"s":"SECRET"}' > "$tmp/artifacts/a.versions.json"
-printf 'PNG' > "$tmp/shots/one.png"
-for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /usage.jsonl /.preview.pid /.preview.url /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
-  c="$(curl -s -o "$tmp/.resp" -w '%{http_code}' "http://127.0.0.1:$port$probe")"
-  [ "$c" = 404 ] || { echo "FAIL: $probe should be 404, got $c"; exit 1; }
-  grep -q "SECRET\|one.png" "$tmp/.resp" && { echo "FAIL: $probe leaked its content"; exit 1; }
+printf 'PNG' > "$tmp/shots/one.png"; echo 'SECRET' > "$tmp/.preview.key"
+# never_served <path> <leak>: 404 with no body for GET and HEAD, origin-form and absolute-form (http://x//auth/... was 200 once)
+never_served() {
+  local t c
+  for t in "$1" "http://x$1" "http://x/$1"; do
+    c="$(curl -s -o "$tmp/.resp" -w '%{http_code}' --request-target "$t" "http://127.0.0.1:$port/")"
+    [ "$c" = 404 ] || { echo "FAIL: GET $t should be 404, got $c"; exit 1; }
+    grep -q "$2" "$tmp/.resp" && { echo "FAIL: GET $t leaked its content"; exit 1; }
+  done
+  for t in "$1" "http://x$1" "http://x/$1"; do
+    c="$(curl -s -I -o /dev/null -w '%{http_code}' --request-target "$t" "http://127.0.0.1:$port/")"
+    [ "$c" = 404 ] || { echo "FAIL: HEAD $t should be 404, got $c"; exit 1; }
+  done
+}
+for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
+  never_served "$probe" "SECRET\|one.png"
 done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }
 # gallery thumbnails must not each hold an SSE connection (six fill a browser's per-host pool)
@@ -71,6 +82,7 @@ c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Origin: http://attacker.example' --d
 c="$(post -H 'X-Design-Kit-Decision: 1' -H "Origin: http://127.0.0.1:$port" --data '{"board":"a.html","picked":3}')"; [ "$c" = 200 ] || { echo "FAIL: the page's own Origin should be 200, got $c"; exit 1; }
 c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":4}' "http://localhost:$port/_decision")"; [ "$c" = 200 ] || { echo "FAIL: localhost should be 200, got $c"; exit 1; }
 [ "$(wc -l < "$tmp/decisions.jsonl" | tr -d ' ')" = 3 ] || { echo "FAIL: rejected posts must not append"; exit 1; }
+never_served /decisions.jsonl '"picked"'
 
 # token badge: a stamped page vs ../design-system/tokens.json
 mkdir -p "$tmp.ds/design-system"; printf '{"color":{"a":{"$value":"#000"}}}' > "$tmp.ds/design-system/tokens.json"
@@ -99,7 +111,10 @@ cases = [((None, far, "", ""), "pass"), ((k, "127.0.0.1", "", ""), "pass"), ((k,
          ((k, far, "static=1&key=" + k, ""), "set"), ((k, far, "key=" + k[:-1], ""), "deny"), ((k, far, "key=" + k + "x", ""), "deny"),
          ((k, far, "key=", ""), "deny"), ((k, far, "key=%C3%A9%00", ""), "deny"), ((k, far, "", "design_kit_key=" + k), "pass"),
          ((k, far, "", "a=1; design_kit_key=" + k), "pass"), ((k, far, "", "design_kit_key=nope"), "deny"),
-         ((k, far, "", "key=" + k), "deny"), ((k, far, "", 'design_kit_key="; ;=='), "deny"), ((k, far, "key=nope", "design_kit_key=" + k), "pass")]
+         ((k, far, "", "key=" + k), "deny"), ((k, far, "", 'design_kit_key="; ;=='), "deny"), ((k, far, "key=nope", "design_kit_key=" + k), "pass"),
+         ((k, far, "", "design_kit_key=" + k + "; theme=dark mode"), "pass"), ((k, far, "", "theme=dark mode; design_kit_key=" + k), "pass"),
+         ((k, far, "", "flag; design_kit_key=" + k), "pass"), ((k, far, "", 'x=a"b; design_kit_key=' + k), "pass"),
+         ((k, far, "", "xdesign_kit_key=" + k), "deny"), ((k, far, "", "design_kit_key=" + k + "x"), "deny")]
 bad = [(a, want, m.lan_gate(*a)) for a, want in cases if m.lan_gate(*a) != want]
 for path, q, want in [("/decks/a.html", "key=K", "/decks/a.html"), ("/decks/a.html", "static=1&key=K", "/decks/a.html?static=1"),
                       ("//evil.example/x", "key=K", "/evil.example/x"), ("/", "key=K&b=2", "/?b=2")]:
@@ -116,6 +131,15 @@ lan_once; k1="$(cat "$tmp/k/.preview.key" 2>/dev/null || true)"
 [ -n "$k1" ] && grep -q "?key=$k1" "$tmp/k.out" || { echo "FAIL: serve.py --lan printed no keyed URL: $(cat "$tmp/k.out")"; exit 1; }
 [ "$(python3 -c 'import os,sys;print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$tmp/k/.preview.key")" = 0o600 ] || { echo "FAIL: .preview.key is not mode 0600"; exit 1; }
 lan_once; [ "$(cat "$tmp/k/.preview.key")" = "$k1" ] && grep -q "?key=$k1" "$tmp/k.out" || { echo "FAIL: a restart changed the LAN key"; exit 1; }
+# a symlinked key file is replaced, never read, chmod-ed or written through
+printf 'Outside_key_0123456789abc\n' > "$tmp/k.target"; chmod 644 "$tmp/k.target"
+rm -f "$tmp/k/.preview.key"; ln -s "$tmp/k.target" "$tmp/k/.preview.key"; lan_once
+[ -L "$tmp/k/.preview.key" ] && { echo "FAIL: .preview.key is still a symlink after a --lan start"; exit 1; }
+grep -q "?key=Outside_key" "$tmp/k.out" && { echo "FAIL: serve.py took its key through a symlink"; exit 1; }
+[ "$(cat "$tmp/k.target")" = Outside_key_0123456789abc ] && [ "$(python3 -c 'import os,sys;print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$tmp/k.target")" = 0o644 ] || { echo "FAIL: the symlink's target was changed"; exit 1; }
+[ "$(python3 -c 'import os,sys;print(oct(os.lstat(sys.argv[1]).st_mode & 0o777))' "$tmp/k/.preview.key")" = 0o600 ] || { echo "FAIL: the replaced .preview.key is not mode 0600"; exit 1; }
+rm -f "$tmp/k/.preview.key"; ln -s "$tmp/k.planted" "$tmp/k/.preview.key"; lan_once
+[ -e "$tmp/k.planted" ] && { echo "FAIL: a dangling .preview.key symlink created its target"; exit 1; }
 
 # LAN key, end to end: this machine's own network address is a non-loopback peer
 lanip="$(python3 -c 'import socket
@@ -133,6 +157,7 @@ else
   done
   c="$(hc --max-time 2 "$L/_events")"; [ "$c" = 403 ] || { echo "FAIL: /_events from a LAN peer without the key should be 403, got $c"; exit 1; }
   c="$(hc -b "design_kit_key=wrong" "$L/decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: a wrong cookie should be 403, got $c"; exit 1; }
+  c="$(hc -X POST --data '{}' "$L/decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: a POST from a LAN peer without the key should meet the key gate (403), got $c"; exit 1; }
   # first keyed visit: 200 + cookie + a meta refresh to the clean URL (a 303 measured 403 in Chrome for a link from another site)
   hdr="$(curl -s -D - -o "$tmp/.resp" "$L/decks/a.html?static=1&key=$key" | tr -d '\r')"
   case "$hdr" in "HTTP/1."?" 200"*) ;; *) echo "FAIL: first keyed visit should be 200: $hdr"; exit 1 ;; esac

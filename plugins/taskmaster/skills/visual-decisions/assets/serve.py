@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore stays loopback-only, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request and no open event stream; 0 turns either limit off. Harness: plugins/taskmaster/scripts/__tests__/serve.test.sh.
-# Misses: a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload.
+# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore stays loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. Harness: plugins/taskmaster/scripts/__tests__/serve.test.sh.
+# Misses: a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
@@ -28,7 +28,9 @@ import queue
 import secrets
 import shutil
 import socket
+import stat
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -108,18 +110,31 @@ def cookie_value(header, name):
 
 
 def load_or_create_key(docroot):
-    """The LAN key, kept in a mode-0600 dot-file in the docroot so a restart keeps the same URL."""
-    path = docroot / LAN_KEY_FILE
+    """The LAN key, reused only from a regular dot-file holding one; anything else is unlinked, never followed, and replaced O_EXCL at 0600."""
+    path = str(docroot / LAN_KEY_FILE)
     try:
-        key = path.read_text(encoding="utf-8").strip()
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
     except OSError:
-        key = ""
-    if len(key) < 16 or not set(key) <= URLSAFE:
-        key = secrets.token_urlsafe(24)
-        fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write(key + "\n")
-    os.chmod(str(path), 0o600)
+        fd = None
+    if fd is not None:
+        with os.fdopen(fd, "rb") as handle:
+            if stat.S_ISREG(os.fstat(fd).st_mode):
+                try:
+                    key = handle.read(256).decode("utf-8").strip()
+                except ValueError:
+                    key = ""
+                if len(key) >= 16 and set(key) <= URLSAFE:
+                    if hasattr(os, "fchmod"):
+                        os.fchmod(fd, 0o600)
+                    return key
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    key = secrets.token_urlsafe(24)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(key + "\n")
     return key
 
 
@@ -230,10 +245,12 @@ def build_handler(state):
         server_version = "MockupPreview/1.0"
 
         def handle(self):
+            self.admitted = False
             try:
                 super().handle()
             finally:
-                state.touch()
+                if self.admitted:
+                    state.touch()
 
         def lan_gate(self):
             """Apply the LAN key rule; False when the response (403, or the cookie-setting page) is already sent."""
@@ -241,6 +258,7 @@ def build_handler(state):
             query_key = next((v for k, v in parse_qsl(query, keep_blank_values=True) if k == "key"), None)
             cookie_key = cookie_value(self.headers.get("Cookie", ""), KEY_COOKIE)
             access = lan_access(state.lan, self.client_address[0], query_key, cookie_key, state.key)
+            self.admitted = access != "deny"
             if access == "open":
                 return True
             if access == "deny":
@@ -441,9 +459,19 @@ def build_handler(state):
             if source.parent != state.docroot or not source.is_file():
                 self._send_json({"ok": False, "error": "not a ledger file"}, 400)
                 return
+            # Copy to a dot-named temp file, then one rename: a kill mid-copy leaves current.html whole.
+            dest = state.docroot / "current.html"
+            tmp = None
             try:
-                shutil.copyfile(source, state.docroot / "current.html")
+                fd, tmp = tempfile.mkstemp(dir=str(state.docroot), prefix=".restore-", suffix=".tmp")
+                with os.fdopen(fd, "wb") as out, open(source, "rb") as src:
+                    shutil.copyfileobj(src, out)
+                if dest.exists():
+                    os.chmod(tmp, stat.S_IMODE(dest.stat().st_mode))
+                os.replace(tmp, str(dest))
             except OSError as exc:
+                if tmp is not None and os.path.exists(tmp):
+                    os.unlink(tmp)
                 self._send_json({"ok": False, "error": str(exc)}, 500)
                 return
             # No explicit broadcast: the watcher sees current.html's new mtime and pushes the reload.
@@ -717,6 +745,12 @@ def main(argv=None):
     docroot.mkdir(parents=True, exist_ok=True)
 
     state = ServerState(docroot=docroot, lan=args.lan)
+    if args.lan:
+        try:
+            state.key = load_or_create_key(docroot)
+        except OSError as e:
+            print(f"cannot keep the LAN key in {docroot / LAN_KEY_FILE}: {e}", file=sys.stderr)
+            sys.exit(1)
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     try:
         httpd = http.server.ThreadingHTTPServer((host, args.port), build_handler(state))
@@ -725,7 +759,6 @@ def main(argv=None):
         sys.exit(1)
     httpd.daemon_threads = True
     if args.lan:
-        state.key = load_or_create_key(docroot)
         url = "http://{}:{}/?key={}".format(lan_address(), args.port, state.key)
     else:
         url = "http://127.0.0.1:{}/".format(args.port)
@@ -743,6 +776,11 @@ def main(argv=None):
 
     print("Serving {} at {}  (SSE: GET /events)".format(docroot, url), file=sys.stderr, flush=True)
     if args.lan:
+        print(
+            "On this machine: http://127.0.0.1:{}/ (open this one here; Restore refuses a page opened from the network"
+            " address, even on this machine)".format(args.port),
+            file=sys.stderr, flush=True,
+        )
         print(
             "LAN mode: a device on this network needs the key in that URL (kept in {}); restore stays on this machine;"
             " it exits after {} (PREVIEW_LAN_MINUTES, 0 = no limit).".format(
