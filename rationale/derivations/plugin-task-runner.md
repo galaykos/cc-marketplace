@@ -1438,6 +1438,35 @@ is missing: tmp + rename, the directory's `.gitignore`, and a failure that warns
 failing the registration under `set -e`. Harness: "a writer that exits 0 without the
 per-session file", red on the first cut.
 
+### The run's owner (0.56.0, 2026-11-12)
+
+The run file was repo-wide and named no session, so candor's clause 4 held every session in
+the repo: a second session was sent back once per HEAD by a run it never registered, told
+the run file might be left over and to delete it, and its clean stop could retire the first
+session's `closed-run.json` (S5 audit, Track 7). The owner's decision: record the
+registering session and hold only it.
+
+- **Source.** `CLAUDE_CODE_SESSION_ID`, which the host exports to Bash and which equals the
+  Stop payload's `session_id` (checked on CLI 2.1.321; evidence in
+  `rationale/derivations/plugin-candor.md` § Run ownership). Not `--session`: the commands pass
+  `${CLAUDE_SESSION_ID}` since 0.55.1, but a route may type it or omit it, and a wrong value would
+  name an owner no stop matches, which turns the gate off with nothing saying so. An unset or malformed value (outside
+  `[A-Za-z0-9._-]`, or over 128 chars) writes no owner, which holds every session, as before.
+- **Resume.** A resume whose recorded owner differs moves `session_id` to the caller, or
+  drops it when the caller has no id. The rewrite goes through a per-process temp file
+  (`active-run.json.tmp.<pid>`, so a concurrent fresh registration's `.tmp` cannot be moved
+  away under it) stamped with `touch -c -r` before the `mv`, because the file's mtime is where candor's record counts,
+  `board.ts`, `run-cost.sh` and `scope.sh` start; a plain rewrite would have discarded every
+  done card's records. The owner's own resume still leaves the file untouched. Residual, no
+  lock: a fresh registration that lands between the resume's `jq` read and its `mv` is
+  overwritten by the resumed run, stamped with the fresh file's mtime. It needs two
+  registrations in the same repo within milliseconds (code review, 2026-11-12; traced, not run).
+- **Phase sentinel.** Untouched by this change: it is keyed on `--session` (0.55.1, above).
+
+Harness: `register-run.test.sh` § 5, six cases. Two fail on 0.55.0 (the fresh owner and the
+re-claim); the owner's untouched resume, the no-id drop, the malformed id and the no-id fresh
+shape are neighbours and pass on both.
+
 ## plugins/task-runner/scripts/negative-control.sh
 
 ### Header

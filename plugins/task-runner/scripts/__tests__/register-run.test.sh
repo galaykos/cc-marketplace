@@ -5,7 +5,8 @@
 # task-execution skill directly ran unregistered, so the review observer, candor's completion
 # clause and the closing gate were all silently off (session retro 2026-10-13, V-19).
 set -u
-unset CLAUDE_PROJECT_DIR
+# A runner inside Claude Code carries its own session id; the ownership cases set theirs.
+unset CLAUDE_PROJECT_DIR CLAUDE_CODE_SESSION_ID
 
 here=$(cd "$(dirname "$0")" && pwd)
 PLUGIN=$(cd "$here/../.." && pwd)
@@ -153,6 +154,30 @@ got=$(pick "$STUB:$NOCLI" "$INST/register-run.sh")
   && grep -q 'wrote no per-session sentinel' "$WS/err" \
   && ok "a writer that exits 0 without the per-session file: register-run writes it and says so" \
   || bad "old-writer fallback" "err=<$(cat "$WS/err")> files=<$(ls -a "$REPO/.claude/cc-phase" 2>/dev/null | tr '\n' ' ')>"
+
+# 5) ownership (0.56.0): the run names the session that registered it, the one candor's Stop gate holds. Before it, a
+# second session in the repo was held by a run it never registered and told the run file might be left over.
+own() { jq -r '.session_id // "none"' "$SENT" 2>/dev/null; }
+(cd "$REPO" && CLAUDE_CODE_SESSION_ID=sess-A bash "$RR" --index "$IDX" --fresh --session typed-by-model >/dev/null 2>&1)
+[ "$(own)" = sess-A ] && ok "a fresh registration records the host's CLAUDE_CODE_SESSION_ID as owner, not the --session argument" \
+  || bad "fresh registration records the owner" "$(cat "$SENT")"
+touch -t 200001010000 "$SENT"; before=$(cat "$SENT")
+out=$(cd "$REPO" && CLAUDE_CODE_SESSION_ID=sess-A bash "$RR" --index "$IDX" 2>/dev/null)
+[ "$(cat "$SENT")" = "$before" ] && [ -z "$(find "$SENT" -newer "$REF")" ] && case "$out" in resumed*) ! grep -q 'now owned' <<<"$out" ;; *) false ;; esac \
+  && ok "the owner's own resume leaves the run untouched and claims nothing" || bad "owner's resume" "out=<$out> $(cat "$SENT")"
+out=$(cd "$REPO" && CLAUDE_CODE_SESSION_ID=sess-B bash "$RR" --index "$IDX" 2>/dev/null)
+[ "$(own)" = sess-B ] && [ -z "$(find "$SENT" -newer "$REF")" ] \
+  && [ "$(jq -cS 'del(.session_id)' "$SENT")" = "$(jq -cS 'del(.session_id)' <<<"$before")" ] && grep -q 'now owned by this session' <<<"$out" \
+  && ok "a resume from another session re-claims the run, keeping its mtime and every other field" \
+  || bad "a resume from another session re-claims the run" "out=<$out> mtime-moved=<$(find "$SENT" -newer "$REF")> $(cat "$SENT")"
+(cd "$REPO" && bash "$RR" --index "$IDX" --session s-9 >/dev/null 2>&1)
+[ "$(own)" = none ] && [ -z "$(find "$SENT" -newer "$REF")" ] \
+  && ok "a resume with no host session id drops the owner, so every session is held as before" || bad "resume without a session id" "$(cat "$SENT")"
+(cd "$REPO" && CLAUDE_CODE_SESSION_ID='a"b c' bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
+[ "$(own)" = none ] && jq empty "$SENT" 2>/dev/null && ok "a session id outside [A-Za-z0-9._-] records no owner" || bad "malformed session id" "$(cat "$SENT")"
+(cd "$REPO" && bash "$RR" --index "$IDX" --fresh --session s-1 >/dev/null 2>&1)
+[ "$(jq -r 'has("session_id")' "$SENT")" = false ] && ok "with no host session id a fresh run names no owner (the pre-0.56.0 shape)" \
+  || bad "no host session id" "$(cat "$SENT")"
 
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?

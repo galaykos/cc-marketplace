@@ -94,14 +94,14 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    and the user waits on a turn that already ended. Register the run first, in the
    same step: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "${CLAUDE_SESSION_ID}"`
    (an inline list: `--slug <name>`). It writes `.claude/task-runner/active-run.json`
-   (`slug`, `base`, `branch`, `start_sha`, `index_path`), which arms candor's Stop-hook
-   completion clause on this branch only; deletes the `gate-pass.json` and
+   (`slug`, `base`, `branch`, `start_sha`, `index_path`, `session_id`), which arms candor's Stop-hook
+   completion clause on this branch only, for this session only; deletes the `gate-pass.json` and
    `bg/bg-<HEAD>.json` an earlier run left, which that clause would trust for HEAD;
    creates `rv/`, `rt/`, `bg/`, `nc/` and `reductions/`, each arming one record check by
    existing; and writes this session's `build` arc phase sentinel through taskmaster's writer, so the
    reminder hooks that own an earlier phase stand down. A second call for the same index on
    the same branch resumes the run rather than discarding its records (`--fresh` starts
-   over). The task-execution skill's step 1 and `/task-runner:plan`'s "Run now" call the
+   over); from another session, it moves `session_id` to that session. The task-execution skill's step 1 and `/task-runner:plan`'s "Run now" call the
    same script, so no route runs unregistered. Records older than the registration are
    ignored by the clause. It also seeds `.claude/task-runner/env-notes.md` once, with "never
    read `.env`"; the preamble has every worker read it, so write an environment fact there

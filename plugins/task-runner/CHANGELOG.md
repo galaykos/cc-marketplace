@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.56.0 — 2026-11-12
+
+- **A run names the session that registered it, so a second session in the repo is no longer held by it.** `scripts/register-run.sh` writes `session_id` into `.claude/task-runner/active-run.json` from the host's `CLAUDE_CODE_SESSION_ID` (equal to the Stop payload's `session_id`), not from `--session` (a route may type it, or omit it). Candor's completion clause (with a candor that reads it) holds only that session: another session in the same repo was sent back once per HEAD by a run it never registered, told to delete the run file, and its clean stop could retire the first session's `closed-run.json`. A resume of the same index from another session (after `/clear`, or a new window) moves `session_id` to it and keeps the file's mtime, which every record count starts from; the owner's own resume still leaves the file untouched. With no `CLAUDE_CODE_SESSION_ID`, no owner is written and every session is held, as before. Pinned by six `scripts/__tests__/register-run.test.sh` cases; two are red on 0.55.0, four are neighbours. Standing: gate. **Residual, recorded:** a session that carries on the run without re-registering it is not held.
+
 ## 0.55.1 — 2026-11-12
 
 - **A run's phase sentinel belongs to the session that registered it.** `register-run.sh` writes `build` to `.claude/cc-phase/<session>.json` through taskmaster 0.56.0's writer. Without `--session` it writes none and says so on stderr; before, it wrote a repo-wide sentinel that silenced every session's reminders. It checks for the per-session file rather than the writer's exit: a taskmaster before 0.56.0 exits 0 but writes the repo-wide file, so register-run then writes the per-session file itself (atomic, with the directory's `.gitignore`) and says so. `/task-runner:run`, `/task-runner:plan` and the task-execution skill pass `${CLAUDE_SESSION_ID}`. The run's close deletes only this session's file. Standing: gate; `scripts/__tests__/register-run.test.sh`.
