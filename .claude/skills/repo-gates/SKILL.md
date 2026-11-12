@@ -122,7 +122,7 @@ live in `scripts/lib/plugin-checks.sh`:
 - `pc_lanes_vocabulary` — an `owns` noun must be declared in `scripts/lane-vocabulary.txt`
 
 Recount rather than copy a number: `grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`.
-Plus `pc_phase_guard`: a hook whose lane names a specific phase must read `.claude/cc-phase.json`.
+Plus `pc_phase_guard`: a hook whose lane names a specific phase must read its session's sentinel under `.claude/cc-phase/`.
 That last one gates the READ only — no gate can prove an artifact honours the verdict on every
 branch, so the behaviour half is **agent-graded**, and saying so is the point.
 

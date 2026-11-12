@@ -439,12 +439,12 @@ if [ -f "$TM" ] && [ -f "$AP" ]; then
   # last forever, because these directives are orthogonal concerns rather than
   # substitutes. The marker key carries the phase, so advancing the arc opens a
   # fresh claim namespace and the deferred voice gets its turn.
-  PJ2="$WORK/prec2"; mkdir -p "$PJ2/.claude"
+  PJ2="$WORK/prec2"; mkdir -p "$PJ2/.claude/cc-phase"
   TT="$(mktemp -d "$WORK/tt.XXXXXX")"
-  printf '{"phase":"decide","owner":"x","session_id":"prec-1","started_at":"z"}' > "$PJ2/.claude/cc-phase.json"
+  printf '{"phase":"decide","owner":"x","session_id":"prec-1","started_at":"z"}' > "$PJ2/.claude/cc-phase/prec-1.json"
   d_ap=$(printf '{"prompt":"%s","session_id":"prec-1","cwd":"%s"}' "$PR" "$PJ2" \
       | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/approaches" TMPDIR="$TT" "$BASH_BIN" "$AP" 2>/dev/null)
-  printf '{"phase":"understand","owner":"x","session_id":"prec-1","started_at":"z"}' > "$PJ2/.claude/cc-phase.json"
+  printf '{"phase":"understand","owner":"x","session_id":"prec-1","started_at":"z"}' > "$PJ2/.claude/cc-phase/prec-1.json"
   d_tm=$(printf '{"prompt":"%s","session_id":"prec-1","cwd":"%s"}' "$PR" "$PJ2" \
       | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/taskmaster" TMPDIR="$TT" "$BASH_BIN" "$TM" 2>/dev/null)
   [ -n "$d_ap" ] && pass "turn-taking: the phase's own voice speaks" \
@@ -452,6 +452,27 @@ if [ -f "$TM" ] && [ -f "$AP" ]; then
   [ -n "$d_tm" ] && pass "turn-taking: a deferred voice RESURFACES when its phase arrives (S3d)" \
     || fail "turn-taking: a deferred voice resurfaces when its phase arrives" \
             "taskmaster still gagged by the previous phase's claim — suppression without turns"
+
+  # TWO SESSIONS, ONE CLAIM NAMESPACE. The claim key is (session, prompt, phase). Until
+  # taskmaster 0.56.0 the phase was whichever session's sentinel sat in the repo, so B
+  # declaring a phase between two of A's hooks moved A's later hook into a fresh
+  # namespace and both of A's voices spoke. Written through the real writer, so the old
+  # repo-wide layout fails this case and the per-session one passes.
+  PJ3="$WORK/prec3"; mkdir -p "$PJ3"
+  TS="$(mktemp -d "$WORK/ts.XXXXXX")"
+  s_fire() { # $1 plugin dir, $2 session
+    printf '{"prompt":"%s","session_id":"%s","cwd":"%s"}' "$PR" "$2" "$PJ3" \
+      | CLAUDE_PLUGIN_ROOT="$1" TMPDIR="$TS" "$BASH_BIN" "$1/hooks/remind.sh" 2>/dev/null; }
+  s_tm=$(s_fire "$ROOT/plugins/taskmaster" sA)
+  "$BASH_BIN" "$ROOT/plugins/taskmaster/scripts/phase-sentinel.sh" write decide --owner approaches:x --session sB --cwd "$PJ3" >/dev/null 2>&1
+  s_ap=$(s_fire "$ROOT/plugins/approaches" sA)
+  s_bp=$(s_fire "$ROOT/plugins/approaches" sB)
+  [ -n "$s_tm" ] && pass "two sessions: A's best rank speaks" \
+    || fail "two sessions: A's best rank speaks" "taskmaster silent for A — later cases are vacuous"
+  [ -z "$s_ap" ] && pass "two sessions: B's phase does not enter A's claim key (A's worse rank still yields)" \
+    || fail "two sessions: B's phase stays out of A's claim key" "approaches spoke for A after taskmaster claimed: $s_ap"
+  [ -n "$s_bp" ] && pass "two sessions: B's own decide-phase voice speaks (neighbour)" \
+    || fail "two sessions: B's own decide-phase voice speaks" "approaches silent for B at phase=decide"
 
   # Flat markers must be reclaimable by the SHIPPED sweep. A nested layout breaks it:
   # rmdir cannot remove a non-empty directory and -maxdepth 1 never descends, so every
@@ -530,8 +551,8 @@ TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 FT="$ROOT/plugins/approaches/hooks/consult-remind.sh"   # fresh-take's reminder until 2026-09-14
 if [ -f "$TM" ] && [ -f "$FT" ]; then
   PP='implement a stripe billing integration'
-  ph_dir() { PD="$WORK/phase-$1"; mkdir -p "$PD/.claude"; }
-  ph_write() { printf '%s' "$2" > "$PD/.claude/cc-phase.json"; }
+  ph_dir() { PD="$WORK/phase-$1"; mkdir -p "$PD/.claude/cc-phase"; }
+  ph_write() { printf '%s' "$2" > "$PD/.claude/cc-phase/$1.json"; }   # $1 = the writing session's key
   ph_fire() { # $1 plugin dir, $2 hook, $3 prompt
     printf '{"prompt":"%s","session_id":"ph-A","cwd":"%s"}' "$3" "$PD" \
       | CLAUDE_PLUGIN_ROOT="$1" TMPDIR="$(mktemp -d "$WORK/tmp.XXXXXX")" "$BASH_BIN" "$2" 2>/dev/null
@@ -545,33 +566,37 @@ if [ -f "$TM" ] && [ -f "$FT" ]; then
   ph_expect "no sentinel -> speaks (status quo preserved)" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
 
   ph_dir inphase
-  ph_write x '{"phase":"understand","owner":"taskmaster:task","session_id":"ph-A","started_at":"z"}'
+  ph_write ph-A '{"phase":"understand","owner":"taskmaster:task","session_id":"ph-A","started_at":"z"}'
   ph_expect "in phase -> speaks" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
 
   ph_dir outphase
-  ph_write x '{"phase":"build","owner":"task-runner:run","session_id":"ph-A","started_at":"z"}'
+  ph_write ph-A '{"phase":"build","owner":"task-runner:run","session_id":"ph-A","started_at":"z"}'
   ph_expect "OUT of phase -> stands down (S9)" silent "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
 
   ph_dir foreign
-  ph_write x '{"phase":"build","owner":"task-runner:run","session_id":"OTHER-SESSION","started_at":"z"}'
-  ph_expect "foreign session_id -> ignored, speaks" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
+  ph_write OTHER-SESSION '{"phase":"build","owner":"task-runner:run","session_id":"OTHER-SESSION","started_at":"z"}'
+  ph_expect "another session's sentinel -> ignored, speaks" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
 
   ph_dir malformed
-  ph_write x '{"phase":"build","session_id":"ph-A"'
+  ph_write ph-A '{"phase":"build","session_id":"ph-A"'
   ph_expect "malformed sentinel -> fail open, speaks" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
 
   ph_dir stale
-  ph_write x '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
-  touch -t 200001010000 "$PD/.claude/cc-phase.json"
+  ph_write ph-A '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
+  ph_write dead-B '{"phase":"build","owner":"x","session_id":"dead-B","started_at":"z"}'
+  ph_write live-C '{"phase":"build","owner":"x","session_id":"live-C","started_at":"z"}'
+  touch -t 200001010000 "$PD/.claude/cc-phase/ph-A.json" "$PD/.claude/cc-phase/dead-B.json"
   ph_expect "stale sentinel -> speaks" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
-  if [ -f "$PD/.claude/cc-phase.json" ]; then
-    fail "phase: stale sentinel is unlinked" "an expired sentinel survived the read"
+  if [ -f "$PD/.claude/cc-phase/ph-A.json" ] || [ -f "$PD/.claude/cc-phase/dead-B.json" ]; then
+    fail "phase: stale sentinels are unlinked, this session's and a dead one's" "an expired sentinel survived the read"
   else
-    pass "phase: stale sentinel is unlinked"
+    pass "phase: stale sentinels are unlinked, this session's and a dead one's"
   fi
+  [ -f "$PD/.claude/cc-phase/live-C.json" ] && pass "phase: another session's live sentinel survives the sweep" \
+    || fail "phase: another session's live sentinel survives the sweep" "the read deleted a live sentinel"
 
   ph_dir anylane
-  ph_write x '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
+  ph_write ph-A '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
   ph_expect "lane=any is a guard -> never stands down" speak \
     "$(ph_fire "$ROOT/plugins/approaches" "$FT" 'rm -rf node_modules')"
 fi
@@ -590,9 +615,9 @@ if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -f "$ARC_PL/approaches/hooks/consult-r
   ARC_P='implement a rate limiter for our billing api, the docs integration is still failing, rm -rf node_modules'
   arc_speaks() { # $1 phase ("" = no sentinel) -> space-joined plugin names that spoke
     local ph="$1" d out spoke=""
-    d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude"
+    d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude/cc-phase"
     [ -n "$ph" ] && printf '{"phase":"%s","owner":"x","session_id":"ARC","started_at":"z"}' "$ph" \
-      > "$d/.claude/cc-phase.json"
+      > "$d/.claude/cc-phase/ARC.json"
     # approaches carries two reminder hooks since fresh-take merged in (2026-09-14):
     # its any-lane consult guard is listed under its own name so the ship-phase
     # assertion below still names a guard, not the plugin's decide-phase voice.

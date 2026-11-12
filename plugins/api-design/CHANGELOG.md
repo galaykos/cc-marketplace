@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.11.4; earlier versions have no entries rather than invented ones.
 
+## 0.11.7 — 2026-11-12
+
+- **The reminder hook reads only this session's phase sentinel** (`.claude/cc-phase/<session>.json`, written by taskmaster 0.56.0's `phase-sentinel.sh`). Another session in the same repo can no longer silence it or change its rank key. Regenerated from the shared phase-guard block. Standing: gate (the marketplace repository's `scripts/smoke/hook-guard-tests.sh`).
+
 ## 0.11.6 — 2026-11-08
 
 - **`/api-design:review` runs `oasdiff breaking` on a changed OpenAPI spec when oasdiff is already installed.** It runs `oasdiff breaking --format json <base>:<spec> <spec>` from the repository root. The `<ref>:<path>` form needs oasdiff 1.11.11 or later, and an older oasdiff compares a `git show` copy instead, for single-file specs only. It never passes `--fetch` or `--open`. Each breaking change becomes a finding at its spec line, ERR ranked above WARN, with the fix taken from the skill's Versioning section. When oasdiff is not installed, the coverage line says so and the review goes on. It never installs oasdiff. Standing: recorded — nothing checks the run happened.

@@ -866,6 +866,21 @@ from a sibling repo fails on the hand copies, the write into the cwd's repo and 
 outside both pass on both.
 ```
 
+## templates/blocks/phase-file.md
+
+`cc_phase_file <root> <session_id>` names a session's own phase sentinel,
+`<root>/.claude/cc-phase/<key>.json`. It exists so the writer
+(`taskmaster/scripts/phase-sentinel.sh`), the phase-guard block and every hand-written
+reader (shape-guard, compact-capsule, announce, design-kit's unread-pick) compute one path:
+a reader that drifted from the writer by one allowed byte would silently read no sentinel,
+which means "proceed". `pc_shared_blocks` gates the copies. The mod kit's `phaseFile` is the
+TypeScript mirror and is not gated against this block; its harness pins the same three keys.
+
+The key drops every byte outside `A-Za-z0-9_-`, under `LC_ALL=C` so a multibyte character
+drops whole bytes rather than stopping `tr`. A UUID loses nothing; `.` is excluded so no
+key can be `..`. An empty key is status 1: the caller writes and reads nothing rather than
+a file no session owns. Added 2026-11-12 (taskmaster 0.56.0).
+
 ## templates/blocks/phase-guard.md
 
 ### Banner
@@ -1035,6 +1050,23 @@ Below the pointer line; kept as one line, `No template directive in these commen
 No template directive of any kind in these comments: _expand_includes copies this file raw, then conditionals and
 substitution run over the whole text.
 ```
+
+### 2026-11-12: this session's sentinel only
+
+The reader takes the sentinel path from `cc_phase_file "$root" "$sid"` (the phase-file
+block, included just above it by the reminder template; a hand copy must paste both, and
+`pc_shared_blocks` now holds both copies byte-for-byte). The "session_id differs" row of
+the reader contract is gone: another session's sentinel is a different file, never read.
+Without `$sid` nothing counts, where before another session's sentinel counted.
+`cc_phase_now` is now this session's phase, so the rank key no longer changes when another
+session writes. The TTL sweep widened from the one file to every expired `*.json` under
+`.claude/cc-phase/`; the reader still re-checks its own file's mtime after the sweep, so a
+failed `rm` cannot make an expired file count. Residual (code review, 2026-11-12): the
+sweep decides on mtime and `rm` runs a moment later, so a session that renames a fresh
+sentinel over its own expired one inside that window loses the new one until its next
+write. Milliseconds wide; recorded, not fixed. The nested-ifs session test and its
+subsection above describe code that no longer exists. Why: `plugin-taskmaster.md` §
+`plugins/taskmaster/scripts/phase-sentinel.sh`, 2026-11-12.
 
 ## templates/blocks/quote-match.md
 

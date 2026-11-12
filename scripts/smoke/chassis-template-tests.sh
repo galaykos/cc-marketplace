@@ -102,7 +102,8 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook.json" "$H"; then
   re_plain=$(jq -r '.regex' "$SAMPLES/reminder-hook.json")
   expect_has "$H" "\"\$head\" | grep -qiE '$re_plain'; then" "hook(plain): no extraGuard when null"
   expect_has "$H" 'cc_state_root() {' "hook: state-root block included (defines cc_state_root)"
-  expect_has "$H" 'sentinel="$root/.claude/cc-phase.json"' "hook: phase sentinel read at the state root, not the payload cwd"
+  expect_has "$H" 'cc_phase_file() {' "hook: phase-file block included (defines cc_phase_file)"
+  expect_has "$H" 'sentinel=$(cc_phase_file "$root" "${sid:-}")' "hook: this session's phase sentinel read at the state root, not the payload cwd"
   expect_has "$H" 'cc_option CC_REMIND on' "hook: CC_REMIND read through the resolver"
   expect_has "$H" 'cc_option() {' "hook: option-resolver block included"
   expect_has "$H" 'cut -c1-400' "hook: head-window narrowing present"
