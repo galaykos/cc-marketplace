@@ -673,24 +673,17 @@ command_cwd() {
   printf '%s' "${d:-.}"
 }
 
-# 0 when a recursive rm's operand is backslashes only, in rm's raw words or a shell -c / eval argument; a lone trailing \ is a word only at the command's end (arg 2 = 1). Misses $'\\', a variable holding \, ssh's or su -c's command.
-rm_backslash_target() { # raw segment, 1 when it ends the command
-  printf '%s' "$1" | LC_ALL=C awk -v tail="${2:-0}" '
+# The word reader rm_backslash_target and git_gh_bypass both prepend; each defines judge(). Quote removal as bash does it ($'…' decodes
+# \\ and \' only, any other escape reads as $), a redirection target is no word, and a $( ) or backtick substitution, an eval's words and
+# a shell's -c script are queued for a scan of their own. -v lone_brace=1 splits on a brace only standing alone, as bash does; 0 on every brace.
+SHELL_WORDS_AWK='
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
     function word() { if (inw) { if (redir) redir = 0; else wv[++nw] = w }; w = ""; inw = 0 }
-    function judge(   j, k, opts, rec, bs, x, c) {
-      word()
-      for (j = 1; j <= nw && tolower(wv[j]) != "rm"; j++) ;
-      rec = 0; bs = 0; opts = 1
-      for (k = j + 1; k <= nw; k++) {
-        if (opts && wv[k] == "--") opts = 0
-        else if (opts && wv[k] ~ /^-./) { if (wv[k] ~ /^-[^-]*[rR]/ || wv[k] == "--recursive") rec = 1 }
-        else if (wv[k] ~ /^\\+$/) bs = 1
-      }
-      if (rec && bs) found = 1
+    function base(x) { sub(/^.*\//, "", x); return x }
+    function queue(   j, k, x, c) {
       for (j = 1; j <= nw; j++) {
-        x = wv[j]; sub(/^.*\//, "", x)
-        if (x == "eval") { x = ""; for (k = j + 1; k <= nw; k++) x = x " " wv[k]; q[++nq] = x; break }
+        x = base(wv[j])
+        if (x == "eval") { x = ""; for (k = j + 1; k <= nw; k++) x = x " " wv[k]; q[++nq] = x; return }
         if (x !~ /^((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)$/) continue
         c = 0
         for (k = j + 1; k <= nw && wv[k] ~ /^[-+]./ && wv[k] != "--"; k++) {
@@ -698,11 +691,34 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
           else if (wv[k] ~ /^-[A-Za-z]*c/) c = 1
         }
         if (c && wv[k] == "--") k++
-        if (c && k <= nw) { q[++nq] = wv[k]; break }
+        if (c && k <= nw) { q[++nq] = wv[k]; return }
       }
-      nw = 0; redir = 0
     }
-    # Quote removal as bash does it, ANSI-C quoting kept opaque; a redirection target is no operand.
+    # Where the $( or backtick substitution opening at i ends; n + 1 when it never closes.
+    function cs_end(s, i,   n, k, c, d, j) {
+      n = length(s)
+      if (substr(s, i, 1) == "`") { for (k = i + 1; k <= n && (c = substr(s, k, 1)) != "`"; k++) { if (c == "\\") k++ }; return k }
+      for (k = i + 1; k <= n; k++) {
+        c = substr(s, k, 1)
+        if (c == "\\") k++
+        else if (c == "\047") { j = index(substr(s, k + 1), "\047"); if (!j) return n + 1; k += j }
+        else if (c == "\"") {
+          for (k++; k <= n && (c = substr(s, k, 1)) != "\""; k++) { if (c == "\\") k++; else if (c == "`" || c == "$" && substr(s, k + 1, 1) == "(") k = cs_end(s, k) }
+          if (k > n) return n + 1
+        }
+        else if (c == "`") k = cs_end(s, k)
+        else if (c == "(") d++
+        else if (c == ")" && !--d) return k
+      }
+      return n + 1
+    }
+    function cmdsub(s, i,   e) {
+      e = cs_end(s, i)
+      if (substr(s, i, 1) == "`") q[++nq] = substr(s, i + 1, e - i - 1)
+      else if (substr(s, i + 2, 1) != "(") q[++nq] = substr(s, i + 2, e - i - 2)
+      w = w substr(s, i, e - i + 1); inw = 1
+      return e
+    }
     function scan(s, lit,   n, i, c, nx, j) {
       n = length(s); nw = 0; w = ""; inw = 0; redir = 0
       for (i = 1; i <= n; i++) {
@@ -718,13 +734,19 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
         if (c == "\"") {
           for (i++; i <= n && (c = substr(s, i, 1)) != "\""; i++) {
             nx = substr(s, i + 1, 1)
-            if (c == "\\" && nx ~ /[$`"\\\n]/) { i++; if (nx != "\n") w = w nx } else w = w c
+            if (c == "\\" && nx ~ /[$`"\\\n]/) { i++; if (nx != "\n") w = w nx }
+            else if (c == "`" || c == "$" && nx == "(") i = cmdsub(s, i)
+            else w = w c
           }
           inw = 1; continue
         }
+        if (c == "`") { i = cmdsub(s, i); continue }
         if (c == "$" && nx == "\047") {
-          for (i += 2; i <= n && (c = substr(s, i, 1)) != "\047"; i++) if (c == "\\") i++
-          w = w "$"; inw = 1; continue
+          for (i += 2; i <= n && (c = substr(s, i, 1)) != "\047"; i++) {
+            if (c == "\\") { c = substr(s, ++i, 1); if (c != "\\" && c != "\047") c = "$" }
+            w = w c
+          }
+          inw = 1; continue
         }
         if (c == " " || c == "\t") { word(); continue }
         if (c == "#" && !inw) { while (i < n && substr(s, i + 1, 1) != "\n") i++; continue }
@@ -732,10 +754,28 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
           if (w ~ /^[0-9]+$/) inw = 0
           word(); while (substr(s, i + 1, 1) ~ /[<>&|]/) i++; redir = 1; continue
         }
-        if (c ~ /[;&|(){}\n]/) { judge(); continue }
+        if (c ~ /[;&|()\n]/ || c ~ /[{}]/ && (!lone_brace || !inw && nx ~ /^([ \t\n;&|]|)$/)) { judge(); continue }
         w = w c; inw = 1
       }
       judge()
+    }
+'
+
+# 0 when a recursive rm's operand is backslashes only, in rm's raw words or a shell -c / eval argument; a lone trailing \ is a word only at the command's end (arg 2 = 1). Misses a variable holding \, ssh's or su -c's command.
+rm_backslash_target() { # raw segment, 1 when it ends the command
+  printf '%s' "$1" | LC_ALL=C awk -v tail="${2:-0}" -v lone_brace=0 "$SHELL_WORDS_AWK"'
+    function judge(   j, k, opts, rec, bs) {
+      word()
+      for (j = 1; j <= nw && tolower(wv[j]) != "rm"; j++) ;
+      rec = 0; bs = 0; opts = 1
+      for (k = j + 1; k <= nw; k++) {
+        if (opts && wv[k] == "--") opts = 0
+        else if (opts && wv[k] ~ /^-./) { if (wv[k] ~ /^-[^-]*[rR]/ || wv[k] == "--recursive") rec = 1 }
+        else if (wv[k] ~ /^\\+$/) bs = 1
+      }
+      if (rec && bs) found = 1
+      queue()
+      nw = 0; redir = 0
     }
     END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && !found; qi++) scan(q[qi], qi > 1 || tail); exit !found }'
 }
@@ -896,29 +936,12 @@ check_sql_update() { # padded lowercased segment, the whole body normalised, low
 }
 
 # Prints "<code><TAB><words>" for the first git call that skips hooks or signing (verify, hookspath, gpg, hookenv) or gh call that
-# publishes review text (review, comment, api, graphql). Words get rm_backslash_target's quote removal, so a message naming --no-verify
-# is one word; a shell's -c script and eval's words are read too. A brace splits only standing alone: split_segments cuts gh's {owner}.
+# publishes review text (review, comment, api, graphql). Words come from SHELL_WORDS_AWK, so a message naming --no-verify is one word.
+# A brace splits only standing alone: split_segments cuts gh's {owner}.
 git_gh_bypass() { # raw command, heredoc bodies stripped
-  printf '%s' "$1" | LC_ALL=C awk '
-    { buf = (NR == 1 ? $0 : buf "\n" $0) }
-    function word() { if (inw) { if (redir) redir = 0; else wv[++nw] = w }; w = ""; inw = 0 }
-    function base(x) { sub(/^.*\//, "", x); return x }
+  printf '%s' "$1" | LC_ALL=C awk -v lone_brace=1 "$SHELL_WORDS_AWK"'
     function hit(c,   k) { if (found != "") return; found = c "\t"; for (k = 1; k <= nw; k++) found = found " " wv[k] }
     function inset(s, x) { return index(" " s " ", " " x " ") > 0 }
-    function queue(   j, k, x, c) {
-      for (j = 1; j <= nw; j++) {
-        x = base(wv[j])
-        if (x == "eval") { x = ""; for (k = j + 1; k <= nw; k++) x = x " " wv[k]; q[++nq] = x; return }
-        if (x !~ /^((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)$/) continue
-        c = 0
-        for (k = j + 1; k <= nw && wv[k] ~ /^[-+]./ && wv[k] != "--"; k++) {
-          if (wv[k] ~ /^[-+][oO]$|^--(rcfile|init-file)$/) k++
-          else if (wv[k] ~ /^-[A-Za-z]*c/) c = 1
-        }
-        if (c && wv[k] == "--") k++
-        if (c && k <= nw) { q[++nq] = wv[k]; return }
-      }
-    }
     # -n is --no-verify for commit and am only (push: --dry-run; merge, rebase, pull: --no-stat; cherry-pick, revert: --no-commit).
     function git(j, envs,   k, x, n, i, ch, sc, nc, cfg, nv, ng, sv, lv, pos, p, wr, rd, key, val) {
       nc = 0
@@ -966,7 +989,7 @@ git_gh_bypass() { # raw command, heredoc bodies stripped
           n = x; sub(/=.*/, "", n)
           if (length(n) >= 9 && index("--no-verify", n) == 1) nv = 1
           else if (n == "--verify") nv = 0
-          else if (length(n) >= 8 && index("--no-gpg-sign", n) == 1) ng = 1
+          else if (length(n) >= 6 && index("--no-gpg-sign", n) == 1) ng = 1
           else if (n == "--gpg-sign") ng = 0
           else if (x !~ /=/ && index(lv, " " n " ")) k++
           continue
@@ -983,20 +1006,25 @@ git_gh_bypass() { # raw command, heredoc bodies stripped
       if (nv) hit("verify")
       if (ng && sc != "push") hit("gpg")
     }
-    # gh api sends GET unless -X names a method or a -f/-F field or --input body is given, which make it POST.
-    function gh(j,   k, x, a, b, m, f, ep, vals) {
-      a = wv[j + 1]; b = wv[j + 2]
+    # gh api sends GET unless -X names a method or a -f/-F field or --input body is given, which make it POST. -R/--repo may sit anywhere.
+    function gh(j,   k, x, a, b, ka, kb, p, m, f, ep, vals) {
+      a = ""; b = ""; ka = nw; kb = nw; p = 0
+      for (k = j + 1; k <= nw && p < 2; k++) {
+        x = wv[k]
+        if (x == "-R" || x == "--repo") k++
+        else if (x !~ /^(-R.|--repo=)/) { if (++p == 1) { a = x; ka = k } else { b = x; kb = k } }
+      }
       if (a == "pr" && b == "review") {
-        for (k = j + 3; k <= nw; k++) if (wv[k] ~ /^(--(comment|approve|request-changes|body|body-file)(=|$)|-[acrbF])/) { hit("review"); return }
+        for (k = kb + 1; k <= nw; k++) if (wv[k] ~ /^(--(comment|approve|request-changes|body|body-file)(=|$)|-[acrbF])/) { hit("review"); return }
         return
       }
       if ((a == "pr" || a == "issue") && b == "comment") {
-        for (k = j + 3; k <= nw; k++) if (wv[k] ~ /^(--web|-w|--help|-h)$/) return
+        for (k = kb + 1; k <= nw; k++) if (wv[k] ~ /^(--web|-w|--help|-h)$/) return
         hit("comment"); return
       }
       if (a != "api") return
       m = ""; f = 0; ep = ""; vals = ""
-      for (k = j + 2; k <= nw; k++) {
+      for (k = ka + 1; k <= nw; k++) {
         x = wv[k]
         if (x == "-X" || x == "--method") m = wv[++k]
         else if (x ~ /^--method=/) m = substr(x, 10)
@@ -1009,70 +1037,44 @@ git_gh_bypass() { # raw command, heredoc bodies stripped
       }
       m = tolower(m); if (m == "") m = f ? "post" : "get"
       ep = tolower(ep)
-      if (ep == "graphql") {
-        if (tolower(vals) ~ /(^|[^a-z0-9_])(addpullrequestreview[a-z]*|addcomment|submitpullrequestreview)([^a-z0-9_]|$)/) hit("graphql")
+      sub(/^https?:\/\/[^\/]+\//, "", ep); sub(/^api\/v3\//, "", ep); sub(/^\//, "", ep); sub(/[?#].*$/, "", ep); sub(/\/$/, "", ep)
+      if (ep == "graphql" || ep == "api/graphql") {
+        if (tolower(vals) ~ /(^|[^a-z0-9_])(addpullrequestreview[a-z]*|addcomment|submitpullrequestreview|updateissuecomment|updatepullrequestreview(comment)?)([^a-z0-9_]|$)/) hit("graphql")
         return
       }
       if (m !~ /^(post|patch|put)$/) return
-      sub(/^https?:\/\/[^\/]+\//, "", ep); sub(/^api\/v3\//, "", ep); sub(/^\//, "", ep); sub(/[?#].*$/, "", ep); sub(/\/$/, "", ep)
       if (ep ~ /(^|\/)(pulls|issues)\/[^\/]+\/(comments|reviews)(\/[^\/]+(\/(replies|events|dismissals))?)?$/ || ep ~ /(^|\/)(pulls|issues)\/comments\/[^\/]+(\/replies)?$/) hit("api")
     }
-    function judge(   j, x, b, wrap, envs) {
+    # A keyword heads a command only before anything else; timeout and flock take one operand (a duration, a lock file) before theirs.
+    function judge(   j, x, b, wrap, envs, head, pos) {
       word()
-      envs = ""; wrap = 0
+      envs = ""; wrap = 0; head = 1; pos = 0
       for (j = 1; j <= nw; j++) {
         x = wv[j]; b = base(x)
+        if (head && x ~ /^(if|then|elif|else|do|while|until|!)$/) continue
+        head = 0
         if (x ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { envs = envs "\n" x; continue }
-        if (b ~ /^(sudo|doas|nohup|time|command|builtin|exec|nice|ionice|env)$/) { wrap = 1; continue }
+        if (b ~ /^(sudo|doas|nohup|time|command|builtin|exec|nice|ionice|env|timeout|xargs|stdbuf|flock)$/) { wrap = 1; pos = b ~ /^(timeout|flock)$/; continue }
         if (wrap && x ~ /^-/) continue
-        if (wrap && wv[j - 1] ~ /^-/ && b != "git" && b != "gh") continue
+        if (b == "git" || b == "gh") break
+        if (wrap && wv[j - 1] ~ /^-/) continue
+        if (wrap && pos) { pos = 0; continue }
         break
       }
       b = j <= nw ? base(wv[j]) : ""
       if (b == "git") git(j, envs); else if (b == "gh") gh(j); else queue()
       nw = 0; redir = 0
     }
-    function scan(s,   n, i, c, nx, j) {
-      n = length(s); nw = 0; w = ""; inw = 0; redir = 0
-      for (i = 1; i <= n; i++) {
-        c = substr(s, i, 1); nx = substr(s, i + 1, 1)
-        if (c == "\\") { i++; if (nx != "\n" && nx != "") { w = w nx; inw = 1 }; continue }
-        if (c == "\047") {
-          j = index(substr(s, i + 1), "\047"); if (j == 0) j = n - i + 1
-          w = w substr(s, i + 1, j - 1); i += j; inw = 1; continue
-        }
-        if (c == "\"") {
-          for (i++; i <= n && (c = substr(s, i, 1)) != "\""; i++) {
-            nx = substr(s, i + 1, 1)
-            if (c == "\\" && nx ~ /[$`"\\\n]/) { i++; if (nx != "\n") w = w nx } else w = w c
-          }
-          inw = 1; continue
-        }
-        if (c == "$" && nx == "\047") {
-          for (i += 2; i <= n && (c = substr(s, i, 1)) != "\047"; i++) if (c == "\\") i++
-          w = w "$"; inw = 1; continue
-        }
-        if (c == " " || c == "\t") { word(); continue }
-        if (c == "#" && !inw) { while (i < n && substr(s, i + 1, 1) != "\n") i++; continue }
-        if (c == "<" || c == ">") {
-          if (w ~ /^[0-9]+$/) inw = 0
-          word(); while (substr(s, i + 1, 1) ~ /[<>&|]/) i++; redir = 1; continue
-        }
-        if (c ~ /[;&|()\n]/ || c ~ /[{}]/ && !inw && nx ~ /^([ \t\n;&|]|)$/) { judge(); continue }
-        w = w c; inw = 1
-      }
-      judge()
-    }
-    END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && found == ""; qi++) scan(q[qi]); if (found != "") print found }'
+    END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && found == ""; qi++) scan(q[qi], 0); if (found != "") print found }'
 }
 
 # A case pattern first, so a command naming none of the shapes costs no fork.
 check_git_gh() { # raw command (heredoc bodies stripped), the normalised command (lowercased, padded)
   local code="" m
   case "$2" in
-    *no-ver*|*no-gpg*|*hookspath*|*gpgsign*|*husky=*|*skip=*|*lefthook=*) ;;
-    *' pr review '*|*' pr comment '*|*' issue comment '*|*' api '*) ;;
-    *' commit '*|*' am '*) [[ $2 =~ \ -[a-z]*n ]] || return 0 ;;
+    *no-ver*|*no-g*|*hookspath*|*gpgsign*|*husky=*|*skip=*|*lefthook=*) ;;
+    *' pr '*'review '*|*' pr '*'comment '*|*' issue '*'comment '*|*' api '*) ;;
+    *' commit '*|*' am '*) [[ $2 =~ \ \$?-[a-z]*n ]] || return 0 ;;
     *) return 0 ;;
   esac
   code=$(git_gh_bypass "$1")

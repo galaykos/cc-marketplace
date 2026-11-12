@@ -66,6 +66,9 @@ expect allow $'rm -rf build \\\n  dist'   # a line continuation is no target
 expect allow $'rm -rf \\\nls'             # nor one that joins the next line's word
 expect allow 'rm -rf \ foo'                # an escaped space: the target is " foo"
 expect allow "rm -f '\\'"                  # not recursive
+expect deny  "rm -rf \$'\\\\'"              # ANSI-C \\ is one backslash (0.10.0 review: the shared word reader decodes it)
+expect allow "rm -f \$'\\\\'"
+expect deny  'x="$( rm -rf \\ )"'         # a substitution in double quotes runs (0.10.0 review)
 # Judged on rm's own words, through a shell's -c and eval: 0.9.0's first cut grepped the whole segment, and missed the wrapped ones.
 expect deny "bash -c 'rm -rf \\'"
 expect deny "eval 'rm -rf \\'"
@@ -1017,6 +1020,19 @@ for c in 'git commit --no-verify -m wip' 'git commit -n -m wip' 'git commit -anm
   "eval 'git commit -n -m wip'" 'npm test && git commit -n -m wip'; do
   expect ask "$c"
 done
+# 0.10.0 review: a keyword or wrapper before git, a substitution in double quotes or backticks, $'…', and --no-g down to its shortest prefix.
+for c in 'if git commit --no-verify -m wip; then git push; fi' '! git commit --no-verify -m wip' \
+  'timeout 120 git push --no-verify origin main' 'timeout -k 5 120 git push --no-verify' 'stdbuf -oL git push --no-verify' \
+  'flock /tmp/l git commit -n -m wip' 'flock -n /tmp/l git commit -n -m wip' 'out="$(git commit --no-verify -m wip 2>&1)"' \
+  'x=`git commit --no-gpg-sign -m wip`' 'git commit -m "use `git commit --no-verify` here"' 'git commit --no-gp -m wip' \
+  'git commit --no-g -m wip' "git commit \$'--no-verify' -m wip" "git commit \$'-n' -m wip"; do
+  expect ask "$c"
+done
+for c in 'x="$(git status --short)"' 'timeout 120 git push origin main' 'echo if git commit -n' 'git commit --no-status -m wip' \
+  'git commit -m "use \`--no-verify\` here"' "git commit -m 'use \`git commit --no-verify\`'" "git commit -m \$'a\\nb --no-verify'" \
+  'git push --no-g origin main' 'flock /tmp/l git commit -m wip'; do
+  expect allow "$c"
+done
 for c in 'git push -n origin main' 'git push --dry-run origin main' 'git merge -n feat' 'git rebase -n main' 'git pull -n' \
   'git cherry-pick -n abc' 'git revert -n abc' 'git clean -n' 'git commit -m "fix the --no-verify handling"' \
   'git commit -m "skip -n when HUSKY=0 is set"' 'git commit -m -n' 'git commit -mn' 'git commit -- -n' \
@@ -1056,6 +1072,20 @@ for c in 'gh pr view 12' 'gh pr view 12 --comments' 'gh pr review 12' 'gh pr rev
   "gh api graphql -f query='query { repository(owner: \"o\", name: \"r\") { pullRequest(number: 1) { title } } }'" \
   'gh pr create --title x --body "please review and comment"' 'echo "gh pr comment 1 -b hi"' 'gh pr merge 12 --squash'; do
   expect allow "$c"   # gh pr merge is git-workflow's merge-checks ask; asking here too would prompt twice
+done
+# 0.10.0 review: a loop or xargs before gh, a substitution, -R/--repo anywhere, /graphql spellings, the comment and review edit mutations.
+gq() { printf "%s -f query='mutation { %s(input: {id: \"x\", body: \"hi\"}) { clientMutationId } }'" "$1" "$2"; }
+for c in 'for n in 12 13; do gh pr comment $n -b LGTM; done' 'ls | xargs -I{} gh pr comment {} -b hi' \
+  'url="$(gh pr comment 12 --body-file c.md)"' 'gh -R o/r pr comment 12 -b hi' 'gh --repo o/r pr review 12 --approve' \
+  'gh pr -R o/r comment 12 -b hi' 'gh --repo=o/r issue comment 7 -b hi' "$(gq 'gh api /graphql' addComment)" \
+  "$(gq 'gh api https://api.github.com/graphql' addComment)" "$(gq 'gh api https://ghe.example.com/api/graphql' addComment)" \
+  "$(gq 'gh api graphql' updateIssueComment)" "$(gq 'gh api graphql' updatePullRequestReviewComment)" \
+  "$(gq 'gh api graphql' updatePullRequestReview)"; do
+  expect ask "$c"
+done
+for c in 'gh -R o/r pr view 12' 'gh pr view 12 --repo o/r' 'gh -R o/r issue comment 7 --web' 'for n in 1 2; do gh pr view $n; done' \
+  "gh api /graphql -f query='query { viewer { login } }'" "$(gq 'gh api graphql' updatePullRequestBranch)" 'x="$(gh pr view 12)"'; do
+  expect allow "$c"
 done
 d=$(hook "$(bash_json 'gh pr review 12 --approve')" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
 [ "$d" = ask ] && ok || bad "publish: the PreToolUse payload asks" "verdict=${d:-<silent>}"

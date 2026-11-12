@@ -63,7 +63,9 @@ def rule_re: (if endswith(":*") then .[:-2] + " *" else . end) as $s
     then "^" + ($s[:-2] | esc) + "( .*)?$"
     else "^" + ($s | split("*") | map(esc) | join(".*")) + "$" end;
 def off: (type == "boolean" and . == false) or (type == "string" and ascii_downcase == "off");
+def denyonly: type == "string" and (ascii_downcase | . == "deny-only" or . == "denyonly" or . == "deny_only");
 def line($k; $m): "\($k)\t\($m)";
+def denyonly_msg: "deny-only drops command-guard'"'"'s ask tier in every project, not only in automated runs";
 (if type == "object" then . else error("not an object") end) as $root
 | ($root.permissions | if type == "object" then . else {} end) as $p
 | (($p.allow // []) | if type == "array" then . else [] end | to_entries[] | select(.value | type == "string")
@@ -87,16 +89,19 @@ def line($k; $m): "\($k)\t\($m)";
   (($root.env // {}) | if type == "object" then . else {} end | to_entries[] | . as $e
     | if $e.key == "CLAUDE_AI_TRAILER" and ($e.value | tostring | ascii_downcase) == "allow" then
         line("env.CLAUDE_AI_TRAILER"; "lets an AI attribution trailer through git-workflow on every command, not the one command the switch is for")
-      elif $e.key == "CLAUDE_DESTRUCTIVE_GUARD" and ($e.value | tostring | ascii_downcase) == "deny-only" and $scope == "user" then
-        line("env.CLAUDE_DESTRUCTIVE_GUARD"; "deny-only drops command-guard'"'"'s ask tier in every project, not only in automated runs")
+      elif $e.key == "CLAUDE_DESTRUCTIVE_GUARD" and ($e.value | tostring | denyonly) and $scope == "user" then
+        line("env.CLAUDE_DESTRUCTIVE_GUARD"; denyonly_msg)
       elif ($switches[$e.key] != null) and ($e.value | off) then
         line("env.\($e.key)"; "turns off \($switches[$e.key])")
       else empty end),
   (select($scope == "user") | ($root.pluginConfigs // {}) | if type == "object" then . else {} end | to_entries[] | .key as $pl
     | (.value.options // {}) | if type == "object" then . else {} end | to_entries[] | . as $o
     | ($switches | to_entries[] | select(.key | ascii_downcase == $o.key)) as $sw
-    | select($o.value | off)
-    | line("pluginConfigs[\($pl | @json)].options.\($o.key)"; "turns off \($sw.value)"))
+    | if $o.key == "claude_destructive_guard" and ($o.value | denyonly) then
+        line("pluginConfigs[\($pl | @json)].options.\($o.key)"; denyonly_msg)
+      elif ($o.value | off) then
+        line("pluginConfigs[\($pl | @json)].options.\($o.key)"; "turns off \($sw.value)")
+      else empty end)
 '
 
 found=0; bad=0; read_n=0

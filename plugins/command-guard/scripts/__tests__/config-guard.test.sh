@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# config-guard.test.sh — asserts hooks/config-guard.sh asks on Edit and Bash writes to existing listed configs and stays silent on the rest,
-#   and checks its marketplace self-exemption, both off-switches and fail-open.
+# config-guard.test.sh — asserts hooks/config-guard.sh asks on Edit and Bash writes to existing listed configs and on a Bash removal of
+#   command-guard-strict, stays silent on the rest, and checks its marketplace self-exemption, both off-switches and fail-open.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/scripts/__tests__/config-guard.test.sh
 set -u
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/config-guard.sh"
@@ -150,6 +150,25 @@ bash_asks "sed -i '/npm publish/d' .claude/command-guard-strict" "bash: sed -i o
 printf 'x\n' > "$T/.claude/command-guard-strict.bak"
 allows "$T/.claude/command-guard-strict.bak" "a file only named like it is silent"
 bash_allows "cat .claude/command-guard-strict" "bash: reading command-guard-strict is silent"
+# 0.10.0 review: removing it only loosens, and its deny reason names it, so rm, unlink, mv, git rm and git mv of it ask.
+for c in "rm .claude/command-guard-strict" "rm -f ./.claude/command-guard-strict" "sudo rm .claude/command-guard-strict" \
+         "unlink .claude/command-guard-strict" "mv .claude/command-guard-strict /tmp/cg-old" "git rm .claude/command-guard-strict" \
+         "git -C . mv .claude/command-guard-strict x" "rm '$T/.claude/command-guard-strict'"; do
+  bash_asks "$c" "bash: $c asks" command-guard-strict
+done
+out=$(fire_bash "rm .claude/command-guard-strict" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)
+case "$out" in 'command-guard: removing command-guard'"'"'s strictness file (`command-guard-strict`).'*) ok "the removal ask says removing" ;;
+  *) bad "the removal ask says removing" "${out:-<silent>}" ;; esac
+for c in "rm .claude/command-guard-strict.bak" "cp .claude/command-guard-strict /tmp/cg-copy" 'echo "rm .claude/command-guard-strict"' \
+         'git commit -m "x; rm .claude/command-guard-strict"' $'cat > notes.txt <<\'EOF\'\nrm .claude/command-guard-strict\nEOF' \
+         "ls # rm .claude/command-guard-strict"; do
+  bash_allows "$c" "bash: $c is silent"
+done
+mv "$T/.claude/command-guard-strict" "$T/strict.keep"
+bash_allows "rm .claude/command-guard-strict" "bash: removing an absent command-guard-strict is silent"
+bash_allows "printf 'ask ^npm publish\\n' > .claude/command-guard-strict" "bash: creating command-guard-strict is silent"
+bash_asks "rm .claude/command-guard-strict; sed -i s/a/b/ tsconfig.json" "bash: an absent strict file does not hide a later write" tsconfig.json
+mv "$T/strict.keep" "$T/.claude/command-guard-strict"
 
 printf '{}\n' > "$T/.claude-plugin-marker-absent"
 mkdir -p "$T/.claude-plugin" && printf '{"plugins":[]}\n' > "$T/.claude-plugin/marketplace.json"

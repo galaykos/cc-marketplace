@@ -697,8 +697,52 @@ line by line: half a rule set read is a rule set nobody wrote. The note is a `sy
 user, per the hooks reference's JSON output table, read 2026-11-10), because the file is the user's and the
 model should not be the one to edit it. It repeats on every judged command while the file is broken; no
 state file keeps it to once. The 16,384-byte cap bounds the per-call regex work. The file is protected by
-config-guard's ask on an existing file, the same standing as `settings.json`; a plain `rm` passes, as it
-does for every config.
+config-guard's ask on an existing file, the same standing as `settings.json`, and since the review fixes
+below on its removal too.
+
+### Review fixes 2026-11-12 (0.10.0): the word reader, wrappers, substitutions
+
+Written for this release, not moved from code. Twelve review findings against b80faf31.
+
+`SHELL_WORDS_AWK`. `git_gh_bypass` was written as a copy of `rm_backslash_target`'s awk word scan, and
+within a day the copies had diverged: the bypass copy split on a brace only standing alone (gh's
+`{owner}`), the rm copy on every brace, and both collapsed `$'…'` to `$`, which failed toward an ask in
+the rm check and toward silence in the bypass check (`git commit $'--no-verify'`). The shared string
+holds `word`, `base`, `queue`, the substitution matcher and `scan`; each program prepends it and defines
+its own `judge`. The brace rule is `-v lone_brace`. `$'…'` decodes `\\` and `\'` and reads any other
+escape as `$`, so a word holding one can never equal a flag; `rm -rf $'\\'` therefore denies like
+`rm -rf \\`, where it used to ask on the `$`.
+
+Substitutions. A double-quoted span was one literal word, and a backtick an ordinary character, so the
+command inside never reached `judge` (`out="$(git commit --no-verify -m wip)"`, `` x=`git commit
+--no-gpg-sign` ``). A `$( )` inside double quotes and a backtick pair, quoted or bare, now go to the same
+queue as `eval`'s words and a shell's `-c` script, under the same 16-scan cap; `$((` is arithmetic and is
+not queued. The matcher skips quotes, escapes and nested substitutions to find the closing `)`; a case
+pattern's `)` inside the substitution closes it early. A bare `$(` was already read: `(` splits.
+
+Wrappers and keywords. `judge` read git or gh only as the first word after a fixed wrapper list. The
+alternative the review offered, any `git` word anywhere, fires on `echo git commit -n`; the head skip
+does not. A keyword (`if then elif else do while until !`) is skipped only before any other word.
+`timeout` and `flock` take one positional operand before the command, so each skips one non-option word
+that is not itself git or gh; an option's value is skipped by the existing previous-word-is-an-option
+rule. `flock -c '…'` is not read.
+
+`gh -R`/`--repo` may sit before the subcommand or between its two words, so `a` and `b` are the first two
+words that are neither the flag nor its value. The GraphQL test ran before the endpoint was normalised,
+so `/graphql` and `https://api.github.com/graphql` took the REST branch; the normalisation now runs
+first, and a GHES full URL (`/api/graphql`) is accepted too. `updateIssueComment` and
+`updatePullRequestReview[Comment]` edit the same text a REST PATCH asks on.
+
+`--no-gpg-sign` prefix: git 2.53 accepted `--no-g` and `--no-gp` on `commit`, `merge`, `rebase`, `am`
+and `pull` in a scratch repository on 2026-11-12 (`commit --no-g` with `gpg.program=false` committed
+unsigned), so the check takes 6 characters, not 8, and the prefilter looks for `no-g`. The prefilter's
+gh patterns became `' pr '*'comment '` and the like, so `gh pr -R o/r comment` reaches the parser; the
+`-n` pattern allows the `$` that `norm_cmd` leaves of `$'-n'`.
+
+Measured through the hook, 21 interleaved runs each against b80faf31, median: `ls` 22.3 → 22.3 ms,
+`git commit -m x` 23.8 → 23.7 ms, a 9-step build/commit/push/PR pipeline 366.1 → 367.6 ms, a `gh api
+…/comments --paginate` GET that runs the parser 69.8 → 70.2 ms, `git commit -n -m wip && git push` 81.3 →
+80.4 ms.
 
 ## plugins/command-guard/hooks/config-guard.sh
 
@@ -865,6 +909,18 @@ Cost, through the hook, 21 runs each, two interleaved rounds against a copy of t
 other workers ran, round 1 / round 2: `git status && ls -la` median 9.4 / 9.0 ms before, 10.2 / 9.0 ms after; the
 commit message above 11.2 / 10.7 ms before (it asked, so it ran jq for the reply), 10.1 / 10.2 ms after; a 19,911-byte
 `python3 - <<'EOF'` body 9.8 / 10.3 ms before, 10.9 / 11.2 ms after.
+
+### strict_removal (0.10.0 review fix, 2026-11-12)
+
+Written for this release. Removing `.claude/command-guard-strict` passed both hooks, and the strict deny's
+reason names the file, so an agent denied by a strict line could delete it and rerun with no prompt. An
+`rm`, `unlink`, `mv`, `git rm` or `git mv` naming an existing one now asks with the verb "removing";
+removal only loosens, and creation stays silent because a new file can only add strictness. The scan is
+its own small quote-aware word split, because `cc_bash_write_targets` is a shared block that reads
+writes, not removals; heredoc bodies no shell reads are stripped first, as `baseline_regen` does. Its
+operands go through the same existence loop as the write targets, after them in priority, so an absent
+strict file does not hide a later write. A recursive removal of `.claude` or a glob is not read here;
+command-guard's own `rm -r` check judges the first.
 
 ## plugins/command-guard/scripts/__tests__/destructive-guard.test.sh
 
@@ -1133,6 +1189,11 @@ that refuse, ask or mask on a safety ground; style and Stop-gate switches (`CC_C
 for an automated run's project settings. An `off` value is matched case-insensitively, a /config boolean
 `false` too. Not read: managed settings, `--settings` files, `CLAUDE_CONFIG_DIR` other than as the user
 file's folder.
+
+Review fix, 2026-11-12: the guard normalises `denyonly` and `deny_only` to `deny-only`
+(`destructive-guard.sh`, the mode line), so the linter does too, and it applies the user-file rule to the
+`/config` option `claude_destructive_guard` under `pluginConfigs`, which the host exports as the same
+setting.
 
 ## plugins/command-guard/scripts/__tests__/settings-lint.test.sh
 

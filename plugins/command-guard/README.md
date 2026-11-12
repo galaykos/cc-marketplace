@@ -103,15 +103,19 @@ a headless agent or `dontAsk`, an ask is a deny**: the command does not run (see
   (pre-commit) or `LEFTHOOK=0` in front of one of them. Words are read as the shell reads them,
   so a commit message that mentions `--no-verify` passes, as do `grep -- --no-verify` and
   `git log --no-verify`; a later `--verify` (or `-S`, for signing) cancels the bypass, as in git.
-  Missed: a bypass set by an earlier `export HUSKY=0`, a git alias, `GIT_CONFIG_*` variables,
-  or a script that commits.
+  It reads through an `if`/`then`/`do`/`while`/`!` head, the `sudo`, `env`, `nice`, `timeout`,
+  `xargs`, `stdbuf` and `flock` wrappers, `$'…'` quoting, and a `$( )` or backtick substitution,
+  quoted or not. Missed: a bypass set by an earlier `export HUSKY=0`, a git alias, `GIT_CONFIG_*`
+  variables, `flock -c '…'`, or a script that commits.
 - **Review or comment text published under your name.** `gh pr review` with `--approve`,
   `--comment`, `--request-changes`, `--body` or `--body-file` (or `-a -c -r -b -F`);
   `gh pr comment` and `gh issue comment` (not `--web`); `gh api` with POST, PATCH or PUT to a
   pull request's `reviews` or `comments`, an issue's `comments`, a review comment's `replies`, a
   review's `events`, or an existing `pulls/comments/N` or `issues/comments/N` (`gh api` sends
   GET unless `-X` names a method or a `-f`/`-F`/`--input` body makes it POST); and a GraphQL
-  `addPullRequestReview…`, `addComment` or `submitPullRequestReview` mutation. Silent:
+  `addPullRequestReview…`, `addComment`, `submitPullRequestReview`, `updateIssueComment`,
+  `updatePullRequestReview` or `updatePullRequestReviewComment` mutation, to `graphql`, `/graphql`
+  or a full URL. A `-R`/`--repo` anywhere is skipped. Silent:
   `gh pr view`, a GET of those paths, `gh pr create`, and `gh pr merge`, which git-workflow's
   merge-checks hook already asks about. Missed: a mutation read from a file (`-F query=@q.graphql`),
   `--input` naming a GraphQL body, and a script or `curl` posting to the API.
@@ -156,8 +160,8 @@ prompt says so. A file that does not exist yet is allowed through — creating a
 is not relaxing one. An MCP `apply_patch` names no single path and passes silently.
 A Bash write onto one of these files (a redirect, `tee`, `sed -i`)
 is asked about too — not a python or php write, a `cp`/`mv` destination or a path held
-in a variable — and a plain `rm` of a config passes both hooks: the command guard
-judges only `rm -r` and `.env`. And it self-exempts
+in a variable — and a plain `rm` of a config other than the strictness file passes both
+hooks: the command guard judges only `rm -r` and `.env`. And it self-exempts
 inside a marketplace repository — one with `.claude-plugin/marketplace.json` at the git
 root — which edits these files as its product.
 
@@ -318,7 +322,8 @@ off.
 `.claude/command-guard-strict` in the project raises a verdict for the commands it lists and can
 never lower one. One entry per line, `ask <regex>` or `deny <regex>`, the regex matched like the
 allow-file's (unanchored, against the normalised, lowercased command; write it in lowercase).
-`#` lines and blank lines are skipped.
+The dialect is bash's `[[ =~ ]]`, POSIX ERE: use `[[:space:]]` and `[0-9]`, since `\d` matches a
+literal `d` and `\s` works only with glibc. `#` lines and blank lines are skipped.
 
 ```
 # .claude/command-guard-strict
@@ -337,8 +342,9 @@ deny git push( |$)
   ignored, the built-in verdicts stand, and each command carries one note saying why. The note
   is a `systemMessage` for you, not text for the model; `--check` prints it as a `NOTE` line.
 - config-guard asks before a `Write`, `Edit` or Bash redirect, `tee` or `sed -i` changes an
-  existing one; creating one is silent, since a new file can only add strictness. A plain `rm`
-  of it passes both hooks, as it does for every config file (above).
+  existing one, and before `rm`, `unlink`, `mv`, `git rm` or `git mv` removes it: removal only
+  loosens, and a strict deny's reason names the file. Creating one is silent, since a new file can
+  only add strictness. Removing its whole `.claude` directory, or by glob, is not read here.
 
 Standing: **gate** for the raise, the skipped loosening line, the malformed and oversized file
 and the protection: `destructive-guard.test.sh` (`== project strictness file`) and

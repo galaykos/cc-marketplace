@@ -75,6 +75,15 @@ lacks_at '.claude/settings.json: pluginConfigs' "pluginConfigs in project settin
 after=$(cat "$P/.claude/settings.json" "$H/.claude/settings.json" | cksum)
 [ "$before" = "$after" ] && ok "the linter writes nothing" || bad "the linter writes nothing" "a settings file changed"
 
+# 0.10.0 review: the guard reads denyonly and deny_only as deny-only, from env or the /config option alike.
+printf '{"env":{"CLAUDE_DESTRUCTIVE_GUARD":"denyonly"}}\n' > "$P/.claude/settings.json"
+printf '{"env":{"CLAUDE_DESTRUCTIVE_GUARD":"Deny_Only"},"pluginConfigs":{"command-guard@m":{"options":{"claude_destructive_guard":"deny-only"}},"y@m":{"options":{"claude_destructive_guard":"deny"}}}}\n' > "$H/.claude/settings.json"
+out=$(lint)
+has '~/.claude/settings.json: env.CLAUDE_DESTRUCTIVE_GUARD: deny-only drops' "the deny_only alias in the user env is flagged"
+has '~/.claude/settings.json: pluginConfigs["command-guard@m"].options.claude_destructive_guard: deny-only drops' "deny-only as a /config option is flagged"
+lacks 'pluginConfigs["y@m"]' "a /config claude_destructive_guard of deny is silent"
+lacks_at '.claude/settings.json: env.CLAUDE_DESTRUCTIVE_GUARD' "the denyonly alias in project settings is silent, as deny-only is"
+
 printf '{"permissions":{"allow":["Bash(git status)"]}}\n' > "$P/.claude/settings.json"; printf '{}\n' > "$H/.claude/settings.json"
 out=$(lint); rc=$?
 { [ "$rc" = 0 ] && [ -z "$out" ]; } && ok "clean settings exit 0 and print nothing" || bad "clean settings exit 0 and print nothing" "rc=$rc out=$out"
