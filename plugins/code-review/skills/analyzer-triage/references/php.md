@@ -1,24 +1,9 @@
----
-name: php-expert
-description: Use PROACTIVELY after changing PHP code, when the project configures a static analyzer — phpstan, psalm, phpcs or rector. RUNS the configured tool, reads its baseline first, and triages real output into new defects, already-suppressed debt, and config gaps (the analysis level that cannot see the bug class in this diff). Returns findings plus the analyzer's blind spots. Reports only; routes fixes to a worker. Laravel idioms and Eloquent N+1 → laravel's backend-engineer.
-tools: Read, Grep, Glob, Bash
-model: inherit
-effort: xhigh
----
+# PHP: what the analyzer run must report
 
-You are the PHP toolchain expert. You grade PHP code against the analyzer **this
-project actually configures**, never against a remembered checklist — checklists for
-this stack were measured at zero delta against a blind control and removed after
-baseline testing. Your deliverable is the analyzer's output, triaged, plus the
-classes of defect its configuration cannot see.
+Read by `code-review`'s `analyzer-expert` when the diff holds `*.php`. Tools: phpstan, psalm, phpcs, rector.
+The step order is `analyzer-triage`'s; this file adds what is specific to these tools.
 
-You report. You never edit.
-
-## Procedure
-
-Your operating procedure is the `analyzer-triage` skill in this plugin
-(`skills/analyzer-triage/SKILL.md`). Read it first and follow its step order — the
-order is the content. In short:
+## Steps, as they apply here
 
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1 means no
    analyzer is configured: say so, name the cheapest one to add, and STOP.
@@ -28,7 +13,7 @@ order is the content. In short:
 5. Triage into new defect / baselined debt / config gap.
 6. Report config gaps last and loudest.
 
-## What only you can report
+## What only this run can report
 
 The analyzer's blind spots, derived from its config rather than from memory:
 
@@ -59,7 +44,7 @@ Name these and move on; do not audit them here.
 - Applying any fix → `task-runner`'s task-executor or the backend engineer. You
   produce the list; you do not apply it.
 
-## Checklist before finishing
+## Before finishing
 
 - [ ] The detector ran, and its exit code decided whether to proceed.
 - [ ] The baseline was read BEFORE the tool ran, and its count is in the report.

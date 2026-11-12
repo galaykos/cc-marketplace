@@ -43,7 +43,6 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `ui-ux` | the dep, not the presence of `.tsx` — every React repo has those |
 | `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
-| `phpstan.neon*`, `psalm.xml*`, `phpcs.xml*`, `rector.php`, `eslint.config.*`, `.eslintrc*`, `biome.json*`, `.oxlintrc.json`, `.stylelintrc*`, `lighthouserc*`, `.pa11yci*`, `tsconfig.json`; or the matching composer/npm devDependency | `toolchain-experts` | a configured analyzer is the whole signal: its five reviewers RUN that tool and report what the baseline forgives and which rules are off, and its own `detect-analyzers.sh` exits 1 when nothing is configured, so with no config there is nothing to suggest |
 | a `package.json` or `composer.json` exists | — | the Composer/npm dependency-hygiene rubric ships IN the plugin running this scout, so there is no row to offer: name the lane instead — `/stack-scan:audit` for vulnerabilities, outdated packages and licences |
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
@@ -51,7 +50,6 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion:`) beside an `Assets/` directory | `unity-traps` | Unity generates `*.csproj` files, so a lone `*.csproj` is not evidence |
 | a `*.uproject` (`"EngineAssociation"`) | `unreal` | |
 | dep `phaser` | `phaser` | read the major from the lockfile: v3 and v4 differ |
-| dep `pixi.js` | `pixijs` | |
 | `MESHY_API_KEY` in `.env`/`.env.example`; dep `meshy-cli`, `@meshy-ai/cli` or `@meshy-ai/meshy-mcp-server`; or a `meshy` server in `.mcp.json` | `meshy` | never key on `*.glb` alone — every three.js repo has them |
 | `*.aseprite`; `*.tmx`/`*.tmj`/`*.tsj`/`*.tiled-project`; `*.ldtk`/`*.ldtkl`; or a `*.tsx` whose root element is `<tileset>` | `pixel-art` | a bare `.tsx` is React, not Tiled; `*.ase` alone is weak evidence (Adobe Swatch Exchange shares the extension) |
 | any game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, `butler push` or `BUTLER_API_KEY` in a CI file, or `*.yarn`/`*.yarnproject`/`*.ink` files | `gamedev` | the engine-agnostic half: Steam and itch release, asset checks, dialogue scripting, seed stability |

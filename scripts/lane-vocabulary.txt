@@ -88,7 +88,6 @@ phaser-idioms
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
 pixel-art-idioms
-pixijs-idioms
 primereact-idioms
 react-native-idioms
 real-component-design-render
@@ -138,15 +137,11 @@ infra-config-review
 markup-and-style-review
 motion-and-asset-gate-audit
 owasp-diff-security-review
-php-static-analysis-run
 pipeline-and-deploy-config-review
-react-hook-rules-run
+project-analyzer-run
 runtime-quality-review
 session-transcript-mining
 stack-agnostic-diff-review
-style-and-a11y-tool-run
-typecheck-and-lint-run
-vue-sfc-analysis-run
 wcag-audit
 
 # --- ship ---

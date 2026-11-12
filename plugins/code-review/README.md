@@ -654,6 +654,39 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
 - **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth
   running is agent-graded.
 
+## Analyzer run (merged in from toolchain-experts on 2026-11-12) <!-- removed-ok -->
+
+The `analyzer-expert` agent runs the static analysis **the project itself configures**
+and triages the real output. It does not recite a best-practice checklist: idiom
+checklists for TypeScript, JavaScript, Vue, React and CSS measured zero or negative
+against a blind control (`rationale/stack-skill-baselines.md` in the marketplace
+repository) and were removed.
+
+| Diff holds | Runs | Headline finding only this run can produce |
+|---|---|---|
+| PHP | phpstan, psalm, phpcs, rector | which bug class the configured level cannot see |
+| TypeScript, JavaScript | tsc, eslint, biome, oxlint | which strictness flags are off, and the defect class each hides |
+| React | the eslint hook rules | whether `exhaustive-deps` is enforced, demoted to a warning, or absent |
+| Vue single-file components | vue-tsc, eslint-plugin-vue | whether CI typechecks components at all |
+| Styles and markup | stylelint, pa11y, lighthouse-ci, axe | which accessibility rules the project switched off |
+
+It was five agents until 0.37.0. One agent now reads one reference per language in the
+diff (`skills/analyzer-triage/references/`), so a `.tsx` edit wakes one reviewer, not three.
+
+    bash scripts/detect-analyzers.sh [project-root]
+
+prints one record per line (`analyzer`, `formatter`, `strictness`, `ci`, `none`).
+**Exit 1 means no analyzer is configured**: the agent reports that and stops instead of
+falling back on a remembered checklist. Output lands in three buckets: new defect,
+baselined debt (the count, not the lines), and config gap, reported last and loudest.
+It never edits, and it does not replace `/ui-ux:audit` or a logic review.
+
+| Rule | Standing |
+|---|---|
+| An analyzer-free project exits 1; a baseline is reported before it can be re-flagged; a demoted rule shows its real severity; a formatter is never an analyzer | **gate** in the marketplace repository: `scripts/__tests__/detect-analyzers.test.sh` |
+| The agent reads the baseline before running the tool, reads only the references the diff needs, and skips a run CI already passed on this HEAD | **agent-graded** |
+| This beats a blind control | **recorded**, never ablated. The one-agent form is also unmeasured against the five it replaced |
+
 ## Pairs well with
 
 - **code-architecture** — the structural/YAGNI depth this review defers to, plus

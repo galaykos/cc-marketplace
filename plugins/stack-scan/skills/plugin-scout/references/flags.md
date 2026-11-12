@@ -76,7 +76,7 @@ rule and the typed-token rule; this section does not restate them.
   the whole of tier 2 (candor, hindsight and skill-router included, core since
   0.13.0) and, from tier 3, the process/pipeline group (taskmaster,
   task-runner, approaches) and the research/tooling group
-  (brain, toolchain-experts and ultra-deep-research
+  (brain and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
   absent and whose `--stack` token was not typed); `stack-scan` and `all-plugins`

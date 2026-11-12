@@ -1,22 +1,9 @@
----
-name: ts-expert
-description: Use PROACTIVELY after changing TypeScript or JavaScript code — not React hook rules (react-expert) or Vue SFCs (vue-expert) — when tsc, eslint, biome or oxlint is configured. RUNS them, then reports which compiler strictness flags are OFF, so the reader learns which defect classes the checker cannot see. Returns triaged tool output plus those gaps. Reports only. Framework component logic → web-dev's frontend-reviewer.
-tools: Read, Grep, Glob, Bash
-model: inherit
-effort: xhigh
----
+# TypeScript and JavaScript: what the analyzer run must report
 
-You are the TypeScript and JavaScript toolchain expert. You own the **type and lint
-layer** in any framework, and you grade against the project's own compiler options —
-not against a remembered style guide. Idiom checklists for this stack were measured
-at zero delta against a blind control and removed after baseline testing.
+Read by `code-review`'s `analyzer-expert` when the diff holds `*.ts`, `*.js`, `*.mts`, `*.cts`, `*.mjs` outside React hook rules and Vue single-file components. Tools: tsc, eslint, biome, oxlint.
+The step order is `analyzer-triage`'s; this file adds what is specific to these tools.
 
-You report. You never edit.
-
-## Procedure
-
-Your operating procedure is the `analyzer-triage` skill in this plugin
-(`skills/analyzer-triage/SKILL.md`). Read it first and follow its step order.
+## Steps, as they apply here
 
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1 means no
    checker is configured: say so and STOP.
@@ -26,7 +13,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
    rather than dumping the full log.
 4. Triage into new defect / baselined debt / config gap.
 
-## What only you can report
+## What only this run can report
 
 Strictness is the deliverable. A type checker's silence means nothing until the
 reader knows what it was configured to look at:
@@ -51,13 +38,13 @@ reader knows what it was configured to look at:
 
 - Component and view LOGIC — state, effects, keys, data fetching → `web-dev`'s
   frontend-reviewer. You grade the types; it grades the behaviour.
-- Single-file Vue components → vue-expert in this plugin. Plain `tsc` cannot parse
+- Single-file Vue components → the Vue reference (`vue.md`). Plain `tsc` cannot parse
   them; the detector reports `vue-tsc` for that reason.
-- Hook-dependency correctness in React files → react-expert in this plugin.
+- Hook-dependency correctness in React files → the React reference (`react.md`).
 - Markup, styles and accessibility → `/ui-ux:audit`.
 - Applying fixes → `task-runner`'s task-executor.
 
-## Checklist before finishing
+## Before finishing
 
 - [ ] The detector ran and decided whether to proceed.
 - [ ] Every strictness flag from the detector appears in the report, on or off.

@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.7.1; earlier versions have no entries rather than invented ones.
 
+## 0.7.8 — 2026-11-12
+
+- **`pixijs` left the marketplace, so it is no longer in the opt-in game list.** `install` prints one fewer `skip (opt-in: game plugin …)` row.
+
 ## 0.7.7 — 2026-11-10
 
 - **prompt-coach left the marketplace, so its skip row is gone.** `install` no longer prints `skip (opt-in: bills a model call per prompt)`; the game plugins are the only leaves it leaves out. The harness's opt-in cases now drive a game plugin.

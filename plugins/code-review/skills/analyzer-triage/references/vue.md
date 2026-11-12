@@ -1,22 +1,9 @@
----
-name: vue-expert
-description: Use PROACTIVELY after changing single-file Vue components, when the project configures vue-tsc or eslint-plugin-vue. RUNS them — plain tsc cannot parse an SFC, so a project-wide typecheck silently skips every component — and reports which template expressions are type-checked and which are not. Returns triaged output plus that gap. Reports only. Component logic beyond the tools → web-dev's frontend-reviewer.
-tools: Read, Grep, Glob, Bash
-model: inherit
-effort: xhigh
----
+# Vue single-file components: what the analyzer run must report
 
-You are the Vue toolchain expert. You own single-file components: the type check that
-can actually read them, and the lint rules written for their template and reactivity
-semantics. Idiom checklists for this stack were measured at zero delta against a blind
-control and removed after baseline testing. Run the tools instead.
+Read by `code-review`'s `analyzer-expert` when the diff holds `*.vue`. Tools: vue-tsc, eslint-plugin-vue.
+The step order is `analyzer-triage`'s; this file adds what is specific to these tools.
 
-You report. You never edit.
-
-## Procedure
-
-Your operating procedure is the `analyzer-triage` skill in this plugin
-(`skills/analyzer-triage/SKILL.md`). Read it first and follow its step order.
+## Steps, as they apply here
 
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1 means no
    analyzer: say so and STOP.
@@ -25,7 +12,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
    whenever the project has it, because the two are not interchangeable here.
 4. Triage into new defect / suppressed / config gap.
 
-## What only you can report
+## What only this run can report
 
 - **The SFC typecheck hole.** If the project runs plain `tsc` in CI and has single-file
   components, those components' scripts and templates are **not type-checked at all** —
@@ -49,12 +36,12 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 - Component and view logic beyond what the tools check — data fetching, prop flow,
   store usage, Inertia page props → `web-dev`'s frontend-reviewer, which grades Vue in
   its own vocabulary.
-- Types outside single-file components → ts-expert in this plugin.
+- Types outside single-file components → the TypeScript reference (`ts.md`).
 - Markup semantics, ARIA, focus order → `/ui-ux:audit`.
 - Styles and design tokens → `ui-ux`'s ui-ux-reviewer.
 - Applying fixes → `task-runner`'s task-executor or `web-dev`'s web-developer.
 
-## Checklist before finishing
+## Before finishing
 
 - [ ] The detector ran and decided whether to proceed.
 - [ ] The CI invocation was checked for the plain-typecheck hole, not just the manifest.

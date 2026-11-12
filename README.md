@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **42 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **40 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -413,7 +413,6 @@ the shell mockup rather than scaffolding a sandbox.
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
 | **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
-| **[toolchain-experts](plugins/toolchain-experts)** | five reviewers that RUN the project's configured static analysis rather than reciting a checklist — phpstan/psalm/phpcs/rector, tsc/eslint/biome, the React hook rules, vue-tsc/eslint-plugin-vue, stylelint/pa11y/lighthouse-ci — and report which config CI enforces, what the baseline forgives, and which rules are switched off | A diff in a repo that has analyzers configured, and you want their real output triaged rather than a second opinion |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[ask-ledger](plugins/ask-ledger)** | the silent-avert catch: a UserPromptSubmit hook destructures a work-shaped ask into the things it names (proper nouns, quoted terms, `2D`-style tokens) and a Stop gate refuses a final message that does not account for each — `as named` / `substituted → what, why` / `omitted → why`; gate on the shape, the truth is the model's word | Work keeps quietly doing less than you named and nobody says so |
 | **[candor](plugins/candor)** | a blocking Stop gate (ask-ledger and ui-ux ship the other two), six clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass, a dependency manifest changed without its lockfile, a `file:line` whose marked `quote:` is in neither that file nor its committed copy; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
@@ -577,8 +576,8 @@ bill you did not agree to.
 ## Game development
 
 One plugin per engine or art tool, so a project installs only its own — `/stack-scan:suggest` finds
-it from the manifest or file (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a `phaser` or
-`pixi.js` dep, `*.blend`, a Meshy key or client, `*.aseprite`, Tiled or LDtk maps), and
+it from the manifest or file (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a `phaser`
+dep, `*.blend`, a Meshy key or client, `*.aseprite`, Tiled or LDtk maps), and
 `/all-plugins:install` leaves every game plugin out unless you name it. Each carries only what a
 model gets wrong from memory — the inversions of the tool's last few releases, its footguns and
 hard limits — and most ship a read-only checker script with an exit code. The engine plugins and
@@ -594,7 +593,6 @@ Nothing here is measured against a control arm.
 | **[unity-traps](plugins/unity-traps)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, atlas settings that blur, Light2D normal maps), and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, sprite atlases, CI builds |
 | **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
 | **[phaser](plugins/phaser)** | Phaser 3→4 inversions (filters replace preFX/postFX, `setTintFill` a stub, `TAU` changed) and Arcade collision traps | `phaser` in the lockfile |
-| **[pixijs](plugins/pixijs)** | PixiJS v7→v8 inversions (`await app.init`, the ticker argument, `globalpointermove`, `Assets.load` first) | `pixi.js` in the lockfile |
 | **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
 | **[blender](plugins/blender)** | Blender 5.x Python API removals and renames (`action.fcurves`, `scene.node_tree`, `BLENDER_EEVEE_NEXT`, `bgl`), headless runs that exit 0 on a Python error unless `--python-exit-code` comes before `--python`, FBX/glTF export rules for Unreal, Unity and Godot — and `check_bpy_scripts.py` (no Blender needed) plus `blender_qa.py` (mesh QA inside Blender) | A `.py` importing `bpy`, a `*.blend` in the repo, exporting assets to an engine |
 | **[asset-forge](plugins/asset-forge)** | Game-asset creation in Blender: a headless MCP server (Python standard library, nothing installed) that renders review contact sheets, validates against platform budgets and engine presets, bakes, stylizes, projects AI textures and exports — always on snapshots, never the working `.blend`; a pure-bpy library of deforms, blockouts, LODs, collision and retargeting; an independent art-reviewer agent; a review-after-change Stop gate | Building a prop, creature or character in Blender for Unity, Unreal or Godot |
@@ -638,7 +636,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | write React/Vue apps | `web-dev` + `ui-ux` + `ui-libraries` (+ `skill-router`, which loads the matching skill per file) |
 | are building something design-led | `craft-layer` + `ui-ux` + `ui-libraries` — [companions](#companions-install-these-together), install all three (+ `design-kit`, `skill-router`) |
 | want reviews that catch real bugs | `code-review`, `candor`, `secret-scanning`, `git-workflow` (the enforcing gates) + `security`, `resilience`, `testing` by name (the advisory rubrics) |
-| have phpstan / tsc / eslint configured and want their real output triaged | `toolchain-experts` (it reports what the analyzer cannot see, not a checklist) |
+| have phpstan / tsc / eslint configured and want their real output triaged | `code-review`: its `analyzer-expert` agent runs them and reports what the analyzer cannot see, not a checklist |
 | keep getting half-finished work | `candor` (Stop gate) + `code-architecture` + `task-runner` |
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |

@@ -14,8 +14,8 @@ argument-hint: [files-or-diff]
 1. **Determine scope** from `$ARGUMENTS`: a component, a page, or a diff.
    With no arguments, default to recent UI changes (`git diff` against the
    default branch, filtered to markup, style, and component files).
-2. **Run the project's own tools before judging.** When the `toolchain-experts`
-   plugin is installed, dispatch its `ui-expert` agent on the same scope: it runs
+2. **Run the project's own tools before judging.** When the `code-review`
+   plugin is installed, dispatch its `analyzer-expert` agent on the same scope: it runs
    `detect-analyzers.sh` from its own plugin root (that path is not resolvable from
    here) and, where stylelint/pa11y/axe/lighthouse-ci are configured, runs them and
    reports which of their rules the project has switched off. Fold its findings into

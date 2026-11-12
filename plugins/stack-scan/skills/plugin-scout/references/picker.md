@@ -66,8 +66,8 @@ TIER 2 — any-project core (10)
   11  candor  12 hindsight  13 skill-router
 TIER 3 — no signal in this repo
   worth a look here:  14 brain  15 approaches
-  quality/review:     16 toolchain-experts  17 resilience  18 security  19 api-design
-  process/planning:   20 taskmaster  21 task-runner  22 overseer
+  quality/review:     16 resilience  17 security  18 api-design
+  process/planning:   19 taskmaster  20 task-runner  21 overseer
   ui:                 23 ui-ux ✓  24 craft-layer
   ...
   companion: ui-ux (#23 ✓) needs ui-libraries — claude plugin install ui-libraries@cc-plugins-marketplace --scope local

@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.31.2 — 2026-11-12
+
+- **The PixiJS routing row is gone with the plugin.** `rules.tsv` no longer nudges `pixijs-best-practices` on a `pixi.js` import; the `pixijs` plugin left the marketplace on 2026-11-12.
+
 ## 0.31.1 — 2026-11-12
 
 - **Compaction recall names only this session's phase.** `compact-capsule.sh` and the `compact` mod read `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) and no longer report another session's phase, or the old repo-wide file. `compact-log.jsonl` now records, when any sentinel is on disk, whether one is keyed by the post-compaction session id. Standing: gate; `scripts/__tests__/compact-capsule.test.sh`, `tests/compact.test.ts`.

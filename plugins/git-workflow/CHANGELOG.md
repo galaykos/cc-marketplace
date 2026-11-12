@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.13.5; earlier versions have no entries rather than invented ones.
 
+## 0.15.3 — 2026-11-12
+
+- **`references/marketplace-scratch.tsv` follows hindsight 0.13.0.** The `~/.claude/hindsight/` row names `scripts/select.sh` as its reader (the outcome script is gone), and the `.claude/hindsight/` row cites the skill's current line.
+
 ## 0.15.2 — 2026-11-12
 
 - **`/git-workflow:finish` writes and clears this session's phase sentinel.** It passes `--session "${CLAUDE_SESSION_ID}"` to taskmaster's writer, clears with the same flag, and its hand-written fallback goes to `.claude/cc-phase/<session>.json`. If the writer it ran left no per-session file (a taskmaster before 0.56.0), the command writes that file by hand. `references/marketplace-scratch.tsv` lists `.claude/cc-phase/` and keeps the old `.claude/cc-phase.json` as a legacy row. Standing: recorded (command text); the scratch rows are gated by `scripts/__tests__/scratch-ignore.test.sh`.

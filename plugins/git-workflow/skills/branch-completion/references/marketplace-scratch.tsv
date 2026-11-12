@@ -35,13 +35,13 @@ taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL
 .claude/cc-phase/	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	taskmaster/scripts/phase-sentinel.sh § dir — <session>.json, one arc-phase sentinel per session, which every phase-owning command writes and must remove; the writer drops a .gitignore holding *
 .claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	legacy — the repo-wide sentinel before taskmaster 0.56.0; no reader looks at it, taskmaster/scripts/phase-sentinel.sh § legacy removes it
 .claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
-.claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:152 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them
+.claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:133 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them
 .claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh § ALLOW_BASENAME — the project's allow-list of regexes; a config the team maintains
 brain/	brain	state	project	brain/README.md:3 — "A committed, Obsidian-style codebase map"; tracked by design
 design-system/	design-kit	state	project	design-kit/README.md:406 — "design-system/ is yours"; tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md are the record
 research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — the cited report is the deliverable
 ~/.claude/skill-router/	skill-router	state	home	skill-router/hooks/summary.sh § dir — <slug>/surfaced.jsonl; read by scripts/turn-cost.sh § surfaced
-~/.claude/hindsight/	hindsight	state	home	hindsight/hooks/collect.sh § dir, hindsight/hooks/skill-use.sh § dir — <slug>/ledger.jsonl, skills.jsonl; read by hindsight/scripts/outcome.sh § dir and scripts/turn-cost.sh § invoked
+~/.claude/hindsight/	hindsight	state	home	hindsight/hooks/collect.sh § dir, hindsight/hooks/skill-use.sh § dir — <slug>/ledger.jsonl, skills.jsonl; read by hindsight/scripts/select.sh § H and scripts/turn-cost.sh § invoked
 ~/.claude/comment-discipline/	code-review	state	home	code-review/hooks/density.sh § ledger, code-review/hooks/verbosity.sh § ledger — density- and verbosity-ledger.jsonl; read by nothing automatically, kept to revisit the thresholds
 ~/.claude/terse-mode	candor	state	home	candor/hooks/mode.sh § write_level via /candor:level — the brevity level, at ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode; read by candor/hooks/mode.sh § terse-mode and candor/hooks/activate.sh § terse-mode
 ~/.claude/destructive-guard-allow	command-guard	state	home	written by the user — the per-user allow-list of regexes; read by command-guard/hooks/destructive-guard.sh § allow_listed
