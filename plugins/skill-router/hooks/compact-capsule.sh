@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart (matcher compact): lists the task state on disk at the project root a compaction summary may drop (phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether the sentinel's session_id is the payload's. Advisory; fails open.
+# SessionStart (matcher compact): lists the task state on disk at the project root a compaction summary may drop (this session's phase sentinel, task-runner run and scope lock, taskmaster ledgers) and logs whether a sentinel present is the payload session's. Advisory; fails open.
 # Misses whether a ledger is still live (it prints started_at; each owner's TTL decides), state kept outside the paths named here, and the reasoning behind a phase or a card.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/compact-capsule.sh
 
@@ -38,6 +38,17 @@ cc_plugin_state() {
   fi
   return 0
 }
+# Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
+# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
+cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.claude/cc-phase/%s.json\n' "$1" "$key"
+}
 {
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
@@ -53,18 +64,13 @@ cc_plugin_state() {
   add() { lines="${lines}- $1
 "; }
 
-  sentinel_sid=""
-  f="$root/.claude/cc-phase.json"
-  if [ -f "$f" ]; then
-    phase=$(jq -r '.phase // empty' "$f" 2>/dev/null)
-    owner=$(jq -r '.owner // empty' "$f" 2>/dev/null)
-    sentinel_sid=$(jq -r '.session_id // empty' "$f" 2>/dev/null)
-    since=$(jq -r '.started_at // empty' "$f" 2>/dev/null)
-    if [ -n "$phase" ]; then
-      who="another session"
-      [ -n "$sentinel_sid" ] && [ "$sentinel_sid" = "$sid" ] && who="this session"
-      add "arc phase \`$phase\`${owner:+ owned by $owner}${since:+ since $since}, declared by $who — .claude/cc-phase.json (reminder hooks outside this phase stand down; the owner clears it)"
-    fi
+  # Only this session's phase: another session's sentinel is not this conversation's state.
+  own=$(cc_phase_file "$root" "$sid") || own=""
+  if [ -n "$own" ] && [ -f "$own" ]; then
+    phase=$(jq -r '.phase // empty' "$own" 2>/dev/null)
+    owner=$(jq -r '.owner // empty' "$own" 2>/dev/null)
+    since=$(jq -r '.started_at // empty' "$own" 2>/dev/null)
+    [ -n "$phase" ] && add "arc phase \`$phase\`${owner:+ owned by $owner}${since:+ since $since}, declared by this session — ${own#"$root"/} (reminder hooks outside this phase stand down; the owner clears it)"
   fi
 
   f="$root/.claude/task-runner/active-run.json"
@@ -92,15 +98,16 @@ cc_plugin_state() {
   done
   [ -n "$names" ] && add "goal ledger(s) from a hands-off run: $names — .claude/taskmaster/ (every auto-take is audited there)"
 
+  # A sentinel on disk but none under this session's key: the id changed across the compaction, or the file is another session's.
+  if [ -n "$sid" ] && [ -n "$(find "$root/.claude/cc-phase" -maxdepth 1 -name '*.json' 2>/dev/null | head -n 1)" ]; then
+    match=false; [ -n "$own" ] && [ -f "$own" ] && match=true
+    dir=$(cc_plugin_state "$root" skill-router)
+    mkdir -p "$dir" 2>/dev/null && { [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null; } && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null
+  fi
+
   [ -n "$lines" ] || exit 0
 
   printf '[skill-router] Context was compacted. Task state on disk that the summary may have dropped:\n%s' "$lines"
   printf 'Read each file before acting on it; a stale entry is bounded by its owner'"'"'s TTL, not by this notice.\n'
-
-  if [ -n "$sentinel_sid" ] && [ -n "$sid" ]; then
-    match=false; [ "$sentinel_sid" = "$sid" ] && match=true
-    dir=$(cc_plugin_state "$root" skill-router)
-    mkdir -p "$dir" 2>/dev/null && { [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null; } && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null
-  fi
 } 2>/dev/null || exit 0
 exit 0

@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.31.1 — 2026-11-12
+
+- **Compaction recall names only this session's phase.** `compact-capsule.sh` and the `compact` mod read `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) and no longer report another session's phase, or the old repo-wide file. `compact-log.jsonl` now records, when any sentinel is on disk, whether one is keyed by the post-compaction session id. Standing: gate; `scripts/__tests__/compact-capsule.test.sh`, `tests/compact.test.ts`.
+- **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
+
 ## 0.31.0 — 2026-11-09
 
 - **Blender and Meshy MCP calls route `gamedev:asset-pipeline`.** A new `tool` row kind matches an MCP call's tool name, and `hooks.json` now starts `route.sh` on MCP names holding `blender` or `meshy`. The nudge is one line, once per context, and no path in the call's arguments is read. The gamedev skills also gain file rows: a Blender glTF/FBX import or export script (`asset-pipeline`), a `.txt`, `.md` or extensionless licence file under an asset directory (`game-assets`), seeded RNG and noise calls (`seeded-generation`), and LUFS/LKFS, `dBTP`, `loudnorm` or `ebur128` (`game-platform-floors`). Image and model files stay dropped as signals. Answers retro issue 8 (2026-11-05): Blender and Meshy work never drew a gamedev, blender or meshy skill. Pinned by `route.test.sh` case 29, including its silent neighbours: an unrelated MCP call, a Higgsfield call, a `.png` or `.glb` edit, `Math.random()`, a font size, an OBJ export, a `LICENSE` at the root, and a `LicenseManager.cs` or `LicensesScreen.prefab` under `Assets/`.
