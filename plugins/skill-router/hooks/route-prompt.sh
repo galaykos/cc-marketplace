@@ -190,7 +190,7 @@ route_hold() {
       | join("; ")
     ' "$state_f" 2>/dev/null)
     if [ -n "$digest" ]; then
-      printf '[skill-router] Your recent edits may need these skills: %s. Load each one that applies, or say in one line why it does not.\n' "$digest"
+      printf '[skill-router] Your recent edits may need these skills: %s. Load each one that applies.\n' "$digest"
       upd=$(jq '(.pending_low // []) |= map(.flushed = true)' "$state_f" 2>/dev/null) \
         && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
     fi

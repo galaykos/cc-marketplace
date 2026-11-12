@@ -2,6 +2,10 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.19.4 — 2026-11-12
+
+- **`low-cognitive-load` says where it is reached from now.** skill-router 0.32.0 removed the row that suggested it after every source edit; the skill's reach line no longer claims that route. `coding-entry` still loads it before the first edit.
+
 ## 0.19.3 — 2026-11-12
 
 - **`/code-architecture:work` writes and clears this session's phase sentinel.** It passes `--session "${CLAUDE_SESSION_ID}"` to taskmaster's writer, clears with the same flag, and its hand-written fallback goes to `.claude/cc-phase/<session>.json`. If the writer it ran left no per-session file (a taskmaster before 0.56.0), the command writes that file by hand. The quick-fix eval graders name `.claude/cc-phase/` as the non-project path. Standing: recorded (command text).

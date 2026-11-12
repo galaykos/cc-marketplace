@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.56.1 — 2026-11-12
+
+- **A boosted run no longer adds clarify rounds or a second dry coverage round.** `ultra` told grill "extra clarifying rounds; no early ledger exit on first CLEAR sweep", against grill's own rule that a question must be able to change what gets built, and told coverage-check to stop "at two dry rounds or the 3-round cap", against coverage-check's "zero findings ends it". Both lines are gone; coverage-check's own loop decides. In the sessions the 2026-11-05 retro read, coverage rounds 2 and 3 found nothing. What a boosted run loses: the forced re-sweep of an all-CLEAR ledger and the second confirmation round.
+- **Grill follows the approaches plugin's own choice of mechanism.** It ran the four-agent blind panel for every approach decision; `approaches:approach-deliberation` says the inline slate is the default and the panel is for rework of existing code. Grill now defers to that rule. `/taskmaster:brainstorm` is unchanged and still runs the panel. Standing: agent-graded; no script checks which mechanism ran.
+
 ## 0.56.0 — 2026-11-12
 
 - **Each session has its own phase sentinel.** `scripts/phase-sentinel.sh` writes `<project root>/.claude/cc-phase/<session>.json`, one file per session, and `clear` removes only the caller's file. Before, one repo-wide `.claude/cc-phase.json` was shared: session B's write replaced session A's, B's clear removed it, and a sentinel written without `--session` silenced reminder hooks in every session. `write` and `clear` now require `--session` (exit 3 without it); `/taskmaster:task` and `/taskmaster:brainstorm` pass `${CLAUDE_SESSION_ID}`, which the host substitutes. The reminder hook reads only its own session's file, and so does the phase in its rank key (`cc_phase_now`). Another session's phase no longer moves which reminder speaks. The 120-minute TTL is kept: any reader deletes expired files in `.claude/cc-phase/`. The directory carries its own `.gitignore` (`*`). Standing: gate; `scripts/__tests__/phase-sentinel.test.sh` sections 10–11 (two sessions, legacy) and the marketplace repository's `scripts/smoke/hook-guard-tests.sh` rank-key case fail on 0.55.0.
