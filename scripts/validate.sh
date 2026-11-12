@@ -674,9 +674,12 @@ fi
 crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
 [ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 200-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
 
-# A ratchet on plugins over the per-plugin prose corpus cap, the channel neither per-file budget sees (pc_plugin_corpus's header).
+# A ratchet on plugins whose SKILL.md bodies together pass the per-plugin cap, the channel neither per-file budget sees (pc_plugin_corpus's header).
 corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || true
-[ -n "$corpus_gap" ] && lane_err "$corpus_gap" "more plugins now exceed the per-plugin on-invoke prose corpus cap than the committed baseline — cut or split a plugin's skills, do not raise scripts/plugin-corpus-baseline.json"
+[ -n "$corpus_gap" ] && lane_err "$corpus_gap" "more plugins now exceed the per-plugin SKILL.md body cap than the committed baseline — cut or split a plugin's skills, do not raise scripts/plugin-corpus-baseline.json"
+# References are reported, not gated: they load only when a body sends the model to them (pc_plugin_refs's header).
+refs_heavy=$(pc_plugin_refs plugins | tr '\n' ';' | sed 's/;$//; s/;/; /g')
+[ -n "$refs_heavy" ] && warn "skill references over 160,000 B (not a failure): $refs_heavy"
 
 # A lexical routing proxy over every SKILL.md description against labelled prompts (scripts/trigger-corpus.sh's header).
 trig_out=$(bash scripts/trigger-corpus.sh 2>&1); trig_rc=$?

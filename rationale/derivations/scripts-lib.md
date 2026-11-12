@@ -596,6 +596,28 @@ LIMITATION (honest scope), four residuals:
 
 Editor's note (2026-10-28): that CLAUDE.md text now lives in `.claude/skills/repo-gates/SKILL.md` § `scripts/context-budget.sh` (m13).
 
+Editor's note (2026-11-12): the measure changed from every `.md` under `skills/` to the `SKILL.md`
+bodies alone, and references moved to a WARN (`pc_plugin_refs`). Standing of this note: `recorded`.
+
+Why: residual 1 above, in practice. Counting references left task-runner 46 B and taskmaster 29 B
+under the cap (measured 2026-11-12: 159,954 B and 159,971 B). Three sessions then show the cost:
+2026-11-06 "still total 155 B over budget", followed by reviewer findings "three scope qualifiers
+lost in compression" on two cards and three review rounds on one; 2026-11-10 "12 bytes over the
+prose cap again", where a rule was cut to fit; the 2026-11-05 retro noted about 8 B of room. The
+gate was converting edits into compression passes, and the compression into rework, on bytes that
+are charged only when a body sends the model to read them.
+
+What the gate keeps: a ceiling on the sum of a plugin's skill bodies, which is what a skill load
+puts in context. Measured 2026-11-12: craft-layer 127,733 B, taskmaster 84,105 B, task-runner
+64,343 B; the baseline fell from 1 to 0. What it gives up: any ceiling on reference growth.
+craft-layer's references are 500,159 B and the WARN names it on every run; nothing fails.
+Comparison read the same day: obra/superpowers 7.0.2 gates each `SKILL.md` under 20,000 B and
+does not meter references (349,688 B of skill prose in one plugin).
+
+Pinned by `scripts/smoke/hook-budget-tests.sh`: a 170,000 B reference passes the body cap and is
+named by the report; thirteen 13,000 B bodies fail it; a generated reference and a runtime `.html`
+are not reported.
+
 ### pc_pick_parity (retired)
 
 ```text
