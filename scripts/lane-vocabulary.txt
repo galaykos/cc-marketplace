@@ -165,6 +165,7 @@ ci-workflow-write-block
 claim-reversal-discipline
 comment-noise-write-block
 comment-volume-write-block
+commit-secret-denial
 config-file-write-consent
 debug-probe-commit-consent
 destructive-command-classification

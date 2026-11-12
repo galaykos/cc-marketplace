@@ -11,6 +11,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/commit-scan.sh\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [

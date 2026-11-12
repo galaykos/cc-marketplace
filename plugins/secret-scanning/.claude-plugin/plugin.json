@@ -1,6 +1,6 @@
 {
   "name": "secret-scanning",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read.",
   "author": {
     "name": "Ivan-WG",
@@ -21,6 +21,12 @@
       "type": "boolean",
       "title": "Secret guard (CC_SECRET_SCAN)",
       "description": "Refuse a write or shell command that puts a high-confidence secret on disk: on or off. The environment variable CC_SECRET_SCAN overrides this.",
+      "default": true
+    },
+    "cc_secret_commit_scan": {
+      "type": "boolean",
+      "title": "Commit and push secret scan (CC_SECRET_COMMIT_SCAN)",
+      "description": "Refuse a git commit or push whose added lines hold a high-confidence secret: on or off. The environment variable CC_SECRET_COMMIT_SCAN overrides this.",
       "default": true
     },
     "cc_unicode_scan": {

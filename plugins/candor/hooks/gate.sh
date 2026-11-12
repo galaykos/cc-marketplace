@@ -328,6 +328,8 @@ QUOTE_EXCERPT_BYTES=262144
 QUOTE_EXTRACT_SECONDS=2
 BARE_PUSHBACK_MAX_BYTES=400
 CLAIM_WINDOW_LINES=30
+# A marker lock this old was left by a killed gate: its holder rewrites two short files in milliseconds.
+MARKER_LOCK_STALE_SECONDS=5
 
 input=$(cat)
 
@@ -359,14 +361,43 @@ root=$(cc_state_root "$cwd") || exit 0
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
 [ -n "$agent_id" ] && agent_sfx="-$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
+# Two sessions in one repo share the state dir: each marker line, and the nudge file, carries this context's key.
+ctx=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
+ctxk=$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)
 
 # The host's stop_hook_active is shared by every Stop hook: only the clause this gate recorded as blocking stands down on its continuation.
 state_dir=$(cc_plugin_state "$root" candor)
 claimed="$state_dir/blocked$agent_sfx"
+
+# Sessions stopping at once share last/blocked: a noclobber (O_EXCL) file serializes them, not flock (macOS) or mkdir (uutils let two win); `true`, as `:` exits POSIX mode; untaken in ~0.4 s, write unlocked.
+lock_file="$state_dir/.lock$agent_sfx"; lock_held=""
+lock_take() {
+  local n=0 m rc
+  while [ "$n" -lt 20 ]; do
+    set -C; { true > "$lock_file"; } 2>/dev/null; rc=$?; set +C
+    [ "$rc" = 0 ] && { lock_held=1; return 0; }
+    m=$(stat -c %Y "$lock_file" 2>/dev/null || stat -f %m "$lock_file" 2>/dev/null)
+    case "$m" in
+      '') ;;
+      *[!0-9]*) sleep 0.02 ;;
+      *) if [ $(( $(date +%s) - m )) -gt "$MARKER_LOCK_STALE_SECONDS" ]; then rm -f "$lock_file" 2>/dev/null; else sleep 0.02; fi ;;
+    esac
+    n=$((n + 1))
+  done
+  return 1
+}
+lock_drop() { [ -z "$lock_held" ] || rm -f "$lock_file" 2>/dev/null; lock_held=""; }
+trap 'lock_drop' EXIT
+
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
-  skip=$(cat "$claimed" 2>/dev/null)
-  rm -f "$claimed" 2>/dev/null
+  skip=$(awk -v k="$ctxk" '$1 == k && NF == 2 { v = $2 } END { print v }' "$claimed" 2>/dev/null)
+  if [ -n "$skip" ]; then
+    lock_take
+    awk -v k="$ctxk" '$1 != k && NF == 2' "$claimed" > "$claimed.$$" 2>/dev/null
+    if [ -s "$claimed.$$" ]; then mv -f "$claimed.$$" "$claimed" 2>/dev/null; else rm -f "$claimed" "$claimed.$$" 2>/dev/null; fi
+    lock_drop
+  fi
 fi
 
 verdict=""
@@ -701,11 +732,13 @@ if [ "$verdict" = "run" ]; then
     run_msg="$run_msg
   This turn answered a pause request or a question, so the stop is allowed; the run's next work turn is checked again."
   elif [ "$run_mode" = "block" ]; then
-    # One block per HEAD: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
+    # One block per HEAD and context: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
     nudge="$root/.claude/task-runner/gate-nudge"
+    [ -z "$ctx" ] || nudge="$nudge-$ctxk"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
       pass_note="$run_owed"               # bounded at this HEAD — printed, not blocked
     elif printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
+      find "$root/.claude/task-runner" -maxdepth 1 -name 'gate-nudge-*' ! -name "${nudge##*/}" ! -newer "$RUN_SENTINEL" -delete 2>/dev/null
       block_turn "$run_msg" "$run_note"
     elif [ "$sha_active" != "true" ]; then
       # No writable marker, so no per-HEAD bound: honour the shared flag here only, or an unwritable state dir blocks forever.
@@ -718,7 +751,7 @@ if [ "$verdict" = "run" ]; then
 fi
 
 tailf=""
-trap '[ -n "$tailf" ] && rm -f "$tailf"' EXIT
+trap '[ -n "$tailf" ] && rm -f "$tailf"; lock_drop' EXIT
 tj() { jq "$@" "$tailf"; }
 read_transcript() {
   # A subagent's report lives in its own transcript; the parent's path is the fallback for a payload without one.
@@ -1228,22 +1261,26 @@ report_verdict() {
     visual) case "$uv_mode" in warn) mode=warn ;; esac ;;
   esac
 
-  # Loop guard: one block per clause and final text, a line per clause, so two clauses on one unchanged text cannot take turns.
+  # Loop guard: one block per clause and final text, a line per context and clause, so two clauses on one unchanged text cannot take turns.
+  # Other contexts' lines are kept, the newest 127: a line older than that costs its session one more block.
   marker="$state_dir/last$agent_sfx"
   state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
-  if [ -r "$marker" ] && grep -qxF "$verdict $state" "$marker" 2>/dev/null; then
+  if [ -r "$marker" ] && grep -qxF "$ctxk $verdict $state" "$marker" 2>/dev/null; then
     pass_turn
   fi
   if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } \
-         && { grep -v "^$verdict " "$marker" 2>/dev/null; printf '%s %s\n' "$verdict" "$state"; } > "$marker.$$" 2>/dev/null \
+         && { lock_take || :; } \
+         && { awk -v k="$ctxk" -v v="$verdict" 'NF == 3 && !($1 == k && $2 == v)' "$marker" 2>/dev/null | tail -n 127; printf '%s %s %s\n' "$ctxk" "$verdict" "$state"; } > "$marker.$$" 2>/dev/null \
          && mv -f "$marker.$$" "$marker" 2>/dev/null; }; then
     # No marker, no per-text bound: honour the shared flag here only, so unwritable state cannot block the same turn forever.
     [ "$sha_active" = "true" ] && pass_turn
   fi
 
   if [ "$mode" = "block" ]; then
-    mkdir -p "$state_dir" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
+    mkdir -p "$state_dir" 2>/dev/null && { awk -v k="$ctxk" '$1 != k && NF == 2' "$claimed" 2>/dev/null | tail -n 127; printf '%s %s\n' "$ctxk" "$verdict"; } > "$claimed.$$" 2>/dev/null \
+      && mv -f "$claimed.$$" "$claimed" 2>/dev/null
   fi
+  lock_drop
 
   local msg note
   case "$verdict" in

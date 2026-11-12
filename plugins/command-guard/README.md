@@ -17,7 +17,7 @@ that classifies the command string itself.
 | Verdict | When | Effect |
 |---|---|---|
 | `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env` or a `cp`/`mv`/`tee` over a live one, `artisan key:generate` over a set `APP_KEY`, `cd /missing/dir; …` (the rest would run in the live tree), `git clean -fdx`, `git push --force`, `git push origin :branch`, `rm -rf .git`, `ALTER TABLE … DROP COLUMN`, `db.coll.drop()`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gsutil rm -r`, `gcloud … delete`, `firestore:delete --all-collections` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
-| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git reset --merge`, `git switch -f`, `git clean -fd`, `git worktree remove --force`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `git checkout -- <file>` / `git restore <file>` / `git rm -f <file>` *when it holds uncommitted changes*, `xargs rm -rf`, `find … -exec rm -rf`, `gh api -X DELETE`, `DELETE FROM`, an `UPDATE` with no `WHERE`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh`, a `Write` that replaces an existing `.env` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
+| `ask` | destructive but scoped and commonly intended — `git commit --no-verify` and the other hook or signing bypasses, `gh pr review --approve` / `gh pr comment` and the API posts of review text (see [below](#hook-bypass-and-published-review-text)), `git reset --hard`, `git reset --merge`, `git switch -f`, `git clean -fd`, `git worktree remove --force`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `git checkout -- <file>` / `git restore <file>` / `git rm -f <file>` *when it holds uncommitted changes*, `xargs rm -rf`, `find … -exec rm -rf`, `gh api -X DELETE`, `DELETE FROM`, an `UPDATE` with no `WHERE`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh`, a `Write` that replaces an existing `.env` | the user gets a permission prompt naming what is lost — with no interactive prompt (`claude -p`, a headless agent, `dontAsk`) the request is **auto-denied**, see [Running headless / in CI](#running-headless--in-ci) |
 | `allow` | everything else, including `rm -rf node_modules`, `rm -rf .playwright-mcp` (the Playwright MCP's scratch dir, unless it is a symlink or the command `cd`s first, in a subshell or through `env -C` too), `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
 `rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
@@ -86,6 +86,44 @@ are listed in rules.md.
 Full rule list, the reading algorithm, and the guard's stated limits:
 [`skills/destructive-commands/references/rules.md`](skills/destructive-commands/references/rules.md).
 
+## Hook bypass and published review text
+
+Two asks that are not about lost data. Both are a prompt, never a block, and both go silent
+under `CLAUDE_DESTRUCTIVE_GUARD=deny-only` with the rest of the ask tier. **Under `claude -p`,
+a headless agent or `dontAsk`, an ask is a deny**: the command does not run (see
+[Running headless](#running-headless--in-ci)).
+
+- **A git command that skips the repository's hooks or signing.** `--no-verify` on `git commit`,
+  `push`, `merge`, `rebase`, `am`, `cherry-pick` or `pull`; `-n` on `git commit` or `git am`,
+  the two subcommands whose own docs make `-n` mean `--no-verify` (on `push` it is `--dry-run`, on
+  `merge`, `rebase` and `pull` `--no-stat`, on `cherry-pick` and `revert` `--no-commit`, so those
+  pass); `-c core.hooksPath=…` or `--config-env=core.hooksPath=…` before one of those
+  subcommands or `revert`, and `git config` setting or unsetting `core.hooksPath`; `--no-gpg-sign`,
+  `-c commit.gpgsign=false`, or `git config commit.gpgsign false`; `HUSKY=0`, `SKIP=…`
+  (pre-commit) or `LEFTHOOK=0` in front of one of them. Words are read as the shell reads them,
+  so a commit message that mentions `--no-verify` passes, as do `grep -- --no-verify` and
+  `git log --no-verify`; a later `--verify` (or `-S`, for signing) cancels the bypass, as in git.
+  It reads through an `if`/`then`/`do`/`while`/`!` head, the `sudo`, `env`, `nice`, `timeout`,
+  `xargs`, `stdbuf` and `flock` wrappers, `$'…'` quoting, and a `$( )` or backtick substitution,
+  quoted or not. Missed: a bypass set by an earlier `export HUSKY=0`, a git alias, `GIT_CONFIG_*`
+  variables, `flock -c '…'`, or a script that commits.
+- **Review or comment text published under your name.** `gh pr review` with `--approve`,
+  `--comment`, `--request-changes`, `--body` or `--body-file` (or `-a -c -r -b -F`);
+  `gh pr comment` and `gh issue comment` (not `--web`); `gh api` with POST, PATCH or PUT to a
+  pull request's `reviews` or `comments`, an issue's `comments`, a review comment's `replies`, a
+  review's `events`, or an existing `pulls/comments/N` or `issues/comments/N` (`gh api` sends
+  GET unless `-X` names a method or a `-f`/`-F`/`--input` body makes it POST); and a GraphQL
+  `addPullRequestReview…`, `addComment`, `submitPullRequestReview`, `updateIssueComment`,
+  `updatePullRequestReview` or `updatePullRequestReviewComment` mutation, to `graphql`, `/graphql`
+  or a full URL. A `-R`/`--repo` anywhere is skipped. Silent:
+  `gh pr view`, a GET of those paths, `gh pr create`, and `gh pr merge`, which git-workflow's
+  merge-checks hook already asks about. Missed: a mutation read from a file (`-F query=@q.graphql`),
+  `--input` naming a GraphQL body, and a script or `curl` posting to the API.
+
+Standing: **gate** for both, with a human in it: `destructive-guard.test.sh` holds every
+spelling above, the silent neighbours and the payload path (sections `== hook and signing
+bypass` and `== publishing review text`).
+
 ## The second hook: an ask before the agent edits its own guardrails
 
 `hooks/config-guard.sh` is a separate `PreToolUse` hook on file writes; on a Bash
@@ -100,8 +138,9 @@ type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
 `phpunit.xml[.dist]`, `jest.config.*`, `vitest.config.*`, `.mocharc*`, `karma.conf.*`,
 `.coveragerc`, `.nycrc*`, `codecov.yml`), CI config (`.github/workflows/*.y[a]ml`,
 `.gitlab-ci.yml`), git hooks (`.git/hooks/*`, `.husky/*`, `.pre-commit-config.yaml`,
-`lefthook.yml`) and analyzer baselines (`phpstan-baseline.neon[.dist]`,
-`phpstan-baseline.php`, `psalm-baseline.xml`, `eslint-suppressions.json`).
+`lefthook.yml`), analyzer baselines (`phpstan-baseline.neon[.dist]`,
+`phpstan-baseline.php`, `psalm-baseline.xml`, `eslint-suppressions.json`) and this plugin's own
+[strictness file](#making-one-project-stricter), `.claude/command-guard-strict`.
 
 It asks on a Bash command that writes baseline entries too: `--generate-baseline` (and
 phpstan's `-b` after a `phpstan` word), psalm's `--set-baseline`, eslint's `--suppress-all`
@@ -121,8 +160,8 @@ prompt says so. A file that does not exist yet is allowed through — creating a
 is not relaxing one. An MCP `apply_patch` names no single path and passes silently.
 A Bash write onto one of these files (a redirect, `tee`, `sed -i`)
 is asked about too — not a python or php write, a `cp`/`mv` destination or a path held
-in a variable — and a plain `rm` of a config passes both hooks: the command guard
-judges only `rm -r` and `.env`. And it self-exempts
+in a variable — and a plain `rm` of a config other than the strictness file passes both
+hooks: the command guard judges only `rm -r` and `.env`. And it self-exempts
 inside a marketplace repository — one with `.claude-plugin/marketplace.json` at the git
 root — which edits these files as its product.
 
@@ -201,8 +240,9 @@ headless agent, in a subagent, and in any session started with `dontAsk`, there 
 interactive prompt: the host resolves the permission request by refusing it. The
 command does not run and the turn continues with a refusal, so every row of the `ask`
 tier above — `git reset --hard`, `rm -rf ./dir`, `DELETE FROM`, `kubectl delete pod`,
-`terraform apply -auto-approve`, `curl … | sh` — behaves as a hard block there, and so
-does config-guard's ask on an existing `tsconfig.json` or `hooks.json`.
+`terraform apply -auto-approve`, `curl … | sh`, `git commit --no-verify`, `gh pr review
+--approve`, an `ask` line in `.claude/command-guard-strict` — behaves as a hard block there, and
+so does config-guard's ask on an existing `tsconfig.json` or `hooks.json`.
 
 That makes `deny-only` the **automation profile**, not merely the quiet one: it keeps
 every irreversible-loss block and hands the scoped-and-commonly-intended tier back to
@@ -277,6 +317,39 @@ and `kubectl delete pod` stop being announced. Prefer the allow-file below if
 only a few specific commands are noisy — it is narrower than switching a tier
 off.
 
+## Making one project stricter
+
+`.claude/command-guard-strict` in the project raises a verdict for the commands it lists and can
+never lower one. One entry per line, `ask <regex>` or `deny <regex>`, the regex matched like the
+allow-file's (unanchored, against the normalised, lowercased command; write it in lowercase).
+The dialect is bash's `[[ =~ ]]`, POSIX ERE: use `[[:space:]]` and `[0-9]`, since `\d` matches a
+literal `d` and `\s` works only with glibc. `#` lines and blank lines are skipped.
+
+```
+# .claude/command-guard-strict
+ask ^npm install
+deny git push( |$)
+```
+
+- An `ask` line turns a silent command into a prompt; a `deny` line blocks a silent or asked
+  one. Under `deny-only` an `ask` line goes silent with the rest of the ask tier, and under
+  `CLAUDE_DESTRUCTIVE_GUARD=ask` a `deny` line prompts.
+- A line that would loosen (an `allow` line on an asked or denied command, an `ask` line on a
+  denied one) is skipped, and the call carries one note naming the line. Only the allow-file
+  releases a built-in verdict, and it has the last word over this file too.
+- The file is read as data, never sourced. Over 16,384 bytes, unreadable, a line that is not
+  `ask`/`deny`/`allow` plus a regex, or a regex that does not compile: the whole file is
+  ignored, the built-in verdicts stand, and each command carries one note saying why. The note
+  is a `systemMessage` for you, not text for the model; `--check` prints it as a `NOTE` line.
+- config-guard asks before a `Write`, `Edit` or Bash redirect, `tee` or `sed -i` changes an
+  existing one, and before `rm`, `unlink`, `mv`, `git rm` or `git mv` removes it: removal only
+  loosens, and a strict deny's reason names the file. Creating one is silent, since a new file can
+  only add strictness. Removing its whole `.claude` directory, or by glob, is not read here.
+
+Standing: **gate** for the raise, the skipped loosening line, the malformed and oversized file
+and the protection: `destructive-guard.test.sh` (`== project strictness file`) and
+`config-guard.test.sh`.
+
 ## Checking a command without running it
 
 ```
@@ -297,6 +370,39 @@ tier-by-tier table and the reasoning). From your own terminal it works for every
 tier; the harness drives it as a plain script, which is why the tests are
 unaffected.
 
+### Checking your permission settings
+
+```
+/command-guard:check --settings
+```
+
+runs `scripts/settings-lint.sh`, which reads `.claude/settings.json`,
+`.claude/settings.local.json` and your user `settings.json` (under `CLAUDE_CONFIG_DIR` when
+set) as data, never writes them, and prints `<file>: <key path>: <risk>` for each of:
+
+- a bare `Bash` or `Bash(*)` allow rule;
+- an allow rule that matches a command this guard asks on (`Bash(git *)` covers
+  `git reset --hard`), tested against a fixed list of those commands with the host's `*` and
+  `:*` rule syntax;
+- `permissions.defaultMode: bypassPermissions` (from a project file it has had no effect since
+  CLI 2.1.257, and the line says so);
+- `disableAllHooks: true`;
+- `CLAUDE_AI_TRAILER=allow` in an `env` block, where it lets every command through
+  git-workflow's trailer check instead of the one it was typed for;
+- `permissions.additionalDirectories` holding `/`, `~` or your home folder;
+- a guard's off switch (`CC_CONFIG_GUARD`, `CC_SECRET_SCAN`, `CC_DB_GUARD`,
+  `CLAUDE_DESTRUCTIVE_GUARD=off`, and the other guard switches the script lists) set to `off` in
+  `env`, or set off as a `/config` option in your user file's `pluginConfigs`;
+  `CLAUDE_DESTRUCTIVE_GUARD=deny-only` only in the user file, since a project's automated run is
+  where this README recommends it.
+
+Exit `0` nothing found, `1` findings, `2` a file is not a JSON object (the others are still read),
+`3` no `jq`, `64` a bad argument. Not read: managed settings, `--settings` files, rules spelled
+another way than the sample commands, and any guard switch the script does not list. Standing:
+**gate** for what it flags and its exit codes (`settings-lint.test.sh`, which also holds every
+sample command to this guard's ask tier and every switch name to the marketplace README's
+off-switch table); **recorded** for running it, since nothing runs it for you.
+
 ## What has teeth
 
 Standing markers per the marketplace convention (see
@@ -306,6 +412,9 @@ Standing markers per the marketplace convention (see
 |---|---|---|
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
+| hook or signing bypass, published review text | **gate**, with a human in it | the same prompt; tested in `destructive-guard.test.sh`; a deny under `-p` |
+| `.claude/command-guard-strict` | **gate** | raises a listed command to ask or deny; a loosening line is skipped with a note; tested |
+| `/command-guard:check --settings` | **gate** for its rules, **recorded** for its use | prints one line per risky setting when you run it; nothing runs it for you |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit`; a Bash command naming it passes only when every segment is a pure read (`cat`, `grep`, `git log`, …) |
 | agent writes to a settings / hooks / lint config or analyzer baseline file, or runs a baseline regenerate | **gate**, with a human in it — `config-guard.sh` | a permission prompt on an existing listed file or a listed flag; it reads the path or flag, so whether the change *weakens* anything is **agent-graded** |
 | the classification rules themselves | **gate**, tested | the assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness — recount: `bash plugins/command-guard/scripts/__tests__/destructive-guard.test.sh \| tail -1` |

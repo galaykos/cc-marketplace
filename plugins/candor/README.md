@@ -85,6 +85,14 @@ clauses 1 and 6 run, over the subagent's final report; a subagent has no user tu
 push back and no session that edited files, so the rest disarm there. Markers are
 suffixed per agent, so a subagent block never spends the main thread's disarm.
 
+**Two sessions in one repo (0.12.5).** Each marker line and clause 4's nudge carry the
+session's key (a checksum of the payload's transcript path, else its session id), so one
+session never spends another's disarm, loop bound or one block per HEAD. The run itself is
+repo-wide on purpose, because a later session resumes it: a second session in the same repo
+is held once per HEAD by a run it did not register, is told it may delete the run file, and
+its clean stop can retire the first session's `closed-run.json`. Standing: **gate** for the
+keying (`scripts/__tests__/gate.test.sh`, session cases); the shared run is a recorded limit.
+
 Clauses 1, 2 and 6 judge the **final assistant message only**. Clause 3 matches its
 claim and its honesty escape over the last 30 lines of assistant text, and that
 window bleeds in both directions (measured, documented in the marketplace repository's
@@ -100,7 +108,7 @@ disables clause 5; `CC_UNITY_VISUAL_GATE=off|warn` turns clause 7 off or makes i
 turns it off or makes it print, with the whole gate. Fails open on missing `jq`,
 an unreadable transcript, or empty text. One block per clause and distinct final message
 (clauses 1-3 and 6; since 0.10.6 each clause keeps its own record, so a text two clauses
-fire on is blocked once by each, not by both in turn) or per HEAD (clause 4), so a
+fire on is blocked once by each, not by both in turn) or per HEAD and session (clause 4), so a
 disagreement cannot loop — and a clause
 that is bounded (or in warn mode) prints without silencing the others: a run held
 once at a HEAD is still checked for invented citations and naked completion claims
@@ -246,7 +254,7 @@ so the injected card and the skill body cannot drift.
 
 | Event | Script | Does |
 | --- | --- | --- |
-| `Stop`, `SubagentStop` | `hooks/gate.sh` | the seven clauses above. A `Stop` block prints JSON: a reason the model must act on, and one line you see ("candor sent the turn back: …"). A `SubagentStop` block still exits 2 with the reason on stderr, because a one-line message there does not reach you. A later stop at a commit clause 4 already blocked once passes, and shows you one line of what the run still owes |
+| `Stop`, `SubagentStop` | `hooks/gate.sh` | the seven clauses above. A `Stop` block prints JSON: a reason the model must act on, and one line you see ("candor sent the turn back: …"). A `SubagentStop` block still exits 2 with the reason on stderr, because a one-line message there does not reach you. A later stop in the same session at a commit clause 4 already blocked once passes, and shows you one line of what the run still owes |
 | `PreToolUse` (Agent, Task, Write, Edit, MultiEdit, Bash) | `hooks/avert.sh` | the text about to reach a worker or disk declares doing less than what was named for a reason the user did not give, and no human turn raised that term: the call becomes a permission question, once per term per session. A declared substitute (original, invented, placeholder, stand-in or look-alike plus a noun such as mascot or art, "not copies of", "instead of the real") or precaution language ("to be safe", "as a precaution") asks on its own. A topic term (trademark, copyright, a licensing or legal risk, generic, look-alike, inspired-by) asks only beside a cut cue in the same clause (skip, avoid, drop, leave out, out of scope, instead, defer, omit…), and never in a write to an auto-memory note: a risk list, a homoglyph probe or a credits line names the subject without cutting anything. A Bash call's `git commit` message and `gh pr create`/`edit` title and body are not read: they record a hedge already made (a heredoc opened beside them, or text after a `;`, `&` or `|`, still is) `CC_AVERT=notify` makes it a notification the call proceeds past. Vocabulary-bound — an avert that never names its reason passes, and so does a topic term whose cut sits in another clause or line (an "Out of scope:" heading over a list); `CC_AVERT=off` silences it |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton, plus a reader name's `Reader` line (~160 tokens per prompt — measured 636–637 chars at `lite`/`full`/`ultra`, 733–734 at a `wenyan-*` level, 862 at `newcomer`, 743 at `expert`, 825 at `on-call` — and nothing when off) |

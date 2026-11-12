@@ -111,5 +111,34 @@ out=$(cd "$Q" && bash "$SCRIPT" --cached 2>/dev/null); rc=$?
 out=$(cd "$T" && bash "$SCRIPT" --cached 2>/dev/null); rc=$?
 [ "$rc" -eq 2 ] && ok "--cached outside a repository exits 2" || bad "--cached outside a repository exits 2" "rc=$rc out=$out"
 
+# --tracked reads what `commit -a` records: unstaged tracked lines, not untracked files; an unborn HEAD diffs against the empty tree.
+printf 'k=%s\n' "$TOK" >> "$Q/z.txt"; printf 'k=%s\n' "$TOK" > "$Q/untracked.txt"
+out=$(cd "$Q" && bash "$SCRIPT" --tracked 2>/dev/null); rc=$?
+[ "$rc" -eq 1 ] && [ "$out" = "z.txt:3 an AWS access key ID (AKIA****, 20 chars)" ] \
+  && ok "--tracked reads an unstaged tracked line, not an untracked file" || bad "--tracked reads an unstaged tracked line, not an untracked file" "rc=$rc out=${out:-<none>}"
+U="$T/unborn"; git init -q "$U"; printf 'k=%s\n' "$TOK" > "$U/n.txt"; git -C "$U" add n.txt
+out=$(cd "$U" && bash "$SCRIPT" --tracked 2>/dev/null); rc=$?
+[ "$rc" -eq 1 ] && [ "$out" = "n.txt:1 an AWS access key ID (AKIA****, 20 chars)" ] \
+  && ok "--tracked on an unborn HEAD reads the index's files" || bad "--tracked on an unborn HEAD reads the index's files" "rc=$rc out=${out:-<none>}"
+out=$(cd "$Q" && bash "$SCRIPT" --tracked extra 2>&1); rc=$?
+[ "$rc" -eq 2 ] && ok "--tracked with another argument exits 2" || bad "--tracked with another argument exits 2" "rc=$rc out=$out"
+
+# --outgoing reads each commit a push sends, so a secret a later outgoing commit removed is still found; a pushed one is not.
+O="$T/out"; git init -q --bare "$T/remote.git"; git init -q -b main "$O"
+o() { git -C "$O" -c user.email=t@t -c user.name=t "$@" >/dev/null 2>&1; }
+printf 'base\n' > "$O/a.txt"; o add -A; o commit -qm base; o remote add origin "$T/remote.git"; o push -q -u origin main
+printf 'x\nk=%s\n' "$TOK" > "$O/s.txt"; o add s.txt; o commit -qm secret; printf 'x\n' > "$O/s.txt"; o commit -qam scrub
+want="$(git -C "$O" rev-parse --short HEAD~1):s.txt:2 an AWS access key ID (AKIA****, 20 chars)"
+out=$(cd "$O" && bash "$SCRIPT" --outgoing 2>/dev/null); rc=$?
+[ "$rc" -eq 1 ] && [ "$out" = "$want" ] && ok "--outgoing names commit:file:line for a secret a later outgoing commit removed" \
+  || bad "--outgoing names commit:file:line for a secret a later outgoing commit removed" "rc=$rc out=${out:-<none>}"
+out=$(cd "$O" && bash "$SCRIPT" --outgoing HEAD 2>/dev/null); rc=$?
+[ "$rc" -eq 1 ] && [ "$out" = "$want" ] && ok "--outgoing <rev> reads the same commits" || bad "--outgoing <rev> reads the same commits" "rc=$rc out=${out:-<none>}"
+o push -q
+out=$(cd "$O" && bash "$SCRIPT" --outgoing 2>/dev/null); rc=$?
+[ "$rc" -eq 0 ] && [ -z "$out" ] && ok "--outgoing after the push exits 0, silent" || bad "--outgoing after the push exits 0, silent" "rc=$rc out=$out"
+out=$(cd "$O" && bash "$SCRIPT" --outgoing --output=x 2>&1); rc=$?
+[ "$rc" -eq 2 ] && [ ! -e "$O/x" ] && ok "--outgoing refuses a -led revision, exit 2" || bad "--outgoing refuses a -led revision, exit 2" "rc=$rc out=$out"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

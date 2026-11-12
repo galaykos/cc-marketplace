@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config (config_kind); on Bash, the first such target of the first eight, or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
-# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm, a quoted regenerate flag or one in a heredoc body no shell reads, phpstan's -b behind a script name. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config or the command-guard-strict file (config_kind); on Bash, the first such target of the first eight, an rm/unlink/mv/git rm/git mv of an existing command-guard-strict (strict_removal), or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
+# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm of any other config, the strict file removed with its directory or by glob, a quoted regenerate flag or one in a heredoc body no shell reads, phpstan's -b behind a script name. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -280,6 +280,7 @@ config_kind() {
   b=$(basename "$1")
   case "/$1" in
     */.claude/settings.json|*/.claude/settings.local.json|*/.claude/settings.*.json) echo "a Claude Code settings file"; return ;;
+    */.claude/command-guard-strict)                                                  echo "command-guard's strictness file"; return ;;
     */.claude/hooks/*|*/hooks/hooks.json)                                            echo "a hooks configuration"; return ;;
     */.github/workflows/*.yml|*/.github/workflows/*.yaml)                             echo "a CI configuration"; return ;;
     */.husky/*|*/.git/hooks/*)                                                       echo "a git hook"; return ;;
@@ -339,6 +340,33 @@ baseline_regen() {
     }' 2>/dev/null
 }
 
+# Each operand naming .claude/command-guard-strict that rm, unlink, mv, git rm or git mv takes: removing the file only loosens.
+strict_removal() {
+  local c=$1
+  case "$c" in *'<<'*) c=$(cc_strip_heredoc_bodies inert "$c") ;; esac
+  printf '%s\n' "$c" | awk '
+    function judge(   j, b, g) {
+      for (j = 1; j <= nw && (wv[j] ~ /^[A-Za-z_][A-Za-z0-9_]*=/ || wv[j] ~ /^(sudo|doas|command|builtin|exec|nohup|env)$/ || j > 1 && wv[j] ~ /^-/); j++) ;
+      b = wv[j]; sub(/^.*\//, "", b)
+      if (b == "git") { for (j++; j <= nw && wv[j] ~ /^-/; j++) if (wv[j] ~ /^-[Cc]$/) j++; g = 1; b = wv[j] }
+      if (g ? b ~ /^(rm|mv)$/ : b ~ /^(rm|unlink|mv)$/)
+        for (j++; j <= nw; j++) if (wv[j] ~ /(^|\/)\.claude\/command-guard-strict\/?$/) print wv[j]
+      nw = 0
+    }
+    {
+      s = $0; n = length(s)
+      for (i = 1; i <= n + 1; i++) {
+        c = i <= n ? substr(s, i, 1) : "\n"
+        if (q != "") { if (c == q) q = ""; else w = w c; continue }
+        if (c == "\\") { w = w substr(s, ++i, 1); inw = 1; continue }
+        if (c == "\047" || c == "\"") { q = c; inw = 1; continue }
+        if (c == "#" && !inw) { i = n; continue }
+        if (c ~ /[ \t;&|()<>`\n]/) { if (inw) wv[++nw] = w; w = ""; inw = 0; if (c !~ /[ \t]/) judge(); continue }
+        w = w c; inw = 1
+      }
+    }' 2>/dev/null
+}
+
 MAX_BASH_TARGETS=8
 
 {
@@ -365,12 +393,14 @@ MAX_BASH_TARGETS=8
   if [ -n "$base" ]; then
     verb=regenerating; kind="an analyzer baseline"
   elif [ "$tool" = Bash ]; then
+    removed=$(strict_removal "$cmd")
     targets=$(cc_bash_write_targets "$cmd" | head -n "$MAX_BASH_TARGETS")
-    [ -n "$targets" ] || exit 0
+    [ -n "$removed$targets" ] || exit 0
     cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
     file=""
     while IFS= read -r p; do
       [ -n "$p" ] || continue
+      raw=$p
       # Without a cwd a relative target would resolve against `/`.
       case "$p" in
         /*) ;;
@@ -380,9 +410,11 @@ MAX_BASH_TARGETS=8
       kind=$(config_kind "$p")
       [ -n "$kind" ] && [ -f "$p" ] && { file=$p; break; }
     done <<EOF_T
+$removed
 $targets
 EOF_T
     [ -n "$file" ] || exit 0
+    case $'\n'"$removed"$'\n' in *$'\n'"$raw"$'\n'*) verb=removing ;; esac
     base=$(basename "$file")
   else
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)

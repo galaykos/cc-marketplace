@@ -180,6 +180,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
 | `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
+| `CC_SECRET_COMMIT_SCAN` | secret-scanning | on | Refuse a git commit or push whose added lines hold a high-confidence secret: on or off |
 | `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box, and ask before sending it (mask, send as typed, or ca … |
 | `CC_SECRET_REDACT` | secret-scanning | on | Mask secrets in tool output before the model or the transcript sees them: on or off |
 | `CC_SECRET_SCAN` | secret-scanning | on | Refuse a write or shell command that puts a high-confidence secret on disk: on or off |

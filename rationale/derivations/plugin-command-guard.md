@@ -661,6 +661,136 @@ The host blocks a run past hooks.json's 15 s (onFailure: block), so a judgment s
 (12; the harness lowers it) is stopped and asks, in every mode: it has not ruled out a deny. No mktemp or sleep: unwatched.
 ```
 
+### Added 2026-11-10 (0.10.0): hook bypass, published review text, the strictness file
+
+Written for this release, not moved from code.
+
+`git_gh_bypass` / `check_git_gh`. Track 7 rows S1 and S4 of the 2026-11-07 integration roadmap: no hook
+asked on `--no-verify`, and merge and workflow edits were covered while publishing review text was not.
+Both are asks, not denies: each is often the user's own intent, and neither loses data. `-n` was read from
+git 2.53's own man pages on 2026-11-10: `--no-verify` for `commit` and `am`; `--dry-run` for `push`;
+`--no-stat` for `merge`, `rebase` and `pull`; `--no-commit` for `cherry-pick` and `revert`. The brief that
+asked for this said "commit and merge"; the docs say commit and am, and the code follows the docs.
+`cherry-pick` has no `--no-verify` in 2.53 (git rejects it); it is in the set because the roadmap row named
+it, and an ask before a command that fails anyway costs one prompt.
+
+The words are read with `rm_backslash_target`'s quote removal so a commit message naming `--no-verify` is
+one word, not a flag; `norm_cmd` strips quotes and would have made `git commit -m "fix --no-verify"` fire.
+The check runs once on the whole command (heredoc bodies stripped), not per `split_segments` segment:
+that splitter cuts on every brace, and `gh api repos/{owner}/{repo}/…` is gh's own placeholder syntax, so
+per segment the endpoint arrived as `repos/`. The word scan splits on a brace only when it stands alone
+as a word, as bash does. A case pattern over the normalised command runs first, so a command naming none
+of the shapes forks nothing. Measured through the hook, 21 interleaved runs each, against 0.9.6: after the
+first cut (per segment) `git status && ls -la` 30.4 → 30.2 ms and a 21-step commit-and-PR command 738.8 →
+747.0 ms; after the move to one call 29.1 → 28.9 ms and 690.9 → 689.2 ms.
+
+`gh pr merge` stays silent here: git-workflow's merge-checks hook asks on it, and two prompts for one
+call train the user to click through both.
+
+`apply_strict`. Row S3: a project file that can only add strictness. Entries are `ask` or `deny` plus an
+ERE, matched like the allow-file. "Can only add" is enforced by applying an entry through `set_verdict`,
+which never lowers a verdict, and by judging an entry that would lower one (`allow`, or `ask` on a built-in
+deny) against the verdict before any entry ran, so the skip is named in a note rather than silent. The file
+is read after the built-in rules and before the allow-file: both are the user's, the allow-file is the one
+place that releases a verdict, and keeping it last keeps that true. A malformed file is ignored whole, not
+line by line: half a rule set read is a rule set nobody wrote. The note is a `systemMessage` (shown to the
+user, per the hooks reference's JSON output table, read 2026-11-10), because the file is the user's and the
+model should not be the one to edit it. It repeats on every judged command while the file is broken; no
+state file keeps it to once. The 16,384-byte cap bounds the per-call regex work. The file is protected by
+config-guard's ask on an existing file, the same standing as `settings.json`, and since the review fixes
+below on its removal too.
+
+### Review fixes 2026-11-12 (0.10.0): the word reader, wrappers, substitutions
+
+Written for this release, not moved from code. Twelve review findings against b80faf31.
+
+`SHELL_WORDS_AWK`. `git_gh_bypass` was written as a copy of `rm_backslash_target`'s awk word scan, and
+within a day the copies had diverged: the bypass copy split on a brace only standing alone (gh's
+`{owner}`), the rm copy on every brace, and both collapsed `$'…'` to `$`, which failed toward an ask in
+the rm check and toward silence in the bypass check (`git commit $'--no-verify'`). The shared string
+holds `word`, `base`, `queue`, the substitution matcher and `scan`; each program prepends it and defines
+its own `judge`. The brace rule is `-v lone_brace`. `$'…'` decodes `\\` and `\'` and reads any other
+escape as `$`, so a word holding one can never equal a flag; `rm -rf $'\\'` therefore denies like
+`rm -rf \\`, where it used to ask on the `$`.
+
+Substitutions. A double-quoted span was one literal word, and a backtick an ordinary character, so the
+command inside never reached `judge` (`out="$(git commit --no-verify -m wip)"`, `` x=`git commit
+--no-gpg-sign` ``). A `$( )` inside double quotes and a backtick pair, quoted or bare, now go to the same
+queue as `eval`'s words and a shell's `-c` script, under the same 16-scan cap; `$((` is arithmetic and is
+not queued. The matcher skips quotes, escapes and nested substitutions to find the closing `)`; a case
+pattern's `)` inside the substitution closes it early. A bare `$(` was already read: `(` splits.
+
+Wrappers and keywords. `judge` read git or gh only as the first word after a fixed wrapper list. The
+alternative the review offered, any `git` word anywhere, fires on `echo git commit -n`; the head skip
+does not. A keyword (`if then elif else do while until !`) is skipped only before any other word.
+`timeout` and `flock` take one positional operand before the command, so each skips one non-option word
+that is not itself git or gh; an option's value is skipped by the existing previous-word-is-an-option
+rule. `flock -c '…'` is not read.
+
+`gh -R`/`--repo` may sit before the subcommand or between its two words, so `a` and `b` are the first two
+words that are neither the flag nor its value. The GraphQL test ran before the endpoint was normalised,
+so `/graphql` and `https://api.github.com/graphql` took the REST branch; the normalisation now runs
+first, and a GHES full URL (`/api/graphql`) is accepted too. `updateIssueComment` and
+`updatePullRequestReview[Comment]` edit the same text a REST PATCH asks on.
+
+`--no-gpg-sign` prefix: git 2.53 accepted `--no-g` and `--no-gp` on `commit`, `merge`, `rebase`, `am`
+and `pull` in a scratch repository on 2026-11-12 (`commit --no-g` with `gpg.program=false` committed
+unsigned), so the check takes 6 characters, not 8, and the prefilter looks for `no-g`. The prefilter's
+gh patterns became `' pr '*'comment '` and the like, so `gh pr -R o/r comment` reaches the parser; the
+`-n` pattern allows the `$` that `norm_cmd` leaves of `$'-n'`.
+
+Measured through the hook, 21 interleaved runs each against b80faf31, median: `ls` 22.3 → 22.3 ms,
+`git commit -m x` 23.8 → 23.7 ms, a 9-step build/commit/push/PR pipeline 366.1 → 367.6 ms, a `gh api
+…/comments --paginate` GET that runs the parser 69.8 → 70.2 ms, `git commit -n -m wip && git push` 81.3 →
+80.4 ms.
+
+### Review fix 2026-11-12 (0.10.0): a command substitution behind a reader
+
+Written for this release, not moved from code. Reproduced on 7234e0e5: `--check 'echo "$(rm -rf /)"'` printed
+ALLOW (rc 0) while `--check 'rm -rf /'` denied. `split_segments` does not split inside double quotes and treats a
+backtick as an ordinary character, so `echo "$(rm -rf /)"` was one segment led by `echo`, and the reader exemption
+skipped it. The exemption was not the whole cause: `norm_cmd` turns `"$(rm -rf /)"` into the word `$(rm`, so even
+`foo "$(rm -rf /)"`, with no reader lead, never showed `check_rm` an `rm` word. A bare `$( )` was already caught,
+because the splitter cuts at its parentheses; a bare backtick was not.
+
+The splitter was left alone. Splitting at a backtick would cut `` git push `echo origin` --force `` into a
+`git push` segment with no `--force` and lower a deny that the whole segment earns today. A nested context in the
+walk would need a third parser. Instead, `nested_commands` prepends `SHELL_WORDS_AWK`, which already queues every
+double-quoted `$( )` and every backtick pair (and `eval`'s words and a shell's `-c` script), and prints each queued
+text. `judge_nested` walks each one through `split_segments` and the same per-segment checks
+(`judge_segment`, the old loop body moved out of `classify`, its `continue` and `break` now `return`). The main walk's segments are untouched, so
+the change can only add a verdict. An `eval` or `-c` text is printed only when it holds a `$(` or a backtick: its
+own top-level words already reach the rules through the dequoted outer segment, and walking every `-c` script would
+change verdicts for commands this fix is not about. Printing it when it holds one is what reaches a bare `$( )`
+inside it (`bash -c 'echo $(rm -rf /)'`), which the word reader splits on rather than queues. `$((` is arithmetic and
+is not queued, as before.
+
+The mktemp credit (0.9.6) compares segment ordinals. A nested text walked after every segment would carry the last
+ordinal and credit an `rm` of a variable assigned later (`echo "$(rm -rf "$d"/*)"; d=$(mktemp -d) || exit 1`, which
+runs `rm -rf /*`), while ordinal 0 broke the held allow `tmp=$(mktemp -d) || exit 1; bash -c "rm -rf $tmp/*"`. The
+word reader's `scan` now sets `at` to the position of the separator before each `judge()` (`n + 1` at the end), so
+each top-level text carries where its segment ends, and a nested text inherits its parent's. `judge_nested` turns
+that into the ordinal the way `mktemp_ordinals` does: `split_segments` on the prefix plus a sentinel, in the C
+locale because awk counted bytes. It does so only when `MKTEMP_VARS` is set, the one reader of `SEG_I`.
+
+A nested text holding `<<` and a later line goes through `cc_strip_heredoc_bodies inert` on its own. When the
+whole-command strip gave up (a backtick inside double quotes on an earlier line), a commit message heredoc inside
+`"$(cat <<'EOF' …)"` would otherwise be walked line by line. Newlines travel as `\037`, so one text is one line.
+
+No 16-scan cap, unlike the two other consumers: a cap silently skips the 17th substitution. Each queued text is
+shorter than its parent, so the queue ends; past `GUARD_DEADLINE` the hook asks. The run is behind a `case` on `$(` or
+a backtick, so `ls` and `git commit -m x` fork nothing new.
+
+Not read: a substitution inside a double-quoted `$(( ))` (the matcher skips the arithmetic whole); one after a `case`
+pattern's `)` inside `$( )`, which closes the substitution early, as the earlier review recorded; an escaped nested
+backtick (`` echo `echo \`rm -rf /\`` ``); and a `$( )` in an unquoted heredoc body fed to a non-shell (`cat <<EOF`). This
+shell expands that last one, but the shared heredoc block drops the body before any walk, and that block lives in
+`templates/blocks/heredoc-bodies.md`, outside this fix. All four were checked through `--check` on the working copy.
+
+Measured through the hook, 25 interleaved runs each against 7234e0e5, median: `ls` 22.3 → 22.7 ms, `git commit -m x`
+24.1 → 24.2 ms, a 9-step build/commit/push/PR command with one `"$( )"` 413.1 → 421.5 ms, `git add`, a heredoc
+`git commit -m "$(cat <<'EOF' …)"` and `git push` 140.6 → 149.4 ms.
+
 ## plugins/command-guard/hooks/config-guard.sh
 
 ### Header
@@ -826,6 +956,18 @@ Cost, through the hook, 21 runs each, two interleaved rounds against a copy of t
 other workers ran, round 1 / round 2: `git status && ls -la` median 9.4 / 9.0 ms before, 10.2 / 9.0 ms after; the
 commit message above 11.2 / 10.7 ms before (it asked, so it ran jq for the reply), 10.1 / 10.2 ms after; a 19,911-byte
 `python3 - <<'EOF'` body 9.8 / 10.3 ms before, 10.9 / 11.2 ms after.
+
+### strict_removal (0.10.0 review fix, 2026-11-12)
+
+Written for this release. Removing `.claude/command-guard-strict` passed both hooks, and the strict deny's
+reason names the file, so an agent denied by a strict line could delete it and rerun with no prompt. An
+`rm`, `unlink`, `mv`, `git rm` or `git mv` naming an existing one now asks with the verb "removing";
+removal only loosens, and creation stays silent because a new file can only add strictness. The scan is
+its own small quote-aware word split, because `cc_bash_write_targets` is a shared block that reads
+writes, not removals; heredoc bodies no shell reads are stripped first, as `baseline_regen` does. Its
+operands go through the same existence loop as the write targets, after them in priority, so an absent
+strict file does not hide a later write. A recursive removal of `.claude` or a glob is not read here;
+command-guard's own `rm -r` check judges the first.
 
 ## plugins/command-guard/scripts/__tests__/destructive-guard.test.sh
 
@@ -1071,3 +1213,40 @@ hook is its other ask tier and read only its own variable, so the documented set
 left an ask on every config write. Both values that mean "no ask tier" must silence it,
 and the value that does NOT mean that (`ask`) must leave it running.
 ```
+
+## plugins/command-guard/scripts/settings-lint.sh
+
+Written 2026-11-10 (0.10.0), not moved from code.
+
+Track 7 row S6: a settings and permissions linter as a mode of `/command-guard:check`, shipped as a script so
+no listed surface grows. Keys verified against the official settings reference
+(code.claude.com/docs/en/settings-reference.md, fetched 2026-11-10): `permissions.allow`, `.ask`, `.deny`,
+`.additionalDirectories`, `.defaultMode` (`auto` and `bypassPermissions` take no effect from project or
+local files since v2.1.257), `env` (an object of strings), `disableAllHooks` (boolean), and `pluginConfigs`
+(user or managed only; the host ignores project entries). Rule matching follows the permissions page
+(code.claude.com/docs/en/permissions.md, same day): `*` matches any text including spaces, a lone trailing
+` *` also matches the bare command, and `:*` at the end is the same as ` *`.
+
+The allow-rule check tests each rule against a fixed list of commands `destructive-guard.sh` asks on rather
+than parsing a rule's intent; `settings-lint.test.sh` runs every sample through `--check` so a sample that
+stops being ask-tier fails the build. The guard switches are those of the root README's off-switch table
+that refuse, ask or mask on a safety ground; style and Stop-gate switches (`CC_COMMENT_GUARD`,
+`CC_CANDOR_GATE`, …) are left out on purpose, and the harness holds each listed name to that table.
+`CLAUDE_DESTRUCTIVE_GUARD=deny-only` is flagged only in the user file, because the README recommends it
+for an automated run's project settings. An `off` value is matched case-insensitively, a /config boolean
+`false` too. Not read: managed settings, `--settings` files, `CLAUDE_CONFIG_DIR` other than as the user
+file's folder.
+
+Review fix, 2026-11-12: the guard normalises `denyonly` and `deny_only` to `deny-only`
+(`destructive-guard.sh`, the mode line), so the linter does too, and it applies the user-file rule to the
+`/config` option `claude_destructive_guard` under `pluginConfigs`, which the host exports as the same
+setting.
+
+## plugins/command-guard/scripts/__tests__/settings-lint.test.sh
+
+Written 2026-11-10 (0.10.0). Fixtures live under `mktemp -d`, outside any repository. Each finding kind is
+asserted with its file and key path, beside the nearest setting that must stay silent (`Bash(git status)`,
+`Bash(git log *)`, `acceptEdits`, a sibling directory, `disableAllHooks: false`, a switch set `on`, a non-guard
+switch set `off`, `pluginConfigs` in a project file). The two drift checks (samples ask-tier, switches in the
+README table) are the reason the harness reads the script's own lists by `sed`; the README check is skipped
+when the marketplace README is not found, as in an installed copy.

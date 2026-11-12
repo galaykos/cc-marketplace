@@ -30,6 +30,10 @@ importantly, what is not.
    `rg`, `ls`, `git log`, …) is skipped, so searching for `migrate:fresh` is not
    running it. The exemption is dropped for the whole command when output is
    piped into a shell or `xargs` — there the reader's output is the program.
+   It never covers a `$( )` or backtick substitution inside the segment, quoted
+   or bare, at any depth (and an `eval` or shell `-c` text holding one): each is
+   judged as a command of its own, so `echo "$(rm -rf /)"` denies. Single-quoted
+   text, an escaped `\$(` and `$(( ))` arithmetic are not substitutions.
    A wrapper (`sudo`, `doas`, `env`, `nice`, `ionice`, `time`, `exec`) with its
    options, and `VAR=` assignments, are skipped to find the leading word. Only the
    listed value-taking options have their value skipped too (`sudo -u bob`,
@@ -101,7 +105,19 @@ placeholder · `gh api -X|--method DELETE` · `kubectl delete <pod>`, `helm unin
 -auto-approve`, `docker system prune`, `docker rm -f` · `npm publish` ·
 `curl … | sh` · a `Write` that replaces an existing `.env` git has no copy
 of (an `Edit` stays silent) · `find … -delete`, `shred`, `truncate -s 0`, `history -c`,
-`chmod -R 777`.
+`chmod -R 777` · a git command that skips hooks or signing: `--no-verify` on `commit`, `push`,
+`merge`, `rebase`, `am`, `cherry-pick` or `pull`, `-n` on `commit` or `am` only (git's own
+meaning of `-n` elsewhere is `--dry-run`, `--no-stat` or `--no-commit`), `-c core.hooksPath=…`
+or `git config` setting or unsetting it, `--no-gpg-sign`, `commit.gpgsign=false`, and `HUSKY=0`,
+`SKIP=…` or `LEFTHOOK=0` before one of them · review or comment text published under the
+user's name: `gh pr review` with a verdict or body, `gh pr comment`, `gh issue comment`, a
+`gh api` POST/PATCH/PUT to a pull request's `reviews` or `comments`, an issue's `comments` or a
+reply path, and a GraphQL `addPullRequestReview…`, `addComment`, `submitPullRequestReview`,
+`updateIssueComment` or `updatePullRequestReview[Comment]` mutation, `-R`/`--repo` skipped
+(`gh pr merge` is git-workflow's merge-checks ask, not this one). Both are read word by word with
+the shell's quote removal (`$'…'` included), so a commit message naming `--no-verify` passes, and
+through a shell's `-c` script, `eval`, a `$( )` or backtick substitution, an `if`/`then`/`do`/`while`/`!`
+head and the `timeout`, `xargs`, `stdbuf` and `flock` wrappers beside the usual ones.
 
 **allow, deliberately** — `rm -rf` on build output (`node_modules`, `vendor`,
 `dist`, `build`, `out`, `target`, `coverage`, `.next`, `.nuxt`, `.turbo`,
@@ -177,6 +193,13 @@ shapes. It cannot see:
   recursive-delete judgement), `ALTER TABLE t DROP c` without `COLUMN`, an `UPDATE`
   whose `SET` sits on a later heredoc line than `UPDATE`, and `.drop()` or
   `dropDatabase()` inside a `mongosh <<EOF` body (the splitter cuts the line at the `(`);
+- a **substitution the scan cannot place** — inside a double-quoted `$(( ))`, after a
+  `case` pattern's `)` inside `$( )` (it closes the substitution early), in an escaped
+  nested backtick, or in an unquoted heredoc body fed to a non-shell (`cat <<EOF`,
+  whose `$( )` this shell expands): not read;
+- a **hook bypass or a publish set up elsewhere** — `export HUSKY=0` in an earlier call, a git
+  alias, `GIT_CONFIG_*` variables, `flock -c '…'`, a GraphQL query read from a file (`-F query=@q.graphql`) or an
+  `--input` body, and a script or `curl` posting to the API are not read;
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL
   tool is gated the same whether the session is on localhost or production;
 - a git subcommand behind a **`-C`/`-c` value holding a space** — once the quotes
@@ -269,6 +292,30 @@ command, trailing comment included, `#` comments allowed:
 A line here is a standing decision that the command is safe **in this project,
 forever**. Write it narrowly. `~/.claude/destructive-guard-allow` does the same
 for every project, which is almost never what anyone wants.
+
+Project strictness — `ask <regex>` or `deny <regex>` per line, matched the same way, raising a
+command's verdict and never lowering it:
+
+```
+# .claude/command-guard-strict
+ask ^npm install
+deny git push( |$)
+```
+
+This file and the allow-file are bash `[[ =~ ]]` regexes, POSIX ERE: write `[[:space:]]` and `[0-9]`; `\d` is a
+literal `d` and `\s` works only with glibc. A line that would lower a verdict (`allow …`, or `ask`
+on a denied command) is skipped with a note. A malformed line, a regex that does not compile or a
+file over 16,384 bytes makes the guard ignore the whole file, with a note; the built-in verdicts
+stand. The allow-file is read after it, so an allow-file line still releases a command this file
+raised. config-guard asks before an existing one is changed or removed (`rm`, `unlink`, `mv`,
+`git rm`, `git mv`). **Standing: gate** — `destructive-guard.test.sh`, `== project strictness
+file`; `config-guard.test.sh`.
+
+`/command-guard:check --settings` runs `scripts/settings-lint.sh`, which reads the project and
+user settings files and prints one line per risky permission (a bare `Bash` allow, an allow rule
+covering a command this guard asks on, `bypassPermissions`, `disableAllHooks`, a guard's off
+switch); it never edits them. **Standing: gate** for what it flags (`settings-lint.test.sh`);
+**recorded** for running it.
 
 Environment (set in the user's shell, before starting the session — a command
 string cannot reach it): `CLAUDE_DESTRUCTIVE_GUARD=ask` turns every deny into a

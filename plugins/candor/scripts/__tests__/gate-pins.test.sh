@@ -31,7 +31,7 @@ stop_json() { # cwd transcript [session_id]
 # A block is exit 0 with {"decision":"block",reason,systemMessage} on stdout: rc=2, the text is stderr plus the reason; a bare exit 2 is rc=exit2.
 expect() {
   local label="$1" err out rc ok=1
-  rm -rf "$2/.claude/candor" "$2/.claude/task-runner/gate-nudge"
+  rm -rf "$2/.claude/candor" "$2/.claude/task-runner/"gate-nudge*
   out=$(stop_json "$2" "$3" "${6:-}" | env ${HOOK_ENV:-} bash "$HOOK" 2>"$WS/stderr"); rc=$?
   err=$(cat "$WS/stderr")
   if [ "$rc" = 0 ] && [ -n "$out" ]; then

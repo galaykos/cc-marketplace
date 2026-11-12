@@ -20,7 +20,8 @@ Blocks secrets before they reach disk.
 | A secret a Bash python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run put in a file of a git repo (since 0.15.0) | **advisory** — the same `scan.sh`, registered on PostToolUse too (and on PostToolUseFailure for Bash, the event a command that exits non-zero fires), **warns** after the fact, naming the file and the pattern; it cannot deny, because the write has landed. It reads what each file git reports changed since the lane's previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD, so a line any uncommitted edit added is judged again. `scan-hook.test.sh` runs a python write, the first call in a repo, a run that wrote nothing, a placeholder, an Edit between two runs, a failed run and another session's marker. Misses: a writer it does not name (`npx prettier --write`, `make`, `git apply`), gitignored files, no git, a submodule's files, anything under `.claude/`, a file written then reverted, a `mv` or `cp -p` destination that keeps an older mtime, files past the eighth, text past 1 MiB per file, the first such run of each session (the marker holds the session's cksum; another session's reads as none); a `$HOME` root or a repo with `status.showUntrackedFiles=no` reads nothing; and anything else that changed a file since the lane's previous call (an IDE, a parallel agent) reads as this run's write |
 | A secret reaching a file through Bash any other way — an interpreter or `cp`/`mv` before the write lands (the row above warns after it), `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
 | A secret introduced by an MCP server whose write tool uses key names this hook does not list | **unenforceable** — the extraction in `scan.sh` names the keys it knows (verified against the JetBrains MCP schema, 2026-09-14); a different server writes past it |
-| Secrets already committed before this plugin was installed | **out of scope for the hooks** — that is `/secret-scanning:scan`, a command you run. Its scanner, `scripts/scan-range.sh <base>..HEAD \| --cached \| <path>…` (since 0.15.0), applies `hooks/patterns.tsv` through the write guard's own reader (`hooks/patterns.sh`) to the lines a range or the index added or to whole files, prints `file:line label` with the value masked and exits 1 on a match: **gate** for what it reports (`scan-range.test.sh` in CI) and wherever a CI step runs it, which nothing here wires. **Recorded**: that the command runs it before reading anything itself. Misses: a secret split across lines, a shape `patterns.tsv` does not list, a removed line still in history, binary files |
+| A `git commit` or `git push` (since 0.17.0) whose added lines match the same patterns outside the placeholder escape: the staged lines; with `-a`/`-i`/`-o`, a pathspec or an earlier `git add` in the same command, also the tracked changes plus the untracked files that add names; for a push, each commit it sends that the destination remote's remote-tracking refs lack | **gate** — `hooks/commit-scan.sh` denies, naming `file:line` and the pattern, never the value; `scripts/__tests__/commit-scan.test.sh` (CI-globbed) runs each case beside the neighbour that must stay silent. Off: `CC_SECRET_COMMIT_SCAN=off` or the `/config` option `cc_secret_commit_scan`. See "Commit and push scan" below for what it misses |
+| Secrets already committed before this plugin was installed | **out of scope for the hooks**, except the commits a push would send (the row above) — that is `/secret-scanning:scan`, a command you run. Its scanner, `scripts/scan-range.sh <base>..HEAD \| --cached \| --tracked \| --outgoing[=<remote>] [<rev>…] \| <path>…` (since 0.15.0; `--tracked` and `--outgoing` since 0.17.0), applies `hooks/patterns.tsv` through the write guard's own reader (`hooks/patterns.sh`) to the lines a range or the index added or to whole files, prints `file:line label` with the value masked and exits 1 on a match: **gate** for what it reports (`scan-range.test.sh` in CI) and wherever a CI step runs it, which nothing here wires. **Recorded**: that the command runs it before reading anything itself. Misses: a secret split across lines, a shape `patterns.tsv` does not list, a removed line still in history, binary files |
 
 There is no allow-file: a refused write is refused on every retry (history: the marketplace repository's
 `rationale/derivations/plugin-secret-scanning.md` § Header: PLACEHOLDER EXEMPTION (0.5.0)). The escapes it does have
@@ -74,6 +75,8 @@ off-switch documented only in a changelog is not reachable by the person it exis
   characters change (since 0.15.0); every context that reads the hidden text is told. `CC_UNICODE_SCAN=off` (or `CC_REMIND=off`) disables it.
 - **Hooks module** (`hooks/redact.ts`, Claude Code ≥ 2.1.291) — masks secrets in tool
   output and refuses a write carrying a mask; see Mods, below.
+- **PreToolUse hook** (`hooks/commit-scan.sh`, since 0.17.0) — denies a `git commit` or
+  `git push` that would record or send a secret; see "Commit and push scan" below.
 - **`/secret-scanning:scan`** — sweeps a path, diff, or the whole repo for secrets
   already in the tree (what the write-time hook never saw). It runs
   `scripts/scan-range.sh` first, so the pattern pass is the hook's `patterns.tsv`, read
@@ -106,6 +109,79 @@ found and fixed a real regression: the private-key pattern begins with dashes, a
 without `grep -- ` it had been parsed as options and NEVER matched. That deny is live
 for the first time; the harness exists so a silent regression like it cannot ship
 green again.
+
+## Commit and push scan (since 0.17.0)
+
+The write guard sees only the writes it can read, and the model often writes through an
+interpreter or a `cp` it cannot see. `hooks/commit-scan.sh` is the layer after that: on a
+`git commit` or `git push` in a Bash call it runs `scripts/scan-range.sh` on what the command
+would record or send, and denies on a match, naming `file:line` and the pattern (a push hit is
+`<commit>:<file>:<line>`), never the value, not even its masked prefix.
+
+- **What it reads.** A commit: the staged lines (`--cached`). With `-a`/`--all`, `-i`, `-o`,
+  `-p`, a pathspec, or a `git add`/`git stage` earlier in the same command: the staged lines too
+  when the index differs from HEAD, the tracked changes against HEAD (`--tracked`), and the
+  untracked files that add names, read whole (every untracked file when a pathspec holds a `$`
+  word). At PreToolUse time a `git add x && git commit` has not staged `x` yet, so the index alone
+  would miss it, and the working tree alone would miss a staged line it has since dropped.
+- **What a push reads.** Each non-merge commit its sources reach that the destination's own
+  remote-tracking refs (`refs/remotes/<remote>/`) lack (`--outgoing=<remote>`), so a secret a
+  later outgoing commit deleted is found, and so is history only another remote holds. The
+  destination is the named remote or `--repo`, else the one `git push` picks
+  (`branch.<name>.pushRemote`, `remote.pushDefault`, `branch.<name>.remote`, `origin`); a URL or
+  path has no tracking refs, so everything reachable counts. With no source named it reads what
+  git would send: every branch and tag for a mirror remote, each `remote.<name>.push` source,
+  every branch the remote also has under `push.default=matching`, else HEAD. `--all` reads every
+  branch and `--tags` the tags; a source held in a variable, a glob, or a source git cannot
+  resolve reads every branch. Past 1,000 commits for the destination it reads only the commits no
+  remote holds, so a fork far behind its upstream still has its own commits read.
+- **Where it looks.** Past env assignments (`FOO=1 git commit`), `env`, `sudo`, `nice`,
+  `timeout`, after a `cd <dir>`, and through `git -C <dir>`. Silent on `git log`,
+  `git commit --dry-run`, `git push --dry-run`/`-n`/`--delete`, `echo "git commit"`, a comment,
+  and a heredoc body.
+- **What passes.** The placeholder escape the write guard uses (the value ends in `EXAMPLE`, or
+  carries a placeholder word); a secret already on the destination's remote-tracking refs.
+- **Standing.** **Gate** for the cases `scripts/__tests__/commit-scan.test.sh` runs (a staged
+  secret, `-a` over an unstaged tracked one, a staged one the working tree dropped, `git add` of
+  an untracked one by name or by a `$` word, a secret an earlier outgoing commit added, each way a
+  push names what it sends and where, the 1 MiB cap, and the fsmonitor, filter and `gpg.program`
+  commands not running, each beside the neighbour that must stay silent) and for
+  `scan-range.sh`'s two new modes (`scan-range.test.sh`). The deny's wording past those
+  assertions is **recorded**.
+- **Off.** `CC_SECRET_COMMIT_SCAN=off` for a session, or the `/config` option
+  `cc_secret_commit_scan`. `CC_SECRET_SCAN=off` does not turn it off: the two layers switch
+  separately. The deny names the switch.
+- **Fails open.** No `jq` or `git`, a `cwd` outside a repository, an unreadable payload, a
+  missing `scan-range.sh`, an unusable `patterns.tsv` (the write guard refuses instead), or
+  any git error lets the command run.
+- **Runs nothing a repository configures.** The hook runs before the permission prompt, in
+  whatever repository the command names, so its git calls run with `core.fsmonitor` off, its
+  working-tree diff with every configured clean and process filter blanked and submodules
+  skipped, and its push read with signatures unchecked: no fsmonitor, filter or `gpg.program`
+  command runs. **Gate** — a case for each leaves no marker file.
+- **Misses.** The commit message (`-m`, `-F`, a heredoc); a commit or push inside `bash -c`,
+  `eval`, a script, an alias, a function or a variable; a remote held in a variable, against
+  which every remote-tracking ref counts as sent; a `cd` or `-C` it cannot resolve (`cd "$DIR"`,
+  `cd -`); `--git-dir`, `--work-tree` or `GIT_DIR`; what the same command writes before the
+  commit (`python gen.py && git add -A`); a merge commit's own changes; a file over 1 MiB
+  (`MAX_FILE_BYTES`: an untracked one is skipped, a staged, tracked or pushed one diffs as
+  binary); a push of more than 1,000 commits no remote holds (`MAX_PUSH_COMMITS`, measured at
+  about one second per 1,000 on this marketplace's history) or an add of more than 1,000
+  untracked files, both of which pass unscanned; a run the host kills at the hook's 10 s
+  timeout, which prints no deny (what the host then does was not measured here); and everything
+  `scan-range.sh` misses (a secret split across lines, a shape `patterns.tsv` lacks).
+- **Reads too much.** With `-a`, a pathspec or an earlier `git add`, every tracked change counts,
+  including one in a file that commit leaves out, and so does every staged line, including one
+  `-a` or `-o` would replace with the working tree's copy. A `$`-word pathspec reads every
+  untracked file. A file a filter would transform is read as the working tree holds it. A commit
+  only another remote holds counts as outgoing, even when the destination already has it (a URL
+  naming the same repository as `origin`). A `cd` is followed to the end of the command, out of
+  a `( )` subshell too.
+- **Cost.** Every Bash call pays about 2.5 ms for the hook to exit when the command names no
+  `commit` or `push`. A commit of 1 staged file costs about 47 ms. `git add x && git commit` costs
+  about 86 ms, or 124 ms when the index already holds another staged change (the staged lines are
+  read as well), and a push of 5 commits about 51 ms. Each is the median of 25 interleaved runs,
+  measured on 2026-11-12; earlier figures are in the derivation file.
 
 ## Mods (Claude Code ≥ 2.1.291)
 

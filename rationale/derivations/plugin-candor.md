@@ -1037,6 +1037,81 @@ Above `if [ "$mode" = "block" ]; then`:
 Record which clause blocked, so only that clause stands down on the continuation.
 ```
 
+### Session keying (0.12.5, 2026-11-10, Track 7 item S5)
+
+Before 0.12.5 the state dir held one `blocked` record and one `last` line per clause for the
+whole repo, and clause 4's nudge was one `gate-nudge` file. Two sessions in one repo
+(measured with paired Stop payloads that differ only in `transcript_path` and `session_id`):
+
+- B's continuation read A's `blocked`, skipped the clause that blocked A, and deleted A's record.
+- B's block of a clause rewrote that clause's `last` line, so A's unchanged text was blocked again.
+- B with the same final text as A passed on A's `last` line.
+- Whichever session stopped first wrote the nudge, and the other's one block at that HEAD was gone.
+
+The key is `.transcript_path // .session_id`, hashed with `cksum`, as authoring-hooks asks.
+`blocked` and `last` keep their paths and carry the key as a line's first field. The
+smoke suites `evidence-gate-hook-tests.sh` and `completion-gate-hook-tests.sh` reset
+state with `rm -f` on those exact paths, so per-session file names would have let one
+case's bound leak into the next. The nudge is compared by mtime against the run
+sentinel, so a shared file would let one session's write freshen another's stale line.
+It is one file per session instead (`gate-nudge-<key>`; the bare name when the payload
+has neither field). Each rewrite keeps the newest 127 other lines. A nudge not newer
+than the sentinel is swept when another session blocks. A concurrent read-modify-write
+of the same file could still lose one session's line until the marker lock below.
+`inflight` records stay keyed on `session_id`, because a subagent shares it and
+the parent's Stop must count its own workers.
+
+The run records (`active-run.json`, `closed-run.json`, `gate-pass.json`, `nc/`, `rv/`,
+`bg/`, `rt/`, `reductions/`) stay repo-wide. `register-run.sh` resumes a run across
+sessions, and nothing records which session owns it. A second session in the repo is
+held once per HEAD by a run it did not register, and the block text tells it the run
+file may be left over. Its clean stop can also retire the first session's
+`closed-run.json`. Fixing that needs a decision on run ownership.
+
+### Marker lock (0.12.5, 2026-11-12, Track 7 review finding)
+
+The finding: `last` and `blocked` were rewritten read-modify-write with no lock (the
+continuation's release of its own `blocked` line, the loop bound's `last` line, the
+which-clause `blocked` line), so two sessions stopping at once dropped one session's new
+line. Measured on b80faf31 with K Stop runs launched together, distinct transcript paths,
+one blocking text: all K lines survived in 0/20 tries at K=2, 3 and 8.
+
+Every one of those rewrites now runs under one lock per agent suffix,
+`<state dir>/.lock[-<agent>]`, taken by `lock_take` and released by `lock_drop` (and by
+the EXIT trap, which bash also runs on SIGTERM). The rewrite itself was already atomic
+(temp file in the same dir, then `mv`).
+
+- **O_EXCL, not mkdir or flock.** flock is not on macOS by default. The mkdir lock tried
+  first was not atomic on this machine: `/usr/bin/mkdir` is uutils coreutils 0.10.0, and
+  with 8 racers per try two or more `mkdir` calls succeeded in 35 of 300 tries. bash's
+  noclobber redirect opens with `O_CREAT|O_EXCL` itself, no fork: 0 double wins in 600
+  tries. A mkdir build of this lock still lost a line in 5 of 20 runs of the harness's
+  four-session case.
+- **`true >`, not `: >`.** `:` is a special builtin, and a failed redirect on one exits a
+  POSIX-mode shell (`POSIXLY_CORRECT` in the environment): the gate would die mid-stop.
+- **Bound.** 20 tries, 0.02 s apart: about 0.4 s plus forks. Untaken, the write goes ahead
+  unlocked, as before the lock (fail open). Eight sessions stopping together all kept
+  their lines in 20 of 20 tries.
+- **Stale.** A lock file older than `MARKER_LOCK_STALE_SECONDS` (5) is removed: its holder
+  rewrites two short files in milliseconds, so only a gate killed by SIGKILL leaves one.
+
+**Residual.** Two waiters that both judge one lock stale can both remove it, and the second
+removal can take the lock the first just made; a holder past 5 s can lose its lock the same
+way. Both need a SIGKILLed gate or a 5 s stall inside the critical section. A session that
+waits out the bound writes unlocked and can still lose a line, costing it one more block.
+The lock is per state dir, so it holds only where every session resolves the same dir
+(same `CLAUDE_PLUGIN_DATA`, same repo root).
+
+**Latency** (two sets of 21 interleaved runs each, b80faf31 vs this copy, a one-turn
+transcript): a passing Stop 39.9 vs 39.9 and 40.0 vs 40.6 ms median (the pass path takes no
+lock); a blocking Stop 48.6 vs 49.9 and 50.2 vs 50.7 ms.
+
+**Harness.** `gate.test.sh` lock cases: a `sleep` shim on PATH touches a flag when the
+gate waits, and a background "session A" holding the lock writes its rewrite once the
+flag appears, or once B's write has landed without waiting. So the cases are red on
+b80faf31 every time (20 of 20) and need no timing race. The four-session case is real
+concurrency; it is the one that catches a lock primitive that is not atomic.
+
 ## plugins/candor/hooks/mode.sh
 
 ### Header: the shebang

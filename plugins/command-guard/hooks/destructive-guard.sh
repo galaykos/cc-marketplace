@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on Bash and MCP shell/SQL tools: denies irreversible data loss, asks on scoped destruction, denies a write to the allow-file, asks before a Write replaces a live .env. --check '<command>' prints the tier whatever the mode and exits 0/1/2 = allow/ask/deny.
-# Misses an allow-file path built from a variable, glob, script or git-config program; unlisted MCP write tools; a heredoc body fed to anything but a shell or SQL client; some wrapper and git option spellings. Fails open on its own errors; past GUARD_DEADLINE it asks. CLAUDE_DESTRUCTIVE_GUARD (else /config): deny-only, ask, off. hooks.json starts it with PATH bash and onFailure: block, so a run that cannot start or overruns 15 s blocks the call.
+# PreToolUse on Bash and MCP shell/SQL tools: denies irreversible data loss, asks on scoped destruction, on a git hook or signing bypass and on gh publishing review text, denies a write to the allow-file, asks before a Write replaces a live .env; .claude/command-guard-strict only raises a verdict. --check '<command>' prints the tier whatever the mode and exits 0/1/2 = allow/ask/deny.
+# Misses an allow-file path built from a variable, glob, script or git-config program; unlisted MCP write tools; a heredoc body fed to anything but a shell or SQL client; a substitution in a quoted $(( )), after a case pattern's ) or in an escaped backtick; some wrapper and git option spellings; a bypass set by export, git alias or GIT_CONFIG_*; review text a script or a query file posts. Fails open on its own errors; past GUARD_DEADLINE it asks. CLAUDE_DESTRUCTIVE_GUARD (else /config): deny-only, ask, off. hooks.json starts it with PATH bash and onFailure: block, so a run that cannot start or overruns 15 s blocks the call.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -25,7 +25,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.9.6
+GUARD_VERSION=0.10.0
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -673,24 +673,17 @@ command_cwd() {
   printf '%s' "${d:-.}"
 }
 
-# 0 when a recursive rm's operand is backslashes only, in rm's raw words or a shell -c / eval argument; a lone trailing \ is a word only at the command's end (arg 2 = 1). Misses $'\\', a variable holding \, ssh's or su -c's command.
-rm_backslash_target() { # raw segment, 1 when it ends the command
-  printf '%s' "$1" | LC_ALL=C awk -v tail="${2:-0}" '
+# The word reader rm_backslash_target, git_gh_bypass and nested_commands prepend; each defines judge(). Quote removal as bash does it ($'…'
+# decodes \\ and \' only, any other escape reads as $), a redirection target is no word, and a $( ) or backtick substitution, an eval's words
+# and a shell's -c script are queued for a scan of their own. -v lone_brace=1 splits on a brace only standing alone, as bash does; 0 on every brace.
+SHELL_WORDS_AWK='
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
     function word() { if (inw) { if (redir) redir = 0; else wv[++nw] = w }; w = ""; inw = 0 }
-    function judge(   j, k, opts, rec, bs, x, c) {
-      word()
-      for (j = 1; j <= nw && tolower(wv[j]) != "rm"; j++) ;
-      rec = 0; bs = 0; opts = 1
-      for (k = j + 1; k <= nw; k++) {
-        if (opts && wv[k] == "--") opts = 0
-        else if (opts && wv[k] ~ /^-./) { if (wv[k] ~ /^-[^-]*[rR]/ || wv[k] == "--recursive") rec = 1 }
-        else if (wv[k] ~ /^\\+$/) bs = 1
-      }
-      if (rec && bs) found = 1
+    function base(x) { sub(/^.*\//, "", x); return x }
+    function queue(   j, k, x, c) {
       for (j = 1; j <= nw; j++) {
-        x = wv[j]; sub(/^.*\//, "", x)
-        if (x == "eval") { x = ""; for (k = j + 1; k <= nw; k++) x = x " " wv[k]; q[++nq] = x; break }
+        x = base(wv[j])
+        if (x == "eval") { x = ""; for (k = j + 1; k <= nw; k++) x = x " " wv[k]; q[++nq] = x; return }
         if (x !~ /^((ba|z|da|k|c|tc|a|rba|mk|ok|ya)?sh|fish)$/) continue
         c = 0
         for (k = j + 1; k <= nw && wv[k] ~ /^[-+]./ && wv[k] != "--"; k++) {
@@ -698,11 +691,34 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
           else if (wv[k] ~ /^-[A-Za-z]*c/) c = 1
         }
         if (c && wv[k] == "--") k++
-        if (c && k <= nw) { q[++nq] = wv[k]; break }
+        if (c && k <= nw) { q[++nq] = wv[k]; return }
       }
-      nw = 0; redir = 0
     }
-    # Quote removal as bash does it, ANSI-C quoting kept opaque; a redirection target is no operand.
+    # Where the $( or backtick substitution opening at i ends; n + 1 when it never closes.
+    function cs_end(s, i,   n, k, c, d, j) {
+      n = length(s)
+      if (substr(s, i, 1) == "`") { for (k = i + 1; k <= n && (c = substr(s, k, 1)) != "`"; k++) { if (c == "\\") k++ }; return k }
+      for (k = i + 1; k <= n; k++) {
+        c = substr(s, k, 1)
+        if (c == "\\") k++
+        else if (c == "\047") { j = index(substr(s, k + 1), "\047"); if (!j) return n + 1; k += j }
+        else if (c == "\"") {
+          for (k++; k <= n && (c = substr(s, k, 1)) != "\""; k++) { if (c == "\\") k++; else if (c == "`" || c == "$" && substr(s, k + 1, 1) == "(") k = cs_end(s, k) }
+          if (k > n) return n + 1
+        }
+        else if (c == "`") k = cs_end(s, k)
+        else if (c == "(") d++
+        else if (c == ")" && !--d) return k
+      }
+      return n + 1
+    }
+    function cmdsub(s, i,   e) {
+      e = cs_end(s, i)
+      if (substr(s, i, 1) == "`") q[++nq] = substr(s, i + 1, e - i - 1)
+      else if (substr(s, i + 2, 1) != "(") q[++nq] = substr(s, i + 2, e - i - 2)
+      w = w substr(s, i, e - i + 1); inw = 1
+      return e
+    }
     function scan(s, lit,   n, i, c, nx, j) {
       n = length(s); nw = 0; w = ""; inw = 0; redir = 0
       for (i = 1; i <= n; i++) {
@@ -718,13 +734,19 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
         if (c == "\"") {
           for (i++; i <= n && (c = substr(s, i, 1)) != "\""; i++) {
             nx = substr(s, i + 1, 1)
-            if (c == "\\" && nx ~ /[$`"\\\n]/) { i++; if (nx != "\n") w = w nx } else w = w c
+            if (c == "\\" && nx ~ /[$`"\\\n]/) { i++; if (nx != "\n") w = w nx }
+            else if (c == "`" || c == "$" && nx == "(") i = cmdsub(s, i)
+            else w = w c
           }
           inw = 1; continue
         }
+        if (c == "`") { i = cmdsub(s, i); continue }
         if (c == "$" && nx == "\047") {
-          for (i += 2; i <= n && (c = substr(s, i, 1)) != "\047"; i++) if (c == "\\") i++
-          w = w "$"; inw = 1; continue
+          for (i += 2; i <= n && (c = substr(s, i, 1)) != "\047"; i++) {
+            if (c == "\\") { c = substr(s, ++i, 1); if (c != "\\" && c != "\047") c = "$" }
+            w = w c
+          }
+          inw = 1; continue
         }
         if (c == " " || c == "\t") { word(); continue }
         if (c == "#" && !inw) { while (i < n && substr(s, i + 1, 1) != "\n") i++; continue }
@@ -732,12 +754,47 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
           if (w ~ /^[0-9]+$/) inw = 0
           word(); while (substr(s, i + 1, 1) ~ /[<>&|]/) i++; redir = 1; continue
         }
-        if (c ~ /[;&|(){}\n]/) { judge(); continue }
+        if (c ~ /[;&|()\n]/ || c ~ /[{}]/ && (!lone_brace || !inw && nx ~ /^([ \t\n;&|]|)$/)) { at = i; judge(); continue }
         w = w c; inw = 1
       }
-      judge()
+      at = n + 1; judge()
+    }
+'
+
+# 0 when a recursive rm's operand is backslashes only, in rm's raw words or a shell -c / eval argument; a lone trailing \ is a word only at the command's end (arg 2 = 1). Misses a variable holding \, ssh's or su -c's command.
+rm_backslash_target() { # raw segment, 1 when it ends the command
+  printf '%s' "$1" | LC_ALL=C awk -v tail="${2:-0}" -v lone_brace=0 "$SHELL_WORDS_AWK"'
+    function judge(   j, k, opts, rec, bs) {
+      word()
+      for (j = 1; j <= nw && tolower(wv[j]) != "rm"; j++) ;
+      rec = 0; bs = 0; opts = 1
+      for (k = j + 1; k <= nw; k++) {
+        if (opts && wv[k] == "--") opts = 0
+        else if (opts && wv[k] ~ /^-./) { if (wv[k] ~ /^-[^-]*[rR]/ || wv[k] == "--recursive") rec = 1 }
+        else if (wv[k] ~ /^\\+$/) bs = 1
+      }
+      if (rec && bs) found = 1
+      queue()
+      nw = 0; redir = 0
     }
     END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && !found; qi++) scan(q[qi], qi > 1 || tail); exit !found }'
+}
+
+# "<offset>\t<text>" per queued "$( )" or backtick substitution at any depth and eval or -c text holding one; offset: where its top-level segment ends; newline: \037.
+nested_commands() { # raw command, heredoc bodies stripped
+  printf '%s' "$1" | LC_ALL=C awk -v lone_brace=0 "$SHELL_WORDS_AWK"'
+    function judge(   k) {
+      word(); k = nq; queue(); if (nq > k) qe[nq] = 1
+      for (k = ql + 1; k <= nq; k++) qat[k] = qi == 1 ? at : qat[qi]
+      ql = nq; nw = 0; redir = 0
+    }
+    END {
+      nq = 1; q[1] = buf
+      for (qi = 1; qi <= nq; qi++) {
+        ql = nq; scan(q[qi], 0)
+        if (qi > 1 && (!qe[qi] || q[qi] ~ /\$\(|`/)) { s = q[qi]; gsub(/\n/, "\037", s); print qat[qi] "\t" s }
+      }
+    }'
 }
 
 # Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
@@ -893,6 +950,169 @@ check_sql_update() { # padded lowercased segment, the whole body normalised, low
       "add the WHERE clause, run \`SELECT count(*)\` with it first, and run it inside a transaction" "$1"
     return 0
   done < <(printf '%s\n' "$1" | tr ';' '\n')
+}
+
+# Prints "<code><TAB><words>" for the first git call that skips hooks or signing (verify, hookspath, gpg, hookenv) or gh call that
+# publishes review text (review, comment, api, graphql). Words come from SHELL_WORDS_AWK, so a message naming --no-verify is one word.
+# A brace splits only standing alone: split_segments cuts gh's {owner}.
+git_gh_bypass() { # raw command, heredoc bodies stripped
+  printf '%s' "$1" | LC_ALL=C awk -v lone_brace=1 "$SHELL_WORDS_AWK"'
+    function hit(c,   k) { if (found != "") return; found = c "\t"; for (k = 1; k <= nw; k++) found = found " " wv[k] }
+    function inset(s, x) { return index(" " s " ", " " x " ") > 0 }
+    # -n is --no-verify for commit and am only (push: --dry-run; merge, rebase, pull: --no-stat; cherry-pick, revert: --no-commit).
+    function git(j, envs,   k, x, n, i, ch, sc, nc, cfg, nv, ng, sv, lv, pos, p, wr, rd, key, val) {
+      nc = 0
+      for (k = j + 1; k <= nw; k++) {
+        x = wv[k]
+        if (x == "-c" || x == "--config-env") { cfg[++nc] = tolower(wv[++k]); continue }
+        if (x ~ /^--config-env=/) { cfg[++nc] = tolower(substr(x, 14)); continue }
+        if (x ~ /^(-C|--git-dir|--work-tree|--namespace|--attr-source|--super-prefix|--shallow-file)$/) { k++; continue }
+        if (x ~ /^-/) continue
+        break
+      }
+      sc = wv[k]
+      H = "commit push merge rebase am cherry-pick pull revert"
+      if (sc == "config") {
+        pos = 0; wr = 0; rd = 0
+        for (k++; k <= nw; k++) {
+          x = wv[k]
+          if (x ~ /^--(unset|unset-all|replace-all|add)$/) { wr = 1; continue }
+          if (x ~ /^(--get|--get-all|--get-regexp|--get-urlmatch|-l|--list|-e|--edit)$/) { rd = 1; continue }
+          if (x ~ /^(-f|--file|--blob|--type|--default|--comment|--value)$/) { k++; continue }
+          if (x ~ /^-/) continue
+          p[++pos] = x
+        }
+        if (p[1] == "set" || p[1] == "unset") { wr = 1; key = p[2]; val = (p[1] == "set") ? p[3] : "" }
+        else if (p[1] == "get" || p[1] == "list") rd = 1
+        else { key = p[1]; val = p[2]; if (pos >= 2) wr = 1 }
+        key = tolower(key)
+        if (wr && !rd && key == "core.hookspath") hit("hookspath")
+        if (wr && !rd && key == "commit.gpgsign" && tolower(val) ~ /^(false|no|off|0)?$/) hit("gpg")
+        return
+      }
+      if (!inset(H, sc)) return
+      for (i = 1; i <= nc; i++) {
+        if (cfg[i] ~ /^core\.hookspath(=|$)/) hit("hookspath")
+        if (cfg[i] ~ /^commit\.gpgsign=(false|no|off|0)?$/ && sc != "push") hit("gpg")
+      }
+      if (("\n" envs "\n") ~ /\n(HUSKY=0|SKIP=[^\n]+|LEFTHOOK=(0|false))\n/) hit("hookenv")
+      sv = sc == "commit" ? "mFcCt" : sc == "merge" ? "mFsX" : sc == "push" ? "o" : sc == "rebase" ? "sXx" : sc == "pull" ? "sX" : sc == "am" ? "" : "mX"
+      lv = " --message --file --author --date --template --reuse-message --reedit-message --fixup --squash --trailer --cleanup --pathspec-from-file --strategy --strategy-option --into-name --repo --receive-pack --exec --push-option --onto --whitespace --patch-format --resolvemsg --directory --exclude --include --mainline --upload-pack --depth --deepen --shallow-since --shallow-exclude --negotiation-tip --server-option "
+      nv = 0; ng = 0
+      for (k++; k <= nw; k++) {
+        x = wv[k]
+        if (x == "--") break
+        if (x ~ /^--./) {
+          n = x; sub(/=.*/, "", n)
+          if (length(n) >= 9 && index("--no-verify", n) == 1) nv = 1
+          else if (n == "--verify") nv = 0
+          else if (length(n) >= 6 && index("--no-gpg-sign", n) == 1) ng = 1
+          else if (n == "--gpg-sign") ng = 0
+          else if (x !~ /=/ && index(lv, " " n " ")) k++
+          continue
+        }
+        if (x !~ /^-./) continue
+        for (i = 2; i <= length(x); i++) {
+          ch = substr(x, i, 1)
+          if (ch == "n" && (sc == "commit" || sc == "am")) { nv = 1; continue }
+          if (ch == "S") { ng = 0; break }
+          if (index(sv, ch)) { if (i == length(x)) k++; break }
+          if (sc == "commit" && ch == "u" || (sc == "rebase" || sc == "am") && ch ~ /[Cp]/) break
+        }
+      }
+      if (nv) hit("verify")
+      if (ng && sc != "push") hit("gpg")
+    }
+    # gh api sends GET unless -X names a method or a -f/-F field or --input body is given, which make it POST. -R/--repo may sit anywhere.
+    function gh(j,   k, x, a, b, ka, kb, p, m, f, ep, vals) {
+      a = ""; b = ""; ka = nw; kb = nw; p = 0
+      for (k = j + 1; k <= nw && p < 2; k++) {
+        x = wv[k]
+        if (x == "-R" || x == "--repo") k++
+        else if (x !~ /^(-R.|--repo=)/) { if (++p == 1) { a = x; ka = k } else { b = x; kb = k } }
+      }
+      if (a == "pr" && b == "review") {
+        for (k = kb + 1; k <= nw; k++) if (wv[k] ~ /^(--(comment|approve|request-changes|body|body-file)(=|$)|-[acrbF])/) { hit("review"); return }
+        return
+      }
+      if ((a == "pr" || a == "issue") && b == "comment") {
+        for (k = kb + 1; k <= nw; k++) if (wv[k] ~ /^(--web|-w|--help|-h)$/) return
+        hit("comment"); return
+      }
+      if (a != "api") return
+      m = ""; f = 0; ep = ""; vals = ""
+      for (k = ka + 1; k <= nw; k++) {
+        x = wv[k]
+        if (x == "-X" || x == "--method") m = wv[++k]
+        else if (x ~ /^--method=/) m = substr(x, 10)
+        else if (x ~ /^-X./) m = substr(x, 3)
+        else if (x ~ /^(-f|-F|--field|--raw-field|--input)$/) { f = 1; vals = vals " " wv[++k] }
+        else if (x ~ /^(-[fF].|--(field|raw-field|input)=)/) { f = 1; vals = vals " " x }
+        else if (x ~ /^(-H|--header|-q|--jq|-t|--template|--cache|-p|--preview|--hostname)$/) k++
+        else if (x == "--") { if (ep == "") ep = wv[k + 1]; break }
+        else if (x !~ /^-/ && ep == "") ep = x
+      }
+      m = tolower(m); if (m == "") m = f ? "post" : "get"
+      ep = tolower(ep)
+      sub(/^https?:\/\/[^\/]+\//, "", ep); sub(/^api\/v3\//, "", ep); sub(/^\//, "", ep); sub(/[?#].*$/, "", ep); sub(/\/$/, "", ep)
+      if (ep == "graphql" || ep == "api/graphql") {
+        if (tolower(vals) ~ /(^|[^a-z0-9_])(addpullrequestreview[a-z]*|addcomment|submitpullrequestreview|updateissuecomment|updatepullrequestreview(comment)?)([^a-z0-9_]|$)/) hit("graphql")
+        return
+      }
+      if (m !~ /^(post|patch|put)$/) return
+      if (ep ~ /(^|\/)(pulls|issues)\/[^\/]+\/(comments|reviews)(\/[^\/]+(\/(replies|events|dismissals))?)?$/ || ep ~ /(^|\/)(pulls|issues)\/comments\/[^\/]+(\/replies)?$/) hit("api")
+    }
+    # A keyword heads a command only before anything else; timeout and flock take one operand (a duration, a lock file) before theirs.
+    function judge(   j, x, b, wrap, envs, head, pos) {
+      word()
+      envs = ""; wrap = 0; head = 1; pos = 0
+      for (j = 1; j <= nw; j++) {
+        x = wv[j]; b = base(x)
+        if (head && x ~ /^(if|then|elif|else|do|while|until|!)$/) continue
+        head = 0
+        if (x ~ /^[A-Za-z_][A-Za-z0-9_]*=/) { envs = envs "\n" x; continue }
+        if (b ~ /^(sudo|doas|nohup|time|command|builtin|exec|nice|ionice|env|timeout|xargs|stdbuf|flock)$/) { wrap = 1; pos = b ~ /^(timeout|flock)$/; continue }
+        if (wrap && x ~ /^-/) continue
+        if (b == "git" || b == "gh") break
+        if (wrap && wv[j - 1] ~ /^-/) continue
+        if (wrap && pos) { pos = 0; continue }
+        break
+      }
+      b = j <= nw ? base(wv[j]) : ""
+      if (b == "git") git(j, envs); else if (b == "gh") gh(j); else queue()
+      nw = 0; redir = 0
+    }
+    END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && found == ""; qi++) scan(q[qi], 0); if (found != "") print found }'
+}
+
+# A case pattern first, so a command naming none of the shapes costs no fork.
+check_git_gh() { # raw command (heredoc bodies stripped), the normalised command (lowercased, padded)
+  local code="" m
+  case "$2" in
+    *no-ver*|*no-g*|*hookspath*|*gpgsign*|*husky=*|*skip=*|*lefthook=*) ;;
+    *' pr '*'review '*|*' pr '*'comment '*|*' issue '*'comment '*|*' api '*) ;;
+    *' commit '*|*' am '*) [[ $2 =~ \ \$?-[a-z]*n ]] || return 0 ;;
+    *) return 0 ;;
+  esac
+  code=$(git_gh_bypass "$1")
+  m=${code#*$'\t'}; code=${code%%$'\t'*}
+  set -- "$1" "$2" "$m "
+  case "$code" in
+    verify)    set_verdict ask "skips the repository's git hooks (--no-verify, or -n on commit or am), so the checks they run do not run" \
+                 "run it without the bypass and fix what the hook reports; if a hook itself is broken, tell the user" "$3" ;;
+    hookspath) set_verdict ask "points git at another hooks directory (core.hooksPath), so the repository's own hooks do not run" \
+                 "leave core.hooksPath alone; if a hook itself is broken, tell the user" "$3" ;;
+    gpg)       set_verdict ask "turns commit signing off (--no-gpg-sign or commit.gpgsign=false), so the commit is not signed as the repository expects" \
+                 "leave signing on; if signing fails, tell the user why" "$3" ;;
+    hookenv)   set_verdict ask "turns the hook manager off (HUSKY=0, SKIP= or LEFTHOOK=0), so the hooks it runs are skipped" \
+                 "run it without the variable and fix what the hook reports; if a hook itself is broken, tell the user" "$3" ;;
+    review)    set_verdict ask "publishes a pull-request review (gh pr review) under the user's name, where everyone on the repository reads it" \
+                 "show the user the review text and let them post it" "$3" ;;
+    comment)   set_verdict ask "posts a comment (gh pr comment or gh issue comment) under the user's name, where everyone on the repository reads it" \
+                 "show the user the comment text and let them post it" "$3" ;;
+    api|graphql) set_verdict ask "posts or edits pull-request review or comment text through the GitHub API, under the user's name" \
+                 "show the user the text and let them post it; a GET of the same path only reads" "$3" ;;
+  esac
 }
 
 # The human's opt-out, so the model may not write it: check_self_protection on Bash, guard_file_write on the write tools.
@@ -1146,9 +1366,76 @@ EOF
   return 0
 }
 
+# One segment through the per-segment checks; classify's sql_ctx, pipe_to_shell and body_lc and the global SEG_I are read in place.
+judge_segment() { # raw segment, the command it came from
+  local seg="$1" segn segn_pre segn_lc lead sub redirects
+  [ -n "$seg" ] || return 0
+  segn=$(norm_cmd "$seg")
+  [ -n "$segn" ] || return 0
+  segn_pre=$segn
+  segn=$(strip_git_global_options "$segn" "")
+  lead=$(lead_word "$segn")
+  [ "$lead" = git ] && segn=$(strip_git_global_options "$segn" git)
+  segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
+  segn=" $segn "
+
+  check_env_overwrite "$segn" "$lead"
+  [ "$VERDICT" = "deny" ] && return 0
+
+  # A redirecting segment is a write whatever its lead word claims (echo x > .env), so it skips both exemptions; >> too.
+  case "$segn_lc" in *' > '*) redirects=1 ;; *) redirects=0 ;; esac
+
+  if [ "$pipe_to_shell" -eq 0 ] && [ "$redirects" -eq 0 ]; then
+    # No self-exemption for this guard's own --check: the shell runs a segment's $( ), backticks and redirects whatever argv says.
+    if is_reader "$lead"; then return 0; fi
+    if [ "$lead" = "git" ]; then
+      sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
+      git_safe_subcmd "$sub" && return 0
+      # An n flag (-n, -fn) or --dry-run, abbreviations too, is a dry run; -e/--exclude takes the rest of its cluster or the next word, words after -- are paths, and the last of --dry-run/--no-dry-run wins.
+      if [ "$sub" = "clean" ]; then
+        printf '%s' "$segn_lc" | awk '{ for (i = 1; i <= NF && $i != "git"; i++) ;
+          d = 0
+          for (i += 2; i <= NF; i++) {
+            t = $i
+            if (t == "--") break
+            if (length(t) >= 3 && index("--dry-run", t) == 1) { d = 1; continue }
+            if (length(t) >= 6 && index("--no-dry-run", t) == 1) { d = 0; continue }
+            if (t ~ /^--e(x(c[a-z]*)?)?$/) { i++; continue }
+            if (t !~ /^-[a-z]+$/) continue
+            f = t; sub(/e.*/, "", f)
+            if (f ~ /n/) d = 1
+            if (t ~ /^-[^e]*e$/) i++
+          }
+          exit !d }' && return 0
+      fi
+    fi
+  fi
+
+  check_rm "$segn_lc" "$segn" "$seg" "$2"
+  match_rule_table "$segn" "$segn_lc" "$sql_ctx"
+  [ "$VERDICT" = allow ] && [ "$lead" = git ] && check_git_discard "$segn" "$segn_pre"
+  [ "$VERDICT" = allow ] && [ "$sql_ctx" -eq 1 ] && check_sql_update "$segn_lc" "$body_lc"
+  return 0
+}
+
+# Each nested command walked as a command of its own, with the ordinal of the segment holding it, as a mktemp credit is read.
+judge_nested() { # raw command, heredoc bodies stripped
+  local at sub seg
+  while IFS=$'\t' read -r at sub; do
+    sub=${sub//$'\037'/$'\n'}
+    SEG_I=0
+    [ -z "$MKTEMP_VARS" ] || SEG_I=$(LC_ALL=C; split_segments "${1:0:at-1}x" | wc -l | tr -d ' ')
+    case "$sub" in *'<<'*$'\n'?*) seg=$(cc_strip_heredoc_bodies inert "$sub" "$SQL_CLIENT_RE"); [ -n "$seg" ] && sub=$seg ;; esac
+    while IFS= read -r seg; do
+      judge_segment "$seg" "$sub"
+      [ "$VERDICT" = "deny" ] && return 0
+    done < <(split_segments "$sub")
+  done < <(nested_commands "$1")
+}
+
 # classify: raw command string -> VERDICT / V_WHAT / V_ALT / V_MATCH
 classify() {
-  local raw="$1" body body_lc="" full full_lc seg segn segn_pre segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
+  local raw="$1" body body_lc="" full full_lc seg pipe_to_shell=0 sql_ctx=0
 
   full=$(norm_cmd "$raw")
   full_lc=$(printf '%s' "$full" | tr '[:upper:]' '[:lower:]')
@@ -1177,62 +1464,68 @@ classify() {
 
   while IFS= read -r seg; do
     SEG_I=$((SEG_I + 1))
-    [ -n "$seg" ] || continue
-    segn=$(norm_cmd "$seg")
-    [ -n "$segn" ] || continue
-    segn_pre=$segn
-    segn=$(strip_git_global_options "$segn" "")
-    lead=$(lead_word "$segn")
-    [ "$lead" = git ] && segn=$(strip_git_global_options "$segn" git)
-    segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
-    segn=" $segn "
-
-    check_env_overwrite "$segn" "$lead"
-    [ "$VERDICT" = "deny" ] && break
-
-    # A redirecting segment is a write whatever its lead word claims (echo x > .env), so it skips both exemptions; >> too.
-    case "$segn_lc" in *' > '*) redirects=1 ;; *) redirects=0 ;; esac
-
-    if [ "$pipe_to_shell" -eq 0 ] && [ "$redirects" -eq 0 ]; then
-      # No self-exemption for this guard's own --check: the shell runs a segment's $( ), backticks and redirects whatever argv says.
-      if is_reader "$lead"; then continue; fi
-      if [ "$lead" = "git" ]; then
-        sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
-        git_safe_subcmd "$sub" && continue
-        # An n flag (-n, -fn) or --dry-run, abbreviations too, is a dry run; -e/--exclude takes the rest of its cluster or the next word, words after -- are paths, and the last of --dry-run/--no-dry-run wins.
-        if [ "$sub" = "clean" ]; then
-          printf '%s' "$segn_lc" | awk '{ for (i = 1; i <= NF && $i != "git"; i++) ;
-            d = 0
-            for (i += 2; i <= NF; i++) {
-              t = $i
-              if (t == "--") break
-              if (length(t) >= 3 && index("--dry-run", t) == 1) { d = 1; continue }
-              if (length(t) >= 6 && index("--no-dry-run", t) == 1) { d = 0; continue }
-              if (t ~ /^--e(x(c[a-z]*)?)?$/) { i++; continue }
-              if (t !~ /^-[a-z]+$/) continue
-              f = t; sub(/e.*/, "", f)
-              if (f ~ /n/) d = 1
-              if (t ~ /^-[^e]*e$/) i++
-            }
-            exit !d }' && continue
-        fi
-      fi
-    fi
-
-    check_rm "$segn_lc" "$segn" "$seg" "$body"
-    match_rule_table "$segn" "$segn_lc" "$sql_ctx"
-    [ "$VERDICT" = allow ] && [ "$lead" = git ] && check_git_discard "$segn" "$segn_pre"
-    [ "$VERDICT" = allow ] && [ "$sql_ctx" -eq 1 ] && check_sql_update "$segn_lc" "$body_lc"
-
+    judge_segment "$seg" "$body"
     [ "$VERDICT" = "deny" ] && break
   done < <(split_segments "$body")
 
+  # The walk keeps a double-quoted span or a backtick in its segment, where a reader lead (echo "$(rm -rf /)") would skip what the shell runs.
+  case "$body" in *'$('*|*'`'*) [ "$VERDICT" = "deny" ] || judge_nested "$body" ;; esac
+
+  [ "$VERDICT" = allow ] && check_git_gh "$body" " $full_lc "
   [ "$VERDICT" = "deny" ] || check_cd_chain "$body"
+  apply_strict "$full_lc"
 
   # The human opt-out comes last so it can release a deny.
   if [ "$VERDICT" != "allow" ] && allow_listed "$full_lc"; then
     VERDICT=allow
   fi
+  return 0
+}
+
+# The project's strictness file: "ask <ERE>" or "deny <ERE>" per line, matched like the allow-file. It only raises a verdict; an entry
+# that would lower one (an allow line, an ask on a deny) is skipped with a note. Read as data; malformed or over the cap, it is ignored.
+STRICT_BASENAME=command-guard-strict
+STRICT_MAX_BYTES=16384
+STRICT_NOTE=""
+
+apply_strict() { # normalised lowercased command
+  local f="${CLAUDE_PROJECT_DIR:-$PWD}/.claude/$STRICT_BASENAME" line n=0 i sz tier word alt re base="$VERDICT" tiers=() res=() nums=()
+  local lre='^[[:space:]]*(ask|deny|allow)[[:space:]]+([^[:space:]].*)$'
+  STRICT_NOTE=""
+  [ -f "$f" ] || return 0
+  sz=$(wc -c < "$f" 2>/dev/null) || sz=""; sz=${sz//[[:space:]]/}
+  case "$sz" in ''|*[!0-9]*) sz=$((STRICT_MAX_BYTES + 1)) ;; esac
+  if [ "$sz" -gt "$STRICT_MAX_BYTES" ]; then
+    STRICT_NOTE="command-guard: .claude/$STRICT_BASENAME is ignored: it is unreadable or over $STRICT_MAX_BYTES bytes."
+    return 0
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    n=$((n + 1)); line=${line%$'\r'}
+    case "$line" in *[![:space:]]*) ;; *) continue ;; esac
+    case "${line#"${line%%[![:space:]]*}"}" in '#'*) continue ;; esac
+    if ! [[ $line =~ $lre ]]; then
+      STRICT_NOTE="command-guard: .claude/$STRICT_BASENAME is ignored: line $n is not \`ask <regex>\` or \`deny <regex>\`."
+      return 0
+    fi
+    tier=${BASH_REMATCH[1]}; re=${BASH_REMATCH[2]}; re=${re%"${re##*[![:space:]]}"}
+    [[ "" =~ $re ]] 2>/dev/null
+    if [ $? -eq 2 ]; then
+      STRICT_NOTE="command-guard: .claude/$STRICT_BASENAME is ignored: the regex on line $n does not compile."
+      return 0
+    fi
+    tiers+=("$tier"); res+=("$re"); nums+=("$n")
+  done < "$f"
+  for i in "${!tiers[@]}"; do
+    [[ $1 =~ ${res[$i]} ]] || continue
+    tier=${tiers[$i]}
+    if [ "$tier" = allow ] || { [ "$tier" = ask ] && [ "$base" = deny ]; }; then
+      [ "$base" = allow ] || [ -n "$STRICT_NOTE" ] || STRICT_NOTE="command-guard: .claude/$STRICT_BASENAME line ${nums[$i]} would loosen this command's built-in $base, so it is ignored; only .claude/$ALLOW_BASENAME releases one."
+      continue
+    fi
+    word="confirm first"; alt="check with the user first"
+    [ "$tier" = deny ] && { word="keep from an agent"; alt="hand the command to the user"; }
+    set_verdict "$tier" "matches line ${nums[$i]} of .claude/$STRICT_BASENAME (\`${res[$i]}\`), this project's own list of commands to $word" "$alt" " $1 "
+  done
   return 0
 }
 
@@ -1283,10 +1576,14 @@ ask_reason() {
   printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended; a safer path: ${V_ALT}.$(plan_audit_hint) CLAUDE_DESTRUCTIVE_GUARD=off turns this guard off."
 }
 
-emit() {
+emit() { # decision ("" prints only a pending strictness-file note), reason
   local decision="$1" reason="$2"
-  jq -cn --arg d "$decision" --arg r "$reason" \
-    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}' 2>/dev/null
+  if [ -z "$decision" ]; then
+    [ -z "$STRICT_NOTE" ] || jq -cn --arg m "$STRICT_NOTE" '{systemMessage:$m}' 2>/dev/null
+    return 0
+  fi
+  jq -cn --arg d "$decision" --arg r "$reason" --arg m "$STRICT_NOTE" \
+    '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}} + (if $m == "" then {} else {systemMessage:$m} end)' 2>/dev/null
 }
 
 # A judgment still running after GUARD_DEADLINE seconds (12; the harness lowers it) is stopped and asks in every mode, inside hooks.json's 15 s onFailure: block. No mktemp or sleep: unwatched.
@@ -1308,13 +1605,16 @@ judge_in_time() { # guard function, its arguments
   rm -f "$out"
 }
 
-check_cli() { # command -> prints its tier whatever the mode; exits 0 allow, 1 ask, 2 deny
+check_cli() { # command -> prints its tier whatever the mode, then any strictness-file note; exits 0 allow, 1 ask, 2 deny
+  local rc=0
   classify "$1"
   case "$VERDICT" in
-    deny) printf 'DENY  %s\n      %s\n' "$V_MATCH" "$(deny_reason)"; exit 2 ;;
-    ask)  printf 'ASK   %s\n      %s\n' "$V_MATCH" "$(ask_reason)"; exit 1 ;;
-    *)    printf 'ALLOW %s\n' "$1"; exit 0 ;;
+    deny) printf 'DENY  %s\n      %s\n' "$V_MATCH" "$(deny_reason)"; rc=2 ;;
+    ask)  printf 'ASK   %s\n      %s\n' "$V_MATCH" "$(ask_reason)"; rc=1 ;;
+    *)    printf 'ALLOW %s\n' "$1" ;;
   esac
+  [ -z "$STRICT_NOTE" ] || printf 'NOTE  %s\n' "$STRICT_NOTE"
+  exit "$rc"
 }
 
 # Write/Edit and the MCP write tools an IDE session uses; apply_patch names no single path, so its body is searched for the allow-file.
@@ -1359,8 +1659,8 @@ guard_command() { # tool, payload, mode
       if [ "$mode" = "ask" ]; then emit ask "$(deny_reason)"; else emit deny "$(deny_reason)"; fi ;;
     ask)
       # deny-only leaves the ask tier to the host: a hook ask overrides the host's auto-mode classifier with a human click.
-      [ "$mode" = "deny-only" ] && return 0
-      emit ask "$(ask_reason)" ;;
+      if [ "$mode" = "deny-only" ]; then emit "" ""; else emit ask "$(ask_reason)"; fi ;;
+    *) emit "" "" ;;
   esac
 }
 
