@@ -1,12 +1,11 @@
 # hindsight
 
-A self-improvement loop across sessions. A SessionEnd hook records cheap friction stats
-for every ended session. Since 0.9.0 it also records every subagent that session spawned.
-The stats go to a file on this machine (the ledger). `/hindsight:harvest` mines the
-worst offenders' transcripts for recurring friction. It proposes CLAUDE.md rules,
-lint/CI checks, skill/plugin ideas and failed-approach warnings. It also proposes defects
-against the plugin artifact that was running. Nothing is applied without your explicit
-approval.
+Reads your past sessions and tells you what kept going wrong. A SessionEnd hook records
+cheap friction stats for every ended session and every subagent it spawned, in a file on
+this machine (the ledger). `/hindsight:harvest` ranks the worst unmined transcripts with a
+script, mines each with a read-only agent, and proposes CLAUDE.md rules, memory entries,
+lint/CI checks, skill ideas, failed-approach warnings, and defects against the plugin
+artifact that was running. Nothing is applied without your explicit approval.
 
 ## Install
 
@@ -15,20 +14,21 @@ approval.
 /plugin install hindsight@cc-plugins-marketplace
 ```
 
-## Commands
+## Use
 
-| Command | What it does |
+| Invocation | What it does |
 |---------|--------------|
-| `/hindsight:harvest [N\|all]` | Mine the top N unmined sessions (default 5) ranked by friction score; rank raw transcripts from `~/.claude/projects/<slug>/` when no ledger row exists. Reports the outcome check, a friction stats digest, CLAUDE.md rule and check candidates, skill/plugin ideas, and failed-approach warnings — inline and saved to `$HOME/.claude/hindsight/<slug>/reports/YYYY-MM-DD.md` — then gates every application behind a per-category multiselect |
-| `/hindsight:claude-md [path]` | Audit every CLAUDE.md in the repo: `scripts/claude-md-check.sh` reports stale backticked paths and undeclared `npm`/`pnpm`/`yarn`/`bun run`, `composer` and `make` targets with line numbers (gate-shaped, fixture-tested; a fragment that resolves anywhere in the tree, a bare extension, or a `file:line` suffix is not a stale row), then each file is scored on six weighted criteria (agent-graded) and at most five diffs per file are proposed — applied only on an explicit pick |
+| `/hindsight:harvest` | Mine the top 5 unmined transcripts of this project by friction score |
+| `/hindsight:harvest 12` · `all` | Mine the top 12, or every candidate |
+| `/hindsight:harvest since 7 days` | Only transcripts that ended in the last 7 days |
+| `/hindsight:harvest all projects` | Every project on this machine. It reads other repositories' session history, so it runs only when you ask for it in so many words |
 
-Beside the host: Claude Code 2.1.283+ has `/doctor prompt-audit`, which audits
-CLAUDE.md, skills, agents and commands, and leads with stale paths, stale commands and
-contradicting instruction files. It covers more surfaces than `/hindsight:claude-md`.
-This command keeps two things the host's changelog does not claim: a scripted stale-reference check
-that gives the same rows on every run of the same tree (`gate`-shaped, fixture-tested),
-and the six-criterion weighted score (`agent-graded`). Run both; neither replaces the
-other. Whether the host's report repeats run to run is not measured here.
+`/hindsight:harvest` is the skill's name; the plugin ships no command file.
+
+Beside the host: for auditing a CLAUDE.md that already exists, use Claude Code's
+`/doctor prompt-audit` (2.1.283+). This plugin dropped its own audit command in 0.13.0.
+The host deletes transcripts after `cleanupPeriodDays` (default 30); a harvest can only
+read what is still on disk.
 
 ## How it works
 
@@ -36,32 +36,40 @@ other. Whether the host's report repeats run to run is not measured here.
    session transcript and appends one stats row (`turns`, `user_msgs`, `errors`,
    `friction_events`, timestamps) to the ledger, then one more row per subagent
    transcript under `<session_id>/subagents/`, tagged `kind:"agent"` with the
-   `agent_type` from its `.meta.json` — the only record of what a spawned
-   reviewer or worker hit. Malformed transcripts, missing `jq`, or unreadable
-   files never produce errors or block session end; a session with hundreds of
-   agents may hit the hook timeout, which loses the tail of the agent rows and
+   `agent_type` from its `.meta.json`. Malformed transcripts, missing `jq`, or
+   unreadable files never produce errors or block session end; a session with hundreds
+   of agents may hit the hook timeout, which loses the tail of the agent rows and
    never the session row.
-2. **Harvest (on demand)** — `/hindsight:harvest` picks the highest-friction
-   unmined sessions from the ledger, fans out one read-only `transcript-miner`
-   agent per session, and synthesizes findings under a two-session recurrence
-   gate: proposals need evidence from at least two sessions; single-session
-   patterns are parked as candidates until corroborated.
-3. **Apply (on approval)** — approved rules go to one of four homes (a repo-binding
-   rule appends to CLAUDE.md; a rule about how *you* want to be worked with becomes
-   a `feedback` entry in Claude Code's own memory at
-   `~/.claude/projects/<slug>/memory/`, which is machine-local and not imposed on
-   teammates; a finding about the codebase itself becomes a note under `## Notes`
-   in the matching `brain/<area>.md` when the brain plugin's map exists; a mechanical
-   correction — the same call, import or path every time — becomes a proposed check in
-   the linter, pre-commit hooks or CI the repo already runs, printed for you to apply and
-   never written), ideas hand off
-   to a `/new-skill` or `/new-plugin` project skill when the project has one
-   (the marketplace repository does), warnings
-   land in `.claude/hindsight/anti-patterns.md`. Nothing is written without an
-   explicit pick.
+2. **Select (script)** — `scripts/select.sh` prints the unmined transcripts, ledger rows
+   first by `3 × friction_events + 2 × errors + turns`, then transcripts the hook never
+   recorded, newest first. One row per conversation: a resumed session is one row and a
+   fork folds into its longer copy. Deleted transcripts are dropped and counted.
+3. **Mine (on demand)** — one read-only `transcript-miner` agent per selected transcript.
+   Findings are clustered under a two-session recurrence gate: a proposal needs evidence
+   from at least two sessions; a single-session pattern is listed as a candidate.
+4. **Apply (on approval)** — approved rules go to one of four homes: a repo-binding rule
+   appends to CLAUDE.md; a rule about how *you* want to be worked with becomes a
+   `feedback` entry in Claude Code's own memory at `~/.claude/projects/<slug>/memory/`;
+   a finding about the codebase becomes a note in `brain/<area>.md` when the brain
+   plugin's map exists; a mechanical correction becomes a proposed check in the linter,
+   pre-commit hooks or CI the repo already runs, printed for you to apply and never
+   written. Ideas hand off to a `/new-skill` or `/new-plugin` project skill when the
+   project has one. Warnings land in `.claude/hindsight/anti-patterns.md`.
+5. **Mark (script)** — `select.sh --mark` flags every mined transcript in the ledger, so
+   the next harvest does not offer it again.
 
 Credit: the proposed-check destination in `harvest` adapts a rule from
 mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied.
+
+## What has teeth
+
+| Rule | Standing |
+|---|---|
+| Ranking, one row per conversation (resumes and forks folded), mined and deleted transcripts dropped, `--mark` | **gate** in the marketplace repository: `scripts/__tests__/select.test.sh` |
+| The session row and one row per subagent | **gate** there too: `scripts/__tests__/collect.test.sh` |
+| Two-session recurrence before a proposal; the existing-coverage check; defect vs idea | **agent-graded** — the skill says so, no script checks a report |
+| Other projects are read only on an explicit ask | **recorded** — `--all-projects` is a flag the skill is told to keep for that |
+| An applied rule helped | **unenforceable** here. It takes an eval with a control arm; this plugin does not measure it. The before-and-after table earlier versions printed was removed in 0.13.0 because it could not tell apart rules applied together |
 
 ## Ledger
 
@@ -77,71 +85,39 @@ session:
 
 Agent rows carry the same fields plus `"kind":"agent"`, `"agent_id"`, and
 `"agent_type"` (e.g. `code-review:code-reviewer`); a row without `kind` is a
-session. `outcome.sh` skips agent rows so a session that fanned out 90 reviewers
-does not count as 91 sessions.
+session.
 
 `friction_events` is a best-effort heuristic count of tool-result
-error/rejection markers — it undercounts rather than crashes, and low-signal
-sessions simply rank low at harvest time.
+error/rejection markers — it undercounts rather than crashes, and a session that
+was quiet and wrong ranks low.
 
-**What counts as an improvement** (standing: recorded — the harvest report tiers
-it, no script grades it): a *defect* needs one transcript quote showing the
-artifact's own rule or tool active and failing; a *recurrence* proposal needs ≥2
-sessions and still owes a control arm; an *outcome* row is correlational. A
-change to a shipped plugin earns "improvement" only when an eval case built from
-the friction (prompt = the request, grader = the correction) fails without the
-artifact and passes with it — `claude plugin eval --ablation with-without`.
+Reports are saved beside the ledger at `reports/YYYY-MM-DD.md`. The one file this
+plugin writes into the project is `<project>/.claude/hindsight/anti-patterns.md`, and
+only when you pick a warning at the apply gate (a brain note goes into the brain
+plugin's committed `brain/` map, again only on a pick). That file is **team-shared and
+must be committed** — a CLAUDE.md pointer references it. Do not ignore `.claude/`
+wholesale: other plugins keep team files there too.
 
-**There is nothing to gitignore.** The ledger and the per-run reports are
-machine-local by construction — absolute transcript paths and per-machine session
-history were never project artifacts, so they live under `$HOME` and no longer
-create a directory inside your project.
+## Skill-use log
 
-The one file this plugin writes into the project on its own is
-`<project>/.claude/hindsight/anti-patterns.md`, and only when you explicitly pick a
-warning at the apply gate (a brain note goes into the brain plugin's committed
-`brain/` map, again only on a pick). That one is **team-shared and must be committed** — a
-CLAUDE.md pointer references it, and ignoring it breaks the pointer for teammates.
-Do not ignore `.claude/` wholesale to be safe: other plugins keep team files there
-too, e.g. `/stack-scan:suggest --persist` writes `.claude/settings.json`.
-
-**Upgrading from a project-local ledger?** Nothing is migrated. An existing
-`<project>/.claude/hindsight/ledger.jsonl` is simply no longer read — harvest falls
-back to ranking raw transcripts from `~/.claude/projects/<slug>/`, which is the same
-path it already used for pre-install history, so the first harvest after upgrading
-still has data to work with. The old directory is safe to delete.
-
-## The loop is now closed (0.5.0)
-
-The ledger always held the data to grade an applied rule and nothing read it back.
-Now: every apply-gate pick harvest writes is recorded to `applied.jsonl`, and each
-harvest opens by running `scripts/outcome.sh` (fixture harness in CI) — mean friction/errors per
-session, before vs after each applied rule, with a hard ≥3-sessions-per-side floor
-before any number is shown. Standing: the computation is mechanical; the attribution
-is correlational and the script prints that caveat with every table — a "worsened"
-row is a retraction candidate, not a verdict.
+A second hook, `hooks/skill-use.sh`, appends one row per Skill-tool call to
+`$HOME/.claude/hindsight/<slug>/skills.jsonl`. Nothing this plugin ships reads it. It
+exists for the marketplace repository's `scripts/turn-cost.sh --skills`, which counts
+which shipped skills ever fire. Turn it off with `CC_SKILL_LOG=off` or the `/config`
+option; you lose nothing as an installer.
 
 ## Pairs with
 
-- **brain** — the third harvest destination: a codebase finding approved at the
-  apply gate lands as a note in `brain/<area>.md` (or `brain/decisions.md`), only
-  when `brain/INDEX.md` exists. Agent-graded; no script checks the routing.
-- **skill-router** — not a plugin edge: `hooks/skill-use.sh`'s `skills.jsonl` (what
-  was invoked) and the router's `surfaced.jsonl` (what was offered) are joined by
-  `scripts/turn-cost.sh --skills`, a maintainer path in the marketplace repository.
-  Neither plugin reads the other's ledger at runtime.
-- **stack-scan** (plugin-scout skill) — suggests hindsight per repo as an any-project core
-  row (since stack-scan 0.13.0; `--yes` installs it) and, in its
-  official-complements table, names `/hindsight:claude-md` as the overlap with the
-  host's `claude-md-management`.
+- **brain** — a harvest destination: a codebase finding approved at the apply gate
+  lands as a note in `brain/<area>.md` (or `brain/decisions.md`), only when
+  `brain/INDEX.md` exists. Agent-graded; no script checks the routing.
+- **stack-scan** (plugin-scout skill) — suggests hindsight per repo as an any-project
+  core row.
 
 ## Contents
 
-- **Hooks**, two: the SessionEnd stats collector (`hooks/collect.sh`) — a session row
-  plus one row per subagent transcript (fixture harness:
-  `scripts/__tests__/collect.test.sh`) — and the PostToolUse `Skill` invocation ledger
-  (`hooks/skill-use.sh`, `CC_SKILL_LOG=off`); both bash + jq, fail-silent by design
-- **Command**: `/hindsight:claude-md` — the CLAUDE.md audit. There is one command;
-  `/hindsight:harvest` in the table above is the SKILL's name, invoked the same way
-- **Skill**: harvest — ranking, recurrence gate, five-section report, apply gate
-- **Agent**: transcript-miner — read-only per-session mining, compressed findings
+- **Hooks**, two: the SessionEnd stats collector (`hooks/collect.sh`) and the
+  PostToolUse `Skill` invocation log (`hooks/skill-use.sh`); both bash + jq, fail-silent
+- **Script**: `scripts/select.sh` — ranks unmined transcripts and marks mined ones
+- **Skill**: harvest — select, fan out, recurrence gate, four-section report, apply gate
+- **Agent**: transcript-miner — read-only per-transcript mining, compressed findings

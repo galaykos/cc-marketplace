@@ -1,5 +1,5 @@
 #!/bin/bash
-# skill-use.sh — PostToolUse on Skill: appends one row per skill invocation to $HOME/.claude/hindsight/<slug>/skills.jsonl, machine-local, same slug rule and fail-silent contract as collect.sh; only /hindsight:harvest reads it, on request. Off: CC_SKILL_LOG=off (unset: /config option cc_skill_log).
+# skill-use.sh — PostToolUse on Skill: appends one row per skill invocation to $HOME/.claude/hindsight/<slug>/skills.jsonl, machine-local, same slug rule and fail-silent contract as collect.sh; nothing this plugin ships reads it; the marketplace repository's scripts/turn-cost.sh --skills does. Off: CC_SKILL_LOG=off (unset: /config option cc_skill_log).
 # Misses: usefulness (it proves invocation only); every call once the harness stops naming the tool `Skill`, leaving an empty file that reads like "nothing was used".
 # Why, limits, history: rationale/derivations/plugin-hindsight.md § plugins/hindsight/hooks/skill-use.sh
 
@@ -31,7 +31,7 @@ cc_option() {
   case "$(cc_option CC_SKILL_LOG on)" in off) exit 0 ;; esac
 
   # context-key-ok: session_id is RECORDED as a ledger field, never used to key a
-  # one-shot marker. The harvest reads these rows to group what a session invoked, so
+  # one-shot marker. turn-cost.sh reads these rows to group what a session invoked, so
   # session scope is the correct scope here — rewriting it to transcript_path would
   # split one session's ledger across every subagent that ran in it.
   session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null) || exit 0

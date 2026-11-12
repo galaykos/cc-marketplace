@@ -102,56 +102,51 @@ slug: the same rule Claude Code uses for its projects dir, and the same rule
 hooks/collect.sh uses — one directory per project, shared with the ledger.
 ```
 
-## plugins/hindsight/scripts/claude-md-check.sh
+## Removed 2026-11-12 (hindsight 0.13.0)
 
-### Header
+`scripts/claude-md-check.sh`, `commands/claude-md.md`, `scripts/outcome.sh` and their two
+harnesses were deleted. Their moved comment text went with them; it is in git history at
+`45905934`. Why: `rationale/marketplace-necessity-review-2026-11-12.md` § 1.
 
-```text
-claude-md-check.sh — the mechanical half of a CLAUDE.md audit: which of the
-paths and scripts a CLAUDE.md names no longer exist.
+- The CLAUDE.md audit had no logged use in 40 days across 50 projects, and the host's
+  `/doctor prompt-audit` covers more surfaces.
+- `outcome.sh` graded six rules applied at one timestamp as six identical rows
+  (`15.88 → 28.44` friction, all `worsened`). A before-and-after mean cannot separate rules
+  applied together, and the after-window held different work. `applied.jsonl` is no longer
+  written; an existing file is ignored.
 
-Usage: claude-md-check.sh [repo-root]   (defaults to $PWD)
-Finds: CLAUDE.md, .claude.md, .claude.local.md at any depth (node_modules,
-       vendor, .git skipped). Prints per file: lines, bytes, then one row per
-       stale reference — a backticked path that does not resolve from the repo
-       root or the file's own directory, or a backticked `npm run X` /
-       `composer X` / `make X` whose script target is not declared.
-Exit 0 always — a report, not a gate. Nothing here is edited.
+## plugins/hindsight/scripts/select.sh
 
-Residual (stated, per the has-teeth convention): only BACKTICKED references are
-read, and only three script runners are resolved. A path written in prose, a
-command with a variable in it, or a runner not listed is not checked and not
-reported as clean — it is simply not seen. Currency of ARCHITECTURE prose
-(a described module boundary that moved) is judgment, left to the command.
+What shipped that made it exist: the harvest skill told the model to parse the ledger, score
+rows, pick the top five and rewrite the ledger with `mined: true`. Read 2026-11-12 on the
+maintainer's machine: 14 of 1,377 rows in 53 ledgers carried `mined: true`, all in one
+ledger. The 10-21 harvest marked what it read; the 11-05 retro mined 46 sessions and marked
+at most one, so those were offered again. (Counted with `jq`; a grep for the compact
+spelling read 0, because hand-written rows have a space after the colon.) The two retros that led to
+fixes (`session-retro-2026-10-21.md`, `session-retro-2026-11-05.md`) selected by date window
+instead, which the skill had no way to ask for.
 
-A token that resolves neither from the repo root nor from the file's own
-directory gets one more chance: if it exists ANYWHERE in the tree as a path
-suffix (`plugin.json`, `references/`, `hooks/x.sh`), it is read as an
-illustrative fragment, not a stale path. Measured 2026-09-10 on this
-marketplace's own CLAUDE.md before the rule: 35 rows, 3 real. A bare
-extension (`.md`) is skipped outright. The cost, accepted: a root-anchored
-path that went stale while a same-named file lives elsewhere is not reported.
-```
+- One candidate per `transcript_path`, taking the last row: `collect.sh` appends a session
+  row on every SessionEnd, so a resumed session has several (35 session rows for 28 session
+  ids in this repository's ledger on the same day).
+- A transcript is mined when ANY of its rows says so.
+- `--since` compares `ts_end` for ledger rows and file mtime for transcripts with no row.
+- `--mark` takes transcript paths, not ids: the path is the one key both a ledger row and an
+  unrecorded transcript have, and its `projects/<slug>/` segment names the ledger to write.
+- `--all-projects` exists because the 11-05 retro needed it while the skill's boundary said
+  "current project only". The default stays one project; the flag reads other repositories'
+  session history, and only the skill's prose keeps it for an explicit ask.
 
-## plugins/hindsight/scripts/outcome.sh
+Limits: the rewrite is temp-file-then-move with no lock, so a row `collect.sh` appends in
+that instant is lost. The score is the hook's heuristic; it was never tuned. On the first
+live run it dropped 84 of this repository's rows whose transcripts the host had deleted.
+Harness: `scripts/__tests__/select.test.sh`, 31 cases.
 
-### Header
-
-```text
-outcome.sh — closes the loop the ledger always had the data for: did an
-applied hindsight rule actually move the numbers in later sessions?
-
-Usage: outcome.sh [project-cwd]   (defaults to $PWD; slug derived like collect.sh)
-Reads:  $HOME/.claude/hindsight/<slug>/ledger.jsonl   (written by the SessionEnd hook;
-        rows tagged kind:"agent" are subagent transcripts and are skipped here — a
-        session that fans out 90 reviewers would otherwise count as 91 sessions)
-        $HOME/.claude/hindsight/<slug>/applied.jsonl  (written at harvest apply time)
-Prints a per-rule before/after table. Exit 0 always — a report, not a gate.
-
-Residual (stated, per the has-teeth convention): this is CORRELATION. Sessions
-after an applied rule differ in more than the rule — different work, other
-rules, model updates. A moved number is a hint about where to spend a real
-control/treatment run (see skill-creator's eval loop), not proof the rule
-worked. The honest minimum is printed with every table; MIN_N=3 sessions per
-side before any number is shown at all.
-```
+Fork folding was added the same day, from the first real harvest run with this script: the
+top two rows were `18499add` and `72ae9244`, and both miners returned the same findings.
+`cmp` put the first difference at line 10,574 of 10,640; 5,238 of the fork's 5,261 message
+uuids were in the parent. Two rows for one conversation would have passed the skill's
+two-session recurrence gate on a single session's evidence. The key is the first message
+`uuid` in the file (the path when a transcript has none). `--mark` marks sibling files
+with the same key. Cost, accepted: what a fork said after its fork point is not mined when
+the longer copy outranks it.
