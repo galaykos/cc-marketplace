@@ -77,8 +77,12 @@ r=$(reason "$out")
 case "$r" in *"still running: build"*) ok ;; *) bad "ask must name the running check" "$r" ;; esac
 case "$r" in *"CC_MERGE_CHECKS=off"*) ok ;; *) bad "ask must name the off-switch" "$r" ;; esac
 case "$r" in *lint*) bad "a passing check is not named" "$r" ;; *) ok ;; esac
-[ "$r" = "git-workflow: PR 12 is not green on CI — still running: build. Approve only to merge anyway (a known-flaky or optional check); otherwise wait with gh pr checks 12 --watch, or merge with --auto. CC_MERGE_CHECKS=off turns this check off." ] \
+mwg="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$HOOK")/.." && pwd)}/scripts/merge-when-green.sh"
+[ "$r" = "git-workflow: PR 12 is not green on CI — still running: build. Approve only to merge anyway (a known-flaky or optional check); otherwise wait and merge in one step with bash \"$mwg\" --pr 12, or merge with --auto where the repository allows auto-merge. CC_MERGE_CHECKS=off turns this check off." ] \
   && ok || bad "ask: what is not green, when to approve, how to wait, one off switch" "$r"
+[ -x "$mwg" ] && ok || bad "the script the ask names must exist and be executable" "$mwg"
+r=$(reason "$(run running 'gh pr merge topic --squash')")
+case "$r" in *"otherwise wait with gh pr checks topic --watch, or merge with --auto where"*) ok ;; *) bad "a branch selector keeps the watch wording (the script takes a number)" "$r" ;; esac
 
 out=$(run fail 'gh pr merge 12 --squash')
 is_ask "$out" && ok || bad "failing check must ask" "$out"

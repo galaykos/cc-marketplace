@@ -358,3 +358,26 @@ commits had all landed read content-merged. Found by a probe while writing the s
 (2026-10-31) and pinned by the harness's `evil` branch, red before the guard: the per-commit
 test now runs only when the branch has no merge commit of its own, and the squash probe,
 which compares the whole tree, decides the rest.
+
+## plugins/git-workflow/scripts/merge-when-green.sh
+
+Written with the script on 2026-11-12. Standing: `recorded`.
+
+What it is for: a harvest of six sessions (2026-11-06 … 11-12, report under
+`~/.claude/hindsight/`, machine-local) found the merge go-ahead typed two or three times per PR
+("Yes, merge it", "Merge now", "merged?", "All Merged?") and `gh pr merge --auto` tried twice on a
+repository that answers "Auto merge is not allowed for this repository". CI runs took 14 to 18 minutes,
+so the go-ahead and the green result were never in the same turn.
+
+Why not `gh pr checks --watch && gh pr merge`: in those sessions one watcher exited while GitHub
+briefly reported no checks, one followed the wrong commit, and one died on a 502. The script treats
+"no checks" as not yet (until `--grace`), reads state, head and rollup in one call so the verdict
+belongs to the head it names, retries a failed lookup four times, and passes `--match-head-commit`.
+
+Why `gh pr view --json statusCheckRollup` and not `gh pr checks --json`: the latter is absent from
+gh 2.46.0, the version on the machine it was written on (`unknown flag: --json`).
+
+Measured: the harness's 40 assertions pass; with the no-checks branch replaced by `break` 2 fail,
+and with every unfinished CheckRun read as finished 5 fail. Not measured: a live merge. The first
+live call was a `--dry-run --timeout 0` against a PR with running checks, which exited 6.
+

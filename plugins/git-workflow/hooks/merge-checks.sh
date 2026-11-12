@@ -260,7 +260,7 @@ names() {
 main() {
   command -v jq >/dev/null 2>&1 || exit 0
   [ "$(cc_option CC_MERGE_CHECKS on)" = off ] && exit 0
-  local input cmd m dir rows failing pending pr reason
+  local input cmd m dir rows failing pending pr reason wait root
   sel=""; repo=""; gh_repo=""; gh_host=""
   input=$(cat 2>/dev/null) || exit 0
   case "$input" in *merge*) ;; *) exit 0 ;; esac
@@ -284,7 +284,15 @@ main() {
   reason="git-workflow: $pr is not green on CI —"
   [ -n "$failing" ] && reason="$reason failing: $failing;"
   [ -n "$pending" ] && reason="$reason still running: $pending;"
-  reason="${reason%;}. Approve only to merge anyway (a known-flaky or optional check); otherwise wait with gh pr checks${sel:+ $sel} --watch, or merge with --auto. CC_MERGE_CHECKS=off turns this check off."
+  wait="wait with gh pr checks${sel:+ $sel} --watch"
+  # A numbered PR gets the one-step wait-and-merge; a URL, branch or HOST/owner/name selector keeps the watch wording.
+  case "$sel" in '' | *[!0-9]*) ;; *)
+    case "$repo" in */*/*) ;; *)
+      root=${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)}
+      [ -n "$root" ] && wait="wait and merge in one step with bash \"$root/scripts/merge-when-green.sh\" --pr $sel${repo:+ --repo $repo}" ;;
+    esac ;;
+  esac
+  reason="${reason%;}. Approve only to merge anyway (a known-flaky or optional check); otherwise $wait, or merge with --auto where the repository allows auto-merge. CC_MERGE_CHECKS=off turns this check off."
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null
 }
