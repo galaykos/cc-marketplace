@@ -1119,5 +1119,56 @@ else
   printf 'SKIP  session-isolation nudge cases (git not available)\n'
 fi
 
+# 0.12.5: the marker lock. Session A holds .lock having read `last`/`blocked` before B; A writes its rewrite once B waits on the
+#   lock (a sleep shim flags it) or once B's write landed without waiting. Red on b80faf31 either way, no timing race.
+LK="$WS/lk"; mkdir -p "$LK" "$WS/lockbin"; LKS="$LK/.claude/candor"; LKF="$LKS/.lock"; LFLAG="$WS/lockwait"
+printf '#!/bin/sh\n: > "$LOCK_WAIT_FLAG"\nexec %s "$@"\n' "$(command -v sleep)" > "$WS/lockbin/sleep"; chmod +x "$WS/lockbin/sleep"
+LENV="PATH=$WS/lockbin:$BASE_PATH LOCK_WAIT_FLAG=$LFLAG"
+lpay() { jq -cn --arg tp "$TB" --arg cwd "$LK" --argjson a "${1:-false}" '{hook_event_name:"Stop",session_id:"sB",transcript_path:$tp,cwd:$cwd,stop_hook_active:$a}'; }
+lhas() { [ "$(grep -c "^$1 " "$2" 2>/dev/null)" = 1 ]; }
+# lsession_a <B-wrote test> <last-or-empty> <blocked>: A's rewrite, once B waits on the lock or B's write has landed (5 s cap).
+lsession_a() {
+  local i=0
+  while [ "$i" -lt 500 ] && [ ! -e "$LFLAG" ] && ! eval "$1"; do sleep 0.01; i=$((i + 1)); done
+  [ -z "$2" ] || { printf '%s' "$2" > "$LKS/last.A" && mv -f "$LKS/last.A" "$LKS/last"; }
+  printf '%s' "$3" > "$LKS/blocked.A" && mv -f "$LKS/blocked.A" "$LKS/blocked"
+  rm -f "$LKF"
+}
+{ user "where is the bug"; asst "The bug is at src/ghost.ts:12."; } > "$TB"
+
+rm -rf "$LKS" "$LFLAG"; mkdir -p "$LKS"; : > "$LKF"
+lsession_a 'lhas "$KB" "$LKS/last" && lhas "$KB" "$LKS/blocked"' "$KA citation x
+" "$KA citation
+" & lpid=$!
+gate "$LENV" "$(lpay)"; wait "$lpid"
+iso_is "lock: a block keeps the line another session wrote to last and blocked under the lock" \
+  "$([ "$rc" = 2 ] && lhas "$KA" "$LKS/last" && lhas "$KB" "$LKS/last" && lhas "$KA" "$LKS/blocked" && lhas "$KB" "$LKS/blocked" && [ ! -e "$LKF" ]; echo $?)"
+
+rm -rf "$LKS" "$LFLAG"; mkdir -p "$LKS"; : > "$LKF"; printf '%s citation\n' "$KB" > "$LKS/blocked"
+lsession_a '! lhas "$KB" "$LKS/blocked"' "" "$KB citation
+$KA citation
+" & lpid=$!
+gate "$LENV" "$(lpay true)"; wait "$lpid"
+iso_is "lock: a continuation's release is not undone by another session's block" \
+  "$([ "$rc" = 0 ] && [ "$(cat "$LKS/blocked" 2>/dev/null)" = "$KA citation" ]; echo $?)"
+
+rm -rf "$LKS"; mkdir -p "$LKS"; : > "$LKF"; touch -t 200001010000 "$LKF"
+gate "" "$(lpay)"
+iso_is "lock: a stale lock (old mtime) is removed and the block is recorded" \
+  "$([ "$rc" = 2 ] && lhas "$KB" "$LKS/last" && lhas "$KB" "$LKS/blocked" && [ ! -e "$LKF" ]; echo $?)"
+
+rm -rf "$LKS"; mkdir -p "$LKS"; : > "$LKF"; ls0=$SECONDS
+gate "" "$(lpay)"
+iso_is "lock: a live lock never released still lets the gate write within its bound (fail open)" \
+  "$([ "$rc" = 2 ] && lhas "$KB" "$LKS/last" && [ -f "$LKF" ] && [ $((SECONDS - ls0)) -lt 5 ]; echo $?)"
+
+# Real concurrency, so it also catches a lock primitive that is not atomic (uutils mkdir was not); b80faf31 kept both lines of two in 0/20.
+LKP="$WS/lkp"; mkdir -p "$LKP"
+for i in 1 2 3 4; do { user "where is the bug"; asst "The bug is at src/ghost.ts:12."; } > "$WS/lk$i.jsonl"; done
+for i in 1 2 3 4; do jq -cn --arg tp "$WS/lk$i.jsonl" --arg cwd "$LKP" '{hook_event_name:"Stop",session_id:"s",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' \
+  | bash "$HOOK" >/dev/null 2>&1 & done; wait
+iso_is "lock: four sessions stopping at once each keep their line in last and blocked" \
+  "$([ "$(wc -l < "$LKP/.claude/candor/last" 2>/dev/null)" -eq 4 ] && [ "$(wc -l < "$LKP/.claude/candor/blocked" 2>/dev/null)" -eq 4 ]; echo $?)"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

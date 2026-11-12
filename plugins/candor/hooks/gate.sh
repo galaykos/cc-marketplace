@@ -328,6 +328,8 @@ QUOTE_EXCERPT_BYTES=262144
 QUOTE_EXTRACT_SECONDS=2
 BARE_PUSHBACK_MAX_BYTES=400
 CLAIM_WINDOW_LINES=30
+# A marker lock this old was left by a killed gate: its holder rewrites two short files in milliseconds.
+MARKER_LOCK_STALE_SECONDS=5
 
 input=$(cat)
 
@@ -366,12 +368,35 @@ ctxk=$(printf '%s' "$ctx" | cksum | cut -d' ' -f1)
 # The host's stop_hook_active is shared by every Stop hook: only the clause this gate recorded as blocking stands down on its continuation.
 state_dir=$(cc_plugin_state "$root" candor)
 claimed="$state_dir/blocked$agent_sfx"
+
+# Sessions stopping at once share last/blocked: a noclobber (O_EXCL) file serializes them, not flock (macOS) or mkdir (uutils let two win); `true`, as `:` exits POSIX mode; untaken in ~0.4 s, write unlocked.
+lock_file="$state_dir/.lock$agent_sfx"; lock_held=""
+lock_take() {
+  local n=0 m rc
+  while [ "$n" -lt 20 ]; do
+    set -C; { true > "$lock_file"; } 2>/dev/null; rc=$?; set +C
+    [ "$rc" = 0 ] && { lock_held=1; return 0; }
+    m=$(stat -c %Y "$lock_file" 2>/dev/null || stat -f %m "$lock_file" 2>/dev/null)
+    case "$m" in
+      '') ;;
+      *[!0-9]*) sleep 0.02 ;;
+      *) if [ $(( $(date +%s) - m )) -gt "$MARKER_LOCK_STALE_SECONDS" ]; then rm -f "$lock_file" 2>/dev/null; else sleep 0.02; fi ;;
+    esac
+    n=$((n + 1))
+  done
+  return 1
+}
+lock_drop() { [ -z "$lock_held" ] || rm -f "$lock_file" 2>/dev/null; lock_held=""; }
+trap 'lock_drop' EXIT
+
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
   skip=$(awk -v k="$ctxk" '$1 == k && NF == 2 { v = $2 } END { print v }' "$claimed" 2>/dev/null)
   if [ -n "$skip" ]; then
+    lock_take
     awk -v k="$ctxk" '$1 != k && NF == 2' "$claimed" > "$claimed.$$" 2>/dev/null
     if [ -s "$claimed.$$" ]; then mv -f "$claimed.$$" "$claimed" 2>/dev/null; else rm -f "$claimed" "$claimed.$$" 2>/dev/null; fi
+    lock_drop
   fi
 fi
 
@@ -726,7 +751,7 @@ if [ "$verdict" = "run" ]; then
 fi
 
 tailf=""
-trap '[ -n "$tailf" ] && rm -f "$tailf"' EXIT
+trap '[ -n "$tailf" ] && rm -f "$tailf"; lock_drop' EXIT
 tj() { jq "$@" "$tailf"; }
 read_transcript() {
   # A subagent's report lives in its own transcript; the parent's path is the fallback for a payload without one.
@@ -1244,6 +1269,7 @@ report_verdict() {
     pass_turn
   fi
   if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } \
+         && { lock_take || :; } \
          && { awk -v k="$ctxk" -v v="$verdict" 'NF == 3 && !($1 == k && $2 == v)' "$marker" 2>/dev/null | tail -n 127; printf '%s %s %s\n' "$ctxk" "$verdict" "$state"; } > "$marker.$$" 2>/dev/null \
          && mv -f "$marker.$$" "$marker" 2>/dev/null; }; then
     # No marker, no per-text bound: honour the shared flag here only, so unwritable state cannot block the same turn forever.
@@ -1254,6 +1280,7 @@ report_verdict() {
     mkdir -p "$state_dir" 2>/dev/null && { awk -v k="$ctxk" '$1 != k && NF == 2' "$claimed" 2>/dev/null | tail -n 127; printf '%s %s\n' "$ctxk" "$verdict"; } > "$claimed.$$" 2>/dev/null \
       && mv -f "$claimed.$$" "$claimed" 2>/dev/null
   fi
+  lock_drop
 
   local msg note
   case "$verdict" in
