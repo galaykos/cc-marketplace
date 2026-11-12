@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.2.3 — 2026-11-12
+
+- **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
+
 ## 0.2.2 — 2026-10-28
 
 - **Comments cut to what a reader needs; behaviour unchanged.** `scripts/subagent-statusline.sh`: each keeps a header saying what it does and misses, and one line per trap the code cannot show; the history moved to the marketplace repository's rationale/derivations/, which an install does not contain.
