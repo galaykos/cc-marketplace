@@ -744,6 +744,53 @@ Measured through the hook, 21 interleaved runs each against b80faf31, median: `l
 …/comments --paginate` GET that runs the parser 69.8 → 70.2 ms, `git commit -n -m wip && git push` 81.3 →
 80.4 ms.
 
+### Review fix 2026-11-12 (0.10.0): a command substitution behind a reader
+
+Written for this release, not moved from code. Reproduced on 7234e0e5: `--check 'echo "$(rm -rf /)"'` printed
+ALLOW (rc 0) while `--check 'rm -rf /'` denied. `split_segments` does not split inside double quotes and treats a
+backtick as an ordinary character, so `echo "$(rm -rf /)"` was one segment led by `echo`, and the reader exemption
+skipped it. The exemption was not the whole cause: `norm_cmd` turns `"$(rm -rf /)"` into the word `$(rm`, so even
+`foo "$(rm -rf /)"`, with no reader lead, never showed `check_rm` an `rm` word. A bare `$( )` was already caught,
+because the splitter cuts at its parentheses; a bare backtick was not.
+
+The splitter was left alone. Splitting at a backtick would cut `` git push `echo origin` --force `` into a
+`git push` segment with no `--force` and lower a deny that the whole segment earns today. A nested context in the
+walk would need a third parser. Instead, `nested_commands` prepends `SHELL_WORDS_AWK`, which already queues every
+double-quoted `$( )` and every backtick pair (and `eval`'s words and a shell's `-c` script), and prints each queued
+text. `judge_nested` walks each one through `split_segments` and the same per-segment checks
+(`judge_segment`, the old loop body moved out of `classify`, its `continue` and `break` now `return`). The main walk's segments are untouched, so
+the change can only add a verdict. An `eval` or `-c` text is printed only when it holds a `$(` or a backtick: its
+own top-level words already reach the rules through the dequoted outer segment, and walking every `-c` script would
+change verdicts for commands this fix is not about. Printing it when it holds one is what reaches a bare `$( )`
+inside it (`bash -c 'echo $(rm -rf /)'`), which the word reader splits on rather than queues. `$((` is arithmetic and
+is not queued, as before.
+
+The mktemp credit (0.9.6) compares segment ordinals. A nested text walked after every segment would carry the last
+ordinal and credit an `rm` of a variable assigned later (`echo "$(rm -rf "$d"/*)"; d=$(mktemp -d) || exit 1`, which
+runs `rm -rf /*`), while ordinal 0 broke the held allow `tmp=$(mktemp -d) || exit 1; bash -c "rm -rf $tmp/*"`. The
+word reader's `scan` now sets `at` to the position of the separator before each `judge()` (`n + 1` at the end), so
+each top-level text carries where its segment ends, and a nested text inherits its parent's. `judge_nested` turns
+that into the ordinal the way `mktemp_ordinals` does: `split_segments` on the prefix plus a sentinel, in the C
+locale because awk counted bytes. It does so only when `MKTEMP_VARS` is set, the one reader of `SEG_I`.
+
+A nested text holding `<<` and a later line goes through `cc_strip_heredoc_bodies inert` on its own. When the
+whole-command strip gave up (a backtick inside double quotes on an earlier line), a commit message heredoc inside
+`"$(cat <<'EOF' …)"` would otherwise be walked line by line. Newlines travel as `\037`, so one text is one line.
+
+No 16-scan cap, unlike the two other consumers: a cap silently skips the 17th substitution. Each queued text is
+shorter than its parent, so the queue ends; past `GUARD_DEADLINE` the hook asks. The run is behind a `case` on `$(` or
+a backtick, so `ls` and `git commit -m x` fork nothing new.
+
+Not read: a substitution inside a double-quoted `$(( ))` (the matcher skips the arithmetic whole); one after a `case`
+pattern's `)` inside `$( )`, which closes the substitution early, as the earlier review recorded; an escaped nested
+backtick (`` echo `echo \`rm -rf /\`` ``); and a `$( )` in an unquoted heredoc body fed to a non-shell (`cat <<EOF`). This
+shell expands that last one, but the shared heredoc block drops the body before any walk, and that block lives in
+`templates/blocks/heredoc-bodies.md`, outside this fix. All four were checked through `--check` on the working copy.
+
+Measured through the hook, 25 interleaved runs each against 7234e0e5, median: `ls` 22.3 → 22.7 ms, `git commit -m x`
+24.1 → 24.2 ms, a 9-step build/commit/push/PR command with one `"$( )"` 413.1 → 421.5 ms, `git add`, a heredoc
+`git commit -m "$(cat <<'EOF' …)"` and `git push` 140.6 → 149.4 ms.
+
 ## plugins/command-guard/hooks/config-guard.sh
 
 ### Header

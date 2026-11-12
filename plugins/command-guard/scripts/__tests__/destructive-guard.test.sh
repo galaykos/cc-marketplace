@@ -787,6 +787,45 @@ for v in "grep 'x\\' f; php artisan migrate:fresh" $'ls a\n\nphp artisan migrate
   [ "$d" = "deny" ] && ok || bad "hook mode must judge the command hidden behind a reader" "verdict=${d:-<silent>} cmd=$v"
 done
 
+# A double-quoted or backtick substitution stayed inside its segment, so a reader or safe-git lead skipped what the shell runs (0.10.0 review).
+printf '== command substitutions\n'
+expect deny  'echo "$(rm -rf /)"'
+expect deny  'echo "`rm -rf /`"'
+expect deny  "printf '%s\\n' \"\$(rm -rf /)\""
+expect deny  'cat "$(rm -rf ~)"'
+expect deny  'echo `rm -rf /`'
+expect deny  'echo $(rm -rf /)'                     # bare $( ) was already split at its parentheses
+expect deny  'x="$(rm -rf /)"'
+expect deny  'grep foo "$(rm -rf /)"'
+expect deny  'ls -la "$(rm -rf /)"'
+expect deny  'foo "$(rm -rf /)"'                    # norm_cmd leaves the word $(rm, so rm was never a word
+expect deny  'git log "$(rm -rf /)"'
+expect deny  'echo "$(git push --force)"'
+expect ask   'echo "$(git reset --hard)"'
+expect deny  'echo "$(echo `rm -rf /`)"'
+expect deny  'echo "${x:-$(rm -rf /)}"'
+expect deny  'echo `true; rm -rf ~`'
+expect deny  "bash -c 'echo \"\$(rm -rf /)\"'"
+expect deny  "bash -c 'echo \$(rm -rf /)'"
+expect deny  'eval "echo \"\$(rm -rf /)\""'
+expect deny  $'bash <<\'EOF\'\necho "$(rm -rf /)"\nEOF'
+expect ask   'echo "$(rm -rf "$d"/*)"; d=$(mktemp -d) || exit 1'   # runs before the assignment: no mktemp credit
+expect allow "echo '\$(rm -rf /)'"
+expect allow 'echo "rm -rf /"'
+expect allow 'echo "\$(rm -rf /)"'
+expect allow 'echo "\`rm -rf /\`"'
+expect allow 'echo "$(date)"'
+expect allow 'echo "$((1+2))"'
+expect allow 'echo "$(date) rm -rf /"'
+expect allow 'git commit -m "$(cat msg.txt)"'
+expect allow "git commit -m 'fix: \`rm -rf ~\` in docs'"
+expect allow $'cat <<\'EOF\'\n$(rm -rf /)\necho "$(rm -rf /)"\nEOF'
+expect allow $'git commit -m "$(cat <<\'EOF\'\nfix: rm -rf / in docs, `rm -rf ~` too\nEOF\n)"'
+expect allow 'd=$(mktemp -d) || exit 1; x="$(rm -rf "$d"/sub)"'   # after the assignment: credited as at top level
+out=$(printf '%s' "$(bash_json 'echo "$(rm -rf /)"')" | "$BASH_BIN" "$GUARD" 2>/dev/null)
+d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ "$d" = "deny" ] && ok || bad "hook mode must judge a double-quoted substitution behind echo" "verdict=${d:-<silent>}"
+
 # A body went through the segment walk line by line: a 21 KB `python3 - <<'EOF'` ran 22.6 s past the 15 s timeout and failed open.
 printf '== heredoc bodies\n'
 big=""

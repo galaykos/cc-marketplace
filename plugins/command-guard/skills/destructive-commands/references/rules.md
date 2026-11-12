@@ -30,6 +30,10 @@ importantly, what is not.
    `rg`, `ls`, `git log`, …) is skipped, so searching for `migrate:fresh` is not
    running it. The exemption is dropped for the whole command when output is
    piped into a shell or `xargs` — there the reader's output is the program.
+   It never covers a `$( )` or backtick substitution inside the segment, quoted
+   or bare, at any depth (and an `eval` or shell `-c` text holding one): each is
+   judged as a command of its own, so `echo "$(rm -rf /)"` denies. Single-quoted
+   text, an escaped `\$(` and `$(( ))` arithmetic are not substitutions.
    A wrapper (`sudo`, `doas`, `env`, `nice`, `ionice`, `time`, `exec`) with its
    options, and `VAR=` assignments, are skipped to find the leading word. Only the
    listed value-taking options have their value skipped too (`sudo -u bob`,
@@ -189,6 +193,10 @@ shapes. It cannot see:
   recursive-delete judgement), `ALTER TABLE t DROP c` without `COLUMN`, an `UPDATE`
   whose `SET` sits on a later heredoc line than `UPDATE`, and `.drop()` or
   `dropDatabase()` inside a `mongosh <<EOF` body (the splitter cuts the line at the `(`);
+- a **substitution the scan cannot place** — inside a double-quoted `$(( ))`, after a
+  `case` pattern's `)` inside `$( )` (it closes the substitution early), in an escaped
+  nested backtick, or in an unquoted heredoc body fed to a non-shell (`cat <<EOF`,
+  whose `$( )` this shell expands): not read;
 - a **hook bypass or a publish set up elsewhere** — `export HUSKY=0` in an earlier call, a git
   alias, `GIT_CONFIG_*` variables, `flock -c '…'`, a GraphQL query read from a file (`-F query=@q.graphql`) or an
   `--input` body, and a script or `curl` posting to the API are not read;

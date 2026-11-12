@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse on Bash and MCP shell/SQL tools: denies irreversible data loss, asks on scoped destruction, on a git hook or signing bypass and on gh publishing review text, denies a write to the allow-file, asks before a Write replaces a live .env; .claude/command-guard-strict only raises a verdict. --check '<command>' prints the tier whatever the mode and exits 0/1/2 = allow/ask/deny.
-# Misses an allow-file path built from a variable, glob, script or git-config program; unlisted MCP write tools; a heredoc body fed to anything but a shell or SQL client; some wrapper and git option spellings; a bypass set by export, git alias or GIT_CONFIG_*; review text a script or a query file posts. Fails open on its own errors; past GUARD_DEADLINE it asks. CLAUDE_DESTRUCTIVE_GUARD (else /config): deny-only, ask, off. hooks.json starts it with PATH bash and onFailure: block, so a run that cannot start or overruns 15 s blocks the call.
+# Misses an allow-file path built from a variable, glob, script or git-config program; unlisted MCP write tools; a heredoc body fed to anything but a shell or SQL client; a substitution in a quoted $(( )), after a case pattern's ) or in an escaped backtick; some wrapper and git option spellings; a bypass set by export, git alias or GIT_CONFIG_*; review text a script or a query file posts. Fails open on its own errors; past GUARD_DEADLINE it asks. CLAUDE_DESTRUCTIVE_GUARD (else /config): deny-only, ask, off. hooks.json starts it with PATH bash and onFailure: block, so a run that cannot start or overruns 15 s blocks the call.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/destructive-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -673,9 +673,9 @@ command_cwd() {
   printf '%s' "${d:-.}"
 }
 
-# The word reader rm_backslash_target and git_gh_bypass both prepend; each defines judge(). Quote removal as bash does it ($'…' decodes
-# \\ and \' only, any other escape reads as $), a redirection target is no word, and a $( ) or backtick substitution, an eval's words and
-# a shell's -c script are queued for a scan of their own. -v lone_brace=1 splits on a brace only standing alone, as bash does; 0 on every brace.
+# The word reader rm_backslash_target, git_gh_bypass and nested_commands prepend; each defines judge(). Quote removal as bash does it ($'…'
+# decodes \\ and \' only, any other escape reads as $), a redirection target is no word, and a $( ) or backtick substitution, an eval's words
+# and a shell's -c script are queued for a scan of their own. -v lone_brace=1 splits on a brace only standing alone, as bash does; 0 on every brace.
 SHELL_WORDS_AWK='
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
     function word() { if (inw) { if (redir) redir = 0; else wv[++nw] = w }; w = ""; inw = 0 }
@@ -754,10 +754,10 @@ SHELL_WORDS_AWK='
           if (w ~ /^[0-9]+$/) inw = 0
           word(); while (substr(s, i + 1, 1) ~ /[<>&|]/) i++; redir = 1; continue
         }
-        if (c ~ /[;&|()\n]/ || c ~ /[{}]/ && (!lone_brace || !inw && nx ~ /^([ \t\n;&|]|)$/)) { judge(); continue }
+        if (c ~ /[;&|()\n]/ || c ~ /[{}]/ && (!lone_brace || !inw && nx ~ /^([ \t\n;&|]|)$/)) { at = i; judge(); continue }
         w = w c; inw = 1
       }
-      judge()
+      at = n + 1; judge()
     }
 '
 
@@ -778,6 +778,23 @@ rm_backslash_target() { # raw segment, 1 when it ends the command
       nw = 0; redir = 0
     }
     END { nq = 1; q[1] = buf; for (qi = 1; qi <= nq && qi <= 16 && !found; qi++) scan(q[qi], qi > 1 || tail); exit !found }'
+}
+
+# "<offset>\t<text>" per queued "$( )" or backtick substitution at any depth and eval or -c text holding one; offset: where its top-level segment ends; newline: \037.
+nested_commands() { # raw command, heredoc bodies stripped
+  printf '%s' "$1" | LC_ALL=C awk -v lone_brace=0 "$SHELL_WORDS_AWK"'
+    function judge(   k) {
+      word(); k = nq; queue(); if (nq > k) qe[nq] = 1
+      for (k = ql + 1; k <= nq; k++) qat[k] = qi == 1 ? at : qat[qi]
+      ql = nq; nw = 0; redir = 0
+    }
+    END {
+      nq = 1; q[1] = buf
+      for (qi = 1; qi <= nq; qi++) {
+        ql = nq; scan(q[qi], 0)
+        if (qi > 1 && (!qe[qi] || q[qi] ~ /\$\(|`/)) { s = q[qi]; gsub(/\n/, "\037", s); print qat[qi] "\t" s }
+      }
+    }'
 }
 
 # Not a table rule: whether rm -rf is catastrophic depends on each target, not on the flags.
@@ -1349,9 +1366,76 @@ EOF
   return 0
 }
 
+# One segment through the per-segment checks; classify's sql_ctx, pipe_to_shell and body_lc and the global SEG_I are read in place.
+judge_segment() { # raw segment, the command it came from
+  local seg="$1" segn segn_pre segn_lc lead sub redirects
+  [ -n "$seg" ] || return 0
+  segn=$(norm_cmd "$seg")
+  [ -n "$segn" ] || return 0
+  segn_pre=$segn
+  segn=$(strip_git_global_options "$segn" "")
+  lead=$(lead_word "$segn")
+  [ "$lead" = git ] && segn=$(strip_git_global_options "$segn" git)
+  segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
+  segn=" $segn "
+
+  check_env_overwrite "$segn" "$lead"
+  [ "$VERDICT" = "deny" ] && return 0
+
+  # A redirecting segment is a write whatever its lead word claims (echo x > .env), so it skips both exemptions; >> too.
+  case "$segn_lc" in *' > '*) redirects=1 ;; *) redirects=0 ;; esac
+
+  if [ "$pipe_to_shell" -eq 0 ] && [ "$redirects" -eq 0 ]; then
+    # No self-exemption for this guard's own --check: the shell runs a segment's $( ), backticks and redirects whatever argv says.
+    if is_reader "$lead"; then return 0; fi
+    if [ "$lead" = "git" ]; then
+      sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
+      git_safe_subcmd "$sub" && return 0
+      # An n flag (-n, -fn) or --dry-run, abbreviations too, is a dry run; -e/--exclude takes the rest of its cluster or the next word, words after -- are paths, and the last of --dry-run/--no-dry-run wins.
+      if [ "$sub" = "clean" ]; then
+        printf '%s' "$segn_lc" | awk '{ for (i = 1; i <= NF && $i != "git"; i++) ;
+          d = 0
+          for (i += 2; i <= NF; i++) {
+            t = $i
+            if (t == "--") break
+            if (length(t) >= 3 && index("--dry-run", t) == 1) { d = 1; continue }
+            if (length(t) >= 6 && index("--no-dry-run", t) == 1) { d = 0; continue }
+            if (t ~ /^--e(x(c[a-z]*)?)?$/) { i++; continue }
+            if (t !~ /^-[a-z]+$/) continue
+            f = t; sub(/e.*/, "", f)
+            if (f ~ /n/) d = 1
+            if (t ~ /^-[^e]*e$/) i++
+          }
+          exit !d }' && return 0
+      fi
+    fi
+  fi
+
+  check_rm "$segn_lc" "$segn" "$seg" "$2"
+  match_rule_table "$segn" "$segn_lc" "$sql_ctx"
+  [ "$VERDICT" = allow ] && [ "$lead" = git ] && check_git_discard "$segn" "$segn_pre"
+  [ "$VERDICT" = allow ] && [ "$sql_ctx" -eq 1 ] && check_sql_update "$segn_lc" "$body_lc"
+  return 0
+}
+
+# Each nested command walked as a command of its own, with the ordinal of the segment holding it, as a mktemp credit is read.
+judge_nested() { # raw command, heredoc bodies stripped
+  local at sub seg
+  while IFS=$'\t' read -r at sub; do
+    sub=${sub//$'\037'/$'\n'}
+    SEG_I=0
+    [ -z "$MKTEMP_VARS" ] || SEG_I=$(LC_ALL=C; split_segments "${1:0:at-1}x" | wc -l | tr -d ' ')
+    case "$sub" in *'<<'*$'\n'?*) seg=$(cc_strip_heredoc_bodies inert "$sub" "$SQL_CLIENT_RE"); [ -n "$seg" ] && sub=$seg ;; esac
+    while IFS= read -r seg; do
+      judge_segment "$seg" "$sub"
+      [ "$VERDICT" = "deny" ] && return 0
+    done < <(split_segments "$sub")
+  done < <(nested_commands "$1")
+}
+
 # classify: raw command string -> VERDICT / V_WHAT / V_ALT / V_MATCH
 classify() {
-  local raw="$1" body body_lc="" full full_lc seg segn segn_pre segn_lc lead sub pipe_to_shell=0 sql_ctx=0 redirects=0
+  local raw="$1" body body_lc="" full full_lc seg pipe_to_shell=0 sql_ctx=0
 
   full=$(norm_cmd "$raw")
   full_lc=$(printf '%s' "$full" | tr '[:upper:]' '[:lower:]')
@@ -1380,55 +1464,12 @@ classify() {
 
   while IFS= read -r seg; do
     SEG_I=$((SEG_I + 1))
-    [ -n "$seg" ] || continue
-    segn=$(norm_cmd "$seg")
-    [ -n "$segn" ] || continue
-    segn_pre=$segn
-    segn=$(strip_git_global_options "$segn" "")
-    lead=$(lead_word "$segn")
-    [ "$lead" = git ] && segn=$(strip_git_global_options "$segn" git)
-    segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
-    segn=" $segn "
-
-    check_env_overwrite "$segn" "$lead"
-    [ "$VERDICT" = "deny" ] && break
-
-    # A redirecting segment is a write whatever its lead word claims (echo x > .env), so it skips both exemptions; >> too.
-    case "$segn_lc" in *' > '*) redirects=1 ;; *) redirects=0 ;; esac
-
-    if [ "$pipe_to_shell" -eq 0 ] && [ "$redirects" -eq 0 ]; then
-      # No self-exemption for this guard's own --check: the shell runs a segment's $( ), backticks and redirects whatever argv says.
-      if is_reader "$lead"; then continue; fi
-      if [ "$lead" = "git" ]; then
-        sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
-        git_safe_subcmd "$sub" && continue
-        # An n flag (-n, -fn) or --dry-run, abbreviations too, is a dry run; -e/--exclude takes the rest of its cluster or the next word, words after -- are paths, and the last of --dry-run/--no-dry-run wins.
-        if [ "$sub" = "clean" ]; then
-          printf '%s' "$segn_lc" | awk '{ for (i = 1; i <= NF && $i != "git"; i++) ;
-            d = 0
-            for (i += 2; i <= NF; i++) {
-              t = $i
-              if (t == "--") break
-              if (length(t) >= 3 && index("--dry-run", t) == 1) { d = 1; continue }
-              if (length(t) >= 6 && index("--no-dry-run", t) == 1) { d = 0; continue }
-              if (t ~ /^--e(x(c[a-z]*)?)?$/) { i++; continue }
-              if (t !~ /^-[a-z]+$/) continue
-              f = t; sub(/e.*/, "", f)
-              if (f ~ /n/) d = 1
-              if (t ~ /^-[^e]*e$/) i++
-            }
-            exit !d }' && continue
-        fi
-      fi
-    fi
-
-    check_rm "$segn_lc" "$segn" "$seg" "$body"
-    match_rule_table "$segn" "$segn_lc" "$sql_ctx"
-    [ "$VERDICT" = allow ] && [ "$lead" = git ] && check_git_discard "$segn" "$segn_pre"
-    [ "$VERDICT" = allow ] && [ "$sql_ctx" -eq 1 ] && check_sql_update "$segn_lc" "$body_lc"
-
+    judge_segment "$seg" "$body"
     [ "$VERDICT" = "deny" ] && break
   done < <(split_segments "$body")
+
+  # The walk keeps a double-quoted span or a backtick in its segment, where a reader lead (echo "$(rm -rf /)") would skip what the shell runs.
+  case "$body" in *'$('*|*'`'*) [ "$VERDICT" = "deny" ] || judge_nested "$body" ;; esac
 
   [ "$VERDICT" = allow ] && check_git_gh "$body" " $full_lc "
   [ "$VERDICT" = "deny" ] || check_cd_chain "$body"
