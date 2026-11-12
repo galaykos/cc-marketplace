@@ -294,6 +294,18 @@ no run is registered, and leaves compaction to skill-router's capsule. It cannot
 live run from an abandoned one, and the card count is the index's bookkeeping rather
 than the work.
 
+The run names the session that registered it (0.56.0): `register-run.sh` writes
+`session_id` from the host's `CLAUDE_CODE_SESSION_ID`, not from `--session` (a route may type
+it or omit it), and candor holds only that session. A second session in the same repo is neither
+held by the run nor told to delete it, and its clean stop leaves the run's
+`closed-run.json` alone. Running `/task-runner:run` on the same index from a later session
+(after `/clear`, or a new window) resumes the run and moves `session_id` there, keeping the
+file's mtime, which every record count starts from. With no `CLAUDE_CODE_SESSION_ID`, or a run
+file from an older version, no owner is named and every session is held, as before.
+**Standing: gate** with candor installed (`scripts/__tests__/register-run.test.sh`, candor's
+`gate.test.sh` owner cases). Not covered: a session that carries on the run without
+re-registering is not held, so `announce.sh`'s line is what points it at `/task-runner:run`.
+
 ## Nothing gets quietly dropped
 
 A real run reviewed card 01, dropped the reviewer pass on cards 02-08 to save context,

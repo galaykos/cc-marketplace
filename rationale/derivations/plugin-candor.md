@@ -1066,7 +1066,75 @@ The run records (`active-run.json`, `closed-run.json`, `gate-pass.json`, `nc/`, 
 sessions, and nothing records which session owns it. A second session in the repo is
 held once per HEAD by a run it did not register, and the block text tells it the run
 file may be left over. Its clean stop can also retire the first session's
-`closed-run.json`. Fixing that needs a decision on run ownership.
+`closed-run.json`. Fixing that needs a decision on run ownership. (Decided and shipped:
+§ Run ownership below.)
+
+### Run ownership (0.12.7, 2026-11-12, Track 7 item S5 follow-up)
+
+The owner's decision: record the registering session in the run file and hold only that
+session. task-runner 0.56.0's `register-run.sh` writes `session_id`; clause 4 reads it
+right after the malformed check, in the same `jq` call (`.session_id? // empty`), so a
+stop pays no extra fork. When the run names a session and the payload's `session_id` is
+another, `run_clause` returns before the branch line, the closed-run retirement (both
+the clean-read `rm` and the HEAD-moved-past-the-pass `rm`) and the block. So a
+non-owner is not held, not told "delete .claude/task-runner/<file>" (neither the
+not-checked-here line nor the block's last line), and never retires `closed-run.json`.
+It is silent: no `say`, no nudge, no `systemMessage`.
+
+**Why `session_id`, not this file's context key (`ctxk`).** Clause 4 returns on
+`SubagentStop` before anything else, so only main-thread Stop payloads reach it, where
+`session_id` and `transcript_path` name the same session. A Bash-invoked script cannot
+compute `cksum(transcript_path)` without guessing the projects dir. It can read
+`session_id`: the host exports `CLAUDE_CODE_SESSION_ID` to Bash. Checked on CLI 2.1.321
+(desktop app), with no live model call:
+
+- The Bash env's `CLAUDE_CODE_SESSION_ID` equals the `sessionId` inside, and the
+  file-name stem of, this session's `~/.claude/projects/<proj>/<id>.jsonl`.
+- 3 of 3 `$TMPDIR/cc-candor-inflight-<cksum session_id>` dirs (keyed on the SubagentStart
+  payload's `session_id`) matched `cksum` of a transcript's file-name stem.
+- 7 `cc-ask-ledger-`/`cc-preamble-<cksum transcript_path>` dirs matched `cksum` of a full
+  `~/.claude/projects/…/<id>.jsonl` path.
+
+So payload `session_id` = transcript stem = `CLAUDE_CODE_SESSION_ID`. task-runner's
+`run-cost.sh` and overseer's `program.sh` already read the variable.
+
+The variable follows `/clear`. The CLI builds each child's env per spawn
+(`CLAUDE_CODE_SESSION_ID: <getter>()` in the 2.1.321 bundle). In a pty-driven interactive
+`claude` (2.1.322), `!echo $CLAUDE_CODE_SESSION_ID` printed `45738020-…` before `/clear` and
+`3bd8998e-…` after, with no model call. That session wrote no transcript (no message), so
+the payload side after `/clear` rests on the within-session evidence above, not on this probe.
+So a session after `/clear` that re-registers records its new id, and is held.
+
+**Unchanged on purpose.** A run file naming no session (any task-runner before 0.56.0,
+or no `CLAUDE_CODE_SESSION_ID` at registration) holds every session, delete line
+included. A payload with no `session_id` against a named run is held: it cannot be told
+apart. Both are pinned as neighbours.
+
+**Residual, recorded.** A session after `/clear` has a new `session_id`. Until it runs
+`register-run.sh` for that index (any `/task-runner:run` start), it is not held.
+task-runner's `announce.sh` (SessionStart, `startup|resume|clear`) points it there. A
+second session that runs `/task-runner:run` on the same index takes the run over, and the
+first is then not held. The other run-record readers (`rv-observe.sh`, `spawn-cap.sh`,
+`scope.sh`) still act on any session in the repo. An orphaned `closed-run.json` (the owner's
+closing stop never reached the clause, and the owner's session is gone) is no longer retired
+by another session's stop once HEAD moves past its gate pass. It stays until the next fresh
+registration deletes it, so `rv-consent.sh` and `rv-observe.sh` stay armed in the repo and
+`run-cost.sh` reads its mtime. Kept strict on purpose: in one worktree, another session's
+retirement could also land between the owner writing a gate pass for the new HEAD and the
+owner's next stop, and the owner's close would then go unchecked.
+
+**Harness.** `gate.test.sh` owner cases, on the session-isolation fixture: 9 cases, of
+which the 4 non-owner ones (silent pass, closed-run kept after a clean read, closed-run
+kept once HEAD moved past the pass, no delete line on another branch) fail on 0.12.5 (0.12.6 ships the same gate.sh)
+(276 passed, 4 failed with the new harness and the old `gate.sh`). The owner's block,
+the owner's retirement, the owner's not-checked-here line and the two neighbours pass on
+both.
+
+**Latency** (two sets of 31 interleaved Stop runs, 0.12.5 vs this copy, a 400-line
+transcript, a clean repo): no run registered 40.8 vs 40.9 and 37.8 vs 38.7 ms median; the
+owner's blocking stop 30.4 vs 30.4 and 31.7 vs 31.7 ms. A non-owner's stop went from 30.2 to
+42.1 and from 31.5 to 44.4 ms: it no longer exits at clause 4's block, so it pays the
+ordinary pass path (clauses 1-3 and 5-7 over the transcript) plus one read of the run file.
 
 ### Marker lock (0.12.5, 2026-11-12, Track 7 review finding)
 

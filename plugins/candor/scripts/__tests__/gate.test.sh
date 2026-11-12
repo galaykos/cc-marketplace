@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting the verdict
-#   and its text: clauses 1, 2, 5, 6 and 7, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage.
+#   and its text: clauses 1, 2, 5, 6 and 7, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage, run ownership.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -1115,6 +1115,42 @@ if command -v git >/dev/null 2>&1; then
   rm -rf "$ISD"; gate "" "$(ipay "$TA" sA)"
   iso_is "sessions: a nudge older than the registration is swept when another context blocks" \
     "$([ "$rc" = 2 ] && [ ! -e "$ITR/gate-nudge-$KB" ] && [ -e "$ITR/gate-nudge-$KA" ]; echo $?)"
+
+  # Run ownership (task-runner 0.56.0 records session_id): only the registering session is held. The four non-owner cases are red on 0.12.6.
+  OWN_SUB='has no recorded pass of behavioral-gate.sh'
+  osent() { printf '{"slug":"iso"%s}' "$1" > "$ITR/$2"; touch -t 200001010000 "$ITR/$2"; }
+  opass() { printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$1" > "$ITR/gate-pass.json"; }
+  rm -rf "$ISD"; rm -f "$ITR"/gate-nudge*; osent ',"session_id":"sA"' active-run.json
+  gate "" "$(ipay "$TB" sB)"
+  iso_is "owner: another session's stop passes silently, with no delete line and no nudge" \
+    "$([ "$rc" = 0 ] && [ -z "$err" ] && [ -z "$out" ] && ! ls "$ITR"/gate-nudge* >/dev/null 2>&1; echo $?)"
+  gate "" "$(ipay "$TA" sA)"
+  iso_is "owner: the registering session is still held once at this HEAD" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$OWN_SUB" && [ "$(cat "$ITR/gate-nudge-$KA" 2>/dev/null)" = "$IHEAD" ]; echo $?)"
+  rm -f "$ITR"/gate-nudge*
+  gate "" "$(jq -cn --arg tp "$TB" --arg cwd "$ISO" '{hook_event_name:"Stop",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"
+  iso_is "owner neighbour: a payload with no session_id cannot be told apart, so it is held" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$OWN_SUB"; echo $?)"
+  rm -f "$ITR"/gate-nudge*; osent '' active-run.json
+  gate "" "$(ipay "$TB" sB)"
+  iso_is "owner neighbour: a run naming no session (before 0.56.0) holds any session, delete line included" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'left over: delete .claude/task-runner/active-run.json'; echo $?)"
+  rm -f "$ITR"/gate-nudge* "$ITR/active-run.json"; osent ',"session_id":"sA"' closed-run.json; opass "$IHEAD"
+  gate "" "$(ipay "$TB" sB)"
+  iso_is "owner: another session's clean stop does not retire the owner's closed-run.json" \
+    "$([ "$rc" = 0 ] && [ -z "$err" ] && [ -f "$ITR/closed-run.json" ]; echo $?)"
+  gate "" "$(ipay "$TA" sA)"
+  iso_is "owner: the owner's clean stop retires it" "$([ "$rc" = 0 ] && [ -z "$err" ] && [ ! -e "$ITR/closed-run.json" ]; echo $?)"
+  osent ',"session_id":"sA"' closed-run.json; opass 0123456789abcdef0123456789abcdef01234567
+  gate "" "$(ipay "$TB" sB)"
+  iso_is "owner: nor does another session's stop once HEAD moved past the gate pass" "$([ "$rc" = 0 ] && [ -f "$ITR/closed-run.json" ]; echo $?)"
+  rm -f "$ITR/closed-run.json" "$ITR/gate-pass.json"
+  printf '{"slug":"iso","branch":"elsewhere","session_id":"sA"}' > "$ITR/active-run.json"
+  gate "" "$(ipay "$TB" sB)"
+  iso_is "owner: on another branch, another session is not told to delete the owner's run" \
+    "$([ "$rc" = 0 ] && ! printf '%s' "$err" | grep -qF 'delete .claude/task-runner'; echo $?)"
+  gate "" "$(ipay "$TA" sA)"
+  iso_is "owner: the owner on another branch still reads the not-checked-here line" "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF 'so it is not checked here'; echo $?)"
+  rm -f "$ITR/active-run.json"
 else
   printf 'SKIP  session-isolation nudge cases (git not available)\n'
 fi
