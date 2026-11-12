@@ -100,6 +100,13 @@ running, CI then failed on the merged commit, and the user had asked to wait. It
 rather than refuses: a known-flaky or non-required check is a legitimate merge, and only
 you know which.
 
+To wait instead, `scripts/merge-when-green.sh --pr <n>` polls the PR's check rollup, then
+merges the commit it saw green (`--match-head-commit`), and the ask names that command for
+a numbered PR. It never uses `--auto`, so it works where a repository refuses auto-merge,
+and never deletes the branch. It merges nothing on a red or cancelled check (exit 1, named),
+when no check reports within `--grace` (exit 5), or at `--timeout` (exit 6). It does not see
+a required status the rollup omits, or a check that starts after every listed one passed.
+
 - **What it reads.** `gh pr merge` at a command position, with the PR from its first
   argument (number, `#n`, URL or branch; never a redirection or a quoted `--body` value)
   or the current branch, and `-R/--repo` or a `GH_REPO=`/`GH_HOST=` prefix passed
@@ -128,6 +135,7 @@ Standing markers per the marketplace convention (see
 | the matching rules | **gate**, tested | `scripts/__tests__/no-ai-trailer.test.sh`, run in CI with every plugin harness (recount the assertions there; none is quoted here) |
 | a human `Co-authored-by:` trailer | **allowed by design** | only trailers naming Claude or Anthropic match |
 | `gh pr merge` while a check is pending, failing or cancelled | **gate** — asks, never blocks | `permissionDecision: ask` naming the checks; `scripts/__tests__/merge-checks.test.sh` drives it with a stub `gh` (verdicts, wrappers, silent shapes, fail-open, the switch) |
+| waiting for CI, then merging (`scripts/merge-when-green.sh`, named by the merge-checks ask) | **gate** for the script; **recorded** for running it once the ask names it | `scripts/__tests__/merge-when-green.test.sh` drives it with a fake `gh` returning recorded check rollups: green, pending then green, no checks yet, a push while waiting, a 502, red, cancelled, timeout, a refused merge, every exit code |
 | a merge whose PR is a variable, a second merge in one command, a merge outside `gh pr merge` | **unenforceable** | the PR cannot be read from the command, or no matched tool call carries it |
 | `git commit -F <pre-existing file>`, a repo `prepare-commit-msg` hook, `git config trailer.*`, a commit outside the session | **unenforceable** | the message never crosses a matched tool call; silence means "no known shape matched", not "history is clean" |
 | finish / clean-gone / worktree protocols | **recorded** | prose the model follows; nothing reads it back |

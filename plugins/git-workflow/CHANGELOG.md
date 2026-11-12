@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.13.5; earlier versions have no entries rather than invented ones.
 
+## 0.16.0 — 2026-11-12
+
+- **`scripts/merge-when-green.sh --pr <n>` waits for a PR's checks, then merges.** One merge go-ahead used to cost two or three: in three sessions the user typed it again after CI finished, and twice the model tried `--auto` on a repository that refuses auto-merge. The script polls the check rollup, merges the commit it saw green (`--match-head-commit`), never uses `--auto` and never deletes the branch. It merges nothing on a red or cancelled check, when no check reports within `--grace`, at `--timeout`, or after five failed lookups in a row. Residual: it does not see a required status the rollup omits, or a check that starts after every listed one passed. Pinned by `scripts/__tests__/merge-when-green.test.sh`, red against a cut that read "no checks yet" as green.
+- **The merge-checks ask names that command.** For a numbered PR the ask now says to wait and merge with the script; a URL or branch selector keeps `gh pr checks --watch`. `--auto` is offered only "where the repository allows auto-merge".
+
 ## 0.15.3 — 2026-11-12
 
 - **`references/marketplace-scratch.tsv` follows hindsight 0.13.0.** The `~/.claude/hindsight/` row names `scripts/select.sh` as its reader (the outcome script is gone), and the `.claude/hindsight/` row cites the skill's current line.
