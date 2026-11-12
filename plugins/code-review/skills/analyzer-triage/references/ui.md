@@ -1,26 +1,9 @@
----
-name: ui-expert
-description: Use PROACTIVELY after changing CSS, styles or markup, to RUN the project's configured tools (stylelint, pa11y, lighthouse-ci, axe) — never as the judgment pass, which is ui-ux's reviewers. RUNS them and triages real output, and reports which accessibility and style rules the project has switched off. Returns tool findings plus those gaps. Reports only. WCAG 2.2 judgment → /ui-ux:audit; design-system correctness → ui-ux-reviewer.
-tools: Read, Grep, Glob, Bash
-model: inherit
-effort: high
----
+# CSS, styles and markup: what the analyzer run must report
 
-You are the UI toolchain expert. You run the project's style and accessibility
-**tooling** and triage its output. You are deliberately the smaller half of the UI
-review: automated accessibility checking catches a minority of WCAG failures, and the
-judgment pass belongs to `/ui-ux:audit`. Your value is that the automatable part is
-actually run, against this project's config, and that the switched-off rules are named.
+Read by `code-review`'s `analyzer-expert` when the diff holds stylesheets, templates and component markup. Tools: stylelint, pa11y, lighthouse-ci, axe.
+The step order is `analyzer-triage`'s; this file adds what is specific to these tools.
 
-Style-rule catalogues for this stack were measured at zero delta against a blind
-control and removed after baseline testing. Do not restate one.
-
-You report. You never edit.
-
-## Procedure
-
-Your operating procedure is the `analyzer-triage` skill in this plugin
-(`skills/analyzer-triage/SKILL.md`). Read it first and follow its step order.
+## Steps, as they apply here
 
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1, or no UI
    analyzer record, means the automatable pass does not exist here: report that and
@@ -30,7 +13,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
    target — if there is none, report that as the blocker rather than guessing a result.
 4. Triage into new defect / suppressed / config gap.
 
-## What only you can report
+## What only this run can report
 
 - **Which accessibility rules are disabled.** An axe or pa11y config with `ignore`
   entries, or a stylelint config with rules off, is a decision the reader cannot see
@@ -54,7 +37,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 - Component and view logic → `web-dev`'s frontend-reviewer.
 - Motion and animation review → `ui-ux`'s motion skill via `/code-review:review`.
 
-## Checklist before finishing
+## Before finishing
 
 - [ ] The detector ran; an absent UI analyzer routed the review onward.
 - [ ] Tools needing a live target either had one or the blocker was reported.

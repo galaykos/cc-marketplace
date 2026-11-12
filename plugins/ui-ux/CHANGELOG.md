@@ -4,6 +4,10 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.33.2 — 2026-11-12
+
+- **`/ui-ux:audit` runs the project's style and accessibility tools through code-review's `analyzer-expert`.** toolchain-experts and its `ui-expert` agent left the marketplace; the same checks moved into code-review 0.37.0.
+
 ## 0.33.1 — 2026-11-11
 
 - **The contrast checker measures the dark theme, and reads more than `oklch()`.** `scripts/contrast.mjs` found the dark theme by searching for the text `.dark`. Stock shadcn v4 writes `@custom-variant dark (&:is(.dark *))` above the theme, so the light tokens were graded twice and an unreadable dark theme exited 0. A build with no dark rule got light values printed as dark passes. It now reads rules by selector: light from every `:root`/`html` rule, dark from every `.dark`, `[data-theme=dark]`, `[data-mode=dark]` or `prefers-color-scheme: dark` rule, with dark inheriting light as the cascade does. A build with no dark rule prints "not measured" for dark.

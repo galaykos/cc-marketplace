@@ -128,7 +128,7 @@ MARKER_TTL_MIN=1440
     # No text for an agent that cannot edit; qualified names, so another source's writable namesake still gets it. preamble-hook.test.sh fails on a read-only marketplace agent this list misses.
     atype=$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null)
     case "$atype" in
-      Explore | Plan | claude-code-guide | toolchain-experts:*-expert | approaches:consultant | approaches:opinion-lens \
+      Explore | Plan | claude-code-guide | code-review:analyzer-expert | approaches:consultant | approaches:opinion-lens \
       | asset-forge:art-reviewer \
       | code-architecture:architecture-reviewer | code-review:code-reviewer | craft-layer:craft-reviewer \
       | craft-layer:creative-director | devops:devops-reviewer | hindsight:transcript-miner | taskmaster:context-scout \

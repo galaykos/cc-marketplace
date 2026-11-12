@@ -3,6 +3,12 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.37.0 — 2026-11-12
+
+- **New: the `analyzer-expert` agent, the `analyzer-triage` skill and `scripts/detect-analyzers.sh`, merged in from toolchain-experts.** That plugin left the marketplace. If you had it installed, this plugin now carries it; uninstall the old one.
+- **Five expert agents became one.** `php-expert`, `ts-expert`, `react-expert`, `vue-expert` and `ui-expert` are gone. `analyzer-expert` reads one reference per language in the diff, under `skills/analyzer-triage/references/`, holding the same checks word for word. A `.tsx` edit used to match three agent descriptions. Standing: agent-graded; whether one agent triggers as reliably as five is not measured.
+- **`/code-review:review` dispatches `analyzer-expert` from this plugin**, so the analyzer run no longer depends on a second install.
+
 ## 0.36.0 — 2026-11-10
 
 - **The prompt-box review suggestion is removed.** `hooks/suggest.ts` offered `/code-review:review` after a turn that edited three or more code files. On the owner's machine its counter read 11 shown, 0 accepted. The plugin ships no hooks module now; the unreviewed-changes reminder, which speaks to the model, is unchanged, and `CC_SUGGEST` no longer does anything here.

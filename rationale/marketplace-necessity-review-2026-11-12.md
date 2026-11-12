@@ -105,7 +105,7 @@ about someone else's repo is expected from it; the sample holds none.
 | --- | --- | --- |
 | **all-plugins → stack-scan** (`/stack-scan:suggest --everything`) | two commands and one script; `suggest --full` already installs "everything stack-relevant", and all-plugins' README sends the deciding to stack-scan | S–M; all-plugins is installed at user scope, so keep the command name as an alias for one release |
 | **ask-ledger → candor** (one more clause) | both are Stop gates on the same failure, work that quietly does less than asked. ask-ledger's README gives one reason to stand alone, "so it can be disabled on its own"; a `/config` option does that. The 11-05 retro logged 21 false-positive rows in 11 sessions for it and 31 for candor: two gates, two chances at an extra turn | M; lane rows, harnesses, the `named-things-accounted` eval |
-| **asset-forge → blender** | both need Blender and a Blender user wants both. asset-forge: six skills, 0 invocations, `pipeline` attributed 22 times, first shipped 2026-11-08 | M; young plugin, so merge before installs accumulate |
+| ~~asset-forge → blender~~ | withdrawn, see §5: the evidence was a plugin with no install, and the merge would have raised blender's always-on cost about ninefold | — |
 | **toolchain-experts → code-review** (one `analyzer-expert`) | 8 agent rows against 321 for `code-reviewer`; 0 invocations of `analyzer-triage`; dispatched only from `code-review` and `ui-ux` prose. Five agents with one skeleton is open action 7 of the 10-11 review | M |
 | **approaches → code-architecture** | all five skills read zero in all three sources; `opinion-lens` has 36 rows, dispatched by taskmaster. Shape-then-file-plan already describes the pair. Ten plugins name `approaches:` | L; lowest priority, a rename sweep for one fewer plugin |
 
@@ -146,7 +146,29 @@ file. **None was re-checked against current source**, so a row may already be fi
 Three of the four are Stop-gate or guard false positives in candor and ask-ledger, the pair
 §2 proposes to merge.
 
-## 5. Not done
+## 5. Executed on this branch, and one proposal withdrawn
+
+| Row | Outcome |
+| --- | --- |
+| hindsight | cut to 0.13.0 (§1) |
+| pixijs | removed; the vendor's install lines moved to `stack-scan`'s framework-native table |
+| toolchain-experts → code-review | merged as code-review 0.37.0: five agents became `analyzer-expert`, their per-language checks became `skills/analyzer-triage/references/*.md` word for word. Whether one description triggers as reliably as five is unmeasured |
+| asset-forge → blender | **withdrawn by the author of this review before any edit.** The row above was wrong on its evidence |
+
+Why the asset-forge merge was withdrawn, each read from the tree on 2026-11-12:
+
+- asset-forge has **no install** on this machine, so "0 invocations" said nothing about it.
+- Its always-on cost is 1,322 tokens against blender's 157 (`scripts/context-budget-baseline.json`).
+  A merge would put that, an MCP server process and a blocking Stop hook on every blender
+  installer who wanted only the `bpy` checker.
+- Its MCP tools are named `mcp__plugin_asset-forge_forge__*`. A merge renames every tool,
+  breaking the hook matcher, the skills, six eval cases and any permission rule a user wrote.
+- Its README says it runs without blender. The two are companions, not one plugin.
+
+brain and ultra-deep-research were offered for removal and not picked; they stay.
+all-plugins → stack-scan, ask-ledger → candor and approaches → code-architecture were not picked.
+
+## 6. Not done
 
 - No eval, no control arm: every verdict is usage plus prior review, not a measured delta.
 - Hook value is unmeasured for every hook-only plugin; no block or deny counter exists.

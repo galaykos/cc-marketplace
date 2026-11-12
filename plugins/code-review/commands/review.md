@@ -57,9 +57,9 @@ changed with no covering test → testing's testing-best-practices; `.github/wor
 container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
 api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices;
 a configured analyzer for the changed language (phpstan/psalm/phpcs, tsc/eslint/biome,
-vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci, whose reviewer is
-`ui-expert`) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
-it, plus its analyzer-triage skill to say whether CI enforces the result).
+vue-tsc, and for styles and markup stylelint/pa11y/axe/lighthouse-ci) → this plugin's
+`analyzer-expert` agent, which RUNS it rather than reciting it, plus the analyzer-triage
+skill to say whether CI enforces the result).
 Load each skill whose plugin IS installed and apply it inside the
 single pass below. Before the pass, print what resolved as a checklist, one
 `- [ ] plugin:skill` per item: every installed skill or agent the rows above and the
@@ -84,7 +84,7 @@ porcelain carries each commit's subject, which the history pass reads) to
 `.claude/code-review/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*` in
 `.claude/code-review/` so the patch never lists itself as untracked. Name that path in every
 reviewer prompt and state "cite line numbers from the working file, not the patch". Never
-tell a Read/Grep/Glob agent to run git. An agent that runs tools (toolchain-experts' experts,
+tell a Read/Grep/Glob agent to run git. An agent that runs tools (`analyzer-expert`,
 `devops-reviewer`) has Bash and gets the scope instead. Standing: agent-graded — nothing
 checks that a dispatch named the file.
 
@@ -226,7 +226,7 @@ matching any row is dropped, not downgraded:
 - tooling-caught: a linter, type-checker, compiler, or the test suite ACTUALLY RUN BY CI
   would report it (missing import, type error, formatting) — those are CI's job, not
   this review's. Check before dropping: a configured-but-unenforced analyzer (no CI
-  workflow invokes it) catches nothing, so the finding stands. toolchain-experts'
+  workflow invokes it) catches nothing, so the finding stands. The
   analyzer-triage skill reads the workflow and labels exactly this case.
 - intentional: a behaviour change that is the point of the diff, not a side effect
 - a nit a senior reviewer would not raise, or a general-quality wish (more tests,

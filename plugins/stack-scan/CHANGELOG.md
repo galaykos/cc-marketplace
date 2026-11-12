@@ -7,6 +7,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 ## 0.18.11 — 2026-11-12
 
 - **`pixi.js` now points at the PixiJS team's own skills.** The `pixijs` plugin left the marketplace: on opus its v7→v8 table showed no lift and what remained was a link. `signals.md` and `stack-relevance.md` drop the row; `official-complements.md` gains a framework-native row with the vendor's install lines, printed and never run.
+- **toolchain-experts is no longer suggested.** It merged into code-review 0.37.0, an any-project core plugin, so the analyzer-config signal row is gone from `signals.md` and the tier examples.
 
 ## 0.18.10 — 2026-11-12
 

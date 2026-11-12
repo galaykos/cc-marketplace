@@ -1,5 +1,10 @@
 # toolchain-experts scripts: the comment text moved out of the code (2026-10-28)
 
+> Moved 2026-11-12: the plugin merged into code-review 0.37.0. The script is now
+> `plugins/code-review/scripts/detect-analyzers.sh`; its pointer still names this file and the
+> heading below, which keep the path it had when the text moved. Why: 
+> `rationale/marketplace-necessity-review-2026-11-12.md` § 2.
+
 The text below was moved verbatim on 2026-10-28 from the file named in the `##` heading, with only each comment's `# ` leader (and the indentation before it) removed; the lines the file kept are not repeated here. Three of the lines under "The script_body array shapes" were awk comments inside the awk program, not shell comments. A pointer by name was left in the file's header, `# Why, limits, history: rationale/derivations/plugin-toolchain-experts.md § <heading>`. Standing: `recorded` — no gate reads this file, and its dates, measurements and citations are as they stood on the day it moved.
 
 ## plugins/toolchain-experts/scripts/detect-analyzers.sh

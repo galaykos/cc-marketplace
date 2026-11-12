@@ -25,6 +25,9 @@ remembered rubric — that substitution is the measured-negative shape. The usef
 report in that case is one line naming what is missing and the cheapest thing to
 add, not a list of style opinions.
 
+What each tool family's config can hide is in `references/`, one file per language
+(`php.md`, `ts.md`, `react.md`, `vue.md`, `ui.md`). Read only the ones the diff needs.
+
 ### 2. Establish which config is authoritative — BEFORE reading any of them
 
 A repo can carry three analyzer configs and enforce one. The `ci` records name the

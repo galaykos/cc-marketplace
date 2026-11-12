@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **41 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **40 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -413,7 +413,6 @@ the shell mockup rather than scaffolding a sandbox.
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
 | **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
-| **[toolchain-experts](plugins/toolchain-experts)** | five reviewers that RUN the project's configured static analysis rather than reciting a checklist — phpstan/psalm/phpcs/rector, tsc/eslint/biome, the React hook rules, vue-tsc/eslint-plugin-vue, stylelint/pa11y/lighthouse-ci — and report which config CI enforces, what the baseline forgives, and which rules are switched off | A diff in a repo that has analyzers configured, and you want their real output triaged rather than a second opinion |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[ask-ledger](plugins/ask-ledger)** | the silent-avert catch: a UserPromptSubmit hook destructures a work-shaped ask into the things it names (proper nouns, quoted terms, `2D`-style tokens) and a Stop gate refuses a final message that does not account for each — `as named` / `substituted → what, why` / `omitted → why`; gate on the shape, the truth is the model's word | Work keeps quietly doing less than you named and nobody says so |
 | **[candor](plugins/candor)** | a blocking Stop gate (ask-ledger and ui-ux ship the other two), six clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass, a dependency manifest changed without its lockfile, a `file:line` whose marked `quote:` is in neither that file nor its committed copy; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
@@ -637,7 +636,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | write React/Vue apps | `web-dev` + `ui-ux` + `ui-libraries` (+ `skill-router`, which loads the matching skill per file) |
 | are building something design-led | `craft-layer` + `ui-ux` + `ui-libraries` — [companions](#companions-install-these-together), install all three (+ `design-kit`, `skill-router`) |
 | want reviews that catch real bugs | `code-review`, `candor`, `secret-scanning`, `git-workflow` (the enforcing gates) + `security`, `resilience`, `testing` by name (the advisory rubrics) |
-| have phpstan / tsc / eslint configured and want their real output triaged | `toolchain-experts` (it reports what the analyzer cannot see, not a checklist) |
+| have phpstan / tsc / eslint configured and want their real output triaged | `code-review`: its `analyzer-expert` agent runs them and reports what the analyzer cannot see, not a checklist |
 | keep getting half-finished work | `candor` (Stop gate) + `code-architecture` + `task-runner` |
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |

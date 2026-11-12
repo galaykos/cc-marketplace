@@ -82,7 +82,7 @@ TIER 3 — no signal in this repo
                     and a baseline; its completion gate is the pre-push loop
     13 approaches   most changes here are shape decisions (a gate? a hook?
                     a reference file?) rather than implementation
-  quality/review:  14 toolchain-experts  15 resilience  ...
+  quality/review:  14 resilience  ...
 ```
 
 Each line is an argument someone can disagree with. That is the point: a wrong

@@ -62,7 +62,7 @@ in a repo before any SDK or key lands in it — were removed on 2026-09-14; thei
 signals.md rows now route onward instead of to a plugin.
 
 Every signal-earned leaf NOT named in the table above — devops, api-design,
-security, resilience, database and toolchain-experts — installs under `--full` whether or not its signal fired. That list is
+security, resilience and database — installs under `--full` whether or not its signal fired. That list is
 illustrative of "any stack", not a fifth class: a missing CI file does not make CI
 discipline irrelevant, it makes it absent. `stack-scan` is the honest edge, and it is
 settled by construction rather than by class: this scout ships inside it, so it is

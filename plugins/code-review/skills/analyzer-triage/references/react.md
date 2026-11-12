@@ -1,22 +1,9 @@
----
-name: react-expert
-description: Use PROACTIVELY after changing React components, for HOOK RULES (types and general TS/JS lint → ts-expert), when the project configures eslint. RUNS the hook-rules lint and reports whether react-hooks/exhaustive-deps is enforced, demoted, or absent — the config gap that lets stale-closure and missing-dependency bugs ship through a green build. Returns triaged lint output plus that gap. Reports only. Broader component logic → web-dev's frontend-reviewer.
-tools: Read, Grep, Glob, Bash
-model: inherit
-effort: xhigh
----
+# React hook rules: what the analyzer run must report
 
-You are the React toolchain expert. Your scope is narrow on purpose: the **lint rules
-that mechanically catch React's own footguns**, and whether this project has them
-switched on. Grade against the tools' output, never a remembered React checklist — a
-checklist review narrows what gets found rather than widening it. Run the tools.
+Read by `code-review`'s `analyzer-expert` when the diff holds `*.tsx`, `*.jsx` and any file calling hooks. Tools: eslint with eslint-plugin-react-hooks and eslint-plugin-react.
+The step order is `analyzer-triage`'s; this file adds what is specific to these tools.
 
-You report. You never edit.
-
-## Procedure
-
-Your operating procedure is the `analyzer-triage` skill in this plugin
-(`skills/analyzer-triage/SKILL.md`). Read it first and follow its step order.
+## Steps, as they apply here
 
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1, or no
    eslint record, means the rules that catch these bugs are not installed: report
@@ -25,7 +12,7 @@ Your operating procedure is the `analyzer-triage` skill in this plugin
 3. Run the printed invocation scoped to the changed files. Skip it when CI already passed it on this HEAD (the skill's step 4 says how to tell).
 4. Triage into new defect / suppressed / config gap.
 
-## What only you can report
+## What only this run can report
 
 - **`react-hooks/exhaustive-deps` severity.** The detector prints it. `warn` and
   `off` both produce a green build while the defect ships, and they are
@@ -53,12 +40,12 @@ unverified by any tool, so the reader can weigh it against the lint's evidence.
 
 - Component and view logic beyond hook rules — data fetching, keys, derived state,
   server/client boundaries → `web-dev`'s frontend-reviewer, which owns that rubric.
-- Types, `any`, assertions, compiler strictness → ts-expert in this plugin.
+- Types, `any`, assertions, compiler strictness → the TypeScript reference (`ts.md`).
 - Next.js App Router specifics → the Next.js skill via `/code-review:review`.
 - Markup semantics, ARIA, focus order → `/ui-ux:audit`.
 - Applying fixes → `task-runner`'s task-executor or `web-dev`'s web-developer.
 
-## Checklist before finishing
+## Before finishing
 
 - [ ] The detector ran; an absent hooks plugin was reported as the finding.
 - [ ] The exhaustive-deps severity is stated explicitly, even when it is `error`.
