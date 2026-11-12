@@ -87,19 +87,6 @@ jobs:
         run: bash scripts/smoke/evidence-gate-hook-tests.sh
       - name: done-gate Stop hook smoke tests (a silent turn on a red per-plugin check is blocked)
         run: bash scripts/smoke/done-gate-tests.sh
-      # Every plugin-shipped test harness, not a hardcoded two. A plugin that
-      # ships a script gate and a scripts/__tests__/ directory is enforced by
-      # this step the moment it lands; before this glob widened, a third
-      # plugin's fixtures would have sat unrun in CI with nothing saying so —
-      # the recorded-masquerading-as-gate failure CLAUDE.md's has-teeth
-      # convention forbids. The -f guard keeps an unmatched glob (no plugin
-      # ships tests) from expanding literally and failing the step.
-      - name: Plugin author-time lint + harness tests (all plugins)
-        run: |
-          for t in plugins/*/scripts/__tests__/*.test.sh; do
-            [ -f "$t" ] || continue
-            echo "== $t"; bash "$t"
-          done
       - name: validate.sh parity harness (FAIL paths still fire)
         run: bash scripts/smoke/validate-fixtures/parity-check.sh
       - name: role-floor gate harness (all nine FAIL strings fire)
@@ -182,3 +169,37 @@ jobs:
       # $HOME/.claude/plugins/cache (absent in CI), needs a delegated model round
       # to echo its proof token, and exits 1 with no args. It stays a local
       # authoring harness, run by hand.
+
+  # The plugin harnesses were one serial step: 593 s of a 944 s run (run 43253645877). Four shards by
+  # file index, each a fresh runner. Does NOT catch a harness that only passes after another one ran
+  # in the same checkout; none is known to. A new shard count must change the matrix AND the modulus.
+  plugin-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Same Node pin as the validate job, for the reason given there.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # Every plugin-shipped test harness, not a hardcoded two. A plugin that
+      # ships a script gate and a scripts/__tests__/ directory is enforced by
+      # this step the moment it lands; before this glob widened, a third
+      # plugin's fixtures would have sat unrun in CI with nothing saying so —
+      # the recorded-masquerading-as-gate failure CLAUDE.md's has-teeth
+      # convention forbids. The -f guard keeps an unmatched glob (no plugin
+      # ships tests) from expanding literally and failing the step.
+      - name: Plugin author-time lint + harness tests (all plugins)
+        run: |
+          i=0
+          for t in plugins/*/scripts/__tests__/*.test.sh; do
+            [ -f "$t" ] || continue
+            i=$((i + 1))
+            [ $(( (i - 1) % 4 )) -eq ${{ matrix.shard }} ] || continue
+            echo "== $t"; bash "$t"
+          done
