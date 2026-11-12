@@ -59,6 +59,15 @@ symbolic-ref, not --abbrev-ref: a tag with the branch's name made that print `he
 read as another branch. Exit 1 is a detached head; any other failure is never compared.
 ```
 
+### 2026-11-12 (0.55.1): this session's phase only
+
+The phase now comes from `.claude/cc-phase/<session>.json` for the payload's session_id
+(taskmaster 0.56.0 writes one sentinel per session), not from the repo-wide
+`.claude/cc-phase.json` of the "WHAT IT READS" list above. A new session (startup, clear)
+has none, so its line names no phase; a resumed session that keeps its id sees its own.
+Reading the run's registering session's file would need the run to record that session;
+`active-run.json` does not (the S5 run-ownership item may add it).
+
 ## plugins/task-runner/hooks/drift.sh
 
 ### Header
@@ -1412,6 +1421,22 @@ version directory in the script's own marketplace, `sort -V` on that name alone;
 cache-wide find, with a stderr line that it may not be the loaded copy. The CLI filter was run
 against the real `claude plugin list --json` once, from this repository: it returned this project's
 `local`-scope row and skipped another worktree's older one.
+
+### 2026-11-12 (0.55.1): the sentinel is the registering session's
+
+`build` goes to `.claude/cc-phase/<session>.json` through taskmaster's writer (0.56.0), which
+now refuses a write without `--session`. With no `--session`, register-run writes no
+sentinel and says so on stderr instead of one every session reads; the writer's refusal is
+caught so `set -e` cannot fail a registration over the phase. The no-taskmaster fallback
+writes the same per-session path, its key computed inline (templates/blocks/phase-file.md's
+rule; kept as one line rather than a pasted block, since a sibling S5 change edits this
+script). A resume writes the new session its own sentinel and leaves the first session's.
+Code review the same day: the writer register-run resolves can be a taskmaster before
+0.56.0, which takes `--session`, writes the repo-wide file and exits 0. Success is now read
+from the per-session file (removed first, then checked), and the fallback write runs when it
+is missing: tmp + rename, the directory's `.gitignore`, and a failure that warns instead of
+failing the registration under `set -e`. Harness: "a writer that exits 0 without the
+per-session file", red on the first cut.
 
 ## plugins/task-runner/scripts/negative-control.sh
 

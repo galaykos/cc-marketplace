@@ -7,7 +7,7 @@ import { isPinOn } from '../hooks/board'
 const NOW = Date.UTC(2026, 9, 6, 12)
 const INDEX = '/work/taskmaster-docs/tasks/ship-mods/00-INDEX.md'
 const RUN = '/work/.claude/task-runner/active-run.json'
-const SENTINEL = '/work/.claude/cc-phase.json'
+const SENTINEL = '/work/.claude/cc-phase/S1.json'
 const BG = '/work/.claude/task-runner/bg/running.pid'
 const RV = '/work/.claude/task-runner/rv'
 const NC = '/work/.claude/task-runner/nc'
@@ -484,7 +484,7 @@ describe('board', () => {
     expect(world.statuses).toEqual(['taskmaster  shape 2/8', undefined])
   })
 
-  test('with no run, every planning phase reads taskmaster; another session or the switch off clears it', async ($, on) => {
+  test("with no run, every planning phase reads taskmaster; another session's or a legacy repo-wide sentinel never shows", async ($, on) => {
     const world = seat(on)
     const shown: (string | undefined)[] = []
 
@@ -496,7 +496,9 @@ describe('board', () => {
       shown.push(world.statuses.at(-1))
     }
 
-    world.put(SENTINEL, phased('shape', 'S2'))
+    world.disk.delete(SENTINEL)
+    world.put('/work/.claude/cc-phase/S2.json', phased('shape', 'S2'))
+    world.put('/work/.claude/cc-phase.json', phased('shape', 'S1'))
     await $.turn.complete(TURN)
     shown.push(world.statuses.at(-1))
 

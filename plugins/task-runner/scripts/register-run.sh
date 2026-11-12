@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# register-run.sh — the one writer of .claude/task-runner/active-run.json: resumes a same branch+slug+index run untouched (its mtime is where gate records count from; --fresh, or no --index, registers anew); else deletes stale gate records, arms rv/ rt/ bg/ nc/ reductions/, writes slug, base, branch, start_sha. Sets phase build; seeds env-notes.md.
+# register-run.sh — the one writer of .claude/task-runner/active-run.json: resumes a same branch+slug+index run untouched (its mtime is where gate records count from; --fresh, or no --index, registers anew); else deletes stale gate records, arms rv/ rt/ bg/ nc/ reductions/, writes slug, base, branch, start_sha. Sets this session's phase build (none without --session); seeds env-notes.md.
 # Misses: whether the model runs the line it reads (agent-graded); a sentinel written by hand, which carries no start_sha and so does not arm the range-review check; without the CLI or a taskmaster in its own marketplace, a cache-wide phase-sentinel.sh that may not be the loaded copy (said on stderr).
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/register-run.sh (marketplace repository)
 
@@ -96,11 +96,24 @@ if [ ! -f "$PS" ]; then
   PS=$(find "$HOME/.claude/plugins/cache" -path '*/taskmaster/*/scripts/phase-sentinel.sh' 2>/dev/null | sort -V | tail -1 || true)
   [ -z "$PS" ] || printf '%s: using %s from a cache-wide search; it may not be the copy Claude Code loaded\n' "$PROG" "$PS" >&2
 fi
-if [ -n "$PS" ] && [ -f "$PS" ]; then
-  bash "$PS" write build --owner task-runner:run --cwd "$ROOT" ${SESSION:+--session "$SESSION"} >/dev/null
+# One sentinel per session (taskmaster 0.56.0): no --session, no sentinel; the key is templates/blocks/phase-file.md's.
+# A taskmaster before 0.56.0 exits 0 but writes the repo-wide file, so success is read from the per-session file, not the exit.
+KEY=$(printf '%s' "$SESSION" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+if [ -z "$KEY" ]; then
+  printf '%s: no --session, so no build phase sentinel was written\n' "$PROG" >&2
 else
-  printf '{"phase":"build","owner":"task-runner:run","session_id":"%s","started_at":"%s"}\n' \
-    "$(esc "$SESSION")" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$ROOT/.claude/cc-phase.json"
+  PF="$ROOT/.claude/cc-phase/$KEY.json"
+  rm -f "$PF" 2>/dev/null || true
+  if [ -n "$PS" ] && [ -f "$PS" ]; then
+    bash "$PS" write build --owner task-runner:run --cwd "$ROOT" --session "$SESSION" >/dev/null || true
+    [ -f "$PF" ] || printf '%s: %s wrote no per-session sentinel (taskmaster before 0.56.0?); writing it here\n' "$PROG" "$PS" >&2
+  fi
+  if [ ! -f "$PF" ]; then
+    { mkdir -p "${PF%/*}" && { [ -e "${PF%/*}/.gitignore" ] || printf '*\n' > "${PF%/*}/.gitignore"; } \
+      && printf '{"phase":"build","owner":"task-runner:run","session_id":"%s","started_at":"%s"}\n' \
+           "$(esc "$SESSION")" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$PF.$$.tmp" && mv -f "$PF.$$.tmp" "$PF"; } 2>/dev/null \
+      || { rm -f "$PF.$$.tmp" 2>/dev/null; printf '%s: could not write %s\n' "$PROG" "$PF" >&2; }
+  fi
 fi
 
 if [ "$resumed" = 1 ]; then

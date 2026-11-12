@@ -12,7 +12,7 @@ Starting task N+1 while task N is unverified is the root of "90% done" projects 
 ## Step 1: register the run
 
 However this skill was reached, the orchestrator (never a delegated worker) runs, before the
-first task, `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session <this session id>`
+first task, `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "${CLAUDE_SESSION_ID}"`
 (an inline list: `--slug <name>`). Unregistered, the review observer and candor's completion
 clause are silently off. A repeat call for one index resumes it.
 

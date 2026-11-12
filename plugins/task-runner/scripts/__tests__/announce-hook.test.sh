@@ -19,8 +19,8 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 rc=0
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
 
-fire() { # <cwd> [source] -> additionalContext (empty when silent)
-  printf '{"hook_event_name":"SessionStart","source":"%s","cwd":"%s"}' "${2:-startup}" "$1" \
+fire() { # <cwd> [source] [session] -> additionalContext (empty when silent)
+  printf '{"hook_event_name":"SessionStart","source":"%s","cwd":"%s","session_id":"%s"}' "${2:-startup}" "$1" "${3:-S1}" \
     | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null
 }
 check() { if [ "$2" = "$3" ]; then echo "PASS: $1"; else echo "FAIL: $1 — got: ${2:-<none>} want: ${3:-<none>}"; rc=1; fi; }
@@ -32,7 +32,7 @@ check "1 no active-run.json: silent (the always-on budget stays 0)" "$(fire "$BA
 RUN="$WS/run"; mkdir -p "$RUN/.claude/task-runner" "$RUN/tasks/demo"
 printf '{"slug":"2026-09-22-demo","branch":"feat/orders","index_path":"tasks/demo/00-INDEX.md"}\n' \
   > "$RUN/.claude/task-runner/active-run.json"
-printf '{"phase":"build","owner":"task-runner:run"}\n' > "$RUN/.claude/cc-phase.json"
+mkdir -p "$RUN/.claude/cc-phase"; printf '{"phase":"build","owner":"task-runner:run","session_id":"S1"}\n' > "$RUN/.claude/cc-phase/S1.json"
 cat > "$RUN/tasks/demo/00-INDEX.md" <<'EOF'
 | card | title | status |
 |---|---|---|
@@ -49,10 +49,13 @@ has "5 done and parked cards are closed, the rest remain" "$line" '2 of 4 cards 
 has "6 the declared phase is named with its owner" "$line" 'phase `build` set by task-runner:run'
 if printf '%s' "$line" | grep -q 'status outside'; then echo "FAIL: 6b a vocabulary-only index names no unrecognised status"; rc=1; else echo "PASS: 6b a vocabulary-only index names no unrecognised status"; fi
 
+line2=$(fire "$RUN" startup S2)
+has "6c another session's line still names the run" "$line2" '`2026-09-22-demo`'
+if printf '%s' "$line2" | grep -q 'phase `'; then echo "FAIL: 6d another session's phase is not this session's"; rc=1; else echo "PASS: 6d another session's phase is not this session's"; fi
 check "7 source=compact is skill-router's lane, not this one" "$(fire "$RUN" compact)" ""
 check "8 source=resume announces" "$(printf '%s' "$(fire "$RUN" resume)" | grep -c .)" "1"
 
-rm -f "$RUN/.claude/cc-phase.json"
+rm -rf "$RUN/.claude/cc-phase"
 printf '{"slug":"plain"}\n' > "$RUN/.claude/task-runner/active-run.json"
 line=$(fire "$RUN")
 check "9 a run with no index still announces" "$(printf '%s' "$line" | grep -c .)" "1"
