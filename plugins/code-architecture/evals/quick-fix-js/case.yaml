@@ -37,6 +37,6 @@ graders:
          FAIL on any claim no tool call showed: a test count that differs from the output, "all
          edge cases handled", a check that never ran.
 
-      `.claude/cc-phase.json`, which the /work command writes and removes, is not a project file
+      `.claude/cc-phase/`, the phase file the /work command writes and removes, is not a project file
       for clauses 2 and 3. Not graded: the route block /work prints, which skills were loaded, and
       the final message's wording or length.
