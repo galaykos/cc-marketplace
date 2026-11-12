@@ -1,6 +1,6 @@
 #!/bin/bash
-# scan-range.sh <base>..<head> | --cached | --tracked | --outgoing [<rev>…] | <path>… — applies hooks/patterns.tsv (scan.sh's matching, through hooks/patterns.sh) to the lines a range, the index, the tracked tree against HEAD (what `commit -a` records) or each commit a push sends ADDED, or to whole files (a directory: its git-tracked files); prints `<file>:<line> <label> (<first 4>****, <n> chars)` per match, never a value; --outgoing names `<commit>:<file>:<line>`. Exit 0 none, 1 a match, 2 nothing scanned.
-# --outgoing: non-merge commits reachable from each <rev> (none: HEAD, not from @{upstream}) and from no remote-tracking ref. Misses: a secret split across lines, a shape patterns.tsv does not list, a real value holding a placeholder word, binary files, a line a range removed (still in history), history outside the range, untracked files under a directory in git, a merge commit's own changes.
+# scan-range.sh <base>..<head> | --cached | --tracked | --outgoing[=<remote>] [<rev>…] | <path>… — applies hooks/patterns.tsv (scan.sh's matching, through hooks/patterns.sh) to the lines a range, the index, the tracked tree against HEAD (what `commit -a` records) or each commit a push sends ADDED, or to whole files (a directory: its git-tracked files); prints `<file>:<line> <label> (<first 4>****, <n> chars)` per match, never a value; --outgoing names `<commit>:<file>:<line>`. Exit 0 none, 1 a match, 2 nothing scanned.
+# --outgoing: non-merge commits reachable from each <rev> (none: HEAD, not from @{upstream}) and from no remote-tracking ref; =<remote>: from none of that remote's (a URL or path has none), no @{upstream} exclusion. Signatures are not verified; --tracked skips submodules. Misses: a secret split across lines, a shape patterns.tsv does not list, a real value holding a placeholder word, binary files, a line a range removed (still in history), history outside the range, untracked files under a directory in git, a merge commit's own changes.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/scripts/scan-range.sh
 
 # Output: a name holding a tab, newline, `"` or `\` prints in git's escapes, unquoted, in every mode (path mode prints other control characters raw); the count goes to stderr. Exit 2: no argument, a missing path, a range, index, tree or log git cannot read, a `-`-led <rev>, an unusable patterns.tsv, no hooks/patterns.sh.
@@ -8,7 +8,7 @@ set -u
 export LC_ALL=C
 pat_file="$(cd "$(dirname "$0")/.." && pwd)/hooks/patterns.tsv"
 die() { printf 'scan-range: %s\n' "$1" >&2; exit 2; }
-[ $# -gt 0 ] || die "usage: scan-range.sh <base>..<head> | --cached | --tracked | --outgoing [<rev>...] | <path>..."
+[ $# -gt 0 ] || die "usage: scan-range.sh <base>..<head> | --cached | --tracked | --outgoing[=<remote>] [<rev>...] | <path>..."
 
 tab=$'\t'
 . "$(dirname "$0")/../hooks/patterns.sh" 2>/dev/null || die "$(dirname "$0")/../hooks/patterns.sh is missing"
@@ -21,7 +21,7 @@ trap 'rm -rf "$W"' EXIT
 mode=path
 case "$1" in
   --cached | --tracked) [ $# -eq 1 ] || die "$1 takes no other argument"; mode=$1 ;;
-  --outgoing) mode=$1 ;;
+  --outgoing | --outgoing=?*) mode=--outgoing ;;
   *) [ $# -eq 1 ] && [[ $1 == *..* ]] && [ ! -e "$1" ] && mode=range ;;
 esac
 if [ "$mode" != path ]; then
@@ -30,13 +30,17 @@ if [ "$mode" != path ]; then
     --cached) set -- diff --cached ;;
     # An unborn HEAD diffs against the empty tree, as the commit would.
     --tracked) b=$(git rev-parse -q --verify HEAD 2>/dev/null) || b=$(git hash-object -t tree /dev/null 2>/dev/null) || die "git cannot read HEAD here"
-      set -- diff "$b" ;;
+      set -- diff --ignore-submodules=all "$b" ;;
     --outgoing)
       for r in "$@"; do case "$r" in '' | -*) die "a revision may not be empty or start with -: '$r'" ;; esac; done
-      if [ $# -eq 0 ]; then
-        set -- HEAD; u=$(git rev-parse -q --verify '@{upstream}' 2>/dev/null) && set -- HEAD "^$u"
+      not=--remotes; rem=${what#--outgoing}
+      if [ -n "$rem" ]; then
+        not=""; git check-ref-format "refs/remotes/${rem#=}/x" && not="--remotes=${rem#=}"
       fi
-      set -- log -p --no-merges --format='commit %h' "$@" --not --remotes ;;
+      if [ $# -eq 0 ]; then
+        set -- HEAD; [ -z "$rem" ] && u=$(git rev-parse -q --verify '@{upstream}' 2>/dev/null) && set -- HEAD "^$u"
+      fi
+      set -- log -p --no-merges --no-show-signature --format='commit %h' "$@" --not ${not:+"$not"} ;;
     range) set -- diff "$what" ;;
   esac
   git -c core.quotePath=false "$@" --no-color --no-ext-diff --no-textconv --src-prefix=a/ --dst-prefix=b/ -U0 -- > "$W/diff" 2>/dev/null \

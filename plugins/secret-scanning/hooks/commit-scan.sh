@@ -1,6 +1,6 @@
 #!/bin/bash
 # commit-scan.sh — PreToolUse on Bash: denies a `git commit` or `git push` at a command position (past env assignments, wrappers, `cd <dir>` and `git -C <dir>`) when scripts/scan-range.sh finds a non-placeholder secret in what it would record or send, naming file:line and the pattern, never the value. Fails open. Off: CC_SECRET_COMMIT_SCAN=off; unset, /config decides.
-# Reads the index; with -a/-i/-o, a pathspec or an earlier `git add` in the command, tracked changes against HEAD plus the untracked files that add names; for a push, each commit its refspecs (else HEAD, minus @{upstream}) send that no remote-tracking ref holds. Misses: a commit in bash -c, eval, a script, an alias or a variable; a `cd`/`-C` it cannot resolve; --git-dir, --work-tree, GIT_DIR; what the same command writes first; a merge's own changes; past MAX_PUSH_COMMITS or MAX_ADDED_FILES; what scan-range.sh misses.
+# Reads the index; with -a/-i/-o, a pathspec or an earlier `git add` in the command, also tracked changes against HEAD plus the untracked files that add names (every one for a `$` pathspec); for a push, each commit its refspecs (else a mirror, remote.<name>.push, push.default=matching, else HEAD) send that the destination's remote-tracking refs lack. Its git calls run no fsmonitor, filter or gpg command. Misses: the commit message; a commit in bash -c, eval, a script, an alias or a variable; a `cd`/`-C` it cannot resolve; --git-dir, --work-tree, GIT_DIR; what the same command writes first; a merge's own changes; a file over MAX_FILE_BYTES; past MAX_PUSH_COMMITS or MAX_ADDED_FILES; a run the 10 s timeout kills; what scan-range.sh misses.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/commit-scan.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -28,9 +28,10 @@ cc_option() {
 MAX_SHOWN=5
 MAX_PUSH_COMMITS=1000
 MAX_ADDED_FILES=1000
+MAX_FILE_BYTES=1048576
 
 # git_actions <cwd>, command on stdin: per git commit/push/add, `verb\037dir\037…\036` (dir empty when unresolvable); commit: cached|tracked;
-# push: D (HEAD), A (branches), T (tags), S<source>; add: flags (A all, u update, f force, X unknown) then pathspecs.
+# push: R<remote> (Q: held in a variable) then D (no source named), A (branches), T (tags), M (matching), S<source>; add: flags (A all, u tracked only, f force, X unknown) then pathspecs.
 git_actions() {
   CS_CWD=$1 LC_ALL=C awk '
     { buf = (NR == 1 ? $0 : buf "\n" $0) }
@@ -111,7 +112,7 @@ git_actions() {
       return base == "" ? "" : base "/" p
     }
     function emit(verb, dir, a) { printf "%s\037%s\037%s\036", verb, dir, a }
-    function endseg(   i, x, b, dir, gd, mode, j, ch, a, nop, dd, fl) {
+    function endseg(   i, x, b, dir, gd, mode, j, ch, a, nop, dd, fl, rm, rp, tg) {
       if (nw == 0) return
       i = 1; gd = 0
       while (i <= nw) {
@@ -179,7 +180,7 @@ git_actions() {
         }
         emit("commit", dir, mode)
       } else if (x == "push") {
-        a = ""; nop = 0; dd = 0
+        a = ""; nop = 0; dd = 0; rm = "R"; rp = "R"
         for (i++; i <= nw; i++) {
           x = W[i]
           if (!dd && x ~ /^-./) {
@@ -187,7 +188,9 @@ git_actions() {
             if (x ~ /^--(dry-run|delete|help)$/ || x == "-h") return
             if (x ~ /^--(all|branches|mirror)$/) { a = a "\037A"; if (x == "--mirror") a = a "\037T"; continue }
             if (x == "--tags") { a = a "\037T"; continue }
-            if (x ~ /^--(push-option|repo|receive-pack|exec)$/) { i++; continue }
+            if (x == "--repo") { i++; rp = (i <= nw && !F[i]) ? "R" W[i] : "Q"; continue }
+            if (x ~ /^--repo=/) { rp = F[i] ? "Q" : "R" substr(x, 8); continue }
+            if (x ~ /^--(push-option|receive-pack|exec)$/) { i++; continue }
             if (x ~ /^--/) continue
             for (j = 2; j <= length(x); j++) {
               ch = substr(x, j, 1)
@@ -196,14 +199,17 @@ git_actions() {
             }
             continue
           }
-          if (++nop == 1) continue
-          if (x == "tag" && i < nw) x = W[++i]
-          if (F[i]) { a = a "\037D"; continue }
-          sub(/^\+/, "", x); sub(/:.*/, "", x)
-          if (x != "") a = a "\037S" x
+          if (++nop == 1) { rm = F[i] ? "Q" : "R" x; continue }
+          tg = 0; if (x == "tag" && i < nw) { x = W[++i]; tg = 1 }
+          if (F[i]) { a = a (tg ? "\037T" : "\037A"); continue }
+          sub(/^\+/, "", x)
+          if (x == ":") { a = a "\037M"; continue }
+          sub(/:.*/, "", x)
+          if (x ~ /\*/) a = a (x ~ /^refs\/tags\// ? "\037T" : "\037A")
+          else if (x != "") a = a "\037S" x
         }
         if (a == "" && nop < 2) a = "\037D"
-        if (a != "") emit("push", dir, substr(a, 2))
+        if (a != "") emit("push", dir, (nop ? rm : rp) a)
       } else if (x == "add" || x == "stage") {
         fl = ""; a = ""; dd = 0
         for (i++; i <= nw; i++) {
@@ -215,12 +221,13 @@ git_actions() {
             if (x ~ /^--(all|no-ignore-removal)$/) fl = fl "A"
             else if (x == "--update") fl = fl "u"
             else if (x == "--force") fl = fl "f"
-            else if (x ~ /^--(pathspec-from-file|interactive|patch|edit)/) { fl = fl "X"; if (x == "--pathspec-from-file") i++ }
+            else if (x ~ /^--(patch|edit)/) fl = fl "u"
+            else if (x ~ /^--(pathspec-from-file|interactive)/) { fl = fl "X"; if (x == "--pathspec-from-file") i++ }
             else if (x == "--chmod") i++
             else if (x !~ /^--/) for (j = 2; j <= length(x); j++) {
               ch = substr(x, j, 1)
               if (ch == "n") return
-              if (ch == "A") fl = fl "A"; else if (ch == "u") fl = fl "u"; else if (ch == "f") fl = fl "f"; else if (ch ~ /[ipe]/) fl = fl "X"
+              if (ch == "A") fl = fl "A"; else if (ch ~ /[upe]/) fl = fl "u"; else if (ch == "f") fl = fl "f"; else if (ch == "i") fl = fl "X"
             }
             continue
           }
@@ -268,17 +275,53 @@ git_actions() {
 scan() {
   local top=$1 out
   shift
-  out=$(cd "$top" 2>/dev/null && bash "$RANGE" "$@" 2>/dev/null)
+  out=$(cd "$top" 2>/dev/null && { [ "$1" != --tracked ] || nofilter; } && bash "$RANGE" "$@" 2>/dev/null)
   [ $? -eq 1 ] || return 0
   found="$found$(printf '%s\n' "$out" | sed -E 's/ \([^()]*\*\*\*\*, [0-9]+ chars\)$//')
 "
+}
+
+# nofilter: blanks, for this shell's git calls, every clean or process filter driver git config names, so a worktree diff runs none.
+nofilter() {
+  local d n=$GIT_CONFIG_COUNT
+  while IFS= read -r -d '' d; do
+    d=${d#filter.}; d=${d%.*}
+    export "GIT_CONFIG_KEY_$n=filter.$d.clean" "GIT_CONFIG_VALUE_$n=" "GIT_CONFIG_KEY_$((n + 1))=filter.$d.process" \
+      "GIT_CONFIG_VALUE_$((n + 1))=" "GIT_CONFIG_KEY_$((n + 2))=filter.$d.required" "GIT_CONFIG_VALUE_$((n + 2))=false"
+    n=$((n + 3))
+  done < <(git config -z --name-only --get-regexp '^filter\..+\.(clean|process)$' 2>/dev/null)
+  export GIT_CONFIG_COUNT=$n
 }
 
 # slot <top>: sets k to <top>'s index in the per-repository arrays, adding it.
 slot() {
   k=0
   while [ "$k" -lt "${#R_TOP[@]}" ]; do [ "${R_TOP[$k]}" = "$1" ] && return 0; k=$((k + 1)); done
-  R_TOP[$k]=$1; R_ADD[$k]=""; R_COMMIT[$k]=""; R_PUSH[$k]=""
+  R_TOP[$k]=$1; R_ADD[$k]=""; R_COMMIT[$k]=""
+}
+
+# pslot <top> <remote>: sets j to the push job for that repository and destination ("" when unknown), adding it.
+pslot() {
+  j=0
+  while [ "$j" -lt "${#P_TOP[@]}" ]; do [ "${P_TOP[$j]}" = "$1" ] && [ "${P_REM[$j]}" = "$2" ] && return 0; j=$((j + 1)); done
+  P_TOP[$j]=$1; P_REM[$j]=$2; P_REVS[$j]=""
+}
+
+# cget [-a] <key>: the last value of <key> in $cfg, a `git config --get-regexp` dump (a bare boolean reads true); -a: each value.
+cget() {
+  local l v="" all=""
+  [ "$1" = -a ] && { all=1; shift; }
+  while IFS= read -r l; do
+    case "$l" in "$1") v=true ;; "$1 "*) v=${l#* } ;; *) continue ;; esac
+    [ -z "$all" ] || printf '%s\n' "$v"
+  done <<<"$cfg"
+  [ -n "$all" ] || printf '%s\n' "$v"
+}
+
+# spec <refspec>: a configured push refspec as git_actions tokens one: M for `:`, T or A for a glob, S<source>, nothing for a delete.
+spec() {
+  local x=${1#+}
+  case "$x" in :) echo M ;; :*) ;; refs/tags/*\**) echo T ;; *\**) echo A ;; *) printf 'S%s\n' "${x%%:*}" ;; esac
 }
 
 {
@@ -294,11 +337,12 @@ slot() {
 
   RANGE="$(cd "$(dirname "$0")/.." && pwd)/scripts/scan-range.sh"
   [ -f "$RANGE" ] || exit 0
-  # A repository's core.fsmonitor names a command git would run for a worktree diff; the hook runs before the permission prompt.
-  export GIT_OPTIONAL_LOCKS=0 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false
+  # Nothing a repository configures may run before the prompt (fsmonitor here, filters in nofilter, gpg and submodules in scan-range.sh); a file over the threshold diffs as binary.
+  export GIT_OPTIONAL_LOCKS=0 GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=core.fsmonitor GIT_CONFIG_VALUE_0=false \
+    GIT_CONFIG_KEY_1=core.bigFileThreshold GIT_CONFIG_VALUE_1=$MAX_FILE_BYTES
   T=$(mktemp -d) || exit 0
   trap 'rm -rf "$T"' EXIT
-  R_TOP=(); R_ADD=(); R_COMMIT=(); R_PUSH=()
+  R_TOP=(); R_ADD=(); R_COMMIT=(); P_TOP=(); P_REM=(); P_REVS=()
   while IFS= read -r -d $'\036' rec; do
     verb=${rec%%$'\037'*}; rec=${rec#*$'\037'}
     dir=${rec%%$'\037'*}; rec=${rec#*$'\037'}
@@ -309,57 +353,99 @@ slot() {
     case "$verb" in
       add)
         R_ADD[$k]=1
-        case "${f[0]}" in *[uX]*) continue ;; esac
+        case "${f[0]}" in *u*) continue ;; esac
         ex=--exclude-standard; case "${f[0]}" in *f*) ex=--full-name ;; esac
-        if [ "${#f[@]}" -gt 1 ]; then
+        if [ "${#f[@]}" -gt 1 ] && [ "${f[0]}" = "${f[0]#*X}" ]; then
           git -C "$dir" ls-files -z -o "$ex" --full-name -- "${f[@]:1}"
         else
-          case "${f[0]}" in *A*) git -C "$top" ls-files -z -o "$ex" --full-name ;; esac
+          case "${f[0]}" in *[AX]*) git -C "$top" ls-files -z -o "$ex" --full-name ;; esac
         fi 2>/dev/null >> "$T/add.$k" ;;
       commit)
         [ "${f[0]}" = tracked ] || [ -n "${R_ADD[$k]}" ] && R_COMMIT[$k]=tracked
         [ -n "${R_COMMIT[$k]}" ] || R_COMMIT[$k]=cached
         [ -f "$T/add.$k" ] && { cat "$T/add.$k" >> "$T/new.$k"; rm -f "$T/add.$k"; } ;;
       push)
+        rem=${f[0]}; f=("${f[@]:1}"); cfg=""
+        case " $rem ${f[*]} " in *" R "* | *" D "*) cfg=$(git -C "$top" config --get-regexp \
+          '^(branch\..+\.(pushremote|remote)|remote\..+\.(push|mirror)|remote\.pushdefault|push\.default)$' 2>/dev/null) ;; esac
+        case "$rem" in
+          Q) rem="" ;;
+          R) b=$(git -C "$top" symbolic-ref -q --short HEAD 2>/dev/null)
+             rem=$(cget "branch.$b.pushremote"); [ -n "$rem" ] || rem=$(cget remote.pushdefault)
+             [ -n "$rem" ] || rem=$(cget "branch.$b.remote"); rem=${rem:-origin} ;;
+          *) rem=${rem#R} ;;
+        esac
+        pslot "$top" "$rem"
+        # No source named: what git push would send there, from a mirror remote, remote.<name>.push or push.default=matching.
+        toks=()
         for s in "${f[@]}"; do
+          if [ "$s" != D ] || [ -z "$rem" ]; then toks+=("$s"); continue; fi
+          case "$(cget "remote.$rem.mirror")" in [Tt]rue | [Yy]es | [Oo]n | 1) toks+=(A T); continue ;; esac
+          sp=$(cget -a "remote.$rem.push")
+          if [ -n "$sp" ]; then while IFS= read -r x; do toks+=("$(spec "$x")"); done <<<"$sp"
+          elif [ "$(cget push.default)" = matching ]; then toks+=(M)
+          else toks+=(D); fi
+        done
+        for s in "${toks[@]}"; do
+          [ "$s" = M ] && [ -z "$rem" ] && s=A
           case "$s" in
-            D) R_PUSH[$k]="${R_PUSH[$k]}"$'\n'D ;;
-            A) R_PUSH[$k]="${R_PUSH[$k]}"$'\n'$(git -C "$top" for-each-ref --format='%(objectname)' refs/heads/ 2>/dev/null) ;;
-            T) R_PUSH[$k]="${R_PUSH[$k]}"$'\n'$(git -C "$top" for-each-ref --format='%(objecttype) %(objectname) %(*objecttype) %(*objectname)' refs/tags/ 2>/dev/null \
+            D) r=HEAD ;;
+            A) r=$(git -C "$top" for-each-ref --format='%(objectname)' refs/heads/ 2>/dev/null) ;;
+            T) r=$(git -C "$top" for-each-ref --format='%(objecttype) %(objectname) %(*objecttype) %(*objectname)' refs/tags/ 2>/dev/null \
                  | awk '$1 == "commit" { print $2 } $3 == "commit" { print $4 }') ;;
-            S-*) ;;
-            S?*) r=$(git -C "$dir" rev-parse -q --verify "${s#S}^{commit}" 2>/dev/null) && R_PUSH[$k]="${R_PUSH[$k]}"$'\n'$r ;;
+            M) r=$(git -C "$top" for-each-ref --format='%(refname) %(objectname)' refs/heads/ "refs/remotes/$rem/" 2>/dev/null \
+                 | awk -v p="refs/remotes/$rem/" 'index($1, p) == 1 { s[substr($1, length(p) + 1)] = 1; next } { h[substr($1, 12)] = $2 }
+                     END { for (b in h) if (b in s) print h[b] }') ;;
+            S-*) r="" ;;
+            # An unresolvable source (a typo the push will refuse) reads every branch.
+            S?*) r=$(git -C "$dir" rev-parse -q --verify "${s#S}^{commit}" 2>/dev/null) \
+                   || r=$(git -C "$top" for-each-ref --format='%(objectname)' refs/heads/ 2>/dev/null) ;;
+            *) r="" ;;
           esac
+          P_REVS[$j]="${P_REVS[$j]}"$'\n'$r
         done ;;
     esac
   done <<<"$recs"
 
-  found=""; what=""
+  found=""; cw=""; pw=""
   k=0
   while [ "$k" -lt "${#R_TOP[@]}" ]; do
     top=${R_TOP[$k]}; before=$found
-    [ -n "${R_COMMIT[$k]}" ] && scan "$top" "--${R_COMMIT[$k]}"
+    case "${R_COMMIT[$k]}" in
+      # The index too, when it differs from HEAD: after an add or with -i the commit keeps staged lines the tree may have dropped.
+      tracked) git -C "$top" diff --cached --quiet 2>/dev/null || scan "$top" --cached; scan "$top" --tracked ;;
+      cached) scan "$top" --cached ;;
+    esac
     if [ -s "$T/new.$k" ]; then
       new=(); while IFS= read -r -d '' p; do new+=("./$p"); done < "$T/new.$k"
-      [ "${#new[@]}" -le "$MAX_ADDED_FILES" ] && scan "$top" "${new[@]}"
-    fi
-    [ "$found" = "$before" ] || what="commit"
-    if [ -n "${R_PUSH[$k]}" ]; then
-      revs=(); before=$found
-      while IFS= read -r r; do
-        [ -n "$r" ] || continue
-        if [ "$r" = D ]; then
-          revs+=(HEAD); u=$(git -C "$top" rev-parse -q --verify '@{upstream}' 2>/dev/null) && revs+=("^$u")
-        else revs+=("$r"); fi
-      done <<<"${R_PUSH[$k]}"
-      if [ "${#revs[@]}" -gt 0 ] && n=$(git -C "$top" rev-list --count --no-merges "${revs[@]}" --not --remotes 2>/dev/null) \
-        && [ "$n" -gt 0 ] && [ "$n" -le "$MAX_PUSH_COMMITS" ]; then
-        scan "$top" --outgoing "${revs[@]}"
+      if [ "${#new[@]}" -le "$MAX_ADDED_FILES" ]; then
+        small=(); while IFS= read -r -d '' p; do small+=("$p"); done \
+          < <(cd "$top" && find "${new[@]}" -prune -type f -size -$((MAX_FILE_BYTES + 1))c -print0 2>/dev/null)
+        [ "${#small[@]}" -gt 0 ] && scan "$top" "${small[@]}"
       fi
-      [ "$found" = "$before" ] || what="${what:+$what and }push"
     fi
+    [ "$found" = "$before" ] || cw=1
     k=$((k + 1))
   done
+  j=0
+  while [ "$j" -lt "${#P_TOP[@]}" ]; do
+    top=${P_TOP[$j]}; rem=${P_REM[$j]}; revs=(); before=$found
+    while IFS= read -r r; do [ -n "$r" ] && revs+=("$r"); done <<<"${P_REVS[$j]}"
+    # Sent means on the destination's own remote-tracking refs: a URL or path has none, an unknown remote counts every one.
+    # Past the cap there, the commits no remote holds are read instead, so a fork far behind its upstream still has its own read.
+    not=--remotes; arg=--outgoing
+    if [ -n "$rem" ]; then
+      arg="--outgoing=$rem"; not=""; git check-ref-format "refs/remotes/$rem/x" 2>/dev/null && not="--remotes=$rem"
+    fi
+    if [ "${#revs[@]}" -gt 0 ] && n=$(git -C "$top" rev-list --count --no-merges "${revs[@]}" --not ${not:+"$not"} 2>/dev/null); then
+      [ "$n" -gt "$MAX_PUSH_COMMITS" ] && [ "$arg" != --outgoing ] && arg=--outgoing \
+        && n=$(git -C "$top" rev-list --count --no-merges "${revs[@]}" --not --remotes 2>/dev/null)
+      [ "$n" -gt 0 ] && [ "$n" -le "$MAX_PUSH_COMMITS" ] && scan "$top" "$arg" "${revs[@]}"
+    fi
+    [ "$found" = "$before" ] || pw=1
+    j=$((j + 1))
+  done
+  what=${cw:+commit}; [ -n "$pw" ] && what="${what:+$what and }push"
   found=$(printf '%s' "$found" | awk 'NF && !seen[$0]++')
   [ -n "$found" ] || exit 0
 
