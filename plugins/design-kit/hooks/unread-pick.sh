@@ -1,6 +1,6 @@
 #!/bin/bash
 # unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.design-kit/decisions.jsonl is unconsumed; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
-# Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.design-kit/, whether the model acts on the line (agent-graded). No gate holds the phase-guard copy to its block: it is kept identical by hand.
+# Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.design-kit/, whether the model acts on the line (agent-graded). Its phase-file and phase-guard copies are held to their blocks by pc_shared_blocks.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/hooks/unread-pick.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -56,41 +56,44 @@ root=$(cc_state_root "$cwd") || exit 0
 dec="$root/.design-kit/decisions.jsonl"
 [ -s "$dec" ] || exit 0
 
+# Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
+# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
+cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.claude/cc-phase/%s.json\n' "$1" "$key"
+}
+
 # Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
 # No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.
-# cc_phase_guard returns 1 only when <cc_state_root>/.claude/cc-phase.json, unexpired (one older than cc_phase_ttl_min is deleted)
-# and not another session's, names a phase past $1's phase in this plugin's own lane.tsv; else 0.
-# cc_phase_now: the phase any unexpired sentinel names, whichever session wrote it, or empty.
-# Set $cwd, or $input (the hook payload; an empty $cwd is then assigned its .cwd), and $sid before the call: with
-# neither $cwd nor $input it always proceeds; without $sid another session's sentinel counts.
-# Misses: a bare prompt writes no phase, so nothing stands down outside a run a command declared; without jq or cc_state_root it proceeds.
+# cc_phase_guard returns 1 only when this session's sentinel (cc_phase_file of the cc_state_root and $sid), unexpired,
+# names a phase past $1's phase in this plugin's own lane.tsv; else 0. It deletes every sentinel older than cc_phase_ttl_min.
+# cc_phase_now: the phase this session's unexpired sentinel names, or empty; another session's sentinel never counts.
+# Set $cwd, or $input (the hook payload; an empty $cwd is then assigned its .cwd), and $sid before the call: without
+# $sid, or with neither $cwd nor $input, it always proceeds.
+# Misses: a bare prompt writes no phase, so nothing stands down outside a run a command declared; without jq, cc_state_root or cc_phase_file it proceeds.
 cc_phase_ttl_min=120
 cc_phase_now=""
 cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = proceed.
-  local sentinel lane want have ssid root
+  local sentinel lane want have root
   command -v jq >/dev/null 2>&1 || return 0
   [ -n "${cwd:-}" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || return 0
   root=$(cc_state_root "$cwd") || return 0
-  sentinel="$root/.claude/cc-phase.json"
+  [ -d "$root/.claude/cc-phase" ] || return 0
+  find "$root/.claude/cc-phase" -maxdepth 1 -name '*.json' -mmin +"$cc_phase_ttl_min" -exec rm -f {} + 2>/dev/null
+  sentinel=$(cc_phase_file "$root" "${sid:-}") || return 0
   [ -r "$sentinel" ] || return 0
-
-  if [ -n "$(find "$sentinel" -maxdepth 0 -mmin +"$cc_phase_ttl_min" 2>/dev/null)" ]; then
-    rm -f "$sentinel" 2>/dev/null
-    return 0
-  fi
+  [ -z "$(find "$sentinel" -maxdepth 0 -mmin +"$cc_phase_ttl_min" 2>/dev/null)" ] || return 0
 
   have=$(jq -r '.phase // empty' "$sentinel" 2>/dev/null) || return 0
   [ -n "$have" ] || return 0
   cc_phase_now="$have"
-
-  ssid=$(jq -r '.session_id // empty' "$sentinel" 2>/dev/null)
-  if [ -n "$ssid" ]; then
-    if [ -n "${sid:-}" ]; then
-      case "$ssid" in "$sid") ;; *) return 0 ;; esac
-    fi
-  fi
 
   lane="${CLAUDE_PLUGIN_ROOT:-}/lane.tsv"
   [ -r "$lane" ] || return 0

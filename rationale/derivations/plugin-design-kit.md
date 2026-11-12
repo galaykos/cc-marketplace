@@ -55,6 +55,14 @@ cc_state_root), and `dk decision --consume` clears rows there — so a stray
 line tells the model to run could never clear it, and it would repeat on every prompt.
 ```
 
+### 2026-11-12 (0.13.2): per-session sentinel; the paste is gated
+
+The phase guard now reads only this session's sentinel, `.claude/cc-phase/<session>.json`
+(taskmaster 0.56.0), through the pasted phase-file block. Both pasted blocks, phase-file and
+phase-guard, are now held byte-for-byte by `pc_shared_blocks`, which superseded the "NO gate
+holds the phase-guard copy" paragraph above. The test payloads carry a `session_id`, and a
+case proves another session's build phase does not silence this one.
+
 ## plugins/design-kit/scripts/dk.sh
 
 Moved verbatim on 2026-10-28 from the body; lines 2-51 stay as they were because `dk --help` prints them (`sed -n '2,51p'`) and an unknown verb prints lines 7-24. The `#` lines inside the python heredocs are code and stay too.

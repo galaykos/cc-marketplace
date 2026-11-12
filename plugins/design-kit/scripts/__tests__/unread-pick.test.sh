@@ -12,7 +12,7 @@ unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would res
 here="$(cd "$(dirname "$0")/../.." && pwd)"; hook="$here/hooks/unread-pick.sh"
 export CLAUDE_PLUGIN_ROOT="$here"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-payload() { printf '{"cwd":"%s","prompt":"x"}' "$tmp"; }
+payload() { printf '{"cwd":"%s","prompt":"x","session_id":"S-A"}' "$tmp"; }
 [ -z "$(payload | bash "$hook")" ] || { echo "FAIL: spoke with no decisions"; exit 1; }
 mkdir -p "$tmp/.design-kit"
 printf '{"ts":"t","board":"2026-09-22-deal.html","picked":2,"knobs":{},"text":{},"prompt":"p","consumed":false}\n' > "$tmp/.design-kit/decisions.jsonl"
@@ -29,20 +29,24 @@ rc=0; out="$(payload | PATH="$tmp/nobin" "$bash_bin" "$hook")" || rc=$?
 [ "$rc" = 0 ] || { echo "FAIL: exit $rc with no python3"; exit 1; }
 [ -z "$out" ] || { echo "FAIL: spoke with no python3: $out"; exit 1; }
 
-mkdir -p "$tmp/.claude"; printf '{"phase":"build"}' > "$tmp/.claude/cc-phase.json"
+# Each session reads only its own sentinel, .claude/cc-phase/<session>.json: another session's build must not silence S-A.
+mkdir -p "$tmp/.claude/cc-phase"; printf '{"phase":"build","session_id":"S-B"}' > "$tmp/.claude/cc-phase/S-B.json"
+[ -n "$(payload | bash "$hook")" ] || { echo "FAIL: another session's build phase silenced this session"; exit 1; }
+rm -f "$tmp/.claude/cc-phase/S-B.json"
+printf '{"phase":"build"}' > "$tmp/.claude/cc-phase/S-A.json"
 [ -z "$(payload | bash "$hook")" ] || { echo "FAIL: spoke during build phase"; exit 1; }
-printf '{"phase":"plan"}' > "$tmp/.claude/cc-phase.json"
+printf '{"phase":"plan"}' > "$tmp/.claude/cc-phase/S-A.json"
 [ -z "$(payload | bash "$hook")" ] || { echo "FAIL: spoke during plan phase"; exit 1; }
-printf '{"phase":"decide"}' > "$tmp/.claude/cc-phase.json"
+printf '{"phase":"decide"}' > "$tmp/.claude/cc-phase/S-A.json"
 [ -n "$(payload | bash "$hook")" ] || { echo "FAIL: silent during decide phase"; exit 1; }
 
 # a dead run's sentinel, aged past the guard's 120-minute TTL: the hook speaks again and
 # the stale file is unlinked. Without the TTL one abandoned run mutes this channel in
 # every future session in the project.
-printf '{"phase":"build","session_id":"dead-run"}' > "$tmp/.claude/cc-phase.json"
-python3 -c "import os,sys,time; p=sys.argv[1]; os.utime(p,(time.time()-3*3600,)*2)" "$tmp/.claude/cc-phase.json"
+printf '{"phase":"build","session_id":"S-A"}' > "$tmp/.claude/cc-phase/S-A.json"
+python3 -c "import os,sys,time; p=sys.argv[1]; os.utime(p,(time.time()-3*3600,)*2)" "$tmp/.claude/cc-phase/S-A.json"
 [ -n "$(payload | bash "$hook")" ] || { echo "FAIL: silent behind a stale sentinel"; exit 1; }
-[ ! -e "$tmp/.claude/cc-phase.json" ] || { echo "FAIL: stale sentinel not unlinked"; exit 1; }
+[ ! -e "$tmp/.claude/cc-phase/S-A.json" ] || { echo "FAIL: stale sentinel not unlinked"; exit 1; }
 printf '{"ts":"t","board":"2026-09-22-deal.html","picked":2,"knobs":{},"text":{},"prompt":"p","consumed":true}\n' > "$tmp/.design-kit/decisions.jsonl"
 [ -z "$(payload | bash "$hook")" ] || { echo "FAIL: spoke after consume"; exit 1; }
 
@@ -50,21 +54,21 @@ printf '{"ts":"t","board":"2026-09-22-deal.html","picked":2,"knobs":{},"text":{}
 # rationale/2026-09-25-session-plugin-usage-review.md), so a sentinel and a board at the
 # repo root must still be found from app/Models. Before 0.5.1 the guard read
 # <cwd>/.claude/cc-phase.json, found nothing there and spoke through a root-declared build.
-repo="$tmp/repo"; mkdir -p "$repo/app/Models" "$repo/.design-kit" "$repo/.claude"
+repo="$tmp/repo"; mkdir -p "$repo/app/Models" "$repo/.design-kit" "$repo/.claude/cc-phase"
 git -C "$repo" init -q
-subp() { printf '{"cwd":"%s","prompt":"x"}' "$repo/app/Models"; }
+subp() { printf '{"cwd":"%s","prompt":"x","session_id":"S-A"}' "$repo/app/Models"; }
 printf '{"ts":"t","board":"2026-09-25-root.html","picked":1,"knobs":{},"text":{},"prompt":"p","consumed":false}\n' > "$repo/.design-kit/decisions.jsonl"
 # speaking first, so the build-phase silence below cannot pass for a board never found
-printf '{"phase":"decide"}' > "$repo/.claude/cc-phase.json"
+printf '{"phase":"decide"}' > "$repo/.claude/cc-phase/S-A.json"
 case "$(subp | bash "$hook")" in "design-kit: 2026-09-25-root.html has an unread pick"*) ;;
   *) echo "FAIL: missed the root's board from a subdirectory"; exit 1 ;; esac
-printf '{"phase":"build"}' > "$repo/.claude/cc-phase.json"
+printf '{"phase":"build"}' > "$repo/.claude/cc-phase/S-A.json"
 [ -z "$(subp | bash "$hook")" ] || { echo "FAIL: spoke from a subdirectory during a root-declared build phase"; exit 1; }
 [ ! -e "$repo/app/Models/.claude" ] || { echo "FAIL: a .claude/ dir appeared in the subdirectory"; exit 1; }
 # A stray <subdir>/.design-kit/ from a dk.sh before 0.5.1 stays silent: dk.sh now anchors
 # at the root, so `dk decision --consume` could never clear that row and the line would
 # repeat on every prompt. Until 0.5.1 this hook fell back to the cwd's board.
-rm -f "$repo/.design-kit/decisions.jsonl" "$repo/.claude/cc-phase.json"; mkdir -p "$repo/app/Models/.design-kit"
+rm -f "$repo/.design-kit/decisions.jsonl" "$repo/.claude/cc-phase/S-A.json"; mkdir -p "$repo/app/Models/.design-kit"
 printf '{"ts":"t","board":"2026-09-25-sub.html","picked":3,"knobs":{},"text":{},"prompt":"p","consumed":false}\n' > "$repo/app/Models/.design-kit/decisions.jsonl"
 [ -z "$(subp | bash "$hook")" ] || { echo "FAIL: announced a stray subdirectory board the root's consume cannot clear"; exit 1; }
 echo "PASS unread-pick.test.sh"
