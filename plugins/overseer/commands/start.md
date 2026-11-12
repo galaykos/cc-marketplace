@@ -1,12 +1,12 @@
 ---
 description: Start an overseer program — one sentence of product intent, delivered milestone by milestone across sessions and branches
-argument-hint: [product-goal] [--hands-off] [--model opus|auto] [--budget-tokens <n>]
+argument-hint: [product-goal] [--hands-off] [--program] [--model opus|auto] [--budget-tokens <n>]
 disable-model-invocation: true
 ---
 
 Invoke the `overseer` skill from this plugin and open a program for $ARGUMENTS (if
 empty, ask for one sentence naming the product and who it is for, then continue). Strip
-trailing `--hands-off`, `--model <tier>` and `--budget-tokens <n>` tokens before using the goal
+trailing `--hands-off`, `--program`, `--model <tier>` and `--budget-tokens <n>` tokens before using the goal
 text; pass the tier to `program.sh init --model` (default `opus`: no seat runs above opus;
 `auto`: the user chose to let judgment seats inherit the session model) and the budget to
 `program.sh init --budget-tokens` (after it, `dispatch check` refuses every dispatch once this
@@ -19,6 +19,17 @@ budget draws a WARN from `init`: relay it, and suggest a budget once. Then:
    one tree is two roadmaps fighting one working copy. Require a git repository; when
    there is none, ask via AskUserQuestion "Initialise git and commit a baseline now
    (Recommended)" / "Stop" — headless or `--hands-off`: initialise.
+   **Size check, before Discover (skipped with `--program`).** A program is an ask that needs
+   two or more milestones a user could try on their own: a new product, or several screens,
+   flows or roles. One feature, one screen, one bug or one refactor fits one spec and is not
+   a program: a roadmap, a branch and an acceptance walk per slice would stretch it. For
+   such an ask, say in one line why it reads as one spec, then ask via AskUserQuestion
+   "Hand it to /taskmaster:task (Recommended)" / "Run it as a program anyway". On the first,
+   write nothing under `.claude/overseer/` and invoke `/taskmaster:task <ask>` (Skill tool;
+   taskmaster not installed: say so and offer only the program). Headless or `--hands-off`:
+   do not start; print `/taskmaster:task goal-lean <ask>` and
+   `/overseer:start <ask> --program` as the two ways on, and stop. When unsure, it is a
+   program. Standing: agent-graded — no script sizes an ask.
 2. Run the skill's **Discover** step: the project inventory and
    `"${CLAUDE_PLUGIN_ROOT}/scripts/capability-scan.sh"`, both written to the program dir.
 3. Run the skill's **Clarify** step: ONE batched AskUserQuestion round, only for the

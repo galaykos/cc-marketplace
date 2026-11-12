@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0 — 2026-11-11
+
+- **`/overseer:start` checks the size of the ask before it opens a program.** One feature, one screen, one bug or one refactor fits one spec: the command says why in one line and asks whether to hand it to `/taskmaster:task` (recommended) or run it as a program anyway. Headless or `--hands-off` it does not start; it prints `/taskmaster:task goal-lean <ask>` and `/overseer:start <ask> --program` and stops. `--program` skips the check. Until now nothing turned a single task away once the command was typed, so it got a discovery pass, a roadmap and a branch and acceptance walk per slice; one program took 1 h 42 m to reach its first card (`rationale/session-retro-2026-11-05.md` § 1). Standing: agent-graded; not yet run on a real ask.
+
 ## 0.10.0 — 2026-11-11
 
 A program kept finding things to fix: any confirmed finding bought a fix cycle, each fix voided the whole acceptance walk, and "three cycles, then park" was prose that restarted in every phase.

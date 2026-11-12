@@ -21,7 +21,7 @@ a browser; where it has none, in a captured run.
 
 | Artifact | Kind | Does |
 | --- | --- | --- |
-| `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone; `--model auto` is the only way a seat the overseer dispatches runs above opus |
+| `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone; `--model auto` is the only way a seat the overseer dispatches runs above opus. An ask that fits one spec (one feature, screen, bug or refactor) is offered to `/taskmaster:task` first; `--program` skips that check (agent-graded) |
 | `/overseer:resume` | command | prints the five-line resume first, then continues an open program in a fresh session from its recorded milestone status |
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |

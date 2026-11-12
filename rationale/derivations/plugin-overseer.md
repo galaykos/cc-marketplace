@@ -344,3 +344,18 @@ project had 0.41.9 (simulation 3 pinned ui-ux 0.20.3 against an installed 0.21.0
 belong to this project (`projectPath` = --project root, else the git toplevel of the cwd, else the cwd)
 or be a user-scope install; a row from another project is never a candidate.
 ```
+
+## plugins/overseer/commands/start.md
+
+### 2026-11-11 — the size check
+
+Nothing turned a single task away once `/overseer:start` was typed: the skill's description says "not for a
+single task", which bears on auto-loading only, and the command is `disable-model-invocation`. A grep of the skill
+and the command for a size or routing rule found none. `rationale/session-retro-2026-11-05.md` § 1 has the cost
+of the ceremony on asks that did not need it (`c5294305`: 1 h 42 m from start to first card, about 11 h for a
+scaffold milestone). The rule is the one `/code-architecture:work` already uses to pick its program lane, stated
+as "two or more milestones a user could try on their own"; it is judged by the model, so it can be wrong in both
+directions, which is why "when unsure, it is a program" and why `--program` exists. Headless and hands-off runs
+print the two commands and stop, since an `AskUserQuestion` there would idle the run. Not run on a real ask yet;
+no eval case covers it.
+

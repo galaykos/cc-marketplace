@@ -42,7 +42,7 @@ PHP
 out=$(fire "$f")
 case "$out" in *"L3"*"no assertion"*) pass "flags an assertion-free PHP block" ;;
   *) fail "flags an assertion-free PHP block" "got: ${out:-<silent>}" ;; esac
-case "$out" in *"L4"*) fail "does not flag the block that asserts" "flagged L4: $out" ;;
+case "$out" in *"L4 — "*) fail "does not flag the block that asserts" "flagged L4: $out" ;;
   *) pass "does not flag the block that asserts" ;; esac
 
 # ---- 2. near-duplicate group reports ONCE, not N times ---------------------------------
@@ -92,7 +92,7 @@ out=$(fire "$f"); [ -z "$out" ] && pass "silent on a suite that earns its place"
 
 # A `describe`/`context` wrapper has no assertion BY CONSTRUCTION. Before this case existed
 # the hook flagged every correctly written Vitest file on its outermost line.
-case "$out" in *"L2"*) fail "does not flag the describe wrapper" "flagged the group opener" ;;
+case "$out" in *"L2 — "*) fail "does not flag the describe wrapper" "flagged the group opener" ;;
   *) pass "does not flag the describe wrapper" ;; esac
 
 # ---- 5. SILENCE: explicitly skipped and assertion-free-by-declaration -------------------
@@ -144,7 +144,7 @@ PY
 out=$(fire "$f")
 case "$out" in *"L1"*"no assertion"*) pass "flags an assertion-free pytest block" ;;
   *) fail "flags an assertion-free pytest block" "got: ${out:-<silent>}" ;; esac
-case "$out" in *"L4"*) fail "pytest bare assert counts as an assertion" "flagged L4: $out" ;;
+case "$out" in *"L4 — "*) fail "pytest bare assert counts as an assertion" "flagged L4: $out" ;;
   *) pass "pytest bare assert counts as an assertion" ;; esac
 
 f=$(mk tests/calc_test.go <<'GO'
@@ -166,7 +166,7 @@ GO
 out=$(fire "$f")
 case "$out" in *"L5"*"no assertion"*) pass "flags an assertion-free Go block" ;;
   *) fail "flags an assertion-free Go block" "got: ${out:-<silent>}" ;; esac
-case "$out" in *"L9"*) fail "Go t.Fatalf counts as an assertion" "flagged L9: $out" ;;
+case "$out" in *"L9 — "*) fail "Go t.Fatalf counts as an assertion" "flagged L9: $out" ;;
   *) pass "Go t.Fatalf counts as an assertion" ;; esac
 
 f=$(mk tests/calc_spec.rb <<'RB'
@@ -184,7 +184,7 @@ RB
 out=$(fire "$f")
 case "$out" in *"L2"*"no assertion"*) pass "flags an assertion-free RSpec block" ;;
   *) fail "flags an assertion-free RSpec block" "got: ${out:-<silent>}" ;; esac
-case "$out" in *"L6"*) fail "the RSpec block that asserts is left alone" "flagged L6: $out" ;;
+case "$out" in *"L6 — "*) fail "the RSpec block that asserts is left alone" "flagged L6: $out" ;;
   *) pass "the RSpec block that asserts is left alone" ;; esac
 
 # ---- 5d. SILENCE: the same three dialects' DECLARED skips and their other assertion forms -

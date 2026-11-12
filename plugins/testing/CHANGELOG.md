@@ -6,6 +6,10 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.16.1 — 2026-11-11
+
+- **The test-shape harness no longer fails by chance.** Five checks that a block was NOT flagged matched a bare `L<n>` anywhere in the hook's output, which quotes the temp directory's random name; a name holding `L9` failed "Go t.Fatalf counts as an assertion" in CI on master. They now match the label as the hook prints it (`L9 — `). No change to the hook or to what it flags.
+
 ## 0.16.0 — 2026-11-10
 
 - **The flake-hunt suggestion is removed.** `hooks/suggest.ts` offered `/testing:flake-hunt` when one test command both passed and failed with no change between. On the owner's machine it was never shown once between 2026-10-25 and 2026-11-10, and the sibling suggestions were accepted 0 times of 16 shown. The plugin ships no hooks module now; the classic hooks are unchanged, `/testing:flake-hunt` still runs when typed, and `CC_SUGGEST` no longer does anything here.
