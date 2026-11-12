@@ -378,8 +378,8 @@ pc_budget_crowding() {
   return 0
 }
 
-# pc_plugin_corpus <plugins_root> <baseline_file> — more plugins than the ratchet whose skills/ .md (generated excluded) pass 160,000 B: prints "corpus <n> > <baseline>" and each plugin.
-# Bytes on disk, not tokens read; misses growth under the cap and chains across plugins, and the cap is a choice. Never raise the baseline to pass.
+# pc_plugin_corpus <plugins_root> <baseline_file> — more plugins than the ratchet whose skills/*/SKILL.md files together pass 160,000 B: prints "corpus <n> > <baseline>" and each plugin.
+# Bodies only, the text a skill load puts in context. Misses references (pc_plugin_refs reports them), growth under the cap and chains across plugins; the cap is a choice. Never raise the baseline to pass.
 # Why, limits, history: rationale/derivations/scripts-lib.md § pc_plugin_corpus
 pc_plugin_corpus() {
   local root="${1:-plugins}" base_file="${2:-scripts/plugin-corpus-baseline.json}"
@@ -392,8 +392,7 @@ pc_plugin_corpus() {
   while IFS= read -r d; do
     [ -n "$d" ] || continue
     pl=$(basename "$(dirname "$d")")
-    bytes=$(find "$d" -type f -name '*.md' 2>/dev/null | while IFS= read -r f; do
-      head -c 400 "$f" 2>/dev/null | grep -qi 'generated' && continue
+    bytes=$(find "$d" -mindepth 2 -maxdepth 2 -type f -name 'SKILL.md' 2>/dev/null | while IFS= read -r f; do
       wc -c < "$f" 2>/dev/null
     done | awk '{s+=$1} END {printf "%d", s+0}')
     if [ "$bytes" -gt "$cap" ]; then
@@ -407,6 +406,23 @@ pc_plugin_corpus() {
     printf '%s' "$over"
     return 1
   fi
+  return 0
+}
+
+# pc_plugin_refs <plugins_root> — prints each plugin whose skills/ reference .md (every .md but SKILL.md, generated excluded) pass 160,000 B; always returns 0. A report for a WARN, not a gate.
+# Bytes on disk: a reference costs context only when a body sends the model to read it, and nothing here knows which are read.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_plugin_corpus
+pc_plugin_refs() {
+  local root="${1:-plugins}" cap=160000 d pl bytes
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    pl=$(basename "$(dirname "$d")")
+    bytes=$(find "$d" -type f -name '*.md' ! -name 'SKILL.md' 2>/dev/null | while IFS= read -r f; do
+      head -c 400 "$f" 2>/dev/null | grep -qi 'generated' && continue
+      wc -c < "$f" 2>/dev/null
+    done | awk '{s+=$1} END {printf "%d", s+0}')
+    [ "$bytes" -gt "$cap" ] && printf '%s (%s B of references)\n' "$pl" "$bytes"
+  done < <(find "$root" -mindepth 2 -maxdepth 2 -type d -name skills 2>/dev/null | sort)
   return 0
 }
 
