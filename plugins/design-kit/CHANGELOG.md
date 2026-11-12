@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.14.0 — 2026-11-12
+
+- **A LAN server asks other devices for a key.** `--lan` let anyone on the network who found the port read every page under `.design-kit/`. A LAN server now keeps a random key in `.design-kit/.preview.key` (mode 0600, never served), and `preview.sh`, `serve.py` and every `dk` verb that prints a URL while LAN mode is on print it with `?key=…`. Any device but this machine's loopback needs that key once, then an `HttpOnly`, `SameSite=Strict` cookie; with neither it gets 403, `/_events` and `/_index.json` included. `/_decision` still refuses every other device, key or not. A restart keeps the key; `dk serve --stop` deletes it, so the next LAN start prints a new URL. The first keyed visit is a small page that sets the cookie and refreshes to the clean URL, not a 303: in Chrome a 303 left a link followed from another site on 403, reload included. What you lose: a LAN URL without its key no longer opens, so a phone needs the whole printed URL. Not closed: the server speaks plain HTTP, so the key crosses your network in clear, and it sits in the phone's history and anywhere the URL is pasted.
+- **Every server exits after 4 hours idle.** A server started in one session kept its port, and the files under it readable, for as long as the machine stayed up. It now exits after `DESIGN_KIT_IDLE_MINUTES` (default 240; `0` turns it off) with no request and no open page, LAN or not; an open tab counts as open, since its reload client holds a stream. The pid and URL files stay behind, as after a LAN expiry, and the next `dk` verb starts a fresh server. What you lose: a server left running with no tab open for longer than that, unless you set `0`.
+- **An open page says when the server is gone, and comes back with it.** The page gave no sign that the server had stopped. The injected reload client now shows a small "Preview server stopped; retrying" bar (`role="status"`, no animation), retries after 1, 2, 4 … 30 seconds, and reloads once the server answers, so a change written meanwhile shows. It grew from 170 to 702 bytes on every served page. A headless browser and `?static=1` still get no client.
+- `serve.py`'s header no longer names a restore script; none exists.
+
+Standing: gate — `scripts/__tests__/serve.test.sh` (the key as a unit, and end to end from this machine's network address, which skips on a machine without one; the reload client's injected text and size) and `preview.test.sh` (the idle limit in both modes, and `0`). Not measured by any harness: the bar's behaviour in a browser and a keyed link followed from another site; both were run once in Chrome on 2026-11-12 (recorded). A second physical device was not tried.
+
 ## 0.13.2 — 2026-11-12
 
 - **`unread-pick.sh` reads only this session's phase sentinel** (`.claude/cc-phase/<session>.json`, written by taskmaster 0.56.0's `phase-sentinel.sh`). A build phase declared by another session in the same repo no longer silences the unread-pick line. Its pasted phase-file and phase-guard blocks are now held byte-for-byte to the shared blocks by a gate. Standing: gate; `scripts/__tests__/unread-pick.test.sh`.

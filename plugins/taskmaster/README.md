@@ -258,10 +258,10 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
   (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
   (warn) on PostToolUse
 - **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
-  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`,
+  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`, `preview.sh`,
   `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
   (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
-  drives both its writers and its reader)
+  drives both its writers and its reader; `serve.test.sh` drives the preview server itself)
 
 Every hook fails open and every one has an off switch. `CC_REMIND=off` silences the
 clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
@@ -269,3 +269,31 @@ observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
 `TASKMASTER_BOOST=off`) the boost detector.
 The clarify gate is additionally off
 unless `CC_CLARIFY_GATE=block`. `PREVIEW_PORT` moves the preview server off 8123.
+
+### The preview server
+
+`skills/visual-decisions/assets/serve.py`, started through `scripts/preview.sh`. Each rule below
+names its standing; "gate" means a harness under `scripts/__tests__/` that CI runs.
+
+- **Private paths.** A dot-prefixed file or folder, the server's own `.preview.*` state files and
+  directory listings answer 404; dot files never appear on the session map, in the version list or in
+  a reload event. Gate: `serve.test.sh`. Misses: a symlink in the docroot is followed out of it.
+- **Launcher.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" [--docroot DIR] [--port N] [--lan]`
+  starts the server only when this docroot's server is not running and prints its URL either way;
+  `--stop` ends it after checking the recorded pid really is serve.py on that docroot. Exit codes are
+  in its header. Gate: `preview.test.sh`. That the skills call it instead of starting serve.py by
+  hand is recorded only.
+- **LAN key.** With `--lan`, a device on the network needs the key carried in the printed URL (then a
+  cookie); without it, 403. Restore works from this machine only. The key lives in
+  `.preview.key` and survives restarts; delete it to rotate. Gate: `serve.test.sh`, where the remote
+  peer is the machine's own network address (skipped on a machine with none) plus a unit test of the
+  peer rule. Misses: plain HTTP, so the key is readable on the network; the cookie is per host, not
+  per port.
+- **Time limits.** A LAN server exits after `PREVIEW_LAN_MINUTES` (default 60), and every server
+  after `PREVIEW_IDLE_MINUTES` (default 240) with no request and no open event stream; 0 turns either
+  off. An open tab holds a stream, so it keeps the server up. Gate: `serve.test.sh`, with limits of
+  seconds.
+- **Reconnect.** A page built from the shell shows a "Preview server stopped" bar when serve.py's
+  event stream drops, and reloads once the server answers again; on the lower rungs it polls as
+  before. Recorded: driven once in Chromium on 2026-11-12, and no harness runs a browser. Pages not
+  built from the shell (`diagram.html`, `walkthrough.html` and the like) carry no reload client.

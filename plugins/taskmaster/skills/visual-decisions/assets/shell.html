@@ -1437,6 +1437,27 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
 @page {
   margin: 14mm;
 }
+
+/* Server-status bar: an empty live region (no box) until the reload client
+   sees serve.py's event stream drop. Static: nothing moves, so there is no
+   reduced-motion variant to keep. Never blocks a click. */
+#vd-offline {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  pointer-events: none;
+  font: 600 .8rem/1.4 var(--vd-font);
+  text-align: center;
+  background: var(--vd-nav-bg);
+  color: var(--vd-nav-ink);
+}
+#vd-offline:not(:empty) {
+  padding: calc(var(--vd-space) * .75) calc(var(--vd-space) * 2);
+}
+@media print {
+  #vd-offline { display: none; }
+}
 </style>
 <style id="vd-custom">
 /* SLOT: custom-css — shared classes when no primitive fits; never style one
@@ -1532,6 +1553,8 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   </section>
   <!-- FRAME-C-END -->
 </main>
+
+<div id="vd-offline" role="status"></div>
 
 <script>
 (() => {
@@ -1949,9 +1972,26 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   startPolling();
 
   // Enhancement: subscribe to /events (serve.py). A plain static server
-  // (no /events) or file:// simply errors out and polling keeps going —
-  // no behavior change from v1. On a live connection, reload only when
-  // the event's data path names this same page's own file.
+  // (no /events) or file:// errors before the stream ever opens and polling
+  // keeps going — no behavior change from v1. On a live connection, reload
+  // only when the event's data path names this same page's own file.
+  // A stream that HAD opened and then drops means serve.py stopped (idle
+  // limit, LAN limit, --stop): say so in #vd-offline, probe the page with
+  // backoff, and reload once the server answers again.
+  const offline = document.getElementById('vd-offline');
+  function waitForServer(delay) {
+    fetch(location.href, { cache: 'no-store' })
+      .then(() => {
+        if (offline) offline.textContent = '';
+        location.reload();
+      })
+      .catch(() => {
+        if (offline && !offline.textContent) {
+          offline.textContent = 'Preview server stopped. This page reloads when it is back.';
+        }
+        setTimeout(() => waitForServer(Math.min(delay * 2, 10000)), delay);
+      });
+  }
   if (typeof EventSource === 'function') {
     let es;
     try {
@@ -1960,7 +2000,11 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
       es = null;
     }
     if (es) {
-      es.addEventListener('open', () => stopPolling());
+      let opened = false;
+      es.addEventListener('open', () => {
+        opened = true;
+        stopPolling();
+      });
       const onChange = e => {
         const own = decodeURIComponent(location.pathname).split('/').pop() || 'index.html';
         const changed = String(e.data || '').trim().split('/').pop();
@@ -1971,7 +2015,8 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
       es.addEventListener('message', onChange);
       es.addEventListener('error', () => {
         es.close();
-        startPolling();
+        if (opened) waitForServer(1000);
+        else startPolling();
       });
     }
   }

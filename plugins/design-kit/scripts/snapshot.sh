@@ -547,4 +547,5 @@ out="$(bash "$here/preview.sh" --docroot "$DK" 2>&1)" || { echo "$out" >&2; not_
 echo "$out" | grep -v '^preview: http' >&2 || true
 url="$(cat "$DK/.preview.url" 2>/dev/null || true)"
 [ -n "$url" ] || not_measured "the preview server did not write its URL"
-echo "url=${url%/}/${html#"$DK"/}"
+q=""; if [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ] && [ -s "$DK/.preview.key" ]; then q="?key=$(cat "$DK/.preview.key")"; fi
+echo "url=${url%/}/${html#"$DK"/}$q"

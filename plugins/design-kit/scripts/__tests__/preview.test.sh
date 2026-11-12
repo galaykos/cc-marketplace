@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Drives preview.sh: start serves a file, second start is idempotent, --stop kills it;
-# --lan restarts a loopback server, a later plain start says LAN is still on, and a LAN
-# server ends itself after DESIGN_KIT_LAN_MINUTES.
+# Drives preview.sh and serve.py's lifecycle: idempotent start, --stop, --lan restarting a loopback server,
+# the LAN and idle limits (DESIGN_KIT_LAN_MINUTES, DESIGN_KIT_IDLE_MINUTES in both modes, 0 = off).
+# Misses: whether a browser tab's stream really holds the server open; the LAN half skips with no network address.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
@@ -45,4 +45,31 @@ else
   bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null
 fi
 [ -f "$tmp/.preview.bind" ] && { echo "FAIL: .preview.bind left after --stop"; exit 1; }
+
+# Idle shutdown, every mode: no completed request and no open /_events stream for
+# DESIGN_KIT_IDLE_MINUTES ends the server. Two servers that get no request run alongside.
+mkdir -p "$tmp/i1" "$tmp/i2" "$tmp/i3"; for d in i1 i2 i3; do echo '<h1>idle</h1>' > "$tmp/$d/index.html"; done
+p1=$(( 20000 + RANDOM % 10000 )); p2=$(( p1 + 1 )); p3=$(( p1 + 2 )); p4=$(( p1 + 3 ))
+DESIGN_KIT_IDLE_MINUTES=0.05 bash "$here/preview.sh" --docroot "$tmp/i2" --port "$p2" >/dev/null
+DESIGN_KIT_IDLE_MINUTES=0.05 DESIGN_KIT_LAN_MINUTES=0 python3 "$here/serve.py" --docroot "$tmp/i3" --port "$p3" --lan >/dev/null 2>&1 & lanpid=$!
+DESIGN_KIT_IDLE_MINUTES=0 python3 "$here/serve.py" --docroot "$tmp/i3" --port "$p4" >/dev/null 2>"$tmp/off.err" & offpid=$!
+DESIGN_KIT_IDLE_MINUTES=0.05 python3 "$here/serve.py" --docroot "$tmp/i1" --port "$p1" >/dev/null 2>"$tmp/idle.err" & ipid=$!
+trap 'kill $ipid $lanpid $offpid 2>/dev/null || true; bash "$here/preview.sh" --docroot "$tmp/i2" --stop >/dev/null 2>&1 || true; bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
+sleep 0.5
+grep -q "idle shutdown after 0.05 min" "$tmp/idle.err" || { echo "FAIL: no idle-shutdown notice on stderr at start: $(cat "$tmp/idle.err")"; exit 1; }
+grep -q "idle shutdown off" "$tmp/off.err" || { echo "FAIL: DESIGN_KIT_IDLE_MINUTES=0 does not say idle shutdown is off: $(cat "$tmp/off.err")"; exit 1; }
+for _ in 1 2 3 4 5; do curl -s "http://127.0.0.1:$p1/index.html" >/dev/null; sleep 1; done
+kill -0 "$ipid" 2>/dev/null || { echo "FAIL: idle shutdown fired while requests kept arriving"; exit 1; }
+curl -s -N --max-time 5 "http://127.0.0.1:$p1/_events" >/dev/null 2>&1 || true
+kill -0 "$ipid" 2>/dev/null || { echo "FAIL: idle shutdown fired while an event stream was open"; exit 1; }
+for _ in $(seq 60); do kill -0 "$ipid" 2>/dev/null || break; sleep 0.1; done
+curl -s --max-time 1 "http://127.0.0.1:$p1/" >/dev/null 2>&1 && { echo "FAIL: server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
+curl -s --max-time 1 "http://127.0.0.1:$p3/" >/dev/null 2>&1 && { echo "FAIL: a LAN server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
+curl -s --max-time 1 "http://127.0.0.1:$p2/" >/dev/null 2>&1 && { echo "FAIL: a preview.sh server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
+curl -s --max-time 1 "http://127.0.0.1:$p4/" >/dev/null 2>&1 || { echo "FAIL: DESIGN_KIT_IDLE_MINUTES=0 still shut the server down"; exit 1; }
+kill "$offpid"
+# like a LAN expiry: the pid and url files stay; the launcher reads the pid as dead
+gone="$(bash "$here/preview.sh" --docroot "$tmp/i2" --stop)"
+case "$gone" in *"nothing running"*) ;; *) echo "FAIL: --stop after an idle exit: $gone"; exit 1 ;; esac
+[ -f "$tmp/i2/.preview.url" ] && { echo "FAIL: .preview.url left after --stop following an idle exit"; exit 1; }
 echo "PASS preview.test.sh"
