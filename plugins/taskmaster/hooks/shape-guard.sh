@@ -1,5 +1,5 @@
 #!/bin/bash
-# shape-guard.sh — PreToolUse on Edit|Write|MultiEdit: denies a write to a project file outside taskmaster-docs/ and .claude/ while /taskmaster:brainstorm's `shape` sentinel (.claude/cc-phase.json, owner taskmaster:brainstorm, this session or none, under 120 min old) is live; visual-decisions' __design-preview__ scratch writes pass. Fails open.
+# shape-guard.sh — PreToolUse on Edit|Write|MultiEdit: denies a write to a project file outside taskmaster-docs/ and .claude/ while this session's `shape` sentinel from /taskmaster:brainstorm (cc_phase_file, owner taskmaster:brainstorm, under 120 min old) is live; visual-decisions' __design-preview__ scratch writes pass. Fails open.
 # Misses: writes through Bash (heredoc, sed -i, python) and NotebookEdit; a `..` path where realpath lacks -m -s (stock macOS); files outside the project root; the agent clearing the sentinel itself; taskmaster:task's own shape phase, which is not guarded. Standing: gate.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/hooks/shape-guard.sh
 
@@ -21,6 +21,18 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
+# Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
+# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
+cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.claude/cc-phase/%s.json\n' "$1" "$key"
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
@@ -29,13 +41,11 @@ cc_state_root() {
   path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -n "$path" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
-  sentinel="$root/.claude/cc-phase.json"
+  sentinel=$(cc_phase_file "$root" "$sid") || exit 0
   [ -r "$sentinel" ] || exit 0
   [ -z "$(find "$sentinel" -maxdepth 0 -mmin +120 2>/dev/null)" ] || exit 0
   [ "$(jq -r '.phase // empty' "$sentinel" 2>/dev/null)" = shape ] || exit 0
   [ "$(jq -r '.owner // empty' "$sentinel" 2>/dev/null)" = taskmaster:brainstorm ] || exit 0
-  ssid=$(jq -r '.session_id // empty' "$sentinel" 2>/dev/null)
-  [ -z "$ssid" ] || [ "$ssid" = "$sid" ] || exit 0
 
   case "$path" in /*) ;; *) path="$cwd/$path" ;; esac
   if r=$(realpath -m -s -- "$root") && p=$(realpath -m -s -- "$path"); then root=$r; path=$p; fi

@@ -310,6 +310,13 @@ name, or calls it without defining it (a runtime `command not found` that a fail
 hook swallows — each plugin's own harness is what catches that).
 ```
 
+2026-11-12: two pairs added, `phase-file:cc_phase_file` and `phase-guard:cc_phase_guard`.
+The per-session sentinel path is computed in one block; a hand copy that drifted by one
+allowed byte would read no sentinel, which means proceed, silently. design-kit's
+`unread-pick.sh` had carried the phase-guard block "kept identical by hand" with no gate;
+the generated reminder hooks carry it raw, so they pass unchanged. Fixture:
+`scripts/smoke/lanes-tests.sh`, "[phase] a drifted cc_phase_file copy …".
+
 ### pc_offswitch_named
 
 ```text
@@ -1647,6 +1654,12 @@ output-shape contract — none of them takes a turn, so demanding a
 sentinel read would be ceremony that catches nothing. An artifact with no
 row at all is pc_lanes_coverage's problem, not this gate's.
 ```
+
+2026-11-12: the grepped string moved from `cc-phase.json` to `.claude/cc-phase/`, the
+per-session sentinel directory (taskmaster 0.56.0). A hook still reading only the legacy
+repo-wide file now fails: nothing writes that file, so such a hook would speak in every
+phase. The phase-file block's own comment carries the string, so any hook pasting the block
+passes. Fixture: `scripts/smoke/lanes-tests.sh`, "[phase] a hook reading only the legacy …".
 
 ### pc_context_key
 

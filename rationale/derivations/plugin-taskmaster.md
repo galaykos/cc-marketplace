@@ -418,6 +418,53 @@ closed list, and an owner or session id carrying a quote is a caller bug, not a 
 worth preserving into a file the reader must be able to parse.
 ```
 
+### 2026-11-12: one sentinel per session (taskmaster 0.56.0)
+
+Track 7 (Safety) item S5 audited how Stop and UserPromptSubmit hooks leak state between
+two concurrent sessions in one repo. The phase sentinel was one repo-wide file carrying a
+`session_id`. Three leaks, all advisory (a reminder line printed or withheld):
+
+- a sentinel written without `--session` silenced every session's reminder hooks;
+- session B's `write` replaced A's file and B's `clear` removed it (`clear` had no owner
+  check), so A's reminders resumed mid-phase;
+- `cc_phase_now` was set from the file BEFORE the session check, so B's phase entered A's
+  rank key. Two of A's hooks firing around B's write claimed different namespaces and both
+  spoke.
+
+The owner decided to make the sentinel per session. Layout:
+`<state root>/.claude/cc-phase/<key>.json`, `<key>` = the session id with every byte outside
+`A-Za-z0-9_-` dropped (`templates/blocks/phase-file.md`, `cc_phase_file`; the mod kit's
+`phaseFile` mirrors it). The path is the ownership: readers no longer compare a
+`session_id` field, and a write can only ever replace its own session's file. One file per
+session rather than one map file: a map needs a read-modify-write that two sessions race;
+a per-session file is a single atomic rename.
+
+`--session` is now REQUIRED on `write` and `clear` (exit 3). The old header argued a
+session-blind sentinel beat none; per session there is nowhere to put one that does not
+reintroduce the first leak. Callers pass `${CLAUDE_SESSION_ID}`. Probe 2026-11-12, CLI
+2.1.322: a plugin command body `SID=${CLAUDE_SESSION_ID}` run with `claude -p` replied with
+the session id the JSON output reported, so the host substitutes it in plugin command
+bodies. Before this the bodies said `"<this session id>"` and nothing told the model its id.
+
+Migration decision (the brief left it open): the legacy `.claude/cc-phase.json` is IGNORED
+by every reader, not read as an owner-less fallback. A fallback would keep the first leak
+alive for as long as any old writer exists, and every reader (bash block, mod kit, capsule,
+announce, shape-guard) would carry the old branch forever. Cost: a run that declared its
+phase before the upgrade loses its stand-down until its next write or the 120-minute TTL.
+The writer removes a legacy file on any `write` or `clear` when it names no session, names
+the caller, or is past the TTL; one owned by another live (old-version) session is left to
+it, since that session's old readers still need it.
+
+The 120-minute TTL is kept. The reader block deletes every expired file in
+`.claude/cc-phase/`, any session's, as the old reader deleted the one expired file. Dead
+sessions' files would otherwise accumulate. The writer drops a `.gitignore` (`*`) in the
+directory, as task-runner's state dir does.
+
+Red on 0.55.0, green on 0.56.0: `scripts/__tests__/phase-sentinel.test.sh` sections 4, 10
+and 11 (22 of 45 fail on the old script and reader), `shape-guard.test.sh` (B's clear
+leaves A's guard up; an owner-less file guards no session), and
+`scripts/smoke/hook-guard-tests.sh` "two sessions: B's phase stays out of A's claim key".
+
 ## plugins/taskmaster/scripts/preview-cleanup.sh
 
 ### Header

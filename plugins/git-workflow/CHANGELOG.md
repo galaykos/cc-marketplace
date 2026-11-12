@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.13.5; earlier versions have no entries rather than invented ones.
 
+## 0.15.2 — 2026-11-12
+
+- **`/git-workflow:finish` writes and clears this session's phase sentinel.** It passes `--session "${CLAUDE_SESSION_ID}"` to taskmaster's writer, clears with the same flag, and its hand-written fallback goes to `.claude/cc-phase/<session>.json`. If the writer it ran left no per-session file (a taskmaster before 0.56.0), the command writes that file by hand. `references/marketplace-scratch.tsv` lists `.claude/cc-phase/` and keeps the old `.claude/cc-phase.json` as a legacy row. Standing: recorded (command text); the scratch rows are gated by `scripts/__tests__/scratch-ignore.test.sh`.
+
 ## 0.15.1 — 2026-11-11
 
 - **A suite receipt no longer reads fresh after a same-size edit made soon after it was written.** `scripts/receipt-fresh.sh` hashes the working tree through a copy of the git index, and the copy got a new modification time, so git could trust a changed file's size and time and miss the edit. The copy now keeps the index's time (`cp -p`), as task-runner's `check-receipt.sh` does from 0.54.0. Measured on that script in a fresh repo: 6 of 300 runs wrongly fresh before, 0 of 300 after; this copy was not measured separately.

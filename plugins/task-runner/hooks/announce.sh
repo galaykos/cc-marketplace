@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionStart (startup|resume|clear): one advisory line naming a registered run at the project root (slug, branch, open cards, phase), so a cold session knows it before candor's Stop gate refuses a clean stop.
+# SessionStart (startup|resume|clear): one advisory line naming a registered run at the project root (slug, branch, open cards, this session's phase if it declared one), so a cold session knows it before candor's Stop gate refuses a clean stop.
 # Misses: a live run from an abandoned one (no TTL), work the index's status column does not record, an index without `| NN |` rows (no count), a run registered this session. CC_REMIND=off, else /config cc_remind; fails open.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/announce.sh
 
@@ -19,6 +19,18 @@ cc_state_root() {
     case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
   fi
   printf '%s\n' "$1"
+}
+
+# Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
+# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
+# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
+cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.claude/cc-phase/%s.json\n' "$1" "$key"
 }
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -80,9 +92,10 @@ cc_option() {
     fi
   fi
 
+  # Another session's phase is not this one's: a new session (startup, clear) has none, a resumed one may.
   phase=""
-  f="$root/.claude/cc-phase.json"
-  if [ -r "$f" ]; then
+  f=$(cc_phase_file "$root" "$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)") || f=""
+  if [ -n "$f" ] && [ -r "$f" ]; then
     p=$(jq -r '.phase // empty' "$f" 2>/dev/null)
     o=$(jq -r '.owner // empty' "$f" 2>/dev/null)
     [ -n "$p" ] && phase=", phase \`$p\`${o:+ set by $o}"

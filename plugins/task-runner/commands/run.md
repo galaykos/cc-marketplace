@@ -92,13 +92,13 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    blocked → park the task with a reason. Prose that announces the next task and then
    ends the turn ("starting card 01 now") binds nothing — the run reads live, is dead,
    and the user waits on a turn that already ended. Register the run first, in the
-   same step: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "<this session id>"`
+   same step: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "${CLAUDE_SESSION_ID}"`
    (an inline list: `--slug <name>`). It writes `.claude/task-runner/active-run.json`
    (`slug`, `base`, `branch`, `start_sha`, `index_path`), which arms candor's Stop-hook
    completion clause on this branch only; deletes the `gate-pass.json` and
    `bg/bg-<HEAD>.json` an earlier run left, which that clause would trust for HEAD;
    creates `rv/`, `rt/`, `bg/`, `nc/` and `reductions/`, each arming one record check by
-   existing; and writes the `build` arc phase sentinel through taskmaster's writer, so the
+   existing; and writes this session's `build` arc phase sentinel through taskmaster's writer, so the
    reminder hooks that own an earlier phase stand down. A second call for the same index on
    the same branch resumes the run rather than discarding its records (`--fresh` starts
    over). The task-execution skill's step 1 and `/task-runner:plan`'s "Run now" call the
@@ -200,8 +200,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    the index bookkeeping (JSON integers, all three counts together — never a second
    write that would clobber `head`) — and only THEN, with every card done or parked
    and the counts recorded, rename `active-run.json` to `closed-run.json` (`mv`, which
-   keeps its time) **and clear the phase sentinel** (delete `.claude/cc-phase.json` at the
-   repo root), then print the
+   keeps its time) **and clear this session's phase sentinel** (delete
+   `.claude/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root; another session's is not yours), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, the follow-up backlog, and every recorded reduction by id and reason —
    `bg-<HEAD12>` when the no-runner exit was taken — and, beside the result, the one line

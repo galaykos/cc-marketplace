@@ -409,7 +409,20 @@ clean "[phase] the same hook declared \`any\` is exempt — a guard fires in eve
 printf 'foo:guard\thook\tbuild\tsome-noun\ta checkable condition\t-\n' > "$PG/foo/lane.tsv"
 printf '#!/bin/sh\n# reads .claude/cc-phase.json\n' > "$PG/foo/hooks/guard.sh"
 run pc_phase_guard "$PG"
+fails "[phase] a hook reading only the legacy repo-wide .claude/cc-phase.json reads no session's sentinel" "phase-unguarded foo:guard.sh"
+
+printf '#!/bin/sh\n# reads .claude/cc-phase/<session>.json\n' > "$PG/foo/hooks/guard.sh"
+run pc_phase_guard "$PG"
 clean "[phase] a hook that reads the sentinel may name a specific phase"
+
+# The per-session path is computed in one block; a pasted copy that drifts splits writer from reader silently.
+sed 's/A-Za-z0-9_-/A-Za-z0-9._-/' "$ROOT/templates/blocks/phase-file.md" > "$PG/foo/hooks/guard.sh"
+run pc_shared_blocks "$PG" "$ROOT/templates/blocks"
+fails "[phase] a drifted cc_phase_file copy is named by pc_shared_blocks" "shared-block-drift $PG/foo/hooks/guard.sh phase-file.md"
+cp "$ROOT/templates/blocks/phase-file.md" "$PG/foo/hooks/guard.sh"
+run pc_shared_blocks "$PG" "$ROOT/templates/blocks"
+clean "[phase] a byte-identical cc_phase_file copy passes pc_shared_blocks"
+printf '#!/bin/sh\n# reads .claude/cc-phase/<session>.json\n' > "$PG/foo/hooks/guard.sh"
 
 cat > "$PG/foo/hooks/hooks.json" <<'EOF'
 {"hooks":{"PostToolUse":[{"matcher":"Edit","hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]}]}}

@@ -61,7 +61,7 @@ and show which and the steps ahead before anything runs.
      Load the five always-relevant skills named in `coding-entry`, and prime the stack-matched ones per `coding-entry/references/skill-map.md`.
      Name every signal whose plugin is not installed. Then write the phase file with
      taskmaster's writer —
-     `bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write build --owner code-architecture:work --session "<this session id>"`;
+     `bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write build --owner code-architecture:work --session "${CLAUDE_SESSION_ID}"`;
      when that path does not exist (an installed plugin sits at
      `<marketplace>/<plugin>/<version>/`), run the copy Claude Code loaded: the
      `installPath` of the enabled `taskmaster@…` row in `claude plugin list --json`
@@ -72,12 +72,13 @@ and show which and the steps ahead before anything runs.
      `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`,
      and say it may not be the loaded copy: over full paths `sort -V` orders by
      marketplace name first, so it can pick another marketplace's copy, older or not.
-     When all of these find nothing, write
-     `{"phase":"build","owner":"code-architecture:work","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
-     to `.claude/cc-phase.json` at the repo root (`git rev-parse --show-toplevel`; outside
+     If none of these exists, or the one you ran left no `.claude/cc-phase/${CLAUDE_SESSION_ID}.json`
+     at the repo root (a taskmaster before 0.56.0 writes a repo-wide file instead), write
+     `{"phase":"build","owner":"code-architecture:work","session_id":"${CLAUDE_SESSION_ID}","started_at":"<ISO-8601 UTC>"}`
+     to `.claude/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root (`git rev-parse --show-toplevel`; outside
      git, the project directory). Do the work, reading a primed path when the work reaches
-     that surface; verify it; then clear the file (`phase-sentinel.sh clear`, else delete
-     it). No other lane writes it: the receiving commands write their own.
+     that surface; verify it; then clear it (`phase-sentinel.sh clear --session "${CLAUDE_SESSION_ID}"`,
+     else delete that file; never another session's). No other lane writes it: the receiving commands write their own.
    - **spec, and a handover:** load and prime nothing — the receiving command loads its
      own. Run step 1 now; the printed block was the preview. Each later step is offered by
      the one before it. Headless: print step 1 exactly and stop.

@@ -281,7 +281,7 @@ The plugin READMEs and skill descriptions use these words in a narrow sense.
 | red-team | A reviewer told to find holes, such as edge cases, wrong assumptions or security gaps, before the work is trusted. |
 | residual | What a check still misses after it runs, stated so nobody trusts the check for more than it does. |
 | rigour | overseer's review level for one milestone: `lean`, `standard` or `adversarial`. It decides whether the milestone buys the boost and its code red-team. |
-| sentinel | A small file a run writes while in progress, such as the phase sentinel `.claude/cc-phase.json`. Hooks read it to know the current phase. |
+| sentinel | A small file a run writes while in progress, such as a session's phase sentinel `.claude/cc-phase/<session>.json`. Hooks read their own session's to know the current phase. |
 | standing | How a rule is enforced: gate, agent-graded, recorded, or unenforceable (it cannot be checked as written). |
 | `ultra` | As the first word after a taskmaster command or `/craft-layer:craft`, it boosts that run. Elsewhere it is a different setting: candor's tersest reply level, ultra-deep-research's `--ultra` mode, or the built-in `/code-review`'s cloud pass. |
 | `ultra-assess` | Typed near the start of a prompt: boosts an assessment run (audit, inventory, gap analysis), which returns findings, not task cards. From task-runner; `ultraassess` and `ultra-assessment` work too. |

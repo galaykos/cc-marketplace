@@ -56,8 +56,8 @@ want=$(jq -cn --arg b "$BASE" --arg h "$HEAD" '["2026-01-01-demo",$b,"feature",$
 for d in rv rt bg nc reductions; do [ -d "$TR/$d" ] || bad "creates $d/" "missing"; done
 [ "$(cat "$TR/.gitignore" 2>/dev/null)" = '*' ] && ok "creates the record dirs and a self-ignoring .gitignore" || bad ".gitignore" "missing"
 [ ! -e "$REPO/app/Models/.claude" ] && ok "writes nothing under the shell's subdirectory" || bad "subdir state" "found .claude"
-ph=$(jq -c '[.phase,.owner,.session_id]' "$REPO/.claude/cc-phase.json" 2>/dev/null)
-[ "$ph" = '["build","task-runner:run","s-1"]' ] && ok "writes the build phase sentinel for this session" || bad "phase sentinel" "got=$ph"
+ph=$(jq -c '[.phase,.owner,.session_id]' "$REPO/.claude/cc-phase/s-1.json" 2>/dev/null)
+[ "$ph" = '["build","task-runner:run","s-1"]' ] && ok "writes the build phase sentinel under this session's own key" || bad "phase sentinel" "got=$ph"
 
 # 2) resume: the same index on the same branch keeps the registration (its mtime is the record cutoff)
 REF="$WS/ref"; touch -t 200101010000 "$REF"; touch -t 200001010000 "$SENT"; before=$(cat "$SENT"); printf '{"head":"%s"}' "$HEAD" > "$TR/gate-pass.json"
@@ -65,12 +65,18 @@ out=$(cd "$REPO" && bash "$RR" --index "$IDX" --session s-2 2>/dev/null)
 [ "$(cat "$SENT")" = "$before" ] && [ -z "$(find "$SENT" -newer "$REF")" ] && [ -e "$TR/gate-pass.json" ] \
   && ok "a second call for the same run resumes it untouched" || bad "resume" "out=<$out>"
 case "$out" in resumed*) ok "says it resumed" ;; *) bad "says it resumed" "out=<$out>" ;; esac
-[ "$(jq -r .session_id "$REPO/.claude/cc-phase.json")" = s-2 ] && ok "a resume re-claims the phase sentinel for the new session" \
-  || bad "resume phase sentinel" "$(cat "$REPO/.claude/cc-phase.json")"
+[ "$(jq -r '.phase + "|" + .session_id' "$REPO/.claude/cc-phase/s-2.json" 2>/dev/null)" = "build|s-2" ] \
+  && [ "$(jq -r .session_id "$REPO/.claude/cc-phase/s-1.json" 2>/dev/null)" = s-1 ] \
+  && ok "a resume writes the new session its own build sentinel and leaves the first session's" \
+  || bad "resume phase sentinel" "$(ls "$REPO/.claude/cc-phase" 2>/dev/null | tr '\n' ' ')"
 
 # 3) --fresh, and a different list, both register anew
-(cd "$REPO" && bash "$RR" --index "$IDX" --fresh >/dev/null 2>&1)
+rm -rf "$REPO/.claude/cc-phase"
+err=$(cd "$REPO" && bash "$RR" --index "$IDX" --fresh 2>&1 >/dev/null); r=$?
 [ -n "$(find "$SENT" -newer "$REF")" ] && [ ! -e "$TR/gate-pass.json" ] && ok "--fresh registers anew" || bad "--fresh" "sentinel not rewritten"
+[ "$r" = 0 ] && [ -z "$(ls "$REPO/.claude/cc-phase" 2>/dev/null)" ] && [ ! -e "$REPO/.claude/cc-phase.json" ] \
+  && ok "no --session: registers, and writes no phase sentinel any session would read" || bad "no --session phase" "rc=$r $(ls -a "$REPO/.claude")"
+case "$err" in *"no --session"*) ok "no --session: says no sentinel was written" ;; *) bad "no --session notice" "err=<$err>" ;; esac
 touch -t 200001010000 "$SENT"
 (cd "$REPO" && bash "$RR" --slug inline-fixes >/dev/null 2>&1)
 [ "$(jq -r '.slug + "|" + (.index_path // "none")' "$SENT")" = "inline-fixes|none" ] && ok "another list (an inline one) registers anew, without index_path" \
@@ -122,7 +128,7 @@ for v in zz-other/taskmaster/9.9.9 cc-plugins-marketplace/taskmaster/0.50.6 cc-p
   mkdir -p "$CACHE/$v/scripts"; printf '#!/bin/sh\necho %s > "%s"\n' "$v" "$WS/picked" > "$CACHE/$v/scripts/phase-sentinel.sh"
 done
 NOCLI=$(printf '%s' "$PATH" | tr ':' '\n' | while IFS= read -r d; do [ -x "$d/claude" ] || printf '%s:' "$d"; done); NOCLI=${NOCLI%:}
-pick() { rm -f "$WS/picked"; (cd "$REPO" && PATH="$1" bash "$2" --index "$IDX" --fresh >/dev/null 2>"$WS/err"); cat "$WS/picked" 2>/dev/null; }
+pick() { rm -f "$WS/picked"; (cd "$REPO" && PATH="$1" bash "$2" --index "$IDX" --fresh --session s-p >/dev/null 2>"$WS/err"); cat "$WS/picked" 2>/dev/null; }
 if PATH="$NOCLI" command -v claude >/dev/null 2>&1; then bad "installed copy, no CLI" "claude still on the filtered PATH"
 else
   got=$(pick "$NOCLI" "$INST/register-run.sh")
@@ -142,6 +148,11 @@ printf '#!/bin/sh\n[ "$*" = "plugin list --json" ] && cat "%s"\n' "$WS/list.json
 got=$(pick "$STUB:$NOCLI" "$INST/register-run.sh")
 [ "$got" = cc-plugins-marketplace/taskmaster/0.50.6 ] && ok "installed, with the CLI: runs the enabled install's installPath, not the newest on disk or another project's" \
   || bad "installed, with the CLI: runs the enabled install's installPath" "picked=<$got>"
+# A taskmaster before 0.56.0 exits 0 without the per-session file (these stubs write none): register-run writes it.
+[ "$(jq -r '.phase + "|" + .session_id' "$REPO/.claude/cc-phase/s-p.json" 2>/dev/null)" = "build|s-p" ] \
+  && grep -q 'wrote no per-session sentinel' "$WS/err" \
+  && ok "a writer that exits 0 without the per-session file: register-run writes it and says so" \
+  || bad "old-writer fallback" "err=<$(cat "$WS/err")> files=<$(ls -a "$REPO/.claude/cc-phase" 2>/dev/null | tr '\n' ' ')>"
 
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?

@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.12.1 — 2026-11-12
+
+- **The reminder hook reads only this session's phase sentinel** (`.claude/cc-phase/<session>.json`, written by taskmaster 0.56.0's `phase-sentinel.sh`). Another session in the same repo can no longer silence it or change its rank key. Regenerated from the shared phase-guard block. Standing: gate (the marketplace repository's `scripts/smoke/hook-guard-tests.sh`).
+
 ## 0.12.0 — 2026-11-10
 
 - **The prompt-box suggestion is removed.** `hooks/suggest.ts` offered `/debugging:debug` after the same command failed twice. On the owner's machine it was never shown once between 2026-10-25 and 2026-11-10, and the four sibling suggestions were accepted 0 times of 16 shown. The plugin ships no hooks module now; the classic reminder, the fix-chain hook and the probe guard are unchanged, and `CC_SUGGEST` no longer does anything here.

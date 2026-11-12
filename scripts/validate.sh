@@ -560,7 +560,7 @@ fi
 # A prompt/Stop hook that declared a SPECIFIC phase must read the sentinel, or it
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.
 phase_gap=$(pc_phase_guard plugins) || true
-[ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read .claude/cc-phase.json — declare the lane 'any' if it is a guard that must fire in every phase"
+[ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read its session's sentinel under .claude/cc-phase/ — declare the lane 'any' if it is a guard that must fire in every phase"
 
 # A "defers X to <plugin>" description needs a yields_to edge in its own lane.tsv (pc_deference_edges' header).
 def_gap=$(pc_deference_edges plugins) || true

@@ -1,6 +1,6 @@
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
-import { hostOf, isSupported, stateRoot, switchOn } from './cc-kit'
+import { hostOf, isSupported, phaseFile, stateRoot, switchOn } from './cc-kit'
 
 export const CAP = 1200
 
@@ -25,8 +25,14 @@ function fieldOf(text: string | null, key: string): string {
 }
 
 // A summary keeps what it is told word for word, so a sentinel past its writer's TTL is left out (taskmaster scripts/phase-sentinel.sh).
+// Only this session's sentinel: another session's phase is not this conversation's state.
 async function freshSentinel($: EngineInterface, root: string): Promise<string | null> {
-  const path = `${root}/.claude/cc-phase.json`
+  const path = phaseFile(root, await $.session.id())
+
+  if (path === null) {
+    return null
+  }
+
   const stat = await $.fs.stat(path).catch(() => null)
 
   if (stat === null || (await $.clock.now()) - stat.mtimeMs > PHASE_TTL_MS) {
@@ -53,10 +59,8 @@ export async function stateLines($: EngineInterface, root: string): Promise<stri
 
   if (phase !== '') {
     const owner = fieldOf(sentinel, 'owner')
-    const writer = fieldOf(sentinel, 'session_id')
-    const who = writer !== '' && writer === (await $.session.id()) ? 'this session' : 'another session'
 
-    lines.push(`arc phase ${phase}${owner === '' ? '' : ` owned by ${owner}`}, declared by ${who} (.claude/cc-phase.json)`)
+    lines.push(`arc phase ${phase}${owner === '' ? '' : ` owned by ${owner}`}, declared by this session (.claude/cc-phase/)`)
   }
 
   if (run !== null) {

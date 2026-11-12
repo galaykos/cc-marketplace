@@ -133,8 +133,20 @@ async function rootOf(host: Host): Promise<string> {
   return projectDir !== '' && `${cwd}/`.startsWith(`${projectDir}/`) ? projectDir : cwd
 }
 
+// This session's own sentinel, as templates/blocks/phase-file.md names it: another session's phase never counts here.
+export function phaseFile(root: string, sessionId: string): string | null {
+  const key = sessionId.replace(/[^A-Za-z0-9_-]/g, '')
+
+  return key === '' ? null : `${root}/.claude/cc-phase/${key}.json`
+}
+
 export async function liveSentinel(host: Host, root?: string): Promise<{ phase: string } | null> {
-  const path = `${root ?? (await stateRoot(host))}/.claude/cc-phase.json`
+  const path = phaseFile(root ?? (await stateRoot(host)), await host.sessionId())
+
+  if (path === null) {
+    return null
+  }
+
   const stat = await host.stat(path).catch(() => null)
   const text = stat ? await host.read(path).catch(() => null) : null
 
@@ -145,12 +157,6 @@ export async function liveSentinel(host: Host, root?: string): Promise<{ phase: 
   const data = parsed(text)
 
   if (!isRecord(data) || typeof data.phase !== 'string' || data.phase === '') {
-    return null
-  }
-
-  const writer = typeof data.session_id === 'string' ? data.session_id : ''
-
-  if (writer !== '' && writer !== (await host.sessionId())) {
     return null
   }
 

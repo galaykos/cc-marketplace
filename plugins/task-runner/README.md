@@ -429,7 +429,7 @@ four features under three off switches.
 - **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
   line is pinned under the prompt:
   `task-runner  <phase> <k>/8  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>  check running <m>m`.
-  `<phase>` is the live phase file's (`.claude/cc-phase.json`), else `build`, and `<k>/8` its
+  `<phase>` is this session's live phase file's (`.claude/cc-phase/<session>.json`), else `build`, and `<k>/8` its
   place in understand, shape, decide, plan, build, verify, review, ship (a phase outside that
   list shows alone). N counts done cards plus the one in progress, and empty parts are dropped.
   A card's status is the first word of its status cell; a word

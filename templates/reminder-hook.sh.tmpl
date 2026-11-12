@@ -4,6 +4,7 @@
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/reminder-hook.sh.tmpl
 command -v jq >/dev/null 2>&1 || exit 0
 {{> state-root}}
+{{> phase-file}}
 {{> phase-guard}}
 {{> option-resolver}}
 {{#if promptShape}}{{> prompt-shape}}

@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.6 — 2026-11-12
+
+- **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
+
 ## 0.12.5 — 2026-11-10
 
 - **Two sessions in one repo no longer spend each other's Stop-gate bounds.** The which-clause record (`blocked`) and the loop bound (`last`) were one per repo, and clause 4's one-block-per-HEAD nudge (`.claude/task-runner/gate-nudge`) too. So session B's continuation could skip the clause that blocked session A, B's block of a clause erased A's loop bound, and whichever session stopped first spent the other's one block at a HEAD. Each marker line now starts with the session's key (a checksum of the payload's `transcript_path`, else `session_id`), and the nudge is one file per session (`gate-nudge-<key>`; a payload with neither field keeps the old name). A nudge older than the run's registration is swept when another session blocks. Pinned by ten `scripts/__tests__/gate.test.sh` session cases on payloads that differ only in `transcript_path` and `session_id`; nine are red on 0.12.4. Standing: gate.

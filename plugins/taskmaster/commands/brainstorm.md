@@ -47,10 +47,10 @@ assumptions; their design can be five sentences, but it gets written and
 approved.
 
 First thing in every run, write the phase sentinel:
-`bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" write shape --owner taskmaster:brainstorm --session "<this session id>"`.
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" write shape --owner taskmaster:brainstorm --session "${CLAUDE_SESSION_ID}"`.
 While it is live, `hooks/shape-guard.sh` denies any Write/Edit to a project file outside
 `taskmaster-docs/` and `.claude/` (visual-decisions' `__design-preview__` scratch passes).
-Clear it — `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" clear` — once the user
+Clear it — `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" clear --session "${CLAUDE_SESSION_ID}"` — once the user
 approves the design doc, and equally when the run is stopped or abandoned. Never clear it to
 get a write through. Standing: **gate** for Write/Edit/MultiEdit; writes through Bash or
 NotebookEdit are not seen, so for them the rule is `unenforceable` and holds only because

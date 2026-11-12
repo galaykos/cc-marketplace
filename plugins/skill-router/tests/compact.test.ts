@@ -62,7 +62,9 @@ function seat(on: On, live: Live = {}) {
   return world
 }
 
-const PIPELINE = { [`${ROOT}/.claude/cc-phase.json`]: SENTINEL, [`${ROOT}/.claude/task-runner/active-run.json`]: RUN }
+const PHASE = `${ROOT}/.claude/cc-phase/s1.json`
+
+const PIPELINE = { [PHASE]: SENTINEL, [`${ROOT}/.claude/task-runner/active-run.json`]: RUN }
 
 const compacted = async ($: Parameters<Parameters<typeof test>[1]>[0], extra: { instructions?: string; agentId?: string } = {}) =>
   $.session.compact({ trigger: 'manual', messages: MESSAGES, ...extra })
@@ -77,7 +79,7 @@ describe('compaction steering', () => {
 
     expect([told.startsWith(`keep the API names\n\n${ASK}`), told.length - 'keep the API names\n\n'.length <= CAP]).toEqual([true, true])
     expect(told).toContain(
-      'State found: arc phase build owned by task-runner, declared by this session (.claude/cc-phase.json); task-runner run mods-round-3 on branch feat/mods-round-3, cards at taskmaster-docs/tasks/mods-round-3/00-INDEX.md (.claude/task-runner/active-run.json); scope lock active (.claude/task-runner/scope.json); open taskmaster ledger(s): ledger-mods.md (.claude/taskmaster/).',
+      'State found: arc phase build owned by task-runner, declared by this session (.claude/cc-phase/); task-runner run mods-round-3 on branch feat/mods-round-3, cards at taskmaster-docs/tasks/mods-round-3/00-INDEX.md (.claude/task-runner/active-run.json); scope lock active (.claude/task-runner/scope.json); open taskmaster ledger(s): ledger-mods.md (.claude/taskmaster/).',
     )
   })
 
@@ -90,7 +92,7 @@ describe('compaction steering', () => {
   })
 
   test('leaves out a phase sentinel past its writer’s 120-minute TTL, and keeps the run', async ($, on) => {
-    const sentinel = `${ROOT}/.claude/cc-phase.json`
+    const sentinel = PHASE
     const world = seat(on, { files: PIPELINE, mtimes: { [sentinel]: NOW - TTL_MS - 1 } })
 
     await compacted($)
@@ -100,7 +102,7 @@ describe('compaction steering', () => {
   })
 
   test('keeps a phase sentinel exactly at its TTL', async ($, on) => {
-    const sentinel = `${ROOT}/.claude/cc-phase.json`
+    const sentinel = PHASE
     const world = seat(on, { files: PIPELINE, mtimes: { [sentinel]: NOW - TTL_MS } })
 
     await compacted($)
@@ -109,12 +111,27 @@ describe('compaction steering', () => {
   })
 
   test('leaves a session whose only state is a stale sentinel untouched', async ($, on) => {
-    const sentinel = `${ROOT}/.claude/cc-phase.json`
+    const sentinel = PHASE
     const world = seat(on, { files: { [sentinel]: SENTINEL }, mtimes: { [sentinel]: NOW - TTL_MS - 1 } })
 
     await compacted($, { instructions: 'keep the API names' })
 
     expect(world.told).toEqual(['keep the API names'])
+  })
+
+  test("leaves out another session's phase and a legacy repo-wide one, and keeps the run", async ($, on) => {
+    const world = seat(on, {
+      files: {
+        [`${ROOT}/.claude/cc-phase/s2.json`]: SENTINEL.replace('"s1"', '"s2"'),
+        [`${ROOT}/.claude/cc-phase.json`]: SENTINEL,
+        [`${ROOT}/.claude/task-runner/active-run.json`]: RUN,
+      },
+    })
+
+    await compacted($)
+
+    expect(world.told[0]).not.toContain('arc phase build')
+    expect(world.told[0]).toContain('task-runner run mods-round-3 on branch feat/mods-round-3')
   })
 
   test('leaves a session with no pipeline state untouched', async ($, on) => {

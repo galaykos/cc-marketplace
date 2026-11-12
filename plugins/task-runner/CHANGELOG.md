@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.55.1 — 2026-11-12
+
+- **A run's phase sentinel belongs to the session that registered it.** `register-run.sh` writes `build` to `.claude/cc-phase/<session>.json` through taskmaster 0.56.0's writer. Without `--session` it writes none and says so on stderr; before, it wrote a repo-wide sentinel that silenced every session's reminders. It checks for the per-session file rather than the writer's exit: a taskmaster before 0.56.0 exits 0 but writes the repo-wide file, so register-run then writes the per-session file itself (atomic, with the directory's `.gitignore`) and says so. `/task-runner:run`, `/task-runner:plan` and the task-execution skill pass `${CLAUDE_SESSION_ID}`. The run's close deletes only this session's file. Standing: gate; `scripts/__tests__/register-run.test.sh`.
+- **The SessionStart line and the status line show only this session's phase.** `announce.sh` names a phase only when this session declared one (a resumed session); a new session no longer sees another session's phase as the run's. `hooks/board.ts` reads this session's sentinel through the shared kit. Standing: gate; `scripts/__tests__/announce-hook.test.sh`, `tests/board.test.ts`.
+
 ## 0.55.0 — 2026-11-11
 
 - **A run of 8 or more cards asks once: review per card, or once for the run.** `/task-runner:run` step 1 asks before the first card. Range review means no per-card reviewer and no per-card negative control; the close runs one whole-range review, one red-team round with the test-teeth lens and the suite once. It is written as a `Verify: range` line in the index, the marker only overseer could set before. A `Goal:` run takes range without asking; a run under 8 cards, or an index that already has a `Verify:` line, gets no question. From one 19-card run where 19 of the first 28 agents were reviewers or fixers of review findings. Range finds a bug at the close, not while its card is open, and under range a reviewer skip or declared reduction is recorded without asking. Standing: agent-graded for the question; the marker is a gate with candor installed. No range run started this way has been measured.

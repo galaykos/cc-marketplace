@@ -8,6 +8,7 @@ import {
   isSupported,
   liveSentinel,
   MODS_FLOOR,
+  phaseFile,
   stateRoot,
   switchOn,
 } from '../hooks/cc-kit'
@@ -15,7 +16,7 @@ import type { Host } from '../hooks/cc-kit'
 
 const NOW = Date.UTC(2026, 9, 6, 12)
 const MINUTE = 60_000
-const SENTINEL = '/work/.claude/cc-phase.json'
+const SENTINEL = '/work/.claude/cc-phase/S1.json'
 const RUN = '/work/.claude/task-runner/active-run.json'
 const A_MD = '/work/a.md'
 
@@ -89,8 +90,8 @@ function hostIn(world: World): Host {
 
 const REPO = [{ toplevel: '/work', branch: 'feat/x' }]
 
-const sentinelAt = (body: Record<string, string>, ageMinutes = 1, root = '/work') => ({
-  [`${root}/.claude/cc-phase.json`]: { text: JSON.stringify(body), mtimeMs: NOW - ageMinutes * MINUTE },
+const sentinelAt = (body: Record<string, string>, ageMinutes = 1, root = '/work', session = 'S1') => ({
+  [`${root}/.claude/cc-phase/${session}.json`]: { text: JSON.stringify(body), mtimeMs: NOW - ageMinutes * MINUTE },
 })
 
 const RUN_FILE = {
@@ -328,12 +329,27 @@ describe('cc-kit', () => {
     expect(await liveSentinel(hostIn({ repos: REPO, files }))).toBe(null)
   })
 
-  test("liveSentinel ignores another session's sentinel, counts one naming none", async () => {
-    const other = sentinelAt({ phase: 'build', owner: 'task-runner:run', session_id: 'S2' })
-    const blind = sentinelAt({ phase: 'ship', owner: 'git-workflow:finish' })
+  test("liveSentinel reads only this session's file: another session's never counts", async () => {
+    const other = sentinelAt({ phase: 'build', owner: 'task-runner:run', session_id: 'S2' }, 1, '/work', 'S2')
+    const both = { ...other, ...sentinelAt({ phase: 'ship', owner: 'git-workflow:finish', session_id: 'S1' }) }
 
     expect(await liveSentinel(hostIn({ repos: REPO, files: other }))).toBe(null)
-    expect(await liveSentinel(hostIn({ repos: REPO, files: blind }))).toEqual({ phase: 'ship' })
+    expect(await liveSentinel(hostIn({ repos: REPO, files: both }))).toEqual({ phase: 'ship' })
+  })
+
+  test('liveSentinel ignores a legacy repo-wide sentinel, whoever it names', async () => {
+    const legacy = (body: Record<string, string>) => ({
+      '/work/.claude/cc-phase.json': { text: JSON.stringify(body), mtimeMs: NOW - MINUTE },
+    })
+
+    expect(await liveSentinel(hostIn({ repos: REPO, files: legacy({ phase: 'build' }) }))).toBe(null)
+    expect(await liveSentinel(hostIn({ repos: REPO, files: legacy({ phase: 'build', session_id: 'S1' }) }))).toBe(null)
+  })
+
+  test('phaseFile keys the path by the session id, dropping path bytes, and refuses an empty key', () => {
+    expect(phaseFile('/work', 'a1b2-C3_d')).toBe('/work/.claude/cc-phase/a1b2-C3_d.json')
+    expect(phaseFile('/work', '../x/S9')).toBe('/work/.claude/cc-phase/xS9.json')
+    expect(phaseFile('/work', '/../')).toBe(null)
   })
 
   test('liveSentinel reads a malformed sentinel as none', async () => {
@@ -469,6 +485,16 @@ describe('cc-kit', () => {
     await endTurn($)
 
     expect(world.proposed).toEqual([])
+  })
+
+  test("registerSuggestion is not silenced by another session's live sentinel", async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set('/work/.claude/cc-phase/S2.json', JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S2' }))
+    await write($)
+    await endTurn($)
+
+    expect(world.proposed).toEqual(['/probe /work/a.md'])
   })
 
   test('registerSuggestion drops a key when a sentinel is live at delivery', async ($, on) => {

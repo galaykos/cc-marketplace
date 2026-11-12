@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.13.2 — 2026-11-12
+
+- **`unread-pick.sh` reads only this session's phase sentinel** (`.claude/cc-phase/<session>.json`, written by taskmaster 0.56.0's `phase-sentinel.sh`). A build phase declared by another session in the same repo no longer silences the unread-pick line. Its pasted phase-file and phase-guard blocks are now held byte-for-byte to the shared blocks by a gate. Standing: gate; `scripts/__tests__/unread-pick.test.sh`.
+
 ## 0.13.1 — 2026-11-11
 
 - **The preview server no longer hands out session and state files.** `scripts/serve.py` returned every file under `.design-kit/`, so the saved login session the README keeps at `.design-kit/auth/walk.json`, `workshop.json`, `usage.jsonl`, old artifact versions and directory listings were readable by any local client, and by the whole network under `--lan`. It now answers 404 for a dot-prefixed file or folder, `auth/`, those state files, `*.versions.json` and any directory listing. Pages, images and other assets are served as before, so a signed-in screenshot under `.design-kit/` is still readable by whoever can reach the port.

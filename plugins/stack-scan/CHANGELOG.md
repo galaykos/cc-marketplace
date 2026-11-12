@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.9 — 2026-11-12
+
+- **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
+
 ## 0.18.8 — 2026-11-10
 
 - **plugin-scout no longer names prompt-coach.** The plugin left the marketplace on 2026-11-10; `--full`'s by-construction exclusions are `stack-scan` and `all-plugins`, and the plan's count line ends `want everything, no plan: /all-plugins:install`. The catalog is regenerated.

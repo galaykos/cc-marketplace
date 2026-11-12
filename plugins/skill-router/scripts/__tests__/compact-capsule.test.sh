@@ -27,26 +27,29 @@ check() { # desc  source  sid  expect(silent|has:<substr>|absent:<substr>)
   esac
 }
 
-reset() { rm -rf "$CWD/.claude"; mkdir -p "$CWD/.claude"; }
+reset() { rm -rf "$CWD/.claude"; mkdir -p "$CWD/.claude/cc-phase"; }
 
 # 1. no ledgers → silent on every source, including compact
 reset
 for s in startup resume clear fork compact; do check "no ledgers, source=$s" "$s" S1 silent; done
 
-# 2. phase sentinel written by THIS session
+# 2. phase sentinel written by THIS session, under its own key; another session's is not this one's state
 reset
-printf '{"phase":"build","owner":"task-runner:run","session_id":"S1","started_at":"2026-09-10T10:00:00Z"}' > "$CWD/.claude/cc-phase.json"
+printf '{"phase":"build","owner":"task-runner:run","session_id":"S1","started_at":"2026-09-10T10:00:00Z"}' > "$CWD/.claude/cc-phase/S1.json"
 check "phase: startup stays silent"        startup S1 silent
 check "phase: compact names the phase"     compact S1 "has:arc phase \`build\`"
 check "phase: names the owner"             compact S1 "has:owned by task-runner:run"
-check "phase: names the file"              compact S1 "has:.claude/cc-phase.json"
+check "phase: names the file"              compact S1 "has:.claude/cc-phase/S1.json"
 check "phase: same session wording"        compact S1 "has:declared by this session"
-check "phase: other session wording"       compact S2 "has:declared by another session"
+check "phase: another session's phase is not reported" compact S2 "absent:arc phase"
+printf '{"phase":"build","owner":"x:y"}' > "$CWD/.claude/cc-phase.json"
+check "phase: a legacy repo-wide sentinel is not reported" compact S2 "absent:arc phase"
+rm -f "$CWD/.claude/cc-phase.json"
 check "phase: approaches marker not mentioned" compact S1 "absent:deliberated.json"
 
 # 3. measurement rider: one line per firing, match recorded truthfully
 reset
-printf '{"phase":"shape","owner":"taskmaster:task","session_id":"S1"}' > "$CWD/.claude/cc-phase.json"
+printf '{"phase":"shape","owner":"taskmaster:task","session_id":"S1"}' > "$CWD/.claude/cc-phase/S1.json"
 run compact S1 >/dev/null; run compact S9 >/dev/null
 log="$CWD/.claude/skill-router/compact-log.jsonl"
 if [ -f "$log" ] && [ "$(wc -l < "$log" | tr -d ' ')" = 2 ] \
@@ -68,13 +71,13 @@ check "run: gate reminder"     compact S1 "has:completion gate"
 check "scope: named"           compact S1 "has:.claude/task-runner/scope.json"
 check "ledger: named"          compact S1 "has:ledger-orders.md"
 check "goal ledger: named"     compact S1 "has:goal-ledger-orders.md"
-check "no phase → no measurement line" compact S1 "absent:cc-phase.json"
+check "no phase → no measurement line" compact S1 "absent:cc-phase/"
 [ -f "$CWD/.claude/skill-router/compact-log.jsonl" ] && { echo "FAIL: measurement line written without a sentinel"; fail=$((fail+1)); } || pass=$((pass+1))
 
 # 5. malformed sentinel → fail open (silent, exit 0), other ledgers still reported
 reset
 mkdir -p "$CWD/.claude/task-runner"
-printf 'not json' > "$CWD/.claude/cc-phase.json"
+printf 'not json' > "$CWD/.claude/cc-phase/S1.json"
 printf '{"slug":"x"}' > "$CWD/.claude/task-runner/active-run.json"
 check "malformed sentinel: run still named" compact S1 "has:registered task-runner run \`x\`"
 check "malformed sentinel: phase absent"    compact S1 "absent:arc phase"
@@ -89,8 +92,8 @@ out=$(printf '{"source":"compact","cwd":"/nonexistent/x"}' | bash "$HOOK" 2>/dev
 #    ledgers at the repo root are still named, the measurement line lands at the root,
 #    and no `.claude/` appears in the subdirectory.
 if command -v git >/dev/null 2>&1; then
-  G="$WS/gitproj"; mkdir -p "$G/app/Enums" "$G/.claude/task-runner"; git -C "$G" init -q
-  printf '{"phase":"build","owner":"task-runner:run","session_id":"S1"}' > "$G/.claude/cc-phase.json"
+  G="$WS/gitproj"; mkdir -p "$G/app/Enums" "$G/.claude/task-runner" "$G/.claude/cc-phase"; git -C "$G" init -q
+  printf '{"phase":"build","owner":"task-runner:run","session_id":"S1"}' > "$G/.claude/cc-phase/S1.json"
   printf '{"slug":"sub"}' > "$G/.claude/task-runner/active-run.json"
   out=$(jq -cn --arg c "$G/app/Enums" '{hook_event_name:"SessionStart",source:"compact",cwd:$c,session_id:"S1"}' | bash "$HOOK" 2>/dev/null)
   grep -qF 'arc phase `build`' <<<"$out" && grep -qF 'registered task-runner run `sub`' <<<"$out" && pass=$((pass+1)) \

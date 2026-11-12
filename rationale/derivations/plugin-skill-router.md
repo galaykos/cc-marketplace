@@ -991,6 +991,15 @@ sessions instead of waiting for a probe that has not been run in 25 days.
 The log lives per project under CLAUDE_PLUGIN_DATA (cc_plugin_state); <root>/.claude/skill-router/ is only the fallback.
 ```
 
+2026-11-12 (0.31.1): each session now writes its own sentinel,
+`.claude/cc-phase/<session>.json` (taskmaster 0.56.0), and the capsule reports only the
+payload session's. The rider now logs whenever any sentinel is under `.claude/cc-phase/`,
+before the capsule decides whether it has anything to print: `true` when one is keyed by the
+payload's session_id, `false` when none is (the id changed across the compaction, or every
+file is another session's). The question it measures matters more now: if the id does not
+survive a compaction, the session loses its own phase. Before, it logged only when the
+capsule printed, and "declared by another session" was one of the lines it printed.
+
 ### Header: limitation
 
 ```text

@@ -9,24 +9,25 @@ first. If a branch was named and is not checked out, switch to it (or its
 worktree) before doing anything else. `--to pr|merge|keep` in $ARGUMENTS is not a
 branch name: it answers the destination question ahead of time (below).
 
-Write the arc phase sentinel `.claude/cc-phase.json` first, with taskmaster's writer
+Write this session's arc phase sentinel first, with taskmaster's writer
 and never by hand —
-`bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write ship --owner git-workflow:finish --session "<this session id>"`.
+`bash "${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh" write ship --owner git-workflow:finish --session "${CLAUDE_SESSION_ID}"`.
 It ships in taskmaster, which may not be installed: if that path does not resolve (an
 installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling path
 resolves only from a source checkout), run the newest installed copy —
 `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`
-— and only if that misses too
-write the JSON yourself, at the repo root (`git rev-parse --show-toplevel`; outside git,
+— and only if that misses too, or the copy you ran left no
+`.claude/cc-phase/${CLAUDE_SESSION_ID}.json` (a taskmaster before 0.56.0 writes a repo-wide file),
+write the JSON yourself to `.claude/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root (`git rev-parse --show-toplevel`; outside git,
 the project directory), never under a subdirectory the shell has `cd`'d into — the
 readers look only at the root —
-`{"phase":"ship","owner":"git-workflow:finish","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
+`{"phase":"ship","owner":"git-workflow:finish","session_id":"${CLAUDE_SESSION_ID}","started_at":"<ISO-8601 UTC>"}`
 — spelling `ship` exactly, because the script exists to catch the typo that makes a
 sentinel read to every hook as no sentinel at all. The sentinel is what makes
 prompt-channel reminder hooks that own an earlier phase stand down while the branch is
 being finished; a clarify-the-requirements nudge on a merge decision is noise.
-**Clear it before this command returns — `phase-sentinel.sh clear`, else delete the
-file — on every path: merge, PR, keep, discard, and the red-suite stop below.** A TTL
+**Clear it before this command returns — `phase-sentinel.sh clear --session "${CLAUDE_SESSION_ID}"`,
+else delete that file — on every path: merge, PR, keep, discard, and the red-suite stop below.** A TTL
 bounds a leaked sentinel, but the clear is this command's responsibility.
 
 Before the gate, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/scratch-ignore.sh" --check`.

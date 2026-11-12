@@ -151,7 +151,7 @@ for i in $(seq 1 24); do out=$(fire_at run-h "$RUN"); [ -n "$out" ] && said="$sa
 [ "$said" = ' 24:systemMessage' ] && ok "registered again on run/tm: the 8-card plan notifies at 24" \
   || bad "registered again on run/tm: the 8-card plan notifies at 24" "got '$said'"
 git -C "$RUN" checkout -q main
-rm -f "$RUN/.claude/cc-phase.json"
+rm -rf "$RUN/.claude/cc-phase"
 
 # Outside a run, the same cwd still asks.
 rm -f "$RUN/.claude/task-runner/active-run.json"
