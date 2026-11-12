@@ -1,5 +1,5 @@
 #!/bin/bash
-# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 7, 5: an incomplete registered task-runner run, a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a Unity scene/prefab/Assets script change claimed done with no capture and console read after it while a route exists (unity CLI on PATH or a Unity MCP tool), lockfile drift.
+# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 7, 5: an incomplete task-runner run this session registered (or one naming no session), a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a Unity scene/prefab/Assets script change claimed done with no capture and console read after it while a route exists (unity CLI on PATH or a Unity MCP tool), lockfile drift.
 # Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_UNITY_VISUAL_GATE=off|warn (7); unset, /config.; clause 4 does not send back a turn whose last human prompt was a pause or a question with no work verb (it names the owed run).
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
@@ -483,7 +483,10 @@ run_clause() {
   # A run closes by renaming its sentinel (run.md step 4), so the stop after the report still reads its records; a clean read retires it.
   [ -r "$sentinel" ] || sentinel="$root/.claude/task-runner/closed-run.json"
   [ -r "$sentinel" ] || return 0
-  jq empty "$sentinel" 2>/dev/null || { say "[candor] .claude/task-runner/active-run.json is malformed, so the task-runner run is not checked."; return 0; }
+  local owner
+  owner=$(jq -r '.session_id? // empty' "$sentinel" 2>/dev/null) || { say "[candor] .claude/task-runner/active-run.json is malformed, so the task-runner run is not checked."; return 0; }
+  # A run names the session that registered it (task-runner 0.56.0): another session is not held, told to delete it, or let retire it.
+  [ -z "$owner" ] || [ -z "$sid" ] || [ "$owner" = "$sid" ] || return 0
   command -v git >/dev/null 2>&1 || { say "[candor] git not found, so the task-runner run is not checked."; return 0; }
   local head run_branch cur_branch slug
   head=$(git -C "$root" rev-parse HEAD 2>/dev/null) || { say "[candor] Not a git repository, so the task-runner run is not checked."; return 0; }

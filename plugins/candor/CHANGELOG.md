@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.12.7 — 2026-11-12
+
+- **Clause 4 holds only the session that registered the run.** The run file was repo-wide and named no session, so a second session in the same repo was sent back once per HEAD by a task-runner run it never registered, its block text said "Not running this task list? … delete .claude/task-runner/active-run.json" (so it could delete a live run), and its clean stop could retire the first session's `closed-run.json`. task-runner 0.56.0's `register-run.sh` now writes `session_id`; when the run names one and the Stop payload's `session_id` is another, the clause returns before it holds, prints, or retires anything. A run file naming no session (an older task-runner), or a payload with no `session_id`, is held as before. The owner is read in the existing malformed-check `jq` call, so a stop pays no extra fork. Pinned by nine `scripts/__tests__/gate.test.sh` owner cases; the four non-owner ones are red on 0.12.6. Standing: gate. **Residual, recorded:** a session that carries on another session's run without re-registering it (`/task-runner:run` on that index moves the owner) is not held, and the other run-record readers (`rv-observe.sh`, `spawn-cap.sh`, `scope.sh`) still act on every session. An orphaned `closed-run.json` whose owner session is gone is no longer retired by another session's stop once HEAD moves past its gate pass; it stays until the next fresh registration, keeping task-runner's `rv-consent.sh` armed in the repo.
+
 ## 0.12.6 — 2026-11-12
 
 - **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
