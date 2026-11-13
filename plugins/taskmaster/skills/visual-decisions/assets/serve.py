@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore stays loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. Harness: plugins/taskmaster/scripts/__tests__/serve.test.sh.
-# Misses: a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
+# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore and /_feedback stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Harness: plugins/taskmaster/scripts/__tests__/serve.test.sh.
+# Misses: a page served from here, third-party script included, can post a pick or note, and note text is unverified; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
@@ -17,12 +17,14 @@ Stdlib only. Usage:
 """
 
 import argparse
+import contextlib
 import functools
 import html
 import hmac
 import http.server
 import ipaddress
 import json
+import math
 import os
 import queue
 import secrets
@@ -35,6 +37,11 @@ import threading
 import time
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlencode
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 
 IDLE_MINUTES_DEFAULT = 240
 LAN_MINUTES_DEFAULT = 60
@@ -52,6 +59,14 @@ LEDGER_EXCLUDED = {"current.html", "index.html"} | set(PER_PURPOSE_FILES)
 # Restore demands a header no cross-origin <form> can set, forcing a CORS preflight this server never answers; Host/Origin alone would pass another localhost port.
 RESTORE_HEADER = "X-Preview-Restore"
 MAX_RESTORE_BODY = 4096
+FEEDBACK_HEADER = "X-Preview-Feedback"
+FEEDBACK_FILE = ".feedback.jsonl"
+# scripts/preview-feedback.sh takes the same flock before it replaces the file, so an append never lands in the old copy.
+FEEDBACK_LOCK = ".feedback.lock"
+MAX_FEEDBACK_BODY = 8192
+MAX_FEEDBACK_FILE = 2 * 1024 * 1024  # appends stop here (507): a page looping posts must not fill the disk
+PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
+VARIANTS = ("A", "B", "C")
 
 
 def hostname_from_netloc(netloc):
@@ -136,6 +151,119 @@ def load_or_create_key(docroot):
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         handle.write(key + "\n")
     return key
+
+
+def _clean(text):
+    """text with each lone surrogate made "?": a page slicing through an emoji posts one, and UTF-8 cannot write it."""
+    return text.encode("utf-8", "replace").decode("utf-8")
+
+
+def _clip(value, limit):
+    return _clean(value[:limit]) if isinstance(value, str) else ""
+
+
+def _number(value):
+    """A posted number clamped to +-PIXELS; NaN, Infinity, a bool or a non-number is 0."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    if isinstance(value, float) and not math.isfinite(value):
+        return 0
+    if abs(value) >= PIXELS:
+        return PIXELS if value > 0 else -PIXELS
+    return value if isinstance(value, int) else round(value, 1)
+
+
+def page_key(value):
+    """A docroot-relative page path: leading slashes dropped, at most 256 characters."""
+    return _clean(value.lstrip("/")[:256]) if isinstance(value, str) else ""
+
+
+def feedback_row(body):
+    """The row stored for a posted pick or note, or None when the body is neither; every field clamped, unknown keys dropped."""
+    kind = body.get("kind")
+    variant = body.get("variant") if body.get("variant") in VARIANTS else None
+    text = _clip(body.get("text"), 2000)
+    if not ((kind == "pick" and variant) or (kind == "note" and text.strip())):
+        return None
+    if kind == "pick":
+        text = ""  # the page shows neither on a pick, and wait would hand them to the agent
+    anchor = body.get("anchor")
+    if kind == "note" and isinstance(anchor, dict) and _clip(anchor.get("selector"), 512):
+        rect = anchor.get("rect") if isinstance(anchor.get("rect"), dict) else {}
+        anchor = {
+            "selector": _clip(anchor.get("selector"), 512),
+            "tag": _clip(anchor.get("tag"), 32),
+            "text": _clip(anchor.get("text"), 200),
+            "rect": {k: _number(rect.get(k)) for k in ("x", "y", "w", "h")},
+        }
+    else:
+        anchor = None
+    context = body.get("context") if isinstance(body.get("context"), dict) else {}
+    viewport = context.get("viewport") if isinstance(context.get("viewport"), dict) else {}
+    states = context.get("states") if isinstance(context.get("states"), dict) else {}
+    console = context.get("console") if isinstance(context.get("console"), list) else []
+    return {
+        "id": secrets.token_hex(4),
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "page": page_key(body.get("page")),
+        "kind": kind,
+        "variant": variant,
+        "anchor": anchor,
+        "text": text,
+        "context": {
+            "viewport": {k: _number(viewport.get(k)) for k in ("w", "h")},
+            "theme": _clip(context.get("theme"), 16),
+            "states": dict([(_clip(k, 32), _clip(v, 32)) for k, v in states.items() if isinstance(v, str)][:16]),
+            "console": [_clip(s, 300) for s in console if isinstance(s, str)][-5:],
+        },
+        "status": "open",
+        "reply": "",
+        "handed_out": False,
+    }
+
+
+@contextlib.contextmanager
+def feedback_lock(docroot):
+    fd = os.open(str(docroot / FEEDBACK_LOCK), os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        if fcntl:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)
+
+
+def append_feedback(docroot, row):
+    """Append one row; False, writing nothing, when the file would pass MAX_FEEDBACK_FILE."""
+    line = (json.dumps(row, ensure_ascii=False) + "\n").encode("utf-8")
+    with feedback_lock(docroot):
+        fd = os.open(str(docroot / FEEDBACK_FILE),
+                     os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        try:
+            if os.fstat(fd).st_size + len(line) > MAX_FEEDBACK_FILE:
+                return False
+            os.write(fd, line)
+        finally:
+            os.close(fd)
+    return True
+
+
+def read_feedback(docroot):
+    """Every parseable row of the feedback file; a missing file or a torn line reads as nothing."""
+    try:
+        fd = os.open(str(docroot / FEEDBACK_FILE), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return []
+    rows = []
+    with os.fdopen(fd, "r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                rows.append(row)
+    return rows
 
 
 def lan_address():
@@ -302,15 +430,70 @@ def build_handler(state):
             if path == "/_versions.json":
                 self.serve_versions()
                 return
+            if path == "/_feedback":
+                self.serve_feedback()
+                return
             super().do_GET()
 
         def do_POST(self):
             if not self.lan_gate():
                 return
-            if self.path.split("?", 1)[0] == "/_restore":
+            route = self.path.split("?", 1)[0]
+            if route == "/_restore":
                 self.handle_restore()
                 return
+            if route == "/_feedback":
+                self.handle_feedback()
+                return
             self.send_error(404, "Not Found")
+
+        def is_loopback_local(self):
+            """Loopback peer and a local Host/Origin, in LAN mode too: the rule for /_restore and /_feedback."""
+            return peer_is_loopback(self.client_address[0]) and self.host_and_origin_local()
+
+        def serve_feedback(self):
+            """The feedback rows for ?page=, as data, for the shell's status list."""
+            if not self.is_loopback_local():
+                self.send_error(403, "Forbidden (feedback is loopback-only)")
+                return
+            query = self.path.partition("?")[2]
+            page = page_key(next((v for k, v in parse_qsl(query, keep_blank_values=True) if k == "page"), ""))
+            self._send_json({"rows": [r for r in read_feedback(state.docroot) if r.get("page") == page]})
+
+        def handle_feedback(self):
+            """Append one pick or note row to .feedback.jsonl; the guards are /_restore's, the header its own."""
+            if not self.is_loopback_local():
+                self.send_error(403, "Forbidden (feedback is loopback-only)")
+                return
+            if not self.headers.get(FEEDBACK_HEADER):
+                self.send_error(403, "Forbidden (missing %s)" % FEEDBACK_HEADER)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            if length > MAX_FEEDBACK_BODY:
+                self.send_error(413, "Body too large")
+                return
+            body = None
+            if length > 0:
+                try:
+                    body = json.loads(self.rfile.read(length).decode("utf-8"))
+                except (ValueError, UnicodeDecodeError, RecursionError):
+                    body = None
+            row = feedback_row(body) if isinstance(body, dict) else None
+            if row is None:
+                self._send_json({"recorded": False, "error": "body must be a JSON pick or note of 1..%d bytes" % MAX_FEEDBACK_BODY}, 400)
+                return
+            try:
+                if not append_feedback(state.docroot, row):
+                    self._send_json({"recorded": False, "error": "%s has reached its %d MiB cap; move it aside to record more"
+                                     % (FEEDBACK_FILE, MAX_FEEDBACK_FILE // (1024 * 1024))}, 507)
+                    return
+            except OSError as exc:
+                self._send_json({"recorded": False, "error": str(exc)}, 500)
+                return
+            self._send_json({"recorded": True, "id": row["id"]})
 
         def handle_sse(self):
             if not self.is_local_request():
@@ -431,7 +614,7 @@ def build_handler(state):
             file inside the docroot. The destination is hardcoded — a request
             never names what it overwrites.
             """
-            if not (peer_is_loopback(self.client_address[0]) and self.host_and_origin_local()):
+            if not self.is_loopback_local():
                 self.send_error(403, "Forbidden (restore is loopback-only)")
                 return
             if not self.headers.get(RESTORE_HEADER):

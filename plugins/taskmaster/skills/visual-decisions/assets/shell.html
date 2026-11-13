@@ -1458,6 +1458,70 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
 @media print {
   #vd-offline { display: none; }
 }
+
+/* Feedback controls: shown only when serve.py answers GET /_feedback, so a
+   lower rung, file:// or ?static=1 renders none of them. They live in the
+   header and the frame titles; the hover outline and the note box are fixed
+   overlays, so nothing inside a variant moves when they appear. */
+#vd-fb { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+#vd-fb[hidden], #vd-fb-box[hidden], #vd-fb-hover[hidden] { display: none; }
+#vd-fb-toggle, #vd-fb-panel > summary, .vd-fb-btn, #vd-fb-box button {
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  padding: 5px 10px;
+  border-radius: var(--vd-radius);
+  cursor: pointer;
+}
+#vd-fb-panel > summary { list-style: none; }
+#vd-fb-panel > summary::-webkit-details-marker { display: none; }
+.vd-fb-btn { font-size: .72rem; font-weight: 600; padding: 2px 8px; margin-inline-start: 6px; float: right; }
+[dir="rtl"] .vd-fb-btn { float: left; }
+#vd-fb-toggle:hover, #vd-fb-panel > summary:hover, .vd-fb-btn:hover, #vd-fb-box button:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+#vd-fb-toggle[aria-pressed="true"], .vd-fb-btn[aria-pressed="true"], #vd-fb-box button[type="submit"] {
+  background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary);
+}
+#vd-fb-toggle:focus-visible, #vd-fb-panel > summary:focus-visible, .vd-fb-btn:focus-visible,
+#vd-fb-box button:focus-visible, #vd-fb-box textarea:focus-visible { outline: 2px solid var(--vd-primary); outline-offset: 2px; }
+.vd-fb-list {
+  position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 25;
+  width: min(26rem, calc(100vw - 16px)); max-height: 50vh; overflow: auto;
+  margin: 0; padding: 4px 8px; list-style: none;
+  background: var(--vd-paper); color: var(--vd-ink);
+  border: 1px solid var(--vd-line); border-radius: var(--vd-radius); box-shadow: var(--vd-shadow-md);
+  font-size: .8rem; line-height: 1.4;
+}
+.vd-fb-list li { padding: 6px 0; border-bottom: 1px solid var(--vd-line); overflow-wrap: anywhere; }
+.vd-fb-list li:last-child { border-bottom: 0; }
+.vd-fb-st { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--vd-ink-soft); }
+.vd-fb-st[data-status="addressed"] { color: var(--vd-primary); }
+.vd-fb-reply { display: block; color: var(--vd-ink-soft); }
+body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: crosshair; }
+#vd-fb-hover { position: fixed; z-index: 30; pointer-events: none; border: 2px solid var(--vd-primary); }
+#vd-fb-hover span {
+  position: absolute; bottom: 100%; inset-inline-start: -2px; white-space: nowrap;
+  font: 600 .7rem/1.4 var(--vd-font); padding: 1px 6px;
+  background: var(--vd-primary); color: var(--vd-on-primary);
+}
+#vd-fb-box {
+  position: fixed; z-index: 31; width: min(20rem, calc(100vw - 16px)); box-sizing: border-box; padding: 8px;
+  background: var(--vd-paper); color: var(--vd-ink);
+  border: 1px solid var(--vd-line); border-radius: var(--vd-radius); box-shadow: var(--vd-shadow-lg);
+  font: .82rem/1.4 var(--vd-font);
+}
+#vd-fb-box p { margin: 0 0 6px; font-weight: 600; overflow-wrap: anywhere; }
+#vd-fb-box textarea {
+  display: block; width: 100%; box-sizing: border-box; min-height: 4.5em; resize: vertical; padding: 6px;
+  font: inherit; color: inherit; background: var(--vd-surface);
+  border: 1px solid var(--vd-line); border-radius: var(--vd-radius);
+}
+#vd-fb-box .vd-fb-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
+.vd-fb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media print {
+  #vd-fb, .vd-fb-btn, #vd-fb-box, #vd-fb-hover { display: none; }
+}
 </style>
 <style id="vd-custom">
 /* SLOT: custom-css — shared classes when no primitive fits; never style one
@@ -1526,6 +1590,15 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
       <select id="vd-ver-select" aria-label="Ledger version"></select>
       <button type="button" id="vd-ver-restore" disabled>Restore</button>
     </span>
+    <!-- Feedback: shown only when serve.py answers GET /_feedback for this page. -->
+    <span id="vd-fb" hidden>
+      <button type="button" id="vd-fb-toggle" aria-pressed="false" aria-keyshortcuts="Alt+Shift+P"
+              title="Point at an element and leave a note (Alt+Shift+P)">Point &amp; note</button>
+      <details id="vd-fb-panel">
+        <summary>Notes</summary>
+        <ol class="vd-fb-list" aria-label="Notes on this page"></ol>
+      </details>
+    </span>
   </div>
 </header>
 
@@ -1555,6 +1628,18 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
 </main>
 
 <div id="vd-offline" role="status"></div>
+<div id="vd-fb-box" role="dialog" aria-labelledby="vd-fb-box-title" hidden>
+  <form>
+    <p id="vd-fb-box-title"></p>
+    <textarea id="vd-fb-text" maxlength="2000" required aria-labelledby="vd-fb-box-title"></textarea>
+    <div class="vd-fb-actions">
+      <button type="button" id="vd-fb-cancel">Cancel</button>
+      <button type="submit">Send note</button>
+    </div>
+  </form>
+</div>
+<div id="vd-fb-hover" hidden><span></span></div>
+<div id="vd-fb-live" class="vd-fb-sr" role="status"></div>
 
 <script>
 (() => {
@@ -1948,6 +2033,366 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
 
 <script>
 (() => {
+  // Feedback: picks and notes posted to serve.py's /_feedback, read back by
+  // scripts/preview-feedback.sh. The last five console errors ride along.
+  const errors = [];
+  // By code point: a cut through an emoji's surrogate pair posts a lone surrogate.
+  function cut(text, n) { return Array.from(String(text).slice(0, 2 * n)).slice(0, n).join(''); }
+  function keep(text) {
+    errors.push(cut(text, 300));
+    if (errors.length > 5) errors.shift();
+  }
+  // An object is named by its tag, never walked or converted: String() throws for Object.create(null).
+  function asText(a) {
+    if (a instanceof Error) return String(a.message);
+    return a !== null && (typeof a === 'object' || typeof a === 'function') ? Object.prototype.toString.call(a) : String(a);
+  }
+  const consoleError = console.error;
+  console.error = function (...args) {
+    try { keep(args.map(asText).join(' ')); } catch { /* the page's own console.error still runs */ }
+    return consoleError.apply(this, args);
+  };
+  window.addEventListener('error', e => {
+    try {
+      keep((e.message || 'error') + (e.filename ? ' at ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+    } catch { /* nothing to record */ }
+  });
+
+  const params = new URLSearchParams(location.search);
+  const frames = Array.from(document.querySelectorAll('.vd-frame'));
+  function letterOf(frame) {
+    const m = /^vd-([a-c])$/.exec((frame && frame.id) || '');
+    return m ? m[1].toUpperCase() : null;
+  }
+
+  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted
+  // element and scrolls to it before the headless screenshot.
+  const outline = params.get('_outline');
+  if (outline) {
+    let el = null;
+    try { el = document.querySelector(outline); } catch { el = null; }
+    if (el) {
+      el.style.outline = '3px solid #e11d48';
+      el.style.outlineOffset = '2px';
+      el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    }
+  }
+  if (params.get('static') === '1') return;
+
+  const page = decodeURIComponent(location.pathname).replace(/^\/+/, '');
+  const wrap = document.getElementById('vd-fb');
+  const toggle = document.getElementById('vd-fb-toggle');
+  const panel = document.getElementById('vd-fb-panel');
+  const summary = panel.querySelector('summary');
+  const list = panel.querySelector('.vd-fb-list');
+  const box = document.getElementById('vd-fb-box');
+  const form = box.querySelector('form');
+  const boxTitle = document.getElementById('vd-fb-box-title');
+  const text = document.getElementById('vd-fb-text');
+  const send = form.querySelector('button[type="submit"]');
+  const hover = document.getElementById('vd-fb-hover');
+  const live = document.getElementById('vd-fb-live');
+  let picking = false;
+  let target = null;
+  let pending = null;
+
+  function announce(msg) { live.textContent = msg; }
+  function textOf(el) { return cut((el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(), 200); }
+  function describe(el) {
+    const t = cut(textOf(el), 40);
+    return el.localName + (t ? ' "' + t + '"' : '') + ' in variant ' + letterOf(el.closest('.vd-frame'));
+  }
+
+  function context() {
+    const root = document.documentElement;
+    const body = document.body;
+    const states = { vw: body.dataset.vdVw || '', mode: body.dataset.vdMode || '', dir: root.dataset.vdDir || '' };
+    frames.forEach(frame => {
+      const on = frame.querySelector('.vd-state-bar button[aria-pressed="true"]');
+      if (on && letterOf(frame)) states['state ' + letterOf(frame)] = on.dataset.vdState;
+    });
+    return {
+      viewport: { w: innerWidth, h: innerHeight },
+      theme: (root.dataset.vdTheme || 'baseline') + ' ' + (root.dataset.vdScheme || 'light'),
+      states: states,
+      console: errors.slice()
+    };
+  }
+
+  function post(fields) {
+    const body = Object.assign({ page: page, context: context() }, fields);
+    if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
+    return fetch('/_feedback', {
+      method: 'POST',
+      // The header is the server's CSRF gate, as on /_restore.
+      headers: { 'Content-Type': 'application/json', 'X-Preview-Feedback': '1' },
+      body: JSON.stringify(body)
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('the server answered ' + r.status))))
+      .then(refresh)
+      .catch(err => {
+        announce('Not recorded: ' + err.message);
+        throw err;
+      });
+  }
+
+  function render(rows) {
+    const picks = rows.filter(r => r.kind === 'pick');
+    const picked = picks.length ? picks[picks.length - 1].variant : null;
+    frames.forEach(frame => {
+      const btn = frame.querySelector('.vd-fb-pick');
+      if (!btn) return;
+      const on = letterOf(frame) === picked;
+      btn.setAttribute('aria-pressed', String(on));
+      btn.textContent = on ? 'Picked' : 'Pick';
+    });
+    const notes = rows.filter(r => r.kind === 'note');
+    const open = notes.filter(r => r.status === 'open').length;
+    summary.textContent = notes.length ? 'Notes (' + notes.length + ', ' + open + ' open)' : 'Notes (0)';
+    list.replaceChildren(...notes.map(r => {
+      const li = document.createElement('li');
+      const st = document.createElement('span');
+      st.className = 'vd-fb-st';
+      st.dataset.status = r.status;
+      st.textContent = r.status;
+      const where = document.createElement('b');
+      where.textContent = (r.variant || '-') + (r.anchor ? ', ' + r.anchor.tag : '');
+      li.append(st, ' ', where, ' ', r.text);
+      if (r.reply) {
+        const reply = document.createElement('span');
+        reply.className = 'vd-fb-reply';
+        reply.textContent = 'Reply: ' + r.reply;
+        li.append(reply);
+      }
+      return li;
+    }));
+    if (!notes.length) {
+      const li = document.createElement('li');
+      li.textContent = 'No notes yet.';
+      list.append(li);
+    }
+  }
+
+  function load() {
+    return fetch('/_feedback?page=' + encodeURIComponent(page), { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('no feedback lane'))))
+      .then(data => {
+        if (!data || !Array.isArray(data.rows)) throw new Error('no feedback lane');
+        return data.rows;
+      });
+  }
+  function refresh() { return load().then(render).catch(() => {}); }
+
+  // Picker: highlight with a fixed overlay, never by restyling the element.
+  function pickable(node) {
+    const el = node instanceof Element ? node : null;
+    const frame = el && el.closest('.vd-frame');
+    return frame && frame.id && el.closest('.vd-frame > .vd-content') ? el : null;
+  }
+  function pickables() {
+    const out = [];
+    frames.forEach(frame => {
+      const content = frame.querySelector(':scope > .vd-content');
+      if (content && frame.id) out.push(content, ...content.querySelectorAll('*'));
+    });
+    return out.filter(el => el.getClientRects().length > 0);
+  }
+  function highlight(el) {
+    target = el;
+    if (!el) { hover.hidden = true; return; }
+    const r = el.getBoundingClientRect();
+    Object.assign(hover.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+    hover.firstElementChild.textContent = describe(el);
+    hover.hidden = false;
+  }
+  function setPicking(on) {
+    picking = on;
+    toggle.setAttribute('aria-pressed', String(on));
+    document.body.classList.toggle('vd-fb-picking', on);
+    if (!on) { highlight(null); return; }
+    highlight(pickables()[0] || null);
+    announce('Pointing. Click an element, or move with the arrow keys and press Enter. Escape cancels.');
+  }
+
+  function esc(s) { return CSS.escape(s); }
+  function step(node) {
+    let s = esc(node.localName);
+    const data = Array.from(node.attributes).find(a => a.name.startsWith('data-') && a.value && a.value.length <= 40);
+    if (data) s += '[' + esc(data.name) + '="' + esc(data.value) + '"]';
+    const parent = node.parentElement;
+    let shared = false;
+    try { shared = !!parent && parent.querySelectorAll(':scope > ' + s).length > 1; } catch { shared = true; }
+    if (shared) {
+      s += ':nth-of-type(' + (Array.from(parent.children).filter(c => c.localName === node.localName).indexOf(node) + 1) + ')';
+    }
+    return s;
+  }
+  function selectorFor(el, frame) {
+    const root = '#' + esc(frame.id) + ' > .vd-content';
+    const content = frame.querySelector(':scope > .vd-content');
+    if (el === content) return root;
+    const parts = [];
+    let joint = ' > ';
+    for (let n = el; n && n !== content; n = n.parentElement) {
+      if (n.id && document.querySelectorAll('#' + esc(n.id)).length === 1) {
+        parts.unshift('#' + esc(n.id));
+        joint = ' ';
+        break;
+      }
+      parts.unshift(step(n));
+    }
+    const sel = root + joint + parts.join(' > ');
+    let hit = null;
+    try { hit = document.querySelector(sel); } catch { hit = null; }
+    if (hit === el) return sel;
+    const plain = [];
+    for (let n = el; n && n !== content; n = n.parentElement) {
+      const same = Array.from(n.parentElement.children).filter(c => c.localName === n.localName);
+      plain.unshift(esc(n.localName) + (same.length > 1 ? ':nth-of-type(' + (same.indexOf(n) + 1) + ')' : ''));
+    }
+    return root + ' > ' + plain.join(' > ');
+  }
+
+  function place(r) {
+    const m = 8;
+    let top = r.bottom + 6;
+    if (top + box.offsetHeight > innerHeight - m) top = Math.max(m, r.top - box.offsetHeight - 6);
+    box.style.top = top + 'px';
+    box.style.left = Math.min(Math.max(m, r.left), innerWidth - box.offsetWidth - m) + 'px';
+  }
+  function openBox(opts) {
+    pending = opts;
+    boxTitle.textContent = opts.label;
+    text.value = '';
+    box.hidden = false;
+    place(opts.near.getBoundingClientRect());
+    text.focus();
+  }
+  function closeBox() {
+    if (box.hidden) return;
+    box.hidden = true;
+    highlight(null);
+    const opener = pending && pending.opener;
+    pending = null;
+    if (opener) opener.focus();
+  }
+  function choose(el) {
+    const frame = el.closest('.vd-frame');
+    const r = el.getBoundingClientRect();
+    setPicking(false);
+    highlight(el);
+    openBox({
+      variant: letterOf(frame),
+      anchor: {
+        selector: selectorFor(el, frame),
+        tag: el.localName,
+        text: textOf(el),
+        rect: { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }
+      },
+      near: el,
+      label: 'Note on ' + describe(el),
+      opener: toggle
+    });
+  }
+
+  function enable() {
+    wrap.hidden = false;
+    frames.forEach(frame => {
+      const letter = letterOf(frame);
+      const h2 = frame.querySelector('h2');
+      if (!letter || !h2) return;
+      const pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'vd-fb-btn vd-fb-pick';
+      pick.textContent = 'Pick';
+      pick.setAttribute('aria-pressed', 'false');
+      pick.setAttribute('aria-label', 'Pick variant ' + letter);
+      pick.addEventListener('click', () => {
+        post({ kind: 'pick', variant: letter })
+          .then(() => announce('Variant ' + letter + ' picked.'))
+          .catch(() => {});
+      });
+      const note = document.createElement('button');
+      note.type = 'button';
+      note.className = 'vd-fb-btn';
+      note.textContent = 'Note';
+      note.setAttribute('aria-label', 'Note on variant ' + letter);
+      note.addEventListener('click', () =>
+        openBox({ variant: letter, anchor: null, near: h2, label: 'Note on variant ' + letter, opener: note }));
+      h2.append(pick, note);
+    });
+
+    toggle.addEventListener('click', () => { if (box.hidden) setPicking(!picking); });
+    panel.addEventListener('toggle', () => { if (panel.open) refresh(); });
+    document.getElementById('vd-fb-cancel').addEventListener('click', closeBox);
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const note = text.value.trim();
+      if (!note || !pending) return;
+      send.disabled = true;
+      post({ kind: 'note', variant: pending.variant, anchor: pending.anchor, text: note })
+        .then(() => { announce('Note recorded.'); closeBox(); })
+        .catch(() => {})
+        .finally(() => { send.disabled = false; });
+    });
+    text.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); }
+    });
+
+    // A pointer resting outside the variants keeps the arrow-key target: a scroll fires mouseover there too.
+    window.addEventListener('mouseover', e => {
+      const el = picking && pickable(e.target);
+      if (el) highlight(el);
+    }, true);
+    window.addEventListener('scroll', () => { if (target && !hover.hidden) highlight(target); }, true);
+    window.addEventListener('click', e => {
+      if (!picking) return;
+      const el = pickable(e.target);
+      if (!el) return;
+      e.preventDefault();
+      e.stopPropagation();
+      choose(el);
+    }, true);
+    window.addEventListener('keydown', e => {
+      if (e.altKey && e.shiftKey && e.code === 'KeyP') {
+        e.preventDefault();
+        if (box.hidden) setPicking(!picking);
+        return;
+      }
+      if (!box.hidden && e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeBox();
+        return;
+      }
+      if (!picking) return;
+      const keys = ['Escape', 'Enter', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft'];
+      if (!keys.includes(e.key)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') { setPicking(false); toggle.focus(); return; }
+      if (e.key === 'Enter') { if (target) choose(target); return; }
+      const all = pickables();
+      if (!all.length) return;
+      const i = all.indexOf(target);
+      const forward = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+      const next = i < 0 ? all[forward ? 0 : all.length - 1] : all[(i + (forward ? 1 : all.length - 1)) % all.length];
+      next.scrollIntoView({ block: 'nearest' });
+      highlight(next);
+      announce(describe(next));
+    }, true);
+  }
+
+  load()
+    .then(rows => { enable(); render(rows); })
+    .catch(() => { /* no feedback lane (a lower rung or file://): no controls */ });
+})();
+</script>
+
+<script>
+(() => {
+  // ?static=1 (preview-feedback.sh shot): no stream, no polling, or a headless virtual-time budget never runs out.
+  if (new URLSearchParams(location.search).get('static') === '1') return;
   let last = null;
   let pollTimer = null;
 

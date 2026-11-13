@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar and reloads when the server is back; POST /_decision, the one write route, appends a pick to decisions.jsonl — loopback peer, Host and Origin, X-Design-Kit-Decision header, <= 8 KiB of JSON, else 403 / 413 / 400. Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision, so a bundled page carrying third-party script can plant a pick; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
+Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl, every field clamped, numbers to +-1e7), each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and neither file is followed through a symlink; GET /_notes?page= (loopback) lists a page's notes. Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
+Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
+import contextlib
 import hashlib
 import hmac
 import html
 import io
 import json
+import math
 import os
 import posixpath
 import re
@@ -23,9 +25,13 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlsplit
 
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
 # Stream lost: a role=status bar (no animation, so nothing to reduce), retries at 1, 2, 4 ... 30 s; back: reload.
-RELOAD_SNIPPET = (
-    '<script data-design-kit-reload>'
+RELOAD_JS = (
     '(function(){var b,d=0;function go(){var s;try{s=new EventSource("/_events")}catch(e){return}'
     's.onopen=function(){if(b){b.remove();location.reload()}};'
     's.onmessage=function(e){if(e.data==="reload")location.reload()};'
@@ -34,16 +40,108 @@ RELOAD_SNIPPET = (
     'background:#222;color:#fff;font:13px system-ui,sans-serif;pointer-events:none";'
     '(document.body||document.documentElement).appendChild(b);b.textContent="Preview server stopped; retrying"}'
     'd=Math.min(d?d*2:1000,30000);setTimeout(go,d)}}go()})();'
-    '</script>'
 )
+# location.origin, not a bare path: a page's <base href> must not send the import to another host.
+NOTE_HOOK = 'import(location.origin+"/_note.js").catch(function(){});'
+RELOAD_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + NOTE_HOOK + '</script>'
+GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
+OUTLINE_TAG = '<script data-design-kit-outline>' + NOTE_HOOK + '</script>'
+NOTE_JS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "note.js")
 PAGE_EXT = (".html", ".htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
-IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl"}
+NOTES = "notes.jsonl"
+NOTES_LOCK = ".notes.lock"  # dk.sh takes the same lock before it rewrites notes.jsonl
+IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 DECISION_MAX = 8 * 1024
+JSONL_MAX = 2 * 1024 * 1024  # notes.jsonl and decisions.jsonl stop growing here (507): a page looping posts must not fill the disk
+PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+
+
+@contextlib.contextmanager
+def notes_lock(root):
+    """Holds <root>/.notes.lock exclusively; without fcntl or the file, goes on unlocked."""
+    try:
+        fd = os.open(os.path.join(root, NOTES_LOCK), os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    except OSError:
+        fd = None
+    try:
+        if fd is not None and fcntl:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        if fd is not None:
+            os.close(fd)
+
+
+def _clean(value):
+    """value with each lone surrogate made "?", inside lists and objects too: a page slicing through an emoji posts one, and UTF-8 cannot write it."""
+    if isinstance(value, str):
+        return value.encode("utf-8", "replace").decode("utf-8")
+    return json.loads(json.dumps(value, ensure_ascii=False).encode("utf-8", "replace"))
+
+
+def page_of(value):
+    """A page path as the docroot-relative form notes are filed under: decks/a.html for /decks/a.html?x."""
+    return _clean("/".join(_parts(split_target(value)[0]))[:256]) if isinstance(value, str) else ""
+
+
+def _clip(value, n):
+    return _clean(value[:n]) if isinstance(value, str) else ""
+
+
+def _num(value):
+    """A posted number clamped to +-PIXELS and rounded; NaN, Infinity, a bool or a non-number is 0."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    if isinstance(value, float) and not math.isfinite(value):
+        return 0
+    if abs(value) >= PIXELS:
+        return PIXELS if value > 0 else -PIXELS
+    return round(value)
+
+
+def note_row(body):
+    """One notes.jsonl row from a posted object: every field clamped, any other key dropped; None without text."""
+    text = _clip(body.get("text"), 2000)
+    if not text.strip():
+        return None
+    a, ctx = body.get("anchor"), body.get("context") if isinstance(body.get("context"), dict) else {}
+    anchor = None
+    if isinstance(a, dict):
+        rect = a.get("rect") if isinstance(a.get("rect"), dict) else {}
+        anchor = {"selector": _clip(a.get("selector"), 512), "tag": _clip(a.get("tag"), 32), "text": _clip(a.get("text"), 200),
+                  "rect": {k: _num(rect.get(k)) for k in ("x", "y", "w", "h")}}
+    vp = ctx.get("viewport") if isinstance(ctx.get("viewport"), dict) else {}
+    con = ctx.get("console") if isinstance(ctx.get("console"), list) else []
+    return {
+        "id": secrets.token_hex(4),
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "page": page_of(body.get("page")),
+        "kind": "note",
+        "anchor": anchor,
+        "text": text,
+        "context": {"viewport": {"w": _num(vp.get("w")), "h": _num(vp.get("h"))}, "theme": _clip(ctx.get("theme"), 16),
+                    "console": [_clip(c, 300) for c in con if isinstance(c, str)][-5:]},
+        "status": "open",
+        "reply": "",
+    }
+
+
+def append_row(path, row):
+    """Append one JSON line, never through a symlink; False, writing nothing, when the file would pass JSONL_MAX."""
+    line = (json.dumps(row, ensure_ascii=False) + "\n").encode("utf-8")
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    try:
+        if os.fstat(fd).st_size + len(line) > JSONL_MAX:
+            return False
+        os.write(fd, line)
+    finally:
+        os.close(fd)
+    return True
 
 
 def lan_gate(key, peer, query, cookie):
@@ -195,7 +293,7 @@ def _newest_mtime(root):
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for fn in filenames:
-            if fn in IGNORED:
+            if fn in IGNORED or fn.startswith("."):
                 continue
             try:
                 m = os.stat(os.path.join(dirpath, fn)).st_mtime
@@ -213,18 +311,26 @@ def _read_json(path, default):
         return default
 
 
-def _decisions(root):
+def _jsonl(path):
+    """The JSON objects in a .jsonl file; other lines, a missing file and a symlink (never followed) give nothing."""
     rows = []
     try:
-        with open(os.path.join(root, "decisions.jsonl"), "r", encoding="utf-8") as fh:
-            for line in fh:
-                try:
-                    rows.append(json.loads(line))
-                except ValueError:
-                    continue
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except OSError:
-        pass
+        return rows
+    with os.fdopen(fd, "rb") as fh:
+        for line in fh:
+            try:
+                row = json.loads(line.decode("utf-8", "replace"))
+            except (ValueError, RecursionError):
+                continue
+            if isinstance(row, dict):
+                rows.append(row)
     return rows
+
+
+def _decisions(root):
+    return _jsonl(os.path.join(root, "decisions.jsonl"))
 
 
 def flow_steps(root):
@@ -319,7 +425,7 @@ def _gallery_html(pages, live=True, root=None):
                 f"<div class=\"t\">{html.escape(p['title'])}{badge}</div><div class=\"p\">{html.escape(p['path'])} · {when}</div></a>"
             )
         parts.append("</div>")
-    parts.append((RELOAD_SNIPPET if live else "") + "</body></html>")
+    parts.append((GALLERY_SNIPPET if live else "") + "</body></html>")
     return "".join(parts)
 
 
@@ -372,6 +478,15 @@ class Handler(SimpleHTTPRequestHandler):
     def send_head(self):
         """GET and HEAD: 404 unless servable; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
         path = split_target(self.path)[0]
+        if path == "/_note.js":
+            try:
+                with open(NOTE_JS, "rb") as fh:
+                    script = fh.read()
+            except OSError:
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return None
+            self._head(len(script), "text/javascript; charset=utf-8")
+            return io.BytesIO(script)
         parts = _parts(path)
         if not _servable(parts):
             self.send_error(HTTPStatus.NOT_FOUND)
@@ -388,19 +503,28 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
         i = body.lower().rfind(b"</body>")
-        if i >= 0 and b"data-design-kit-reload" not in body and self._wants_live():
-            body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
+        if i >= 0 and b"data-design-kit-reload" not in body:
+            if "_outline" in parse_qs(split_target(self.path)[1]) and self.client_address[0] in LOOPBACK:
+                body = body[:i] + OUTLINE_TAG.encode() + body[i:]
+            elif self._wants_live():
+                body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
         self._head(len(body), "text/html; charset=utf-8")
         return io.BytesIO(body)
 
     def do_GET(self):
         if not self._gate():
             return
-        path = split_target(self.path)[0]
+        path, query = split_target(self.path)
         if path == "/_events":
             return self._events()
         if path == "/_index.json":
             return self._json(_walk_pages(self.root))
+        if path == "/_notes":
+            why = self._not_local("notes", "read")
+            if why:
+                return self._reject(HTTPStatus.FORBIDDEN, why)
+            page = page_of((parse_qs(query).get("page") or [""])[0])
+            return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") == page])
         if path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
             return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
         return super().do_GET()
@@ -409,18 +533,30 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(HTTPStatus.NOT_FOUND)
         return None
 
+    def _not_local(self, what, done="recorded"):
+        """None for a loopback peer naming a loopback Host, and a loopback Origin when one is sent; else why not."""
+        if self.client_address[0] not in LOOPBACK:
+            return "%s are %s from this machine only" % (what, done)
+        origin = self.headers.get("Origin")
+        if not _loopback_host(self.headers.get("Host") or "") or (origin and not _loopback_host(origin)):
+            return "%s are %s from a page opened on this machine's own address" % (what, done)
+        return None
+
     def do_POST(self):
         if not self._gate():
             return
-        if split_target(self.path)[0] != "/_decision":
+        path = split_target(self.path)[0]
+        if path == "/_decision":
+            what, header, record = "decisions", "X-Design-Kit-Decision", self._decision
+        elif path == "/_note":
+            what, header, record = "notes", "X-Design-Kit-Note", self._note
+        else:
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
-        if self.client_address[0] not in LOOPBACK:
-            return self._reject(HTTPStatus.FORBIDDEN, "decisions are recorded from this machine only")
-        origin = self.headers.get("Origin")
-        if not _loopback_host(self.headers.get("Host") or "") or (origin and not _loopback_host(origin)):
-            return self._reject(HTTPStatus.FORBIDDEN, "decisions are recorded from a page opened on this machine's own address")
-        if not self.headers.get("X-Design-Kit-Decision"):
-            return self._reject(HTTPStatus.FORBIDDEN, "missing X-Design-Kit-Decision header")
+        why = self._not_local(what)
+        if why:
+            return self._reject(HTTPStatus.FORBIDDEN, why)
+        if not self.headers.get(header):
+            return self._reject(HTTPStatus.FORBIDDEN, "missing %s header" % header)
         try:
             length = int(self.headers.get("Content-Length") or "0")
         except ValueError:
@@ -434,18 +570,40 @@ class Handler(SimpleHTTPRequestHandler):
                 raise ValueError("not an object")
         except (ValueError, UnicodeDecodeError) as exc:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: %s" % exc)
+        except RecursionError:
+            return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
+        try:
+            record(body)
+        except RecursionError:
+            return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
+
+    def _store(self, name, row, answer):
+        """Append row to <root>/name and answer: 507 at JSONL_MAX, a JSON 500 when the write fails."""
+        try:
+            if not append_row(os.path.join(self.root, name), row):
+                return self._reject(HTTPStatus.INSUFFICIENT_STORAGE, "%s has reached its %d MiB cap; move it aside to record more" % (name, JSONL_MAX // (1024 * 1024)))
+        except OSError as exc:
+            return self._reject(HTTPStatus.INTERNAL_SERVER_ERROR, "could not write %s: %s" % (name, exc.strerror or exc))
+        self._json(answer)
+
+    def _note(self, body):
+        row = note_row(body)
+        if row is None:
+            return self._reject(HTTPStatus.BAD_REQUEST, "a note needs text")
+        with notes_lock(self.root):
+            self._store(NOTES, row, {"recorded": True, "id": row["id"], "ts": row["ts"]})
+
+    def _decision(self, body):
         row = {
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "board": str(body.get("board") or "")[:256],
+            "board": _clean(str(body.get("board") or "")[:256]),
             "picked": body.get("picked") if isinstance(body.get("picked"), int) else None,
-            "knobs": body.get("knobs") if isinstance(body.get("knobs"), dict) else {},
-            "text": body.get("text") if isinstance(body.get("text"), dict) else {},
-            "prompt": str(body.get("prompt") or "")[:4096],
+            "knobs": _clean(body.get("knobs")) if isinstance(body.get("knobs"), dict) else {},
+            "text": _clean(body.get("text")) if isinstance(body.get("text"), dict) else {},
+            "prompt": _clean(str(body.get("prompt") or "")[:4096]),
             "consumed": False,
         }
-        with open(os.path.join(self.root, "decisions.jsonl"), "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
-        self._json({"recorded": True, "ts": row["ts"]})
+        self._store("decisions.jsonl", row, {"recorded": True, "ts": row["ts"]})
 
     def _reject(self, status, why):
         body = json.dumps({"recorded": False, "error": why}).encode()

@@ -67,15 +67,15 @@ pid only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid
 name stops the launcher with exit 6 and is left alone).
 
 The server never returns a dot-prefixed file or
-folder, `auth/`, its own state files (`workshop.json`, `decisions.jsonl`,
+folder, `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
 `usage.jsonl`, `*.versions.json`) or a directory listing; every other file under
 `.design-kit/` is readable by whoever can reach the port (on the LAN, whoever holds the
 keyed URL), signed-in screenshots included. The key does not make the LAN private: the
 server speaks plain HTTP, so the key crosses your network in the clear, and it sits in a
 URL, so it lands in the phone's history and anywhere you paste it. Port 8123 belongs to
 the taskmaster/ui-ux mockup server and is
-never used here. One write route exists, `/_decision` — loopback only, header-gated,
-append-only (see the next section); export and publish stay scripts.
+never used here. Two write routes exist, `/_decision` and `/_note` — loopback only,
+header-gated, append-only (see the next section); export and publish stay scripts.
 
 Standing: `scripts/__tests__/serve.test.sh` and `preview.test.sh` drive start, static
 serving, reload injection, the listing, path traversal and stop — **gate** (CI runs
@@ -85,7 +85,8 @@ address, which the server sees as a non-loopback peer (that half skips on a mach
 without one). The idle limit is a **gate**: a 3-second limit, held off by requests and by
 an open stream, in both modes, and not by 403s. The never-served list is a **gate** for GET and
 HEAD, with origin- and absolute-form request targets. The reload client is a **gate** for the text injected
-(the status bar, the retry, the reload, no external asset, at most 800 bytes); its
+(the status bar, the retry, the reload, the same-origin `/_note.js` import, no external
+asset, at most 800 bytes; 758 since 0.15.0); its
 behaviour in a browser, and a keyed link followed from another site, were run once in
 Chrome on 2026-11-12 — **recorded**. Nothing proves a browser rendered a page — **recorded**.
 
@@ -123,6 +124,62 @@ Every pick a skill acts on lands as one line in tracked `design-system/DECISIONS
 Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and three
 reject paths and both badge states, `unread-pick.test.sh` the hook — **gate**. That the
 model reads the prose as requirements is **agent-graded**.
+
+### Notes on any page
+
+Every page the server injects its reload client into (decks, boards, artifacts, previews;
+not the gallery) also gets a **Notes** button, bottom right, and **Alt+N**. Turned on, it
+outlines the element under the pointer; click one (or Tab to it and press Enter) and a small
+box opens beside it; "Note on this page" leaves a note on no element; Escape cancels and
+drops the draft, while turning the widget off keeps it. Alt+N typed in a text field is the
+field's (macOS Option+N types ñ), never the widget's. The panel lists this page's notes with
+their status and reply. On a board, Pick works as before;
+notes are extra. The script is `scripts/note.js`, served at `/_note.js` from the plugin, never
+from `.design-kit/`; it runs only on a loopback address, so a headless browser, `?static=1`, a
+file, another server and a phone on the LAN see nothing. It moves nothing on the page: it
+lives in a shadow root on a fixed, zero-size host.
+
+A note posts to `POST /_note` (the same guards as `/_decision`, with an
+`X-Design-Kit-Note` header) and lands as one line of `.design-kit/notes.jsonl`:
+`{id, ts, page, kind: "note", anchor: {selector, tag, text, rect} | null, text,
+context: {viewport, theme, console}, status: "open", reply: ""}`, every field clamped
+(text 2000 characters, selector 512, the last five console errors, 300 characters each,
+numbers to ±10,000,000) and every other key dropped. A note with no text is refused (400),
+a lone surrogate is stored as `?`, and once `notes.jsonl` or `decisions.jsonl` would pass
+2 MiB a post gets 507 until you move the file aside. `GET /_notes?page=` returns one page's
+rows to the page. `dk notes` prints unread open notes, one JSON object per line with
+control, format and blank-rendering characters escaped, then marks them handed out with the
+time (`--all` lists every row and marks nothing). A note handed out more than 15 minutes ago
+and still open is unread again, so a reader that died or was never read loses nothing.
+`dk notes --wait [--timeout S]` (default 600) blocks until a note is unread or a board pick
+it has not printed yet is unconsumed, and prints it: a pick as one JSON line `{kind: "pick",
+ts, board, picked, prompt}`, left unconsumed for `dk decision --latest --consume`. Run in the
+background it brings the session back when you click Send, with no chat message; exit 3 on
+timeout. `dk notes --reply ID --status addressed|dismissed [--text "…"]` rewrites that row,
+and the page shows it on the next load. `dk notes --shot ID` (nothing else on the line)
+loads the page headless with the element outlined (`?_outline=<selector>`, honoured from
+loopback only) and saves a PNG under `.design-kit/.notes/`, in a throwaway browser profile,
+with Chrome's sandbox on (off only as root or with `DESIGN_KIT_BROWSER_NO_SANDBOX=1`) and
+30 s to finish; with no Chromium-family browser, or a browser that fails, it says so and
+exits 4. The UserPromptSubmit hook adds a count of unread notes and the command to its one
+line, never note text, a selector or a page path; it names a pick's board only when the name
+is plain ASCII of at most 64 characters naming a file in `.design-kit/boards/`, and the
+artboard only from 1 to 99.
+
+Standing: the route, its rejects and clamps, `/_notes`, `/_note.js`, the injected hook,
+`?_outline=` and the never-served file — `serve.test.sh`, **gate**; every `dk notes` mode,
+including a real `--shot` where a browser exists — `dk.test.sh`, **gate**; the hook printing a
+count and none of an instruction-shaped note's text — `unread-pick.test.sh`, **gate**. The
+widget itself (picking, the selector resolving, console capture, keyboard, no layout shift)
+was run in Chromium on 2026-11-13, and again after the review fixes (Alt+N in a field, the
+kept draft, a console object that throws, cuts by code point, the outline after a late
+layout shift) — **recorded**; no harness drives it. That the model
+acts on a note, and replies to each, is **agent-graded**. Missed: a page carrying
+third-party script can post a note from the same origin; note text is what someone typed
+and is not verified, so it is data, not instructions; a selector built on `nth-of-type`
+goes stale when the page's structure changes; no screenshot without a browser; notes stay
+in `.design-kit/` and do not travel with an exported, zipped or published page; elements
+inside iframes and canvas contents cannot be picked.
 
 ## Skills
 
@@ -320,7 +377,7 @@ yes, never enables Pages, never force-pushes), or a zip. There is no other netwo
 What has teeth: the bundler's inlining, UTF-8 refusal, stamp, version ledger, network
 and unresolved-link reports, and the publisher's worktree isolation are **gates** —
 `scripts/__tests__/artifact-*.test.sh` drive each. Page quality is **agent-graded**.
-Not here: comments on a page, refresh from live data, runtime asset loads (a page that
+Notes on the served page: see "Notes on any page". Not here: refresh from live data, runtime asset loads (a page that
 fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
 
 ### `/design-kit:film` — a product film from a brief
@@ -528,7 +585,8 @@ delete at any time; `design-system/` is yours and is not.
 
 ## Not in this release
 
-Reading comments on a shared page, a version picker in the browser, Figma import or
+Notes from another device or on a published or zipped page (notes are loopback-only and
+stay in `.design-kit/`), a version picker in the browser, Figma import or
 export beyond `/design-kit:motion`'s read-only REST calls, image generation, a component registry, and any hosted publishing beyond a git
 pages branch you push yourself.
 

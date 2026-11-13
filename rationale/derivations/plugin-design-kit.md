@@ -63,6 +63,19 @@ phase-guard, are now held byte-for-byte by `pc_shared_blocks`, which superseded 
 holds the phase-guard copy" paragraph above. The test payloads carry a `session_id`, and a
 case proves another session's build phase does not silence this one.
 
+### 2026-11-13 (0.15.0 review): board names, artboard numbers, the notes lease
+
+A page posts the board string and the artboard number, and this line enters the model's context on every
+prompt. The name was filtered with `[\w.-]{1,128}`, and Python's `\w` takes any Unicode letter, so a name
+spelled with U+3164 (a Hangul filler that renders as nothing) in place of spaces read as a sentence. The
+name is now printed only as ASCII `[A-Za-z0-9._-]{1,59}\.html?` (64 characters at most) naming a file in
+`.design-kit/boards/`, the artboard only in 1..99, else the line gives a count. Notes count with dk notes'
+15-minute lease (a timestamped `handed_out` older than that, status still open, counts again). Red, in a
+scratch copy with the harness's exits made non-fatal: `FAIL: the hook printed a board name made of
+blank-rendering letters`, `FAIL: the hook named a board with no file under boards/`, `FAIL: the hook printed a
+board name over 64 characters`, `FAIL: the hook printed an artboard number out of range`, `FAIL: the hook
+should count the note whose 15-minute lease ran out`. The harness's boards now exist as files.
+
 ## plugins/design-kit/scripts/dk.sh
 
 Moved verbatim on 2026-10-28 from the body; lines 2-51 stay as they were because `dk --help` prints them (`sed -n '2,51p'`) and an unknown verb prints lines 7-24. The `#` lines inside the python heredocs are code and stay too.
@@ -137,6 +150,43 @@ here unchanged, so a wired-up caller reads the same number either way.
 ### status: no URL for a dead server (2026-11-12)
 
 `dk status` printed `.preview.url` whenever the file existed, so after a `kill -9` it printed a dead URL. It now prints it only when `.preview.pid` names a live pid (`os.kill(pid, 0)`, pid > 0). Residual: a recycled pid reads as live; the launcher's `ours()` check is not repeated here. Red: `FAIL: dk status printed a URL for a killed server`.
+
+### notes: review fixes (2026-11-13, 0.15.0)
+
+Cases added to `dk.test.sh` first and run red in a scratch copy of the unfixed plugin with the harness's
+exits made non-fatal, then fixed. taskmaster's `preview-feedback.sh` is the twin; the two copy each other's
+rules, never import them.
+
+- **The pick as data.** `--wait` printed an unconsumed pick's `prompt` raw after the JSON rows: a page posts
+  up to 4096 characters with newlines and escape codes kept, enough to forge a row or the hook's line. It now
+  prints `{kind: "pick", ts, board, picked, prompt}` as one escaped JSON line. Red: `FAIL: --wait should
+  print an unconsumed pick as one escaped JSON line (rc=0): implement artboard 1 of x`.
+- **A pick announced once.** An unconsumed pick ended every `--wait` at once and was never marked, so a
+  re-armed wait returned it forever. The wait keeps the printed row's fingerprint in `.notes-pick` (a dot
+  file, never served) and waits past it until a newer pick or a note. Red: `FAIL: a second --wait returned
+  the pick the first one announced`.
+- **Escaping.** Rows printed `json.dumps(ensure_ascii=False)` as is. They now take taskmaster's set: `C*`,
+  `Zl`, `Zp`, variation selectors, the Hangul fillers and U+2800. Red: `FAIL: dk notes printed the raw bytes
+  \302\205` (U+0085), and the same for U+009B, U+200B, U+2028, U+202E, U+E0041, U+E0100, U+3164, U+2800.
+- **Print, then mark; a lease.** Rows were marked before they were printed; now they print and flush under
+  the lock, then the mark is saved, and a note handed out 15 minutes ago and still open is unread again.
+  Red: `FAIL: a reader whose output failed still marked the note handed out` (stdout on `/dev/full`), `FAIL:
+  dk notes should hand out again a note handed out 20 min ago and still open, and only that one`.
+- **Parse on change.** `--wait` re-parsed both files twice a second; it now compares inode, size and mtime.
+  Red: `FAIL: --wait re-read a notes file whose size and mtime did not move (rc=0)`.
+- **One parse for `--shot`.** Python validated the last `--shot` value while the shell named the PNG after
+  `$2`, so `--shot ../../logo --shot <id>` removed and wrote `../../logo.png`; `--all --shot <id>` took no
+  PNG and exited 0. `--shot ID` must now be the whole argument list, every option may appear once, verbs do
+  not mix, and the PNG path is built from the id Python printed. Red: `FAIL: --shot ../../logo --shot <id>
+  should exit 2 and write nothing (rc=0, …/logo.png: PNG…)` and six usage cases that exited 0.
+- **The browser run.** No `--no-sandbox` unless root or `DESIGN_KIT_BROWSER_NO_SANDBOX=1`, a throwaway
+  `--user-data-dir` (it used the user's own Chrome profile), `timeout 30`, and a failed run is reported
+  (exit 4) instead of hidden by `|| true`. Red: `FAIL: --shot passed --no-sandbox …`, `… (no
+  --user-data-dir)`, `… with no time limit (parent bash)`, `FAIL: a browser that exits 7 should be reported`.
+- **Rewrites.** A rewrite kept only lines that parsed as objects and wrote a fixed-name
+  `.notes.jsonl.tmp` opened with `"w"`, which a planted symlink redirected. Now raw lines carry through,
+  reads use `O_NOFOLLOW`, and the rewrite goes through `mkstemp`. Red: `FAIL: --reply dropped a line it
+  could not parse`, `FAIL: --reply wrote through a symlinked temp file`.
 
 ## plugins/design-kit/scripts/snapshot.sh
 
@@ -292,6 +342,44 @@ someone switches off within a day.
 
 ## plugins/design-kit/scripts/serve.py
 
+### 0.15.0, 2026-11-13 — notes on any served page (M2, the feedback loop)
+
+Milestone M2 of the preview-server work: A1, A2, A3, A4, A6 and A1c for design-kit. The spec lives in the gitignored `taskmaster-docs/`.
+
+**Route (A1).** `POST /_note` shares `/_decision`'s guard code, refactored into `_not_local` plus one body reader: the key gate first, then a loopback peer even with a valid LAN key, a loopback `Host`, a loopback `Origin` when sent, its own `X-Design-Kit-Note` header (the decision header does not open it), 1..8192 bytes, a JSON object. `note_row` builds the row from named fields only, clamps each, and turns NaN, Infinity, booleans and strings in number slots into 0 (Python's `json.loads` accepts `Infinity`). `notes.jsonl` joined `IGNORED`, so it is never served and its writes do not reload open pages; `_newest_mtime` now also skips dot files (the `.notes.lock` lock and dk's `.notes.jsonl.tmp`), which are never served either. Without that, the first note created the lock, every open tab reloaded, and a half-typed note in another tab was lost. Appends and dk's rewrites hold `fcntl.flock` on `.notes.lock`, so a note posted while `dk notes --reply` rewrites the file is not dropped by `os.replace`. Red, run against HEAD's serve.py in a scratch copy: `POST /_note` 501, `GET /notes.jsonl` 200, `GET /_notes` 404, no outline tag on `?_outline=`.
+
+**Widget (A2, A4, A6).** The reload client grew by one statement, `import(location.origin+"/_note.js").catch(function(){})`: 702 bytes before, 758 after, ceiling 800. `location.origin` rather than a bare path because a page's `<base href>` would otherwise send the import to another host. The script is `scripts/note.js`, served from the plugin, never from the docroot, so the opt-outs are the reload client's own: a headless browser, `?static=1`, a file, another server (the import 404s and the catch swallows it). The gallery gets the client without the import. Red: `FAIL: the reload client does not load the note widget from its own origin`, then `FAIL: /_note.js should be 200 JavaScript, got 404`. One exception to "not for headless": a loopback request carrying `?_outline=` gets `<script type="module" src="/_note.js">` and no reload client, and the script then draws only an outline, for `dk notes --shot`.
+
+**Reader (A3).** `dk notes` hands out unread open rows and marks them (`handed_out`, a timestamp), `--all` lists without marking, `--wait` polls every 0.5 s and also returns on an unconsumed pick, printing it as `dk decision --latest` does and leaving it unconsumed, `--reply` rewrites one row under the lock, `--shot` runs the browser `board-export.sh --which` finds against `http://127.0.0.1:<port>` (not the URL file's host, which is the LAN address in LAN mode) into `.design-kit/.notes/` (0700, a dot folder, so never served). Red: `FAIL: dk --help does not document dk notes`. **Hook (A1c).** Red: `FAIL: notes line:` (silent). It counts open, not-handed-out notes and prints no page string; the board name of a pick, also page-posted, is now printed only when it is a plain file name, else "a board".
+
+**Browser run, 2026-11-13** (Playwright's Chromium 157, headed user agent, through the Playwright MCP). On an artifact page: the toggle opened the panel and every element's bounding box was unchanged; the hover outline followed the pointer; a click on the Churn card's `2.1%` paragraph opened the box anchored under it with focus in the textarea; Send wrote `div[data-metric="churn"]:nth-of-type(2) > p`, which `querySelectorAll` resolves to exactly that element, viewport 1241×1252, theme `light`. A `dk notes --wait` started before the click returned with that row, exit 0. A page note carried `console.error('chart failed', new Error('boom'))` and an uncaught error as `["chart failed boom", "Uncaught Error: late failure"]`. `dk notes --reply … --status addressed` showed on the page after a reload. `?static=1`: no widget, no request for `/_note.js`, no console error. From a file and from another server serving a saved copy: no widget, no exception. On a board: Pick still recorded (`picked: 2`, toast, `dk decision --latest` read it), and typing `f`, `e`, `k` in the note box left the board's fit, edit and knobs alone. `dk notes --shot` wrote a PNG with the noted button outlined and no widget. Alt+N toggled; Tab to a page button and Enter opened the box on it. Two defects the harness could not see were found and fixed in this run: the module called `start()` above its `const` declarations, so it threw in the temporal dead zone and the import's catch hid it (no widget at all); and Escape kept the draft, so a reopened box doubled the text.
+
+Not exercised: a screen reader (Chrome's accessibility tree lists the toggle as `button:Notes`; nothing more), Firefox and Safari, a page that styles every `div` or uses its own capture-phase handlers, a phone over LAN (the widget stays hidden off loopback by design). Residuals: a page carrying third-party script can post a note from the same origin; note text is user-typed and unverified; selectors that rely on `nth-of-type` break when the page's structure changes before a shot; no screenshot without a Chromium-family browser; notes do not travel with an exported or published page. The spec's A2 proof named a `variant` field on board rows; the row shape this milestone was given has none, so a board note's variant is only in its selector (`#board-1 …`).
+
+### 0.15.0 review, 2026-11-13 — writes that answer, and stop
+
+Cases added to `serve.test.sh` first and run red in a scratch copy of the unfixed server, then fixed:
+
+- **A lone surrogate** (the widget cut text through an emoji) made the append raise `UnicodeEncodeError`,
+  which nothing caught, so the post got no response; `knobs` and `text` in a decision could do the same.
+  `_clean` replaces each with `?`, inside nested objects too. Red: `FAIL: a note with a lone surrogate should
+  be 200 and stored with ? (000)`, the same for a decision. `RecursionError` is caught as 400 on the parse
+  and the record; Python 3.14 here parses 8 KiB of `[` as a plain decode error, so that half was not
+  reproduced.
+- **Empty notes and failed writes** match taskmaster: a note without text is 400, a failed append a JSON
+  500. Red: `FAIL: a note without text ({}) should be 400, got 200`, `FAIL: an append that fails (notes.jsonl
+  is a folder) should answer 500, got 000`.
+- **Numbers** clamp to ±10^7; `1e308` was a 309-digit integer per rect field. Red: `FAIL: note numbers are
+  not clamped to +-1e7`.
+- **A size cap.** `notes.jsonl` and `decisions.jsonl` stop at 2 MiB (507 with a JSON reason). Red: `FAIL: a
+  post to a full notes.jsonl should be 507 …, got 200`, the same for `decisions.jsonl`.
+- **No symlink.** `notes.jsonl` was opened with `open("a")`, so a tracked symlink there let a post append to
+  its target. Appends and `_jsonl` reads now use `O_NOFOLLOW` (and appends 0600). Red: `FAIL: a note was
+  appended through the notes.jsonl symlink`, `FAIL: /_notes read through the notes.jsonl symlink`.
+- **The outline tag** loaded `src="/_note.js"` by bare path, which a page's `<base href>` sends elsewhere;
+  it now runs the reload client's `import(location.origin+"/_note.js")`. Red: `FAIL: the outline tag loads
+  /_note.js by bare path`. The reload snippet itself did not change (758 bytes, ceiling 800).
+
 ### 0.14.0, 2026-11-12 — idle shutdown, a LAN key, a reload client that survives a restart
 
 Milestone M1 of the preview-server work: B2, B3, B6 and the header fix. The spec and the research it rests on live in the gitignored `taskmaster-docs/`.
@@ -373,6 +461,30 @@ reload snippet: its open EventSource never goes idle, so a virtual-time
 budget never expires and the capture hangs (measured with Chrome 2026-09-22).
 `?static=1` opts any client out.
 ```
+
+## plugins/design-kit/scripts/note.js
+
+### 0.15.0, 2026-11-13 — why it looks the way it does
+
+Loaded as a module by the reload client's `import()`, so it costs the injected snippet 56 bytes instead of its own size. Everything renders in an open shadow root on a host appended to `<html>`, not `<body>`: page CSS cannot restyle it, a fixed host takes no layout space, and it does not become the body's `:last-child`, which a page's `body > :last-child` rule would otherwise stop matching. Chrome's accessibility tree still lists it. Key events are stopped at the host because a board's and a deck's document-level shortcuts read `e.target`, which shadow DOM retargets to the host, a `div`, so their "typing in a field" check fails and `f`, `e`, `k` or Space would act on the page. While picking, capture-phase listeners on `window` stop pointer and click events so a click picks instead of navigating, picking an artboard or panning a board. Alt+N, not a bare letter, because boards use F/E/K and decks S/O/P; a deck ignores Alt. Console capture wraps `console.error` and listens for `error` (capture phase, so failed `<img>`/`<script>` loads count) and `unhandledrejection`, from the moment the module runs; earlier errors are missed. The entry block sits at the end of the file: a call above the `const` declarations throws in the temporal dead zone, which the snippet's catch hides. The browser run is in the serve.py section above.
+
+### 0.15.0 review, 2026-11-13 — browser run before and after
+
+A private Playwright Chromium (build 1248, headed user agent) on a test page served by this server, once
+with the pre-fix `note.js` and once with the fixed one. Before: `console.error('boom', o)` with a circular
+`Object.create(null)` threw `Cannot convert object to primitive value` into the page, and the
+`unhandledrejection` listener threw too; Alt+N in the page's own input turned the widget on; Alt+N in the
+widget's textarea closed it and wiped the draft `dise`; turning the widget off and on wiped `kept draft`; an
+anchor text and a console entry cut through an emoji posted strings ending in a lone `\ud83d`; with
+`?_outline=#target` and a block above it growing 400 px at 300 ms, the outline box sat 416 px above the
+element. After: no throw (entries `boom [object Object]` and `unhandled rejection: [object Object]`); the
+page's input kept Alt+N; the draft `dise` stayed with the box open; `kept draft` survived the toggle; both
+strings ended in the whole emoji; the box sat exactly on the element (screenshots looked at for both). A
+real `dk notes --shot` on the same page, sandbox on, outlined "Churn 2.1%" after the shift. The list
+finding (a page note's text shown twice) did not reproduce with this file: the item read `open` and the text
+once, both in the DOM and the accessibility tree. The fix asked for is applied anyway: an anchorless note is
+labelled `Page`, an anchored one `<tag>`, then the text once, with spaces between, so the accessible text
+reads `open Page Whole page: add a Q2 column` instead of `openWhole page: …`.
 
 ## plugins/design-kit/scripts/preview.sh
 
