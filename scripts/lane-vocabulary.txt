@@ -169,6 +169,7 @@ destructive-schema-consent
 dispatch-hedge-guard
 final-message-ask-accounting
 first-work-prompt-discipline-preamble
+installed-plugin-update
 installed-version-pins
 invisible-character-report
 irreversible-command-or-repeated-attempt

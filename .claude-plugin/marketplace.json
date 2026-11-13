@@ -165,6 +165,11 @@
       "description": "A zero-setup session HUD for the terminal, as a hooks module: a /hud pane with the context window by category, the compaction point, the 5-hour and 7-day rate-limit windows with reset countdowns and the session's cost and time, opt-in pinned so it comes back after you close it; and richer subagent rows. Opt-in: the same figures on the prompt's hint line and what each turn cost on its closing line, for anyone without a statusLine of their own. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291."
     },
     {
+      "name": "plugin-updater",
+      "source": "./plugins/plugin-updater",
+      "description": "Keeps every installed Claude Code plugin current in every scope (user, project, local) and every project folder. At session start, once a day by default, it runs the updater detached: refreshes the marketplaces and runs claude plugin update one install at a time for each install behind its marketplace clone; the next session shows one line with what changed or needs you. /plugin-updater:update-plugins runs it on demand, --dry-run lists only, --last shows the last background run. It never accepts a changed marketplace command, and skips missing folders and git worktrees. Each switch is a /config option."
+    },
+    {
       "name": "godot",
       "source": "./plugins/godot",
       "description": "Godot 4 skills that carry only what a model gets wrong from memory: the 4.3–4.7 inversions (Jolt Physics 3D as the default for new projects since 4.6, the 4.7 GDScript override and packed-array changes, flipped defaults), multiplayer authority, visibility and auth footguns, web-export and C# limits; a headless GDScript test runner that exits non-zero on failure; and a standard-library Python checker for broken res:// paths, uids and scene references. Pairs with gamedev."

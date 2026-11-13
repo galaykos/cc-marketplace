@@ -1,0 +1,33 @@
+{
+  "name": "plugin-updater",
+  "version": "0.1.0",
+  "description": "Keeps every installed Claude Code plugin current in every scope (user, project, local) and every project folder. At session start, once a day by default, it runs the updater detached: refreshes the marketplaces and runs claude plugin update one install at a time for each install behind its marketplace clone; the next session shows one line with what changed or needs you. /plugin-updater:update-plugins runs it on demand, --dry-run lists only, --last shows the last background run. It never accepts a changed marketplace command, and skips missing folders and git worktrees. Each switch is a /config option.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling",
+    "hooks"
+  ],
+  "userConfig": {
+    "cc_plugin_updater_auto": {
+      "type": "boolean",
+      "title": "Update in the background (CC_PLUGIN_UPDATER_AUTO)",
+      "description": "At session start, when the last completed run is older than the interval, run the updater detached and report it at the next session start: on or off. Off leaves only a startup line counting outdated installs. The environment variable CC_PLUGIN_UPDATER_AUTO overrides this.",
+      "default": true
+    },
+    "cc_plugin_updater_interval": {
+      "type": "number",
+      "title": "Hours between background runs (CC_PLUGIN_UPDATER_INTERVAL)",
+      "description": "Minimum hours from the last completed run to the next background run; 0 runs at every session start. The environment variable CC_PLUGIN_UPDATER_INTERVAL overrides this.",
+      "default": 24
+    },
+    "cc_plugin_updater_hint": {
+      "type": "boolean",
+      "title": "Outdated-installs line (CC_PLUGIN_UPDATER_HINT)",
+      "description": "With background updates off, show a startup line counting outdated plugin installs: on or off. The environment variable CC_PLUGIN_UPDATER_HINT overrides this.",
+      "default": true
+    }
+  }
+}
