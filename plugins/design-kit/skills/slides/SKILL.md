@@ -82,7 +82,8 @@ memory gets wrong.
    itself on every rebuild; the gallery at the base URL lists every deck with a badge
    that turns amber when `design-system/tokens.json` moved after the build. `dk.sh
    share <deck> --lan` puts it on the network for a phone — say that a page leaves the
-   machine before using it.
+   machine before using it, and give the phone the whole printed URL: without its `?key=`
+   it gets 403.
 4. **Iterate** one axis per round: order, then headlines, then figures, then
    notes. Rebuild after each edit; the open tab follows.
 5. **Export** only when asked: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" export

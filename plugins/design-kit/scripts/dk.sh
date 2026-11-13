@@ -167,6 +167,8 @@ for k in sys.argv[2].split("."):
     v=v.get(k) if isinstance(v,dict) else None
 print("" if v is None else v)' "$WS" "$1"; }
 url() { cat "$DK/.preview.url" 2>/dev/null || true; }
+# keyed <url>: while the server is LAN-bound every printed URL carries the network address, so it needs serve.py's key
+keyed() { if [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ] && [ -s "$DK/.preview.key" ]; then printf '%s?key=%s' "$1" "$(cat "$DK/.preview.key")"; else printf '%s' "$1"; fi; }
 ensure_server() { # stdout: the URL only; preview.sh's own lines go to stderr
   local out; out="$(bash "$here/preview.sh" --docroot "$DK" "$@")" || { echo "$out" >&2; return 4; }
   echo "$out" | grep -v '^preview: http' >&2 || true
@@ -182,7 +184,7 @@ case "$verb" in
   serve)
     if [ "${1:-}" = "--stop" ]; then bash "$here/preview.sh" --docroot "$DK" --stop; log ok; exit 0; fi
     lan=""; [ "${1:-}" = "--lan" ] && lan="--lan"
-    base="$(ensure_server $lan)"; echo "url=$base"; log ok ;;
+    base="$(ensure_server $lan)"; echo "url=$(keyed "$base")"; log ok ;;
 
   system)
     target="."; out="design-system"; args=(); rendered=""
@@ -193,7 +195,7 @@ case "$verb" in
     mkdir -p "$DK/previews"; cp "$out/kit.html" "$DK/previews/kit.html"
     base="$(ensure_server)"
     ws_set system "{\"stamp\":\"$(tokens_sha)\",\"at\":\"$(now)\",\"out\":\"$out\"}"
-    echo "url=${base}previews/kit.html"; log ok "$out/tokens.json" ;;
+    echo "url=$(keyed "${base}previews/kit.html")"; log ok "$out/tokens.json" ;;
 
   check)
     if [ ! -f design-system/tokens.json ]; then echo "design-system: none — run /design-kit:system first"; log skip; exit 0; fi
@@ -244,7 +246,7 @@ case "$verb" in
     [ -n "$deck" ] || fail "could not read the deck path from deck-build" "$outline" 1
     base="$(ensure_server)"
     ws_set deck "{\"file\":\"$deck\",\"at\":\"$(now)\",\"outline\":\"$outline\",\"pdf\":null}"
-    echo "deck=$deck"; echo "url=${base}${deck#"$DK"/}"; log ok "$deck" ;;
+    echo "deck=$deck"; echo "url=$(keyed "${base}${deck#"$DK"/}")"; log ok "$deck" ;;
 
   board)
     spec="${1:-}"; [ -n "$spec" ] || fail "needs a spec path" "" 2; shift
@@ -254,7 +256,7 @@ case "$verb" in
     board="$(echo "$out" | tail -1)"
     base="$(ensure_server)"
     ws_set board "{\"file\":\"$board\",\"picked\":null,\"at\":\"$(now)\",\"spec\":\"$spec\"}"
-    echo "board=$board"; echo "url=${base}${board#"$DK"/}"; log ok "$board" ;;
+    echo "board=$board"; echo "url=$(keyed "${base}${board#"$DK"/}")"; log ok "$board" ;;
 
   scratch)
     mode="${1:-}"; [ -n "$mode" ] || fail "needs --detect|--create SLUG|--cleanup|--verify" "" 2; shift
@@ -283,13 +285,13 @@ for w in d.get("warnings",[]): print("WARN:", w)
 if d.get("zip"): print("zip:", d["zip"])'
     base="$(ensure_server)"
     ws_set "artifacts+" "{\"slug\":\"$slug\",\"version\":$ver,\"at\":\"$(now)\",\"file\":\"$art\"}"
-    echo "artifact=$art v$ver"; echo "url=${base}artifacts/$(basename "$art")"; log ok "$art" ;;
+    echo "artifact=$art v$ver"; echo "url=$(keyed "${base}artifacts/$(basename "$art")")"; log ok "$art" ;;
 
   share)
     page="${1:-}"; [ -n "$page" ] || fail "needs a page" "" 2; shift
     mode="${1:-}"; [ -n "$mode" ] || fail "needs --lan | --pages [--push] | --zip" "" 2; shift
     case "$mode" in
-      --lan) base="$(ensure_server --lan)"; echo "url=${base}${page#"$DK"/}"; log ok "$page" ;;
+      --lan) base="$(ensure_server --lan)"; echo "url=$(keyed "${base}${page#"$DK"/}")"; log ok "$page" ;;
       --pages) bash "$here/artifact-publish.sh" "$page" "$@" || fail "publish failed" "$page" 1; log ok "$page" ;;
       --zip) z="${page%.html}.zip"; python3 -c 'import sys,zipfile,os
 p,z=sys.argv[1:3]
@@ -367,7 +369,16 @@ spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.u
 import os
 steps = m.flow_steps(os.path.abspath(dk))
 print(" → ".join(f"{l} [{d}]" for l, d, s in steps))
-u = open(os.path.join(dk, ".preview.url")).read().strip() if os.path.exists(os.path.join(dk, ".preview.url")) else ""
+def alive():
+    try:
+        pid = int(open(os.path.join(dk, ".preview.pid")).read().strip())
+        if pid <= 0:
+            return False
+        os.kill(pid, 0)
+        return True
+    except (OSError, ValueError):
+        return False
+u = open(os.path.join(dk, ".preview.url")).read().strip() if alive() and os.path.exists(os.path.join(dk, ".preview.url")) else ""
 print("server: " + (u or "not running"))
 PY
     log ok ;;

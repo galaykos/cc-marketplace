@@ -102,23 +102,23 @@ screens. A clickable prototype, zero JavaScript, works over `file://`.
 
 Always serve — every decision lands in the same tab. One server, one canonical file:
 
-1. On the first visual decision, start `assets/serve.py --port "${PREVIEW_PORT:-8123}"`
-   (relative to this skill's directory) in background Bash with `timeout: 7200000`, note the PID
-   (normalized fallback chain: serve.py → `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups` →
-   no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` → `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`). <!-- removed-ok --> <!-- php -S is the PHP binary's server, not the retired php plugin -->
-   Port busy? `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump.
-2. Before each later pass re-check the port (`lsof -ti :${PREVIEW_PORT:-8123}`): from CLI 2.1.285 a
-   background call stops at its `timeout` (2 h at most; from 2.1.288 in `-p`, SDK, CI and cloud
-   sessions only), so nothing listening → start it again as in step 1, same port.
-   Write each pass to a dated file (ledger trail), copy to `current.html` — the
-   user's tab at `http://localhost:${PREVIEW_PORT:-8123}/current.html` sees every pass in place.
+1. Before every pass run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh"` (serves
+   `taskmaster-docs/mockups` on `${PREVIEW_PORT:-8123}`; `--port N` for another). It starts serve.py in the
+   background only when this docroot's server is not running (stopped idle, or a session ended) and prints
+   the URL either way. Exit 4 = port busy: rerun with `--port <next>`. Exit 3, or serve.py failing → the
+   fallback chain in background Bash with `timeout: 7200000` (a rung stops at its timeout; restart it when nothing answers): `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups` →
+   no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` → `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`. <!-- removed-ok --> <!-- php -S is the PHP binary's server, not the retired php plugin -->
+2. Write each pass to a dated file (ledger trail), copy to `current.html` — the
+   user's tab at the printed URL plus `current.html` sees every pass in place.
 3. Auto-reload: SSE push exists only on the serve.py rung; any lower rung
    (`http.server`, `php -S`, `npx serve`) still serves fine — the shell falls
-   back to body-compare polling there (server gone → page stays usable either way).
+   back to body-compare polling there. serve.py stopping (idle after 4 h, `--stop`) shows a
+   "Preview server stopped" bar; the tab reloads itself once `preview.sh` brings it back.
 4. History is free: the header's version picker lists the dated passes and Restore rolls one back over `current.html` (serve.py rung only). Set `SLOT: favicon` per purpose so the tabs stay distinguishable.
 
 Other flows share this server via per-purpose files (`theme.html`, `walkthrough.html`,
-`diagram.html`, `api.html`, `modules.html`, `compose.html`) — kill only at pipeline end; stale: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
+`diagram.html`, `api.html`, `modules.html`, `compose.html`) — stop it only at pipeline end:
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" --stop` (a fallback rung: stop its background task). `file://` is the no-runtime fallback.
 
 ## Data-shape decisions
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# Misses: a deleted file (only changed or new paths are pushed); a ninth open stream (503); under --lan the Origin/Host guard passes every request (/_restore still needs its header); the synthesized landing and gallery pages never reload.
+# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore stays loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. Harness: plugins/taskmaster/scripts/__tests__/serve.test.sh.
+# Misses: a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
@@ -16,15 +18,29 @@ Stdlib only. Usage:
 
 import argparse
 import functools
+import html
+import hmac
 import http.server
+import ipaddress
 import json
 import os
 import queue
+import secrets
 import shutil
+import socket
+import stat
 import sys
+import tempfile
 import threading
+import time
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlencode
 
+IDLE_MINUTES_DEFAULT = 240
+LAN_MINUTES_DEFAULT = 60
+LAN_KEY_FILE = ".preview.key"
+KEY_COOKIE = "taskmaster_preview_key"
+URLSAFE = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
 MAX_SSE_CLIENTS = 8
 POLL_INTERVAL_SECONDS = 0.75
 KEEPALIVE_SECONDS = 15
@@ -48,14 +64,111 @@ def hostname_from_netloc(netloc):
     return netloc.split(":", 1)[0]
 
 
+def is_private(request_path):
+    """True when any segment of the request path starts with a dot: dot files and folders, this server's own state files."""
+    # Split as SimpleHTTPRequestHandler.translate_path does; urlsplit would read '//.env/' as a host.
+    path = unquote(request_path.split("?", 1)[0].split("#", 1)[0])
+    return any(segment.startswith(".") for segment in path.split("/"))
+
+
+def peer_is_loopback(peer):
+    try:
+        addr = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    return (getattr(addr, "ipv4_mapped", None) or addr).is_loopback
+
+
+def _same_key(given, key):
+    return given is not None and hmac.compare_digest(given.encode("utf-8"), key.encode("utf-8"))
+
+
+def lan_access(lan, peer, query_key, cookie_key, key):
+    """The LAN key rule: 'open' (loopback, not LAN, or a valid cookie), 'grant' (a valid ?key=), or 'deny'."""
+    if not lan or peer_is_loopback(peer):
+        return "open"
+    if key and _same_key(query_key, key):
+        return "grant"
+    if key and _same_key(cookie_key, key):
+        return "open"
+    return "deny"
+
+
+def clean_location(request_path):
+    """The request path without its key= parameter, rooted so it can never be read as another host."""
+    path, _, query = request_path.partition("?")
+    rest = [(k, v) for k, v in parse_qsl(query, keep_blank_values=True) if k != "key"]
+    return "/" + path.lstrip("/\\") + ("?" + urlencode(rest) if rest else "")
+
+
+def cookie_value(header, name):
+    for part in header.split(";"):
+        key, sep, value = part.strip().partition("=")
+        if sep and key == name:
+            return value
+    return None
+
+
+def load_or_create_key(docroot):
+    """The LAN key, reused only from a regular dot-file holding one; anything else is unlinked, never followed, and replaced O_EXCL at 0600."""
+    path = str(docroot / LAN_KEY_FILE)
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+    except OSError:
+        fd = None
+    if fd is not None:
+        with os.fdopen(fd, "rb") as handle:
+            if stat.S_ISREG(os.fstat(fd).st_mode):
+                try:
+                    key = handle.read(256).decode("utf-8").strip()
+                except ValueError:
+                    key = ""
+                if len(key) >= 16 and set(key) <= URLSAFE:
+                    if hasattr(os, "fchmod"):
+                        os.fchmod(fd, 0o600)
+                    return key
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    key = secrets.token_urlsafe(24)
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        handle.write(key + "\n")
+    return key
+
+
+def lan_address():
+    """This machine's address on its default route (a UDP connect sends nothing), else 127.0.0.1."""
+    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        probe.connect(("203.0.113.1", 9))
+        return probe.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        probe.close()
+
+
 class ServerState:
     """Shared mutable state between the request threads and the watcher."""
 
-    def __init__(self, docroot, lan):
+    def __init__(self, docroot, lan, key=""):
         self.docroot = docroot
         self.lan = lan
+        self.key = key
         self.lock = threading.Lock()
         self.clients = []  # list[queue.Queue]
+        self.last_activity = time.monotonic()
+
+    def touch(self):
+        with self.lock:
+            self.last_activity = time.monotonic()
+
+    def idle_for(self, now):
+        """Seconds since the last completed request; 0 while any event stream is open."""
+        with self.lock:
+            return 0.0 if self.clients else now - self.last_activity
 
     def add_client(self):
         with self.lock:
@@ -131,7 +244,46 @@ def build_handler(state):
     class Handler(http.server.SimpleHTTPRequestHandler):
         server_version = "MockupPreview/1.0"
 
+        def handle(self):
+            self.admitted = False
+            try:
+                super().handle()
+            finally:
+                if self.admitted:
+                    state.touch()
+
+        def lan_gate(self):
+            """Apply the LAN key rule; False when the response (403, or the cookie-setting page) is already sent."""
+            query = self.path.partition("?")[2]
+            query_key = next((v for k, v in parse_qsl(query, keep_blank_values=True) if k == "key"), None)
+            cookie_key = cookie_value(self.headers.get("Cookie", ""), KEY_COOKIE)
+            access = lan_access(state.lan, self.client_address[0], query_key, cookie_key, state.key)
+            self.admitted = access != "deny"
+            if access == "open":
+                return True
+            if access == "deny":
+                self.send_error(403, "Forbidden (LAN key required)")
+                return False
+            # A page with a meta refresh, not a 303: a browser withholds a SameSite=Strict cookie on the redirect of a link followed from another site.
+            clean = html.escape(clean_location(self.path), quote=True)
+            body = '<!doctype html><meta http-equiv="refresh" content="0;url={0}"><a href="{0}">Open the preview</a>'.format(clean).encode()
+            self.send_response(200)
+            self.send_header("Set-Cookie", "{}={}; Path=/; HttpOnly; SameSite=Strict".format(KEY_COOKIE, state.key))
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return False
+
+        def do_HEAD(self):
+            if self.lan_gate():
+                super().do_HEAD()
+
         def do_GET(self):
+            if not self.lan_gate():
+                return
             path = self.path.split("?", 1)[0]
             if path == "/events":
                 self.handle_sse()
@@ -153,6 +305,8 @@ def build_handler(state):
             super().do_GET()
 
         def do_POST(self):
+            if not self.lan_gate():
+                return
             if self.path.split("?", 1)[0] == "/_restore":
                 self.handle_restore()
                 return
@@ -192,8 +346,9 @@ def build_handler(state):
                 state.drop_client(client)
 
         def is_local_request(self):
-            if state.lan:
-                return True
+            return state.lan or self.host_and_origin_local()
+
+        def host_and_origin_local(self):
             if hostname_from_netloc(self.headers.get("Host", "")) not in LOCAL_HOSTNAMES:
                 return False
             origin = self.headers.get("Origin")
@@ -202,6 +357,16 @@ def build_handler(state):
                 if hostname_from_netloc(origin_netloc) not in LOCAL_HOSTNAMES:
                     return False
             return True
+
+        def send_head(self):
+            if is_private(self.path):
+                self.send_error(404, "Not Found")
+                return None
+            return super().send_head()
+
+        def list_directory(self, path):
+            self.send_error(404, "Not Found")
+            return None
 
         def log_message(self, fmt, *args):
             sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
@@ -228,7 +393,7 @@ def build_handler(state):
         def _ledger_entry(self, name):
             """(name, mtime) for a top-level ledger .html, or None if excluded."""
             low = name.lower()
-            if "/" in name or not low.endswith(".html") or low in LEDGER_EXCLUDED:
+            if "/" in name or name.startswith(".") or not low.endswith(".html") or low in LEDGER_EXCLUDED:
                 return None
             try:
                 return (name, (state.docroot / name).stat().st_mtime)
@@ -259,14 +424,15 @@ def build_handler(state):
             """Copy a chosen ledger pass over current.html (rollback).
 
             The ONLY route that writes. Four independent gates, because a
-            localhost port is not a trust boundary: local Origin/Host, the
+            localhost port is not a trust boundary: a loopback peer with a local
+            Origin/Host (in LAN mode too, a valid key included), the
             preflight-forcing custom header, a bounded body, and a name that
             must be a bare basename resolving to an existing top-level ledger
             file inside the docroot. The destination is hardcoded — a request
             never names what it overwrites.
             """
-            if not self.is_local_request():
-                self.send_error(403, "Forbidden (non-local Origin/Host)")
+            if not (peer_is_loopback(self.client_address[0]) and self.host_and_origin_local()):
+                self.send_error(403, "Forbidden (restore is loopback-only)")
                 return
             if not self.headers.get(RESTORE_HEADER):
                 self.send_error(403, "Forbidden (missing %s)" % RESTORE_HEADER)
@@ -293,9 +459,19 @@ def build_handler(state):
             if source.parent != state.docroot or not source.is_file():
                 self._send_json({"ok": False, "error": "not a ledger file"}, 400)
                 return
+            # Copy to a dot-named temp file, then one rename: a kill mid-copy leaves current.html whole.
+            dest = state.docroot / "current.html"
+            tmp = None
             try:
-                shutil.copyfile(source, state.docroot / "current.html")
+                fd, tmp = tempfile.mkstemp(dir=str(state.docroot), prefix=".restore-", suffix=".tmp")
+                with os.fdopen(fd, "wb") as out, open(source, "rb") as src:
+                    shutil.copyfileobj(src, out)
+                if dest.exists():
+                    os.chmod(tmp, stat.S_IMODE(dest.stat().st_mode))
+                os.replace(tmp, str(dest))
             except OSError as exc:
+                if tmp is not None and os.path.exists(tmp):
+                    os.unlink(tmp)
                 self._send_json({"ok": False, "error": str(exc)}, 500)
                 return
             # No explicit broadcast: the watcher sees current.html's new mtime and pushes the reload.
@@ -487,9 +663,12 @@ def build_handler(state):
 
 
 def scan_mtimes(docroot):
-    """Yield (docroot-relative posix path, (mtime, size)) for every file under docroot."""
-    for root, _dirs, files in os.walk(docroot):
+    """Yield (docroot-relative posix path, (mtime, size)) for every servable file under docroot."""
+    for root, dirs, files in os.walk(docroot):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
         for name in files:
+            if name.startswith("."):
+                continue
             full = Path(root) / name
             try:
                 st = full.stat()
@@ -509,6 +688,40 @@ def watch_loop(state, stop_event):
         mtimes = current
 
 
+def minutes_from_env(name, default):
+    """A minutes setting: unset or unreadable gives the default; 0 or less means off (0.0)."""
+    raw = os.environ.get(name, "").strip()
+    try:
+        value = float(raw) if raw else float(default)
+    except ValueError:
+        value = float(default)
+    return max(value, 0.0)
+
+
+def describe_minutes(minutes, off_text):
+    return "{:g} minutes".format(minutes) if minutes else off_text
+
+
+def stop_reason(state, started, now, lan_seconds, idle_seconds):
+    if lan_seconds and now - started >= lan_seconds:
+        return "the LAN time limit passed (PREVIEW_LAN_MINUTES)"
+    if idle_seconds and state.idle_for(now) >= idle_seconds:
+        return "idle, no request and no open stream (PREVIEW_IDLE_MINUTES)"
+    return None
+
+
+def lifetime_loop(state, httpd, stop_event, lan_seconds, idle_seconds):
+    """Shut the server down at the LAN time limit or after the idle limit."""
+    started = time.monotonic()
+    tick = min(5.0, max(0.1, min(s for s in (lan_seconds, idle_seconds) if s) / 4))
+    while not stop_event.wait(tick):
+        reason = stop_reason(state, started, time.monotonic(), lan_seconds, idle_seconds)
+        if reason:
+            print("Stopping: {}".format(reason), file=sys.stderr, flush=True)
+            httpd.shutdown()
+            return
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -521,7 +734,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--lan", action="store_true",
-        help="Bind 0.0.0.0 and accept /events from non-localhost Origin/Host.",
+        help="Bind 0.0.0.0; a non-loopback peer needs the key printed in the URL; exits after $PREVIEW_LAN_MINUTES (default 60).",
     )
     return parser.parse_args(argv)
 
@@ -532,6 +745,12 @@ def main(argv=None):
     docroot.mkdir(parents=True, exist_ok=True)
 
     state = ServerState(docroot=docroot, lan=args.lan)
+    if args.lan:
+        try:
+            state.key = load_or_create_key(docroot)
+        except OSError as e:
+            print(f"cannot keep the LAN key in {docroot / LAN_KEY_FILE}: {e}", file=sys.stderr)
+            sys.exit(1)
     host = "0.0.0.0" if args.lan else "127.0.0.1"
     try:
         httpd = http.server.ThreadingHTTPServer((host, args.port), build_handler(state))
@@ -539,14 +758,39 @@ def main(argv=None):
         print(f"port {args.port} unavailable: {e}", file=sys.stderr)
         sys.exit(1)
     httpd.daemon_threads = True
+    if args.lan:
+        url = "http://{}:{}/?key={}".format(lan_address(), args.port, state.key)
+    else:
+        url = "http://127.0.0.1:{}/".format(args.port)
 
     stop_event = threading.Event()
     watcher = threading.Thread(target=watch_loop, args=(state, stop_event), daemon=True)
     watcher.start()
 
+    idle_minutes = minutes_from_env("PREVIEW_IDLE_MINUTES", IDLE_MINUTES_DEFAULT)
+    lan_minutes = minutes_from_env("PREVIEW_LAN_MINUTES", LAN_MINUTES_DEFAULT) if args.lan else 0.0
+    if idle_minutes or lan_minutes:
+        threading.Thread(
+            target=lifetime_loop, args=(state, httpd, stop_event, lan_minutes * 60, idle_minutes * 60), daemon=True,
+        ).start()
+
+    print("Serving {} at {}  (SSE: GET /events)".format(docroot, url), file=sys.stderr, flush=True)
+    if args.lan:
+        print(
+            "On this machine: http://127.0.0.1:{}/ (open this one here; Restore refuses a page opened from the network"
+            " address, even on this machine)".format(args.port),
+            file=sys.stderr, flush=True,
+        )
+        print(
+            "LAN mode: a device on this network needs the key in that URL (kept in {}); restore stays on this machine;"
+            " it exits after {} (PREVIEW_LAN_MINUTES, 0 = no limit).".format(
+                LAN_KEY_FILE, describe_minutes(lan_minutes, "no time limit")),
+            file=sys.stderr, flush=True,
+        )
     print(
-        "Serving {} at http://{}:{}/  (SSE: GET /events)".format(docroot, host, args.port),
-        file=sys.stderr,
+        "Idle shutdown: after {} with no request and no open stream (PREVIEW_IDLE_MINUTES, 0 = off).".format(
+            describe_minutes(idle_minutes, "never")),
+        file=sys.stderr, flush=True,
     )
     try:
         httpd.serve_forever(poll_interval=0.5)

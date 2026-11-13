@@ -32,8 +32,9 @@ Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
    continuing. Give the URL and the gallery base URL; say the page reloads on re-bundle.
 3. **Offer sharing once**, via AskUserQuestion, in this order: "Keep it local
    (Recommended)" · "Open to my network (LAN)" · "Publish to a pages branch" · "Zip it".
-   LAN: `dk.sh share <artifact> --lan`, print the URL and say any device on the network
-   can open it while the server runs (a pick made from there is not recorded). Pages:
+   LAN: `dk.sh share <artifact> --lan`, print the URL whole (another device needs its
+   `?key=`, or it gets 403) and say any device on the network holding that URL can open
+   it while the server runs (a pick made from there is not recorded). Pages:
    `dk.sh share <artifact> --pages` without `--push`, read back the branch, remote and
    expected URL, ask "Push it?" as a second question, and only on yes re-run with
    `--pages --push`. Zip: `dk.sh share <artifact> --zip` and name the file.
@@ -112,7 +113,7 @@ Ask with AskUserQuestion, first option "Keep it local (Recommended)", before any
 
 | step | what leaves the machine | how | say first |
 |---|---|---|---|
-| LAN | the page, to anyone on the same network while the server runs | `dk.sh share <file> --lan`, then print the URL | "any device on this network can open it; stop with `dk.sh serve --stop`" |
+| LAN | the page, to anyone on the same network who has the keyed URL, while the server runs | `dk.sh share <file> --lan`, then print the URL with its `?key=` | "any device on this network with this URL can open it; stop with `dk.sh serve --stop`" |
 | Pages branch | the page, committed and pushed to `<remote>/design-kit-pages` | `dk.sh share <file> --pages` (dry run) → confirm → `--pages --push` | the branch, the remote, that Pages must be enabled by the user, the expected URL |
 | Zip | nothing; a file beside the artifact | `dk.sh share <file> --zip` | where it landed |
 

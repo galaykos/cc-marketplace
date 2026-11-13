@@ -484,6 +484,51 @@ hand-renamed scratch file without the marker is invisible to this script —
 which is why the skill forbids renaming scratch artifacts.
 ```
 
+## plugins/taskmaster/scripts/preview.sh
+
+### Why it exists (2026-11-12, taskmaster 0.57.0)
+
+Until 0.57.0 the skills told the model to start `assets/serve.py` in background Bash, note the PID,
+check the port with `lsof -ti :8123`, and stop a stale server with `lsof -ti :8123 | xargs kill`.
+That kills whatever holds the port, not just this server. design-kit already had a launcher (`plugins/design-kit/scripts/preview.sh`); this one
+follows its shape: pid and URL files in the docroot, an idempotent start, `--stop`.
+
+Differences from design-kit's launcher, each on purpose:
+
+- **`--stop` checks the pid before killing it.** `ps -ww -p <pid> -o args=` must show `serve.py
+  --docroot <this docroot> --port`. A pid file that outlived its server (idle shutdown, LAN limit,
+  a reboot) can name a reused pid; that process is left alone and only the stale state is removed.
+  The same check decides "already running" on start.
+- **Readiness is serve.py's own `Serving ... at <url>` line, not a sleep.** The URL (with the LAN
+  key when `--lan`) is read from that line, so the launcher never assembles a URL itself and a
+  foreign server that happens to answer on the port is not mistaken for ours.
+- **`--lan` over a running loopback server exits 5** instead of restarting it: going onto the network
+  is a deliberate step, so the caller stops the server first. A plain start over a LAN server reuses
+  it and says LAN mode is still on.
+- **`umask 077` before the state files**: `.preview.url` and `.preview.log` carry the LAN key.
+
+### The log-truncation race (found by the harness, 2026-11-12)
+
+The first version truncated `.preview.log` only through the `>` redirect on the background
+`nohup python3 ...` line. That redirect runs in the child, so the parent's readiness loop could read
+the previous run's `Serving` line before the child truncated the file. One harness run on
+2026-11-12 printed the old port's URL for a start that had failed on a busy port (exit 0 instead of
+4). The launcher now truncates the log synchronously first. The harness seeds a stale `Serving`
+line before the busy-port case, but the race is timing-dependent: three runs on the unfixed
+launcher passed, so the case catches it sometimes, not reliably. Standing: gate where it fires.
+
+### Not covered
+
+Exit 3 (python3 missing) is not exercised by `scripts/__tests__/preview.test.sh`. Nothing checks
+that a model calls the launcher rather than starting serve.py by hand: the skills say so
+(agent-graded at best, recorded in practice).
+
+### Review fixes (2026-11-12, still 0.57.0)
+
+- **A lock around check-and-start.** It ran unlocked and every start truncated `.preview.log`. With two starts at once, the harness's three rounds on the unfixed launcher printed `FAIL race 1 URL: … | preview: already running — ` (no URL), `FAIL race 2 stop: preview: nothing running` with one serve.py left (the loser deleted the winner's pid file), and `FAIL race 3 exit: want 0 and 0, got 4 and 4` with no server at all. Now `take_lock` holds `mkdir .preview.lock` (owner pid inside, removed by an EXIT trap; INT, TERM and HUP exit through it) around check-and-start and around `--stop`. A waiter polls for 15 s, takes over a lock whose owner is dead or that named no owner for 2 s, else exits 4. The loser then finds the winner's server and URL and never truncates its log; a failed start removes the pid file only while it holds its own pid. Residual: two waiters that judge one stale lock at the same moment can both take it.
+- **No usable `ps`.** `ours()` read a `ps` failure as "not ours", and the start path then deleted a live server's pid file. `/proc/<pid>/cmdline` is now the fallback; a pid alive to `kill -0` that neither names is exit 6, with nothing signalled or removed. Red: `FAIL no ps: live server: rc=4: … Address already in use` and `FAIL unnamed live pid (--stop): want exit 6 and the pid file kept, got 0`.
+- **The loopback URL.** The launcher relays serve.py's `On this machine:` line on start and reads it back from the log on reuse. Red: `FAIL --lan loopback URL` and `FAIL plain start over LAN: loopback URL`.
+
 ## plugins/taskmaster/scripts/skills-stamp-lint.sh
 
 ### Header
@@ -871,3 +916,52 @@ Scoped to gallery/ only (not the whole docroot) — same scan_mtimes
 helper, just rooted one level down to avoid O(whole-tree) I/O per hit.
 ```
 
+
+### Private paths, LAN key, time limits (2026-11-12, taskmaster 0.57.0)
+
+Inventory that triggered it: `taskmaster-docs/research/2026-11-12-preview-server-gaps.md` (gitignored)
+found this server served dotfiles and directory listings and had no harness, while design-kit's
+server refused both and had one. The harness, `plugins/taskmaster/scripts/__tests__/serve.test.sh`,
+was written first and passed on 0.56.1 (35 cases); each change below added cases that failed on the
+code before it.
+
+- **Dot names and listings (404).** `is_private()` rejects a request path with any dot-prefixed
+  segment; `list_directory()` returns 404. The check splits the raw path the way
+  `SimpleHTTPRequestHandler.translate_path` does, because `urlsplit('//.env')` reads `.env` as a host
+  and returns an empty path, which would have let `//.env` through. `scan_mtimes()` skips dot names
+  too, so the session map, `/_versions.json`, `/_restore` and the event stream never name a dot file:
+  before this, `/_restore` would copy a `.private.html` over `current.html` and so publish it. Red on
+  0.56.1's server: 29 cases (`/.env` 200, `/sub/` listing 200, the landing listing `.private.html`, the stream
+  carrying `.preview.log`).
+- **Time limits.** `--lan` exits after `PREVIEW_LAN_MINUTES` (default 60, design-kit's figure); every
+  mode exits after `PREVIEW_IDLE_MINUTES` (default 240) with no completed request and no open event
+  stream. 240 follows superpowers' 4-hour idle default named in the inventory. An open tab keeps its
+  stream open, so a forgotten tab keeps the server up until the tab closes; that is the intent.
+  Red on the server with the dot rule in and no limits yet: 7 cases.
+- **LAN key.** Before this, `--lan` relaxed the Origin/Host check for every route, `/_restore`
+  included: a peer on the network could restore with just the header (red case "remote restore with
+  a valid key", 200 before this change). Now a non-loopback peer needs the key, `/_restore` needs a loopback
+  peer and a local Origin/Host in every mode, and the key is compared with `hmac.compare_digest`.
+  The key is `secrets.token_urlsafe(24)` in `.preview.key` (0600) so a restart keeps the URL; delete
+  the file to rotate it. Red on the server with the dot rule and limits in: 20 cases.
+
+What the harness exercises end to end and what only as a unit: the remote-peer cases run against the
+machine's own non-loopback address (the peer is then that address, not 127.0.0.1) and skip, printing
+SKIP, on a machine with none; `peer_is_loopback`, `lan_access` and `clean_location` are also imported
+and tested directly, which covers IPv6 and IPv4-mapped peers no harness request produces.
+
+Residuals, not tested: the cookie is scoped to the host, not the port, so another server on the same
+address receives it; the key crosses the network in plain HTTP and stays in the history of the device
+that opened the URL; the first cut answered a keyed URL with a 303, and the design-kit twin measured in Chrome the same
+day that a keyed link followed from another site then got 403 (the browser withholds a
+SameSite=Strict cookie on that redirect), so the grant is a 200 page with a meta refresh; that page
+was checked with curl only on this server, not in a browser; a symlink in the docroot is followed
+out of it (checked by hand on 2026-11-12, not in the harness).
+
+### Review fixes (2026-11-12, still 0.57.0)
+
+- **Restore from this machine under `--lan`.** `.preview.url` holds the network URL. A page opened from it on this machine reaches the server from the LAN address, so Restore (loopback peer and local Host only) answers 403. serve.py now also prints `On this machine: http://127.0.0.1:<port>/`. Red: `FAIL LAN: loopback URL printed`.
+- **A key file that is not UTF-8.** `load_or_create_key` caught `OSError` only, so `UnicodeDecodeError` escaped after the port was bound. Red: `FAIL non-UTF-8 key file: serve.py did not start: … UnicodeDecodeError`.
+- **A symlinked key file.** It was read, truncated and chmod-ed through the link. Red: `FAIL symlinked key file: still a symlink`, `… its target was changed: 0o600`, `FAIL dangling key symlink: serve.py created the symlink's target`. Now as design-kit's: an `O_NOFOLLOW|O_NONBLOCK` open whose `fstat` must say regular file, else unlink and create `O_EXCL|O_NOFOLLOW` at 0600. The key is loaded before the port is bound; an error there exits 1.
+- **403s and the idle clock.** `handle()` touched the clock after every connection, key-gate 403s included; now only a connection whose request `lan_gate` admitted does. Red: `FAIL LAN: idle clock: 403s from a peer without the key kept the server from its idle exit`.
+- **Restore is a rename.** It copied over `current.html` in place, so a kill mid-copy left it truncated. It now copies to a `mkstemp` file `.restore-*.tmp` (dot-named: never served, never pushed), gives it `current.html`'s mode and `os.replace`s it. The kill itself is not reproduced; the harness pins the mechanism: a new inode and no dot file left. Red: `FAIL restore is a rename: current.html was written in place (same inode)`. Residual: a kill mid-copy leaves the temp file.

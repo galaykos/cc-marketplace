@@ -41,22 +41,53 @@ needs Node and installs `pptxgenjs` into `.design-kit/.cache/` after asking.
 `scripts/serve.py` (launched by `scripts/preview.sh`) serves `.design-kit/` on
 `http://127.0.0.1:8124/`: a gallery of every deck, board, preview and artifact at `/`,
 live reload over Server-Sent Events injected into each page, `/_index.json` for
-scripts. `--lan` binds every interface so a phone on your network can open it — that
+scripts. When the server goes away under an open page, the page shows a small
+"Preview server stopped; retrying" bar (`role="status"`, no animation), retries after 1,
+2, 4 … 30 seconds, and reloads once the server answers. A headless browser and a
+`?static=1` URL get no reload client, as before.
+
+`--lan` binds every interface so a phone on your network can open it — that
 is the only way a page leaves the machine through the server, and every skill says
-so before using it. A LAN server ends itself after 60 minutes
+so before using it. A LAN server asks every device but this machine's loopback for a
+key: the URL it prints carries `?key=…`, the first visit trades it for an `HttpOnly`,
+`SameSite=Strict` cookie and drops it from the address bar, and a request with neither
+gets 403. The key lives in `.design-kit/.preview.key` (mode 0600, never served). A
+restart keeps it, so a phone's link keeps working; `dk serve --stop` deletes it, so the
+next LAN start prints a new URL. Picks stay loopback-only: `/_decision` refuses a phone
+even with the key. A LAN server ends itself after 60 minutes
 (`DESIGN_KIT_LAN_MINUTES`; `0` means no limit), and while one runs every later
-command says LAN mode is still on. The server never returns a dot-prefixed file or
+command says LAN mode is still on and prints its URLs with the key.
+
+Every server, LAN or not, exits after 4 hours with no request and no open page
+(`DESIGN_KIT_IDLE_MINUTES`, default 240; `0` turns it off). An open tab counts, since its
+reload client holds a stream; a request refused for want of the key does not. A server that
+ends itself removes its pid, URL and bind files, `dk status` prints no URL for a dead server,
+and the next `dk` verb starts a fresh one. `--stop` and a `--lan` restart signal the recorded
+pid only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid neither can
+name stops the launcher with exit 6 and is left alone).
+
+The server never returns a dot-prefixed file or
 folder, `auth/`, its own state files (`workshop.json`, `decisions.jsonl`,
 `usage.jsonl`, `*.versions.json`) or a directory listing; every other file under
-`.design-kit/` is readable by whoever can reach the port, signed-in screenshots
-included. Port 8123 belongs to the taskmaster/ui-ux mockup server and is
+`.design-kit/` is readable by whoever can reach the port (on the LAN, whoever holds the
+keyed URL), signed-in screenshots included. The key does not make the LAN private: the
+server speaks plain HTTP, so the key crosses your network in the clear, and it sits in a
+URL, so it lands in the phone's history and anywhere you paste it. Port 8123 belongs to
+the taskmaster/ui-ux mockup server and is
 never used here. One write route exists, `/_decision` — loopback only, header-gated,
 append-only (see the next section); export and publish stay scripts.
 
 Standing: `scripts/__tests__/serve.test.sh` and `preview.test.sh` drive start, static
 serving, reload injection, the listing, path traversal and stop — **gate** (CI runs
-every `plugins/*/scripts/__tests__/*.test.sh`). Nothing proves a browser rendered a
-page — **recorded**.
+every `plugins/*/scripts/__tests__/*.test.sh`). The key is a **gate** twice: every
+peer, key and cookie case as a unit, and end to end from this machine's own network
+address, which the server sees as a non-loopback peer (that half skips on a machine
+without one). The idle limit is a **gate**: a 3-second limit, held off by requests and by
+an open stream, in both modes, and not by 403s. The never-served list is a **gate** for GET and
+HEAD, with origin- and absolute-form request targets. The reload client is a **gate** for the text injected
+(the status bar, the retry, the reload, no external asset, at most 800 bytes); its
+behaviour in a browser, and a keyed link followed from another site, were run once in
+Chrome on 2026-11-12 — **recorded**. Nothing proves a browser rendered a page — **recorded**.
 
 ## One entry point: dk
 
@@ -282,7 +313,7 @@ code, links; no nested lists, footnotes or reference links). A brief means the m
 writes the page from one of five patterns (walkthrough, compare, dashboard, checklist,
 bring-back) with data from this session.
 
-Sharing is a question every time, default "keep it local": LAN (`preview.sh --lan`),
+Sharing is a question every time, default "keep it local": LAN (`preview.sh --lan`, a URL carrying its key),
 a pages branch (`scripts/artifact-publish.sh`, dry run first, pushed only on a second
 yes, never enables Pages, never force-pushes), or a zip. There is no other network path.
 
