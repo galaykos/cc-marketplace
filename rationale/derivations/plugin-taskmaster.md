@@ -484,6 +484,92 @@ hand-renamed scratch file without the marker is invisible to this script —
 which is why the skill forbids renaming scratch artifacts.
 ```
 
+## plugins/taskmaster/scripts/preview-feedback.sh
+
+### Why it exists (2026-11-13, taskmaster 0.58.0)
+
+Milestone M2 of `taskmaster-docs/specs/2026-11-12-preview-feedback.md` (gitignored): the user picks a
+variant, points at an element or leaves a note in the browser, and the model reads it without a chat
+message. The spec's decisions 2 and 3 rule out an MCP server, a browser extension and a new per-prompt
+hook, so the page writes rows to a file (serve.py's `POST /_feedback`) and this script reads them.
+`wait`, run as a background command, is what brings the model back when the user clicks.
+
+- **Rows print as data.** One JSON object per line. After `json.dumps(ensure_ascii=False)`, every
+  character in a Unicode `C*` category (controls, format characters such as zero-width spaces, bidi
+  overrides and the tag characters used to smuggle hidden text, private use, unassigned) and the line
+  and paragraph separators are re-escaped as `\uXXXX`. A page can carry third-party script (decision 4),
+  so a row's text must not be able to move a terminal or hide words from the reader. Readable non-ASCII
+  text stays as it is.
+- **Handed out is a field.** `wait` sets `handed_out: true` on the rows it prints instead of deleting
+  them, so the page can still show each note's status, and `list --all` still sees them. `reply` sets it too.
+- **Rewrites are a rename under serve.py's lock.** `wait` and `reply` write a dot temp file in the
+  docroot and `os.replace` it over `.feedback.jsonl`, holding an `flock` on `.feedback.lock`, the lock
+  serve.py holds for each append. The rename alone keeps the file whole but loses a note appended between
+  the read and the rename. Red, with the reader unlocked: `FAIL posts racing rewrites (6 rewrites): want 4061
+  rows, got 4044` in 3 of 3 runs (60 posts against rewrites of a file padded to 4000 rows, so a rewrite takes
+  long enough to be hit; unpadded, 40 posts against 15 rewrites passed 3 of 3 unlocked, so the padding is
+  what makes the case able to fail). An unparseable line is kept byte for byte.
+- **`shot` loads the page from disk.** `file://<page>?static=1&_outline=<selector>`, so it works with the
+  server stopped and the LAN key never matters; `static=1` keeps the feedback controls out of the picture.
+  The shell honours `_outline` by outlining the element and scrolling it to the centre. The window is the
+  row's viewport, clamped to 320–3840 × 240–2160 (default 1280 × 800). Browser discovery copies design-kit's
+  `board-export.sh` order (an override variable, `PATH`, the macOS bundles, Playwright's cache) instead of
+  importing it, since each plugin must work installed alone; the override is `PREVIEW_BROWSER`. A temp
+  `--user-data-dir` keeps it off the user's own Chrome profile.
+
+Red before the script existed: 31 of 43 harness cases failed (`FAIL list, no file: want exit 0 and no output,
+got 127`).
+
+### What `shot` was checked against (2026-11-13)
+
+The harness checks the PNG signature and that its size is the row's viewport, with `/usr/bin/google-chrome`
+found on `PATH`, and the no-browser exit through `PREVIEW_BROWSER` pointing at nothing. One PNG of a
+shell page was looked at by eye: the noted "Pay now" button in variant B carried the red outline. Not
+checked: the macOS paths, the Playwright cache path (Chrome was found first here), Edge, and a browser that
+is found but fails to start.
+
+### Not covered
+
+`wait` polls every 0.5 s. The screenshot uses the shell's default theme, scheme and state toggles, not the
+ones in the row's context. A row appended by anything other than serve.py does not take the lock.
+
+### Review fixes (2026-11-13, still 0.58.0)
+
+Each case below was added to `preview-feedback.test.sh` first and run red against the unfixed script (14
+of 63 failed), then fixed.
+
+- **Print, then mark.** `wait` saved `handed_out` before printing, so a waiter killed in between, or one
+  whose output nobody read, swallowed the rows. It now prints and flushes inside the lock, then saves; a
+  failed write exits 1 and marks nothing. `handed_out` holds the time, and a row handed out 15 minutes ago
+  that is still open is unread again for `list` and `wait` (a bare `true`, which `reply` still writes, has no
+  lease). Red: `FAIL print before mark: a wait whose output failed still marked the row handed out` (stdout
+  on `/dev/full`), `FAIL lease: list: want ls01 (handed out 20 min ago, still open), got:`.
+- **Parse on change.** `wait` re-parsed the whole file twice a second. It now compares inode, size and
+  `st_mtime_ns` and parses only when one moves or a lease runs out. The case edits a row in place and puts
+  the mtime back, which only a re-parse can see. Red: `FAIL wait skips an unchanged file: want exit 3 (size
+  and mtime unchanged, no re-read), got 0`.
+- **More characters escaped.** Variation selectors (U+FE00–FE0F, U+E0100–E01EF, the Mongolian ones), the
+  Hangul fillers (U+115F, U+1160, U+3164, U+FFA0) and U+2800 render as nothing but are not in `C*`. Red:
+  `FAIL list escapes a variation selector`, `… the Hangul filler`, `… the blank Braille cell`.
+- **`shot` over http.** Loaded as `file://`, the page's script had file-scheme reach the http preview never
+  gave it. While `.preview.pid` names a live process and `.preview.url`'s port answers 200 for the page,
+  `shot` loads `http://127.0.0.1:<port>/<page>?static=1&_outline=…`; otherwise `file://`, which the header's
+  Misses names. The first real http shot ran past 30 s: the shell's reload client held `/events` open and
+  polled, so Chrome's virtual-time budget never ran out. The shell's reload block now returns on
+  `?static=1`, as design-kit's server already does. Red: `FAIL shot, server running: http: want
+  http://127.0.0.1:54903/current.html?static=1&_outline=…, got 0: file:///…`.
+- **The browser run.** No `--no-sandbox` unless root or `PREVIEW_BROWSER_NO_SANDBOX=1`, `timeout 30` when
+  `timeout` exists, and a non-zero browser exit is reported (exit 1, the PNG removed). A stand-in browser
+  records its arguments and its parent process. Red: `FAIL shot sandbox`, `FAIL shot time limit: the
+  browser's parent is bash, not timeout`, `FAIL shot, browser fails: … got 0`. The "no browser" line moved to
+  stderr: `FAIL shot without a browser: stdout`.
+- **The race case's padding** dropped from 4000 to 3000 rows (1.71 MB) to stay under serve.py's new 2 MiB
+  cap. Re-run with the reader's `flock` removed in a scratch copy, it still fails 3 of 3: `FAIL posts racing
+  rewrites (5 rewrites): want 3061 rows, got 3050`.
+
+One http shot of a shell page was looked at by eye: "Pay now" outlined, no feedback controls, and the
+server log showed Chrome's `GET /current.html?static=1&_outline=%23plain`.
+
 ## plugins/taskmaster/scripts/preview.sh
 
 ### Why it exists (2026-11-12, taskmaster 0.57.0)
@@ -528,6 +614,22 @@ that a model calls the launcher rather than starting serve.py by hand: the skill
 - **A lock around check-and-start.** It ran unlocked and every start truncated `.preview.log`. With two starts at once, the harness's three rounds on the unfixed launcher printed `FAIL race 1 URL: … | preview: already running — ` (no URL), `FAIL race 2 stop: preview: nothing running` with one serve.py left (the loser deleted the winner's pid file), and `FAIL race 3 exit: want 0 and 0, got 4 and 4` with no server at all. Now `take_lock` holds `mkdir .preview.lock` (owner pid inside, removed by an EXIT trap; INT, TERM and HUP exit through it) around check-and-start and around `--stop`. A waiter polls for 15 s, takes over a lock whose owner is dead or that named no owner for 2 s, else exits 4. The loser then finds the winner's server and URL and never truncates its log; a failed start removes the pid file only while it holds its own pid. Residual: two waiters that judge one stale lock at the same moment can both take it.
 - **No usable `ps`.** `ours()` read a `ps` failure as "not ours", and the start path then deleted a live server's pid file. `/proc/<pid>/cmdline` is now the fallback; a pid alive to `kill -0` that neither names is exit 6, with nothing signalled or removed. Red: `FAIL no ps: live server: rc=4: … Address already in use` and `FAIL unnamed live pid (--stop): want exit 6 and the pid file kept, got 0`.
 - **The loopback URL.** The launcher relays serve.py's `On this machine:` line on start and reads it back from the log on reuse. Red: `FAIL --lan loopback URL` and `FAIL plain start over LAN: loopback URL`.
+
+### The race case's port (2026-11-13, harness only)
+
+The concurrent-start case failed once in seven runs: `want 1 serve.py on the docroot, got 0`, then
+`preview: nothing running`. The reviewer's reading, not reproduced: both starters exited 4 because the port
+`free_port` handed out was taken between its probe's close and serve.py's bind. The harness now redoes a
+round once on a new port when both starters fail with serve.py's `unavailable`, and a failed `race N
+servers` or `race N exit` prints both starters' output and `.preview.log`. Shown with the round's first port
+held by a listener: the old loop gave `FAIL race 1 exit: want 0 and 0, got 4 and 4` and `FAIL race 1
+servers: want 1 serve.py on the docroot, got 0`; the new one printed its `NOTE race 1` line and passed. The
+launcher is unchanged.
+
+Known residual of `take_lock`, recorded and not fixed: with three contenders, C can read the owner pid of
+A's lock, A finishes and its trap removes the lock, B takes the lock and writes its pid, then C finds A's pid
+dead and removes B's live lock and takes its own. B and C then both run check-and-start. The same window
+exists with a lock that is really stale.
 
 ## plugins/taskmaster/scripts/skills-stamp-lint.sh
 
@@ -965,3 +1067,73 @@ out of it (checked by hand on 2026-11-12, not in the harness).
 - **A symlinked key file.** It was read, truncated and chmod-ed through the link. Red: `FAIL symlinked key file: still a symlink`, `… its target was changed: 0o600`, `FAIL dangling key symlink: serve.py created the symlink's target`. Now as design-kit's: an `O_NOFOLLOW|O_NONBLOCK` open whose `fstat` must say regular file, else unlink and create `O_EXCL|O_NOFOLLOW` at 0600. The key is loaded before the port is bound; an error there exits 1.
 - **403s and the idle clock.** `handle()` touched the clock after every connection, key-gate 403s included; now only a connection whose request `lan_gate` admitted does. Red: `FAIL LAN: idle clock: 403s from a peer without the key kept the server from its idle exit`.
 - **Restore is a rename.** It copied over `current.html` in place, so a kill mid-copy left it truncated. It now copies to a `mkstemp` file `.restore-*.tmp` (dot-named: never served, never pushed), gives it `current.html`'s mode and `os.replace`s it. The kill itself is not reproduced; the harness pins the mechanism: a new inode and no dot file left. Red: `FAIL restore is a rename: current.html was written in place (same inode)`. Residual: a kill mid-copy leaves the temp file.
+
+### Feedback route and the shell's controls (2026-11-13, taskmaster 0.58.0)
+
+- **The route.** `POST /_feedback` appends one row to `.feedback.jsonl`; its guards are `/_restore`'s
+  (loopback peer in every mode, a local Host and Origin, a header no cross-origin form can set) plus
+  design-kit's `/_decision` body rule (1 to 8192 bytes, a JSON object). Every field is clamped and
+  unknown keys dropped; a pick needs a variant A to C and a note non-blank text, else 400. `GET
+  /_feedback?page=` is loopback-only too, so a device on the LAN never sees controls whose post would get
+  403. The file is dot-named, so the M1 rule already answers 404 for it and the watcher never names it.
+  Red before the route: 32 cases (`FAIL feedback pick: want 200, got 404`); 134 passed after.
+  A 33rd case, added at review, posts a 400-digit integer in a rect: `math.isfinite` raised `OverflowError`
+  and the handler died (`FAIL feedback huge numbers: want 200 and a zeroed rect, got 000`); an integer
+  beyond 10^9 now reads as 0, and 135 pass.
+- **The lock.** Each append holds an `flock` on `.feedback.lock`, which `scripts/preview-feedback.sh` also
+  takes before it replaces the file; the red case is under that script's heading. Both files are opened
+  with `O_NOFOLLOW`. Without `fcntl` (Windows) appends and rewrites go unlocked.
+- **The shell.** A third script block probes `GET /_feedback?page=<this page>` and adds the controls only
+  when it answers with JSON; `?static=1` skips the probe. Pick and Note per variant, a "Point & note" toggle
+  (Alt+Shift+P) with a fixed overlay as the hover outline and the arrow keys plus Enter as the keyboard
+  path, a note box anchored to the element, Escape to cancel, and a Notes list with status and reply. The
+  selector is built from an id unique in the document, one short `data-*` attribute, the tag and
+  `:nth-of-type` when siblings share a tag, rooted at `#vd-<letter> > .vd-content`, and checked to resolve
+  to the element (else a tag and `:nth-of-type` chain). Context: viewport, `<theme> <scheme>`, the
+  width, compare mode and direction, each frame's shown data-state, and a five-entry ring of
+  `console.error` calls and window `error` events.
+- **Browser run (Playwright Chromium 1248, headless, a private instance, 2026-11-13).** On a two-variant page
+  served through `preview.sh`: Pick on B wrote a pick row and the button showed "Picked" (also after reload);
+  the picker on B's "Pay now" wrote a note whose selector resolves to that button, with variant B, the
+  viewport and the theme; the content's element boxes were identical with the picker on and off; the
+  keyboard path (shortcut, arrows, Enter, Escape) opened and cancelled the box with nothing posted and focus
+  back on the toggle; a per-variant note carried tablet width, the dark scheme and a console error;
+  `reply` on two notes showed "addressed" and "dismissed" with their replies after reload; `wait` in the
+  background returned the pick row about one second after a browser click. On `python3 -m http.server` and
+  with `?static=1` the controls were absent and no script error was logged; Chrome logs a network line for
+  each 404, 3 with this shell (`/_versions.json`, `/events`, `/_feedback`) against 2 with the previous one.
+- **A defect the browser run found.** A pointer resting outside the variants reset the arrow-key target when
+  the page scrolled (Chrome fires mouseover after a scroll), so Enter picked nothing. A mouseover now moves
+  the target only onto a pickable element.
+
+Residuals: any script on a served page can post a pick or note; note text is unverified; console errors
+thrown before the shell's script runs are missed; `python3 -m http.server` serves `.feedback.jsonl` (200,
+measured) on that rung. Standing of the shell's part: recorded; no harness runs a browser.
+
+### Review fixes (2026-11-13, still 0.58.0)
+
+Harness cases added first and run red against the unfixed server (5 of 140 failed), then fixed:
+
+- **A lone surrogate.** The pages cut text at 200 or 300 UTF-16 units, through an emoji, and posted the
+  half; `json.dumps(ensure_ascii=False).encode()` raised `UnicodeEncodeError`, which `except OSError` did
+  not catch, and the request got no response. Every stored string now goes through `_clean`
+  (`encode("utf-8", "replace")`), so the half reads `?`. Red: `FAIL feedback lone surrogate: want 200 and
+  each lone surrogate stored as ?, got 000`. The body parse also catches `RecursionError` as 400. On this
+  machine's Python 3.14, 8 KiB of `[` is a plain decode error (400 before and after), and 4096 closed levels
+  parse fine, so that half of the finding was not reproduced here; it is a guard for older Pythons.
+- **Numbers** clamp to ±10^7 instead of 0 for a large integer and pass-through for a large float, and NaN or
+  Infinity reads as 0. Red: `FAIL feedback huge numbers: … "w": -1e+308, "h": 1e+308 … "h": 3000000000.0`.
+- **A pick** keeps `text: ""` and `anchor: null`: the page shows neither, and `wait` would hand them to the
+  agent. Red: `FAIL feedback pick drops text and anchor`.
+- **A size cap.** A page script looping posts could fill the disk. An append that would take
+  `.feedback.jsonl` past 2 MiB writes nothing and answers 507 with a JSON reason. Red: `FAIL feedback file
+  full: want 507 and a JSON reason naming the cap, got 200`.
+
+The shell's page script, run in a private Playwright Chromium (build 1248) before and after on a shell
+page served by this server. Before: `console.error('boom', o)` with `o = Object.create(null)` threw
+`Cannot convert object to primitive value` into the page; a span whose first `data-*` value held a newline
+made `querySelectorAll` throw after the picker turned off, so no note box opened and the hover outline
+stayed; an element text and a console entry crossing the cut inside an emoji posted strings ending in a
+lone `\ud83d`. After: no throw, the entry reads `boom [object Object]`; the box opened and the selector
+`#vd-a > .vd-content > span[data-note="line1\a line2"]` resolved to the element; both strings ended in the
+whole emoji (201 and 301 UTF-16 units). The value is now `CSS.escape`d and the query guarded.

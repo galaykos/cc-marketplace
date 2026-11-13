@@ -259,7 +259,7 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
   (warn) on PostToolUse
 - **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
   `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`, `preview.sh`,
-  `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
+  `preview-feedback.sh`, `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
   (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
   drives both its writers and its reader; `serve.test.sh` drives the preview server itself)
 
@@ -301,3 +301,33 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   event stream drops, and reloads once the server answers again; on the lower rungs it polls as
   before. Recorded: driven once in Chromium on 2026-11-12, and no harness runs a browser. Pages not
   built from the shell (`diagram.html`, `walkthrough.html` and the like) carry no reload client.
+- **Feedback: picks and notes from the page.** `POST /_feedback` appends one row to the docroot's
+  `.feedback.jsonl` (a dot file, so never served): a pick of variant A–C, or a note with its text, the
+  variant, the element it points at (CSS selector, tag, text, bounding box), the viewport, theme, width and
+  state toggles in effect and the last five console errors. Every field is clamped (numbers to ±10,000,000)
+  and unknown keys are dropped; a pick keeps no text and no element; a lone surrogate is stored as `?`. The
+  route takes the same guards as Restore: a loopback peer (a LAN key does not help), a local Host and Origin,
+  the `X-Preview-Feedback` header, 1 to 8192 bytes of a JSON object; else 403, 413 or 400. Once
+  `.feedback.jsonl` would pass 2 MiB a post gets 507 until the file is moved aside. `GET /_feedback?page=`
+  returns that page's rows, loopback only. Gate: `serve.test.sh`.
+- **Feedback: the page's controls.** When that GET answers with JSON, a page built from the shell shows
+  Pick and Note on each variant, a "Point & note" toggle (Alt+Shift+P) that outlines the element under the
+  pointer or the arrow keys, and a Notes list with each note's status and reply. On a lower rung, over
+  `file://` and with `?static=1` none of it appears, and `?static=1` also turns the reload client off.
+  Recorded: driven in Playwright Chromium on 2026-11-13, and again after the review fixes (a data attribute
+  holding a newline, a console object with no `toString`, cuts by code point); no harness runs a browser.
+- **Feedback: the reader.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-feedback.sh"` with `list [--all]`
+  (unread open rows), `wait [--timeout S]` (blocks until one exists, prints it, then marks it handed out
+  with the time; exit 3 after 600 s), `reply --id ID --status addressed|dismissed [--text LINE]`, and
+  `shot --id ID` (a PNG of the noted element outlined, from a local Chromium-family browser; exit 4 without
+  one). A row handed out more than 15 minutes ago and still open is unread again, so a waiter that died or
+  was never read loses nothing. `shot` loads the page from `http://127.0.0.1:<port>/` when `preview.sh`'s
+  server answers, else from disk; it runs Chrome with its sandbox on (off only as root or with
+  `PREVIEW_BROWSER_NO_SANDBOX=1`) in a throwaway profile for at most 30 s, and reports a browser that fails
+  (exit 1). Rows print as JSON lines with control, invisible and blank-rendering characters escaped.
+  Rewrites go through a temp file and a rename under the server's lock, so a note posted meanwhile is kept. Gate: `preview-feedback.test.sh`; that the model
+  starts `wait` and acts on what it reads is agent-graded.
+  Misses: any script on a served page, third-party script included, can post a pick or note; note text is
+  whatever was typed and nothing verifies it; the screenshot uses the default theme and states, not the
+  row's; console errors thrown before the shell's own script runs are not captured; a lower rung serves
+  `.feedback.jsonl` (`python3 -m http.server` serves dot files).

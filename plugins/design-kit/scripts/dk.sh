@@ -21,6 +21,8 @@
 #   dk share <page> --lan | --pages [--push] | --zip
 #   dk export <file> --pdf|--png|--pptx     deck (pdf/pptx) or board (png/pdf) export
 #   dk decision [--latest|--board FILE] [--consume] | --record "LINE"
+#   dk notes [--all] | --wait [--timeout S] | --reply ID --status addressed|dismissed [--text "LINE"] | --shot ID
+#                                           notes left on a preview page, one JSON line each (data)
 #   dk status                               the workshop flow as text
 #
 # STATE. Every verb appends one JSON line to .design-kit/usage.jsonl
@@ -79,7 +81,7 @@ export DESIGN_KIT_DIR="$DK"
 WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
 # help exits before ensure_ignored, so `dk --help` writes nothing
-case "$verb" in -h|--help|"") sed -n '2,51p' "$0"; exit 0 ;; esac
+case "$verb" in -h|--help|"") sed -n '2,53p' "$0"; exit 0 ;; esac
 
 # drift --print-hook writes nothing either: it prints the PostToolUse snippet for the user to paste, and installs nothing.
 if [ "$verb" = drift ] && [ "${1:-}" = "--print-hook" ]; then
@@ -361,6 +363,197 @@ if consume:
 PY
     rc=$?; [ "$rc" = 0 ] && log ok || log skip; exit "$rc" ;;
 
+  notes)
+    # Rows are page-originated: printed as escaped JSON, never as prose. Exit 3: nothing to print; 2: bad arguments.
+    notes_py() { python3 - "$DK" "$here/serve.py" "$@" <<'PY'
+import calendar, contextlib, hashlib, importlib.util, json, os, re, sys, tempfile, time, unicodedata
+from urllib.parse import quote
+dk, serve, *args = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+path = os.path.join(dk, m.NOTES)
+decisions = os.path.join(dk, "decisions.jsonl")
+announced = os.path.join(dk, ".notes-pick")  # the last pick a --wait printed, so the next one waits past it
+LEASE = 15 * 60  # a handed-out note still open comes back after this many seconds
+# Variation selectors and the letters that render blank (Hangul fillers, the empty Braille cell): not C*, yet they hide text.
+BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
+def die(msg, rc):
+    print("dk notes: " + msg, file=sys.stderr); sys.exit(rc)
+# One parse: --shot ID stands alone, each option once, one verb at a time.
+o, i = {}, 0
+while i < len(args):
+    a = args[i]
+    if a in o: die(a + " given twice", 2)
+    if a in ("--all", "--wait"):
+        o[a] = True
+    elif a in ("--timeout", "--reply", "--status", "--text", "--shot"):
+        if i + 1 >= len(args): die(a + " needs a value", 2)
+        o[a] = args[i + 1]; i += 1
+    else:
+        die("unknown argument " + a, 2)
+    i += 1
+verbs = [v for v in ("--all", "--wait", "--reply", "--shot") if v in o]
+if len(verbs) > 1: die(" and ".join(verbs) + " do not go together", 2)
+if "--shot" in o and len(args) != 2: die("--shot ID takes no other argument", 2)
+if "--timeout" in o and "--wait" not in o: die("--timeout goes with --wait", 2)
+if ("--status" in o or "--text" in o) and "--reply" not in o: die("--status and --text go with --reply", 2)
+def hidden(c):
+    cat = unicodedata.category(c)
+    return cat[0] == "C" or cat in ("Zl", "Zp") or ord(c) in BLANK
+def show(row):
+    """One JSON line with control, format, separator and blank-rendering characters escaped (taskmaster's preview-feedback.sh does the same)."""
+    return "".join(json.dumps(c)[1:-1] if hidden(c) else c for c in json.dumps(row, ensure_ascii=False))
+def emit(rows):
+    """Print and flush before anything is marked: a reader that cannot write, or is killed here, hands nothing out."""
+    try:
+        for r in rows: print(show(r))
+        sys.stdout.flush()
+    except OSError as exc:
+        print("dk notes: could not print (%s); nothing marked" % exc.strerror, file=sys.stderr); os._exit(1)
+def load():
+    """[[row or None, raw bytes]] per non-blank line, never through a symlink; a line that is not a JSON object is kept as bytes, so a rewrite never drops it."""
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except FileNotFoundError:
+        return []
+    except OSError as exc:
+        die("cannot read %s: %s" % (path, exc.strerror), 1)
+    with os.fdopen(fd, "rb") as fh:
+        data = fh.read()
+    entries = []
+    for raw in data.split(b"\n"):
+        if not raw.strip(): continue
+        try: row = json.loads(raw.decode("utf-8", "replace"))
+        except (ValueError, RecursionError): row = None
+        entries.append([row if isinstance(row, dict) else None, raw])
+    return entries
+def save(entries):
+    fd, tmp = tempfile.mkstemp(dir=dk, prefix=".notes-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            for _row, raw in entries: fh.write(raw + b"\n")
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp): os.unlink(tmp)
+        raise
+def update(entry, **fields):
+    entry[0].update(fields); entry[1] = json.dumps(entry[0], ensure_ascii=False).encode("utf-8")
+def handed_at(r):
+    """Epoch seconds the note was handed out; 0 for never; None for any other value, such as true (handed out, no lease)."""
+    v = r.get("handed_out")
+    if isinstance(v, str):
+        try: return calendar.timegm(time.strptime(v, "%Y-%m-%dT%H:%M:%SZ"))
+        except ValueError: return None
+    return None if v else 0
+def unread(r):
+    return r.get("status") == "open" and handed_at(r) is not None and time.time() - handed_at(r) >= LEASE
+def fresh(entries): return [e for e in entries if e[0] and unread(e[0])]
+def lease_ends(entries):
+    return min((handed_at(e[0]) + LEASE for e in entries if e[0] and e[0].get("status") == "open" and handed_at(e[0])), default=float("inf"))
+def new_pick():
+    """The latest unconsumed pick when no --wait has printed it yet, as (row to print, its fingerprint)."""
+    picks = [r for r in m._decisions(dk) if not r.get("consumed")]
+    if not picks: return None
+    fp = hashlib.sha256(json.dumps(picks[-1], sort_keys=True).encode("utf-8", "replace")).hexdigest()[:16]
+    try:
+        with open(announced, encoding="ascii") as fh:
+            if fh.read().strip() == fp: return None
+    except (OSError, ValueError):
+        pass
+    r = picks[-1]
+    return {"kind": "pick", "ts": r.get("ts"), "board": r.get("board"), "picked": r.get("picked"), "prompt": r.get("prompt") or ""}, fp
+def hand_out(with_pick):
+    """Under the lock: print the unread notes (and a pick not yet printed), then mark the notes and remember the pick."""
+    with m.notes_lock(dk):
+        entries = load(); new = fresh(entries); pick = new_pick() if with_pick else None
+        if not new and not pick: return False
+        emit([e[0] for e in new] + ([pick[0]] if pick else []))
+        if new:
+            stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            for e in new: update(e, handed_out=stamp)
+            save(entries)
+        if pick:
+            fd = os.open(announced, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0), 0o600)
+            with os.fdopen(fd, "w", encoding="ascii") as fh: fh.write(pick[1] + "\n")
+    return True
+def signature(p):
+    try: st = os.stat(p)
+    except OSError: return None
+    return (st.st_ino, st.st_size, st.st_mtime_ns)
+if "--shot" in o:
+    nid = o["--shot"]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", nid): die("not a note id: " + nid, 2)
+    r = next((e[0] for e in load() if e[0] and e[0].get("id") == nid), None) or die("no note " + nid, 3)
+    sel = r["anchor"].get("selector") if isinstance(r.get("anchor"), dict) else ""
+    if not isinstance(sel, str) or not sel: die("note %s is on the whole page, no element to shoot" % nid, 2)
+    vp = (r.get("context") or {}).get("viewport") or {}
+    size = [min(max(v if isinstance(v, int) and v > 0 else d, lo), hi) for v, d, lo, hi in ((vp.get("w"), 1280, 320, 3840), (vp.get("h"), 800, 240, 2160))]
+    print(nid)
+    print("/" + quote(str(r.get("page") or ""), safe="/") + "?_outline=" + quote(sel, safe=""))
+    print("%d,%d" % tuple(size)); sys.exit(0)
+if "--reply" in o:
+    status = o.get("--status")
+    if status not in ("addressed", "dismissed"): die("--status must be addressed or dismissed", 2)
+    with m.notes_lock(dk):
+        entries = load()
+        e = next((e for e in entries if e[0] and e[0].get("id") == o["--reply"]), None) or die("no note " + o["--reply"], 3)
+        update(e, status=status, reply=" ".join(o.get("--text", "").split())[:300])
+        save(entries)
+    emit([e[0]]); sys.exit(0)
+if "--wait" in o:
+    try: end = time.monotonic() + float(o.get("--timeout", "600"))
+    except ValueError: die("--timeout needs seconds", 2)
+    seen, due = "unread", 0.0
+    while True:
+        # Parse only when either file's inode, size or mtime moved, or a lease ran out.
+        sig = (signature(path), signature(decisions))
+        if sig != seen or time.time() >= due:
+            seen, entries = sig, load()
+            due = lease_ends(entries)
+            if (fresh(entries) or new_pick()) and hand_out(True): sys.exit(0)
+        if time.monotonic() >= end: sys.exit(3)
+        time.sleep(0.5)
+if "--all" in o:
+    rows = [e[0] for e in load() if e[0]]
+    if not rows: die("no note", 3)
+    emit(rows); sys.exit(0)
+if not fresh(load()) or not hand_out(False): die("no unread note", 3)
+PY
+    }
+    # --shot ID stands alone (notes_py refuses it anywhere else), so only that form is captured here
+    if [ "${1:-}" != "--shot" ]; then
+      set +e; notes_py "$@"; rc=$?; set -e
+      case "$rc" in 0) log ok ;; 3) log skip ;; *) log fail ;; esac
+      exit "$rc"
+    fi
+    set +e; spec="$(notes_py "$@")"; rc=$?; set -e
+    [ "$rc" = 0 ] || { log fail; exit "$rc"; }
+    # every path below is built from the id notes_py validated, never from the raw argument
+    nid="$(printf '%s\n' "$spec" | sed -n 1p)"
+    browser="$(bash "$here/board-export.sh" --which 2>/dev/null)" \
+      || fail "no Chromium-family browser found (Chrome, Chromium, Edge, Playwright's, or DESIGN_KIT_BROWSER); no screenshot taken" "$nid" 4
+    base="$(ensure_server)" || fail "the preview server did not start; no screenshot taken" "$nid" 4
+    port="${base%/}"; port="${port##*:}"
+    # 127.0.0.1, not the URL file's host: a LAN server's printed address is not loopback, and ?_outline= answers loopback only
+    shots="$DK/.notes"; mkdir -p "$shots"; chmod 700 "$shots"; out="$shots/$nid.png"; rm -f "$out"
+    profile="$(mktemp -d)"
+    # Chrome's sandbox stays on: off only as root, where Chrome refuses to start with it, or on DESIGN_KIT_BROWSER_NO_SANDBOX=1.
+    sandbox=""; if [ "$(id -u)" = 0 ] || [ "${DESIGN_KIT_BROWSER_NO_SANDBOX:-}" = 1 ]; then sandbox="--no-sandbox"; fi
+    limit=""; if command -v timeout >/dev/null 2>&1; then limit="timeout 30"; fi
+    set +e
+    $limit "$browser" --headless=new --disable-gpu $sandbox --hide-scrollbars --force-device-scale-factor=1 \
+      --run-all-compositor-stages-before-draw --virtual-time-budget=3000 --no-first-run --no-default-browser-check \
+      --user-data-dir="$profile" --window-size="$(printf '%s\n' "$spec" | sed -n 3p)" \
+      --screenshot="$out" "http://127.0.0.1:$port$(printf '%s\n' "$spec" | sed -n 2p)" >/dev/null 2>&1
+    brc=$?; set -e
+    rm -rf "$profile"
+    if [ "$brc" != 0 ]; then
+      rm -f "$out"
+      if [ "$brc" = 124 ] && [ -n "$limit" ]; then why="ran past 30 s"; else why="exited $brc"; fi
+      fail "the browser $why for note $nid; no screenshot taken" "$nid" 4
+    fi
+    [ -s "$out" ] || fail "the browser wrote no PNG for note $nid" "$nid" 4
+    echo "$out"; log ok "$out" ;;
+
   status)
     python3 - "$DK" "$here/serve.py" <<'PY'
 import importlib.util, sys
@@ -383,5 +576,5 @@ print("server: " + (u or "not running"))
 PY
     log ok ;;
 
-  *) echo "dk: unknown verb $verb" >&2; sed -n '7,24p' "$0" >&2; exit 2 ;;
+  *) echo "dk: unknown verb $verb" >&2; sed -n '7,26p' "$0" >&2; exit 2 ;;
 esac

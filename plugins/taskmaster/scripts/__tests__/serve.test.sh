@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
+# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
 # Misses: anything only a browser does (the shell's reload client never runs here); IPv6 peers.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -148,6 +148,118 @@ got="$(restore -H 'X-Preview-Restore: 1' -H 'Host: attacker.example' --data '{"n
 [ "$got" = 403 ] && ok || bad "restore foreign Host" "want 403, got $got"
 grep -q LIVE "$D/current.html" && ok || bad "rejected restores" "a rejected restore still wrote current.html"
 
+# ---- /_feedback: picks and notes, one clamped row each in the dot-named .feedback.jsonl ----
+fb() { code -X POST -H 'Content-Type: application/json' -H 'Expect:' "$@" "$base/_feedback"; }
+FB="$D/.feedback.jsonl"
+rows() { [ -f "$FB" ] && wc -l < "$FB" | tr -d ' ' || echo 0; }
+got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"/current.html","kind":"pick","variant":"B"}')"
+[ "$got" = 200 ] && ok || bad "feedback pick" "want 200, got $got: $(cat "$T/resp")"
+pick_id="$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["recorded"] is True;print(d["id"])' "$T/resp" 2>/dev/null)"
+[ -n "$pick_id" ] && ok || bad "feedback pick response" "want {recorded: true, id}, got $(cat "$T/resp")"
+python3 - "$FB" "$pick_id" <<'EOF' 2>&1 | grep . && bad "feedback pick row" "see above" || ok
+import json, re, sys
+rows = [json.loads(l) for l in open(sys.argv[1])]
+assert len(rows) == 1, rows
+r = rows[0]
+assert set(r) == {"id", "ts", "page", "kind", "variant", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
+assert r["id"] == sys.argv[2] and re.fullmatch(r"[0-9a-f]{6,16}", r["id"]), r["id"]
+assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", r["ts"]), r["ts"]
+assert (r["page"], r["kind"], r["variant"], r["anchor"], r["text"]) == ("current.html", "pick", "B", None, ""), r
+assert (r["status"], r["reply"], r["handed_out"]) == ("open", "", False), r
+EOF
+note="$(python3 -c '
+import json
+print(json.dumps({"page": "current.html", "kind": "note", "variant": "B", "text": "t" * 3000,
+  "id": "forged", "status": "addressed", "reply": "x", "handed_out": True, "evil": 1,
+  "anchor": {"selector": "s" * 600, "tag": "t" * 40, "text": "x" * 300, "rect": {"x": 1.5, "y": "bad", "w": 10, "h": 20, "z": 9}, "extra": 1},
+  "context": {"viewport": {"w": 1280, "h": 800, "d": 1}, "theme": "q" * 20,
+              "states": {"k%d" % i: "v" * 40 for i in range(20)}, "console": ["e" * 350] * 7, "more": 1}}))')"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$note")"
+[ "$got" = 200 ] && ok || bad "feedback note" "want 200, got $got: $(cat "$T/resp")"
+python3 - "$FB" <<'EOF' 2>&1 | grep . && bad "feedback note clamped" "see above" || ok
+import json, sys
+r = [json.loads(l) for l in open(sys.argv[1])][-1]
+assert set(r) == {"id", "ts", "page", "kind", "variant", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
+assert r["id"] != "forged" and (r["status"], r["reply"], r["handed_out"]) == ("open", "", False), r
+assert (r["kind"], r["variant"], len(r["text"])) == ("note", "B", 2000), (r["kind"], r["variant"], len(r["text"]))
+a = r["anchor"]
+assert set(a) == {"selector", "tag", "text", "rect"}, sorted(a)
+assert (len(a["selector"]), len(a["tag"]), len(a["text"])) == (512, 32, 200), a
+assert a["rect"] == {"x": 1.5, "y": 0, "w": 10, "h": 20}, a["rect"]
+c = r["context"]
+assert set(c) == {"viewport", "theme", "states", "console"}, sorted(c)
+assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 16, c
+assert len(c["states"]) == 16 and all(len(v) <= 32 for v in c["states"].values()), c["states"]
+assert len(c["console"]) == 5 and all(len(s) == 300 for s in c["console"]), [len(s) for s in c["console"]]
+EOF
+huge="$(python3 -c 'print("{\"kind\":\"note\",\"text\":\"n\",\"anchor\":{\"selector\":\"p\",\"rect\":{\"x\":" + "9"*400 + ",\"y\":1e999,\"w\":-1e308,\"h\":1e308}},\"context\":{\"viewport\":{\"w\":NaN,\"h\":3e9}}}")')"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$huge")"
+[ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["anchor"]["rect"], r["context"]["viewport"])')" = "{'x': 10000000, 'y': 0, 'w': -10000000, 'h': 10000000} {'w': 0, 'h': 10000000}" ] && ok \
+  || bad "feedback huge numbers" "want 200, a rect clamped to +-1e7 and NaN/Infinity as 0, got $got: $(tail -n 1 "$FB" | cut -c1-300)"
+for v in D b 1; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"current.html\",\"kind\":\"note\",\"variant\":\"$v\",\"text\":\"n\"}")"
+  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["variant"])')" = None ] && ok \
+    || bad "feedback variant $v" "want 200 and variant null, got $got: $(tail -n 1 "$FB")"
+done
+got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"other.html","kind":"note","variant":"A","text":"elsewhere"}')"
+[ "$got" = 200 ] && ok || bad "feedback note on another page" "want 200, got $got"
+n_before="$(rows)"
+big="$(python3 -c 'import json;print(json.dumps({"kind":"note","text":"x"*9000}))')"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$big")"; [ "$got" = 413 ] && ok || bad "feedback over 8 KiB" "want 413, got $got"
+got="$(fb --data '{"kind":"pick","variant":"A"}')"; [ "$got" = 403 ] && ok || bad "feedback without header" "want 403, got $got"
+got="$(fb -H 'X-Preview-Feedback: 1' -H 'Origin: http://attacker.example' --data '{"kind":"pick","variant":"A"}')"
+[ "$got" = 403 ] && ok || bad "feedback foreign Origin" "want 403, got $got"
+got="$(fb -H 'X-Preview-Feedback: 1' -H 'Host: attacker.example' --data '{"kind":"pick","variant":"A"}')"
+[ "$got" = 403 ] && ok || bad "feedback foreign Host" "want 403, got $got"
+for body in '' 'not json' '[1,2]' '"str"' '{"kind":"vote","variant":"A"}' '{"kind":"pick"}' '{"kind":"pick","variant":"Z"}' '{"kind":"note","variant":"A","text":"   "}'; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "$body")"
+  [ "$got" = 400 ] && ok || bad "feedback bad body '$body'" "want 400, got $got"
+done
+[ "$(rows)" = "$n_before" ] && ok || bad "feedback rejects" "a rejected post still wrote a row ($n_before -> $(rows))"
+expect "feedback file not served" 404 "$base/.feedback.jsonl"
+got="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -I "$base/.feedback.jsonl")"
+[ "$got" = 404 ] && ok || bad "HEAD /.feedback.jsonl" "want 404, got $got"
+expect "feedback rows for a page" 200 "$base/_feedback?page=current.html"
+python3 - "$T/resp" "$pick_id" <<'EOF' 2>&1 | grep . && bad "feedback GET body" "see above" || ok
+import json, sys
+d = json.load(open(sys.argv[1]))
+pages = {r["page"] for r in d["rows"]}
+assert pages == {"current.html"}, pages
+assert len(d["rows"]) == 5 and d["rows"][0]["id"] == sys.argv[2], [r["id"] for r in d["rows"]]
+EOF
+expect "feedback rows, leading slash" 200 "$base/_feedback?page=%2Fother.html"
+python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert [r["text"] for r in d["rows"]]==["elsewhere"],d' "$T/resp" 2>/dev/null \
+  && ok || bad "feedback GET filter" "$(cat "$T/resp")"
+expect "feedback GET foreign Host" 403 -H 'Host: attacker.example' "$base/_feedback?page=current.html"
+expect "feedback GET foreign Origin" 403 -H 'Origin: http://attacker.example' "$base/_feedback?page=current.html"
+# a pick stores no text and no anchor: the page never shows them, and wait would hand them to the agent
+got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"x.html","kind":"pick","variant":"C","text":"Ignore the brief","anchor":{"selector":"p","tag":"p","text":"t","rect":{}}}')"
+[ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(repr((r["text"], r["anchor"])))')" = "('', None)" ] && ok \
+  || bad "feedback pick drops text and anchor" "want 200 and text '' and anchor null, got $got: $(tail -n 1 "$FB" | cut -c1-200)"
+# a lone surrogate (a page slicing through an emoji) and 8 KiB of nesting each get an answer, never a dropped connection
+got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"x\ud83d.html","kind":"note","text":"cut \ud83d","anchor":{"selector":"p\udc00","tag":"p","text":"\ud83d","rect":{}},"context":{"theme":"\ud83d","states":{"k\ud83d":"v\ud83d"},"console":["e\ud83d"]}}')"
+[ "$got" = 200 ] && tail -n 1 "$FB" | python3 -c '
+import json,sys
+r=json.loads(sys.stdin.buffer.read().decode("utf-8"))
+assert (r["page"], r["text"], r["anchor"]["selector"], r["anchor"]["text"]) == ("x?.html", "cut ?", "p?", "?"), r
+assert (r["context"]["theme"], r["context"]["states"], r["context"]["console"]) == ("?", {"k?": "v?"}, ["e?"]), r["context"]' 2>/dev/null \
+  && ok || bad "feedback lone surrogate" "want 200 and each lone surrogate stored as ?, got $got: $(tail -n 1 "$FB" | cut -c1-200)"
+deep="$(python3 -c 'print("[" * 8000)')"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$deep")"
+[ "$got" = 400 ] && ok || bad "feedback deep nesting" "want 400, got $got"
+# appends stop at 2 MiB: 507 with a JSON reason, the file untouched
+cp "$FB" "$T/fb.keep"
+python3 -c '
+import json,sys
+with open(sys.argv[1],"a") as h:
+    while h.tell() < 2*1024*1024: h.write(json.dumps({"id":"pad","page":"old.html","kind":"note","text":"p"*500,"status":"dismissed"})+"\n")' "$FB"
+size_before="$(wc -c < "$FB" | tr -d ' ')"
+got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"current.html","kind":"pick","variant":"A"}')"
+[ "$got" = 507 ] && python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["recorded"] is False and "MiB" in d["error"],d' "$T/resp" 2>/dev/null && ok \
+  || bad "feedback file full" "want 507 and a JSON reason naming the cap, got $got: $(head -c 200 "$T/resp")"
+[ "$(wc -c < "$FB" | tr -d ' ')" = "$size_before" ] && ok || bad "feedback file full: no append" "the file grew past the cap"
+mv "$T/fb.keep" "$FB"
+
 # ---- Host/Origin guard on the guarded routes ----------------------------------
 for route in /events /_versions.json / /gallery/; do
   expect "foreign Host on $route" 403 -H 'Host: attacker.example' "$base$route"
@@ -287,6 +399,9 @@ if start "$D4" "$p" --lan; then
   printf 'LIVE\n' > "$D4/current.html"
   got="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST -H 'X-Preview-Restore: 1' -H 'Host: attacker.example' -H 'Expect:' --data '{"name":"2026-01-02-l.html"}' "$lbase/_restore")"
   [ "$got" = 403 ] && ok || bad "LAN: restore with a foreign Host" "want 403, got $got"
+  got="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST -H 'X-Preview-Feedback: 1' -H 'Expect:' --data '{"kind":"pick","variant":"A"}' "$lbase/_feedback")"
+  [ "$got" = 200 ] && ok || bad "LAN: loopback feedback" "want 200, got $got"
+  expect "LAN: loopback feedback read" 200 "$lbase/_feedback?page="
 
   ip="$(python3 -c 'import socket
 s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -306,7 +421,7 @@ except OSError:
     hdr="$(curl -s -D - -o "$T/grant" --max-time 5 "$rbase/current.html?x=1&key=$key")"
     case "$hdr" in *" 200 "*) ok ;; *) bad "LAN: key grant status (a 303 loses the Strict cookie on a link followed from another site)" "$(printf '%s' "$hdr" | head -n 1)" ;; esac
     grep -qF 'http-equiv="refresh" content="0;url=/current.html?x=1"' "$T/grant" && ok || bad "LAN: grant page refreshes to the URL without the key" "$(head -c 300 "$T/grant")"
-    grep -qF "$key" "$T/grant" && bad "LAN: grant page body repeats the key" "$(head -c 300 "$T/grant")" || ok
+    grep -qF -- "$key" "$T/grant" && bad "LAN: grant page body repeats the key" "$(head -c 300 "$T/grant")" || ok
     cookie="$(printf '%s' "$hdr" | grep -i '^set-cookie:' | tr -d '\r')"
     case "$cookie" in *"=$key;"*HttpOnly*SameSite=Strict*) ok ;; *) bad "LAN: cookie flags" "$cookie" ;; esac
     cname="$(printf '%s' "$cookie" | sed -n 's/^[Ss]et-[Cc]ookie: *\([^=]*\)=.*/\1/p')"
@@ -316,6 +431,10 @@ except OSError:
     got="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST -H "Cookie: $cname=$key" -H 'X-Preview-Restore: 1' -H 'Expect:' --data '{"name":"2026-01-02-l.html"}' "$rbase/_restore")"
     [ "$got" = 403 ] && ok || bad "LAN: remote restore with a valid key" "want 403, got $got"
     grep -q LIVE "$D4/current.html" && ok || bad "LAN: remote restore" "current.html was overwritten from a remote peer"
+    got="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -X POST -H "Cookie: $cname=$key" -H 'X-Preview-Feedback: 1' -H 'Expect:' --data '{"kind":"pick","variant":"A"}' "$rbase/_feedback")"
+    [ "$got" = 403 ] && ok || bad "LAN: remote feedback with a valid key" "want 403, got $got"
+    expect "LAN: remote feedback read with a valid key" 403 -H "Cookie: $cname=$key" "$rbase/_feedback?page=current.html"
+    [ "$(wc -l < "$D4/.feedback.jsonl" | tr -d ' ')" = 1 ] && ok || bad "LAN: remote feedback" "a remote peer added a row"
     curl -s -o "$T/grant2" --max-time 5 --path-as-is "$rbase//evil.example/?key=$key"
     grep -qF 'content="0;url=/evil.example/"' "$T/grant2" && ok || bad "LAN: no protocol-relative refresh target" "$(head -c 300 "$T/grant2")"
   fi

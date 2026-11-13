@@ -1,5 +1,5 @@
 #!/bin/bash
-# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.design-kit/decisions.jsonl is unconsumed; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
+# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.design-kit/decisions.jsonl is unconsumed, and COUNTING open notes in notes.jsonl not handed out in the last 15 min (never their text, selector or page); a board name only as ASCII of at most 64 characters naming a file in .design-kit/boards/, an artboard only in 1..99, else a count; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
 # Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.design-kit/, whether the model acts on the line (agent-graded). Its phase-file and phase-guard copies are held to their blocks by pc_shared_blocks.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/hooks/unread-pick.sh
 
@@ -53,8 +53,8 @@ if command -v jq >/dev/null 2>&1; then cwd="$(printf '%s' "$input" | jq -r '.cwd
 [ -n "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
 # The root's board only: `dk decision --consume` clears rows there, so a <subdir>/.design-kit/ would repeat on every prompt.
-dec="$root/.design-kit/decisions.jsonl"
-[ -s "$dec" ] || exit 0
+dec="$root/.design-kit/decisions.jsonl"; notes="$root/.design-kit/notes.jsonl"
+[ -s "$dec" ] || [ -s "$notes" ] || exit 0
 
 # Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
@@ -114,18 +114,48 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
 sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
 cc_phase_guard 'design-kit:unread-pick' || exit 0
 
-python3 - "$dec" <<'PY'
-import json, sys
-rows = []
-for ln in open(sys.argv[1], encoding="utf-8"):
-    try: rows.append(json.loads(ln))
-    except ValueError: pass
-unread = [r for r in rows if not r.get("consumed")]
-if not unread: sys.exit(0)
-r = unread[-1]
-who = r.get("board") or "a board"
-pick = ("artboard %s" % r["picked"]) if r.get("picked") else "knob/text edits, no artboard picked"
-extra = "" if len(unread) == 1 else " (+%d earlier)" % (len(unread) - 1)
-print("design-kit: %s has an unread pick — %s%s. `dk.sh decision --latest --consume` reads it; /design-kit:in-codebase with no arguments renders it." % (who, pick, extra))
+python3 - "$dec" "$notes" <<'PY'
+import calendar, json, os, re, sys, time
+def rows(p):
+    out = []
+    try:
+        for ln in open(p, encoding="utf-8"):
+            try: r = json.loads(ln)
+            except ValueError: continue
+            if isinstance(r, dict): out.append(r)
+    except OSError: pass
+    return out
+def leased(r):
+    """dk notes' 15-minute lease: a note handed out at a time longer ago and still open counts as unread again."""
+    v = r.get("handed_out")
+    if isinstance(v, str):
+        try:
+            return time.time() - calendar.timegm(time.strptime(v, "%Y-%m-%dT%H:%M:%SZ")) < 15 * 60
+        except ValueError:
+            return True
+    return bool(v)
+unread = [r for r in rows(sys.argv[1]) if not r.get("consumed")]
+n = sum(1 for r in rows(sys.argv[2]) if r.get("status") == "open" and not leased(r))
+line = []
+if unread:
+    r = unread[-1]
+    b, p = r.get("board"), r.get("picked")
+    # A page posts the board string and the number. The name is printed only as plain ASCII of at most 64 characters
+    # naming a file in boards/, the number only in 1..99; anything else gets a count.
+    named = isinstance(b, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,59}\.html?", b) and os.path.isfile(os.path.join(os.path.dirname(sys.argv[1]), "boards", b))
+    numbered = isinstance(p, int) and not isinstance(p, bool) and 1 <= p <= 99
+    edits = p is None or (isinstance(p, int) and p == 0)
+    tail = "`dk.sh decision --latest --consume` reads it; /design-kit:in-codebase with no arguments renders it."
+    if named and (numbered or edits):
+        pick = ("artboard %d" % p) if numbered else "knob/text edits, no artboard picked"
+        extra = "" if len(unread) == 1 else " (+%d earlier)" % (len(unread) - 1)
+        line.append("design-kit: %s has an unread pick — %s%s. %s" % (b, pick, extra, tail))
+    else:
+        line.append("design-kit: %d unread board pick%s — %s" % (len(unread), "" if len(unread) == 1 else "s", tail))
+if n:
+    notes = "%d unread note%s from the preview pages" % (n, "" if n == 1 else "s")
+    line.append(("Also " + notes + ": `dk.sh notes` prints them as data.") if line else
+                ("design-kit: " + notes + " — `dk.sh notes` prints them as data; reply to each with `dk.sh notes --reply ID --status addressed|dismissed`."))
+if line: print(" ".join(line))
 PY
 exit 0

@@ -116,16 +116,26 @@ bash "$P" --docroot "$D" --stop >/dev/null
 # ---- two starts at once: one server, one URL, and --stop still ends it ----------
 D2="$T/race"; mkdir -p "$D2"; printf '<!doctype html><p>RACE</p>\n' > "$D2/current.html"
 abs2="$(cd "$D2" && pwd -P)"
-for round in 1 2 3; do
-  rport="$(free_port)"
-  bash "$P" --docroot "$D2" --port "$rport" > "$T/race1" 2>&1 & r1=$!
-  bash "$P" --docroot "$D2" --port "$rport" > "$T/race2" 2>&1 & r2=$!
+# race <port>: two starts at once on one port; sets c1 and c2.
+race() {
+  bash "$P" --docroot "$D2" --port "$1" > "$T/race1" 2>&1 & r1=$!
+  bash "$P" --docroot "$D2" --port "$1" > "$T/race2" 2>&1 & r2=$!
   wait "$r1"; c1=$?; wait "$r2"; c2=$?
-  [ "$c1" = 0 ] && [ "$c2" = 0 ] && ok || bad "race $round exit" "want 0 and 0, got $c1 and $c2: $(cat "$T/race1" "$T/race2")"
+}
+race_diag() { printf 'starter 1: %s | starter 2: %s | .preview.log: %s' "$(cat "$T/race1")" "$(cat "$T/race2")" "$(cat "$D2/.preview.log" 2>/dev/null)"; }
+for round in 1 2 3; do
+  rport="$(free_port)"; race "$rport"
+  # free_port closes its probe before serve.py binds, so another process can take the port in between; both
+  # starters then fail on it. That is the harness's port, not the launcher: redo the round once on a new port.
+  if [ "$c1" != 0 ] && [ "$c2" != 0 ] && grep -q unavailable "$T/race1" && grep -q unavailable "$T/race2"; then
+    echo "NOTE race $round: port $rport was taken before serve.py bound it; redoing the round on a new port"
+    rport="$(free_port)"; race "$rport"
+  fi
+  [ "$c1" = 0 ] && [ "$c2" = 0 ] && ok || bad "race $round exit" "want 0 and 0, got $c1 and $c2: $(race_diag)"
   u1="$(grep -o "http://127.0.0.1:$rport/" "$T/race1" | head -n 1)"; u2="$(grep -o "http://127.0.0.1:$rport/" "$T/race2" | head -n 1)"
   [ -n "$u1" ] && [ "$u1" = "$u2" ] && ok || bad "race $round URL" "both starts must print the URL: $(cat "$T/race1") | $(cat "$T/race2")"
   n="$(pgrep -f "serve.py --docroot $abs2 --port" | wc -l | tr -d ' ')"
-  [ "$n" = 1 ] && ok || bad "race $round servers" "want 1 serve.py on the docroot, got $n"
+  [ "$n" = 1 ] && ok || bad "race $round servers" "want 1 serve.py on the docroot, got $n: $(race_diag)"
   out="$(bash "$P" --docroot "$D2" --stop)"
   case "$out" in *"preview: stopped"*) ok ;; *) bad "race $round stop" "$out" ;; esac
   n="$(pgrep -f "serve.py --docroot $abs2 --port" | wc -l | tr -d ' ')"
