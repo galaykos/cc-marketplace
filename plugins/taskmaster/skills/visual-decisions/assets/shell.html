@@ -1522,6 +1522,13 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 @media print {
   #vd-fb, .vd-fb-btn, #vd-fb-box, #vd-fb-hover { display: none; }
 }
+
+/* Check badge: shown only when serve.py answers GET /_checks for this page. */
+#vd-check-badge { font-size: .75rem; font-weight: 600; color: var(--vd-ink-soft); }
+#vd-check-badge[hidden] { display: none; }
+@media print {
+  #vd-check-badge { display: none; }
+}
 </style>
 <style id="vd-custom">
 /* SLOT: custom-css — shared classes when no primitive fits; never style one
@@ -1599,6 +1606,8 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         <ol class="vd-fb-list" aria-label="Notes on this page"></ol>
       </details>
     </span>
+    <!-- Render-check badge: scripts/preview-check.sh's result for this exact file, from serve.py's /_checks. -->
+    <span id="vd-check-badge" role="status" hidden></span>
   </div>
 </header>
 
@@ -1797,7 +1806,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   // /_versions.json 404s or throws, and the control simply stays hidden.
   // Picking a past pass NAVIGATES (read-only); Restore is the one write, and
   // it copies server-side, so the reload arrives down the normal SSE lane.
+  // ?static=1 (shot, preview-check.sh) leaves it hidden: it names the file, so two passes would never screenshot alike.
   (function () {
+    if (new URLSearchParams(location.search).get('static') === '1') return;
     const wrap = document.getElementById('vd-versions');
     const select = document.getElementById('vd-ver-select');
     const restoreBtn = document.getElementById('vd-ver-restore');
@@ -2391,6 +2402,27 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 
 <script>
 (() => {
+  // "checked: N findings" or "not checked" for this file as it stands; refreshed when serve.py streams a "checked" event.
+  if (new URLSearchParams(location.search).get('static') === '1') return;
+  const badge = document.getElementById('vd-check-badge');
+  const page = decodeURIComponent(location.pathname).replace(/^\/+/, '');
+  function show() {
+    fetch(location.origin + '/_checks?page=' + encodeURIComponent(page), { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('no check lane'))))
+      .then(d => {
+        if (!d || typeof d.checked !== 'boolean') throw new Error('no check lane');
+        badge.textContent = d.checked ? 'checked: ' + d.findings + (d.findings === 1 ? ' finding' : ' findings') : 'not checked';
+        badge.hidden = false;
+      })
+      .catch(() => { badge.hidden = true; });
+  }
+  show();
+  window.addEventListener('vd-checked', show);
+})();
+</script>
+
+<script>
+(() => {
   // ?static=1 (preview-feedback.sh shot): no stream, no polling, or a headless virtual-time budget never runs out.
   if (new URLSearchParams(location.search).get('static') === '1') return;
   let last = null;
@@ -2458,6 +2490,11 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       // serve.py names its events "change"; a bare "data:" stream fires "message".
       es.addEventListener('change', onChange);
       es.addEventListener('message', onChange);
+      es.addEventListener('checked', e => {
+        if (String(e.data || '').trim() === decodeURIComponent(location.pathname).replace(/^\/+/, '')) {
+          window.dispatchEvent(new Event('vd-checked'));
+        }
+      });
       es.addEventListener('error', () => {
         es.close();
         if (opened) waitForServer(1000);

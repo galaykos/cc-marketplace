@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl, every field clamped, numbers to +-1e7), each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and neither file is followed through a symlink; GET /_notes?page= (loopback) lists a page's notes. Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); nothing proves a browser rendered a page.
+Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
+Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
@@ -21,6 +21,7 @@ import stat
 import sys
 import threading
 import time
+import unicodedata
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlsplit
@@ -46,12 +47,19 @@ NOTE_HOOK = 'import(location.origin+"/_note.js").catch(function(){});'
 RELOAD_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + NOTE_HOOK + '</script>'
 GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
 OUTLINE_TAG = '<script data-design-kit-outline>' + NOTE_HOOK + '</script>'
-NOTE_JS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "note.js")
+HERE = os.path.dirname(os.path.abspath(__file__))
+NOTE_JS = os.path.join(HERE, "note.js")
+# route -> (file, loopback only); served from the plugin, never from the docroot
+SCRIPTS = {"/_note.js": (NOTE_JS, False)}
 PAGE_EXT = (".html", ".htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
 NOTES = "notes.jsonl"
 NOTES_LOCK = ".notes.lock"  # dk.sh takes the same lock before it rewrites notes.jsonl
+CHECKS = ".checks"  # dk check's results and shots: a dot folder, so never served and never a reload
+CHECK_RESULTS = "results.json"
+# Variation selectors and the letters that render blank (Hangul fillers, the empty Braille cell): not C*, yet they hide text.
+BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
 IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
@@ -62,10 +70,10 @@ LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
 
 
 @contextlib.contextmanager
-def notes_lock(root):
-    """Holds <root>/.notes.lock exclusively; without fcntl or the file, goes on unlocked."""
+def locked(path):
+    """Holds the lock file at path exclusively; without fcntl or the file, goes on unlocked."""
     try:
-        fd = os.open(os.path.join(root, NOTES_LOCK), os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
     except OSError:
         fd = None
     try:
@@ -75,6 +83,32 @@ def notes_lock(root):
     finally:
         if fd is not None:
             os.close(fd)
+
+
+def notes_lock(root):
+    return locked(os.path.join(root, NOTES_LOCK))
+
+
+def checks_dir(root):
+    """<root>/.checks, made 0700 when missing; OSError when it is a symlink or not a folder."""
+    d = os.path.join(root, CHECKS)
+    try:
+        os.mkdir(d, 0o700)
+    except FileExistsError:
+        pass
+    if not stat.S_ISDIR(os.lstat(d).st_mode):
+        raise OSError("%s is not a folder" % d)
+    return d
+
+
+def _hidden(c):
+    cat = unicodedata.category(c)
+    return cat[0] == "C" or cat in ("Zl", "Zp") or ord(c) in BLANK
+
+
+def show(row):
+    """One JSON line with control, format, separator and blank-rendering characters escaped, for page-originated text (taskmaster's preview-feedback.sh does the same)."""
+    return "".join(json.dumps(c)[1:-1] if _hidden(c) else c for c in json.dumps(row, ensure_ascii=False))
 
 
 def _clean(value):
@@ -129,6 +163,25 @@ def note_row(body):
         "status": "open",
         "reply": "",
     }
+
+
+def check_status(root, page):
+    """What GET /_checks?page= answers: the last dk check of that page, and whether the file changed since."""
+    try:
+        fd = os.open(os.path.join(root, CHECKS, CHECK_RESULTS), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as fh:
+            results = json.loads(fh.read().decode("utf-8", "replace"))
+    except (OSError, ValueError, RecursionError):
+        results = {}
+    r = results.get(page) if isinstance(results, dict) else None
+    if not isinstance(r, dict):
+        return {"page": page, "checked": False}
+    try:
+        moved = os.stat(os.path.join(root, *_parts(page))).st_mtime_ns != r.get("mtime_ns")
+    except OSError:
+        moved = True
+    return {"page": page, "checked": True, "ts": _clip(r.get("ts"), 32), "findings": _num(r.get("findings")),
+            "widths": [_num(w) for w in r.get("widths", []) if isinstance(r.get("widths"), list)][:8], "changed_since": moved}
 
 
 def append_row(path, row):
@@ -478,9 +531,13 @@ class Handler(SimpleHTTPRequestHandler):
     def send_head(self):
         """GET and HEAD: 404 unless servable; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
         path = split_target(self.path)[0]
-        if path == "/_note.js":
+        loopback = self.client_address[0] in LOOPBACK
+        if path in SCRIPTS:
+            src, local_only = SCRIPTS[path]
             try:
-                with open(NOTE_JS, "rb") as fh:
+                if local_only and not loopback:
+                    raise OSError("loopback only")
+                with open(src, "rb") as fh:
                     script = fh.read()
             except OSError:
                 self.send_error(HTTPStatus.NOT_FOUND)
@@ -503,8 +560,9 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
         i = body.lower().rfind(b"</body>")
+        query = parse_qs(split_target(self.path)[1])
         if i >= 0 and b"data-design-kit-reload" not in body:
-            if "_outline" in parse_qs(split_target(self.path)[1]) and self.client_address[0] in LOOPBACK:
+            if "_outline" in query and loopback:
                 body = body[:i] + OUTLINE_TAG.encode() + body[i:]
             elif self._wants_live():
                 body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
@@ -525,6 +583,11 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._reject(HTTPStatus.FORBIDDEN, why)
             page = page_of((parse_qs(query).get("page") or [""])[0])
             return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") == page])
+        if path == "/_checks":
+            why = self._not_local("check results", "read")
+            if why:
+                return self._reject(HTTPStatus.FORBIDDEN, why)
+            return self._json(check_status(self.root, page_of((parse_qs(query).get("page") or [""])[0])))
         if path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
             return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
         return super().do_GET()

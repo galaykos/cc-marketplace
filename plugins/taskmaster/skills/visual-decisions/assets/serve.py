@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore and /_feedback stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Harness: plugins/taskmaster/scripts/__tests__/serve.test.sh.
-# Misses: a page served from here, third-party script included, can post a pick or note, and note text is unverified; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
+# Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore, /_feedback and /_checks stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
+# Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
@@ -19,6 +19,7 @@ Stdlib only. Usage:
 import argparse
 import contextlib
 import functools
+import hashlib
 import html
 import hmac
 import http.server
@@ -27,6 +28,7 @@ import json
 import math
 import os
 import queue
+import re
 import secrets
 import shutil
 import socket
@@ -67,6 +69,8 @@ MAX_FEEDBACK_BODY = 8192
 MAX_FEEDBACK_FILE = 2 * 1024 * 1024  # appends stop here (507): a page looping posts must not fill the disk
 PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
 VARIANTS = ("A", "B", "C")
+CHECKS_DIR = ".checks"  # dot-named, so never served: one folder per page, one record per width, written by scripts/preview-check.sh only
+CHECK_STAMP = "run.json"  # preview-check.sh writes it last in a page's folder: the watcher streams "checked" for that page
 
 
 def hostname_from_netloc(netloc):
@@ -266,6 +270,59 @@ def read_feedback(docroot):
     return rows
 
 
+def check_page(docroot, value):
+    """(page key, file) for an existing .html file inside docroot with no dot segment and no control character, else None."""
+    key = page_key(value)
+    if (any(not seg or seg.startswith(".") for seg in key.split("/")) or not key.lower().endswith((".html", ".htm"))
+            or re.search(r"[\x00-\x1f\x7f-\x9f]", key)):
+        return None
+    try:
+        target = (docroot / key).resolve()
+        return (key, target) if docroot in target.parents and target.is_file() else None
+    except (OSError, ValueError):
+        return None
+
+
+def check_dir(docroot, key):
+    """A page's private record folder: .checks/<readable name>-<first 10 hex of the key's sha1>."""
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", key)[:80]
+    return docroot / CHECKS_DIR / "{}-{}".format(safe, hashlib.sha1(key.encode("utf-8")).hexdigest()[:10])
+
+
+def file_sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read_checks(docroot, key, digest):
+    """The badge's view of a page: only records taken of the bytes the file holds now count."""
+    folder = check_dir(docroot, key)
+    records = []
+    try:
+        entries = list(os.scandir(folder))
+    except OSError:
+        entries = []
+    for entry in entries:
+        if entry.name.endswith(".json") and not entry.name.startswith(".") and entry.is_file(follow_symlinks=False):
+            try:
+                with open(entry.path, encoding="utf-8") as handle:
+                    record = json.load(handle)
+            except (OSError, ValueError):
+                continue
+            if isinstance(record, dict):
+                records.append(record)
+    fresh = [r for r in records if r.get("page_sha256") == digest]
+    unique = {(f.get("check"), f.get("selector"), f.get("text"), f.get("detail"))
+              for r in fresh for f in (r.get("findings") or []) if isinstance(f, dict)}
+    return {
+        "page": key,
+        "dir": folder.relative_to(docroot).as_posix(),
+        "checked": bool(fresh),
+        "stale": bool(records) and not fresh,
+        "findings": len(unique) + sum(r.get("dropped") or 0 for r in fresh if isinstance(r.get("dropped"), int)),
+        "widths": sorted(r["width"] for r in fresh if isinstance(r.get("width"), int)),
+    }
+
+
 def lan_address():
     """This machine's address on its default route (a UDP connect sends nothing), else 127.0.0.1."""
     probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -311,12 +368,12 @@ class ServerState:
             if client in self.clients:
                 self.clients.remove(client)
 
-    def broadcast(self, rel_path):
+    def broadcast(self, rel_path, event="change"):
         with self.lock:
             targets = list(self.clients)
         for client in targets:
             try:
-                client.put_nowait(rel_path)
+                client.put_nowait((event, rel_path))
             except queue.Full:
                 pass  # slow/idle client — drop the event, keep-alive still finds it dead
 
@@ -433,6 +490,9 @@ def build_handler(state):
             if path == "/_feedback":
                 self.serve_feedback()
                 return
+            if path == "/_checks":
+                self.serve_checks()
+                return
             super().do_GET()
 
         def do_POST(self):
@@ -495,6 +555,22 @@ def build_handler(state):
                 return
             self._send_json({"recorded": True, "id": row["id"]})
 
+        def serve_checks(self):
+            """Whether ?page= was checked as its bytes stand now, and the finding count, for the shell's badge."""
+            if not self.is_loopback_local():
+                self.send_error(403, "Forbidden (the render check is loopback-only)")
+                return
+            query = self.path.partition("?")[2]
+            found = check_page(state.docroot, next((v for k, v in parse_qsl(query, keep_blank_values=True) if k == "page"), ""))
+            try:
+                digest = file_sha256(found[1]) if found else None
+            except OSError:
+                digest = None
+            if digest is None:
+                self._send_json({"error": "no such page in the docroot"}, 404)
+                return
+            self._send_json(read_checks(state.docroot, found[0], digest))
+
         def handle_sse(self):
             if not self.is_local_request():
                 self.send_error(403, "Forbidden (non-local Origin/Host)")
@@ -513,14 +589,14 @@ def build_handler(state):
                 self.wfile.flush()
                 while True:
                     try:
-                        rel_path = client.get(timeout=KEEPALIVE_SECONDS)
+                        item = client.get(timeout=KEEPALIVE_SECONDS)
                     except queue.Empty:
                         self.wfile.write(b": keep-alive\n\n")
                         self.wfile.flush()
                         continue
-                    if rel_path is None:
+                    if item is None:
                         break
-                    payload = "event: change\ndata: {}\n\n".format(rel_path)
+                    payload = "event: {}\ndata: {}\n\n".format(*item)
                     self.wfile.write(payload.encode("utf-8"))
                     self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError, OSError):
@@ -860,15 +936,46 @@ def scan_mtimes(docroot):
             yield full.relative_to(docroot).as_posix(), (st.st_mtime, st.st_size)
 
 
+def scan_stamps(docroot):
+    """Yield (stamp path, (mtime, size)) for each page folder's run.json under .checks."""
+    try:
+        folders = list(os.scandir(docroot / CHECKS_DIR))
+    except OSError:
+        return
+    for folder in folders:
+        try:
+            if folder.is_dir(follow_symlinks=False):
+                st = os.stat(os.path.join(folder.path, CHECK_STAMP), follow_symlinks=False)
+                yield os.path.join(folder.path, CHECK_STAMP), (st.st_mtime, st.st_size)
+        except OSError:
+            continue
+
+
+def stamped_page(path):
+    try:
+        with open(path, encoding="utf-8") as handle:
+            page = json.load(handle).get("page")
+    except (OSError, ValueError, AttributeError):
+        return None
+    return page if isinstance(page, str) else None
+
+
 def watch_loop(state, stop_event):
-    """Poll file mtimes under docroot; broadcast each changed/new path."""
+    """Poll file mtimes under docroot; broadcast each changed/new path, and "checked" for a page whose run.json changed."""
     mtimes = dict(scan_mtimes(state.docroot))
+    stamps = dict(scan_stamps(state.docroot))
     while not stop_event.wait(POLL_INTERVAL_SECONDS):
         current = dict(scan_mtimes(state.docroot))
         for rel_path, mtime in current.items():
             if mtimes.get(rel_path) != mtime:
                 state.broadcast(rel_path)
         mtimes = current
+        now = dict(scan_stamps(state.docroot))
+        for path, mtime in now.items():
+            page = stamped_page(path) if stamps.get(path) != mtime else None
+            if page:
+                state.broadcast(page, event="checked")
+        stamps = now
 
 
 def minutes_from_env(name, default):
