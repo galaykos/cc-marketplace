@@ -33,6 +33,18 @@ to null), 2 skipped (a folder that no longer exists).
 - **`claude` binary**: the one on PATH, else `CLAUDE_CODE_EXECPATH` (set in Desktop sessions, whose
   hook PATH may lack the CLI). A missing CLI is checked in Python, so a background run still
   records its failure for the next session to report.
+- **Current folder by default (0.2.0, same day).** 0.1.0 updated every folder. Its first on-demand
+  run, from this repository, matched 421 installs and rewrote 17 in ten other project folders,
+  work repositories among them. The user's correction: only the current repo. So a run keeps
+  installs with no project folder (user, managed) and those of one folder: the nearest folder at or
+  above the working directory that `claude plugin list --json` records an install for. The walk up
+  exists because the Bash tool's working directory drifts below the project root and
+  `CLAUDE_PROJECT_DIR` is not exported to it (checked 2026-11-13). The hook takes the folder from
+  the payload's `cwd` and passes it as `--cwd`. `--all` is the old behaviour, on demand only.
+  `last-run.json` keeps `done`, a completion time per folder (`*` for an `--all` run), so a run in
+  one folder does not hold back another's for a day.
+- **Residual of that rule.** A run filtered by `--plugin` or `--scope` still marks its folder done
+  for the interval. In a linked worktree session only user scope is updated.
 - **Residual.** The worktree mapping is inferred from those 93 results, not from CLI source. If a
   later CLI updates worktree entries in place, the skip turns needless; delete it then.
 
@@ -46,14 +58,15 @@ standard-library module.
 
 SessionStart, `startup` only. The first design (2026-11-13, morning) only counted outdated installs.
 The requesting session then widened it the same day: the user's goal is never to update plugins by
-hand, so the hook starts the update run itself.
+hand, so the hook starts the update run itself. Since 0.2.0 that run covers the session's folder and
+user scope only.
 
 - **Detached, never in-line.** A run makes one CLI call per install (about a second each; 273 calls
   in the batch run). So the hook takes the lock, starts `update-all.sh --background --owns-lock` with
   `start_new_session` and its output in `last-run.log`, and exits. stdout is not the hook's pipe, so
   the host has nothing to wait for. The harness checks the hook returns before a 3 s fake refresh
   ends. Whether the host ever kills a hook's detached child was not tested under the host.
-- **Due** means the last *completed* run (exit 0 or 1, not interrupted) is older than
+- **Due** (per folder since 0.2.0) means the last *completed* run (exit 0 or 1, not interrupted) is older than
   `CC_PLUGIN_UPDATER_INTERVAL` hours (24). A run that exits 2 records no completion, so the next
   session retries it; the lock keeps that to one at a time.
 - **Lock**: `run.lock/` under the data directory, created with `mkdir` (atomic), holding the pid.

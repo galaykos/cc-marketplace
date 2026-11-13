@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# plugin_updates.py — `update`: run `claude plugin update` for each install behind its marketplace clone, one at a time, every scope and folder; `hook`: at session start, start that run detached when due, report the last one.
-# Misses: a remote-source plugin whose version lives only in its own plugin.json, releases the clones have not fetched when the refresh is skipped, and linked git worktree installs (skipped).
+# plugin_updates.py — `update`: run `claude plugin update` for each install behind its marketplace clone, one at a time, in the current folder and at user scope (`--all`: every folder); `hook`: at session start, start that run detached when due, report the last one.
+# Misses: other project folders unless --all or --project names them, a remote-source plugin whose version lives only in its own plugin.json, releases the clones have not fetched when the refresh is skipped, and linked git worktree installs (skipped).
 # Why, limits, history: rationale/derivations/plugin-plugin-updater.md § plugins/plugin-updater/scripts/plugin_updates.py
 import argparse
 import json
@@ -222,6 +222,35 @@ def classify(inst, cat):
     return "unresolved", "no local clone of its marketplace"
 
 
+def session_folder(base, paths):
+    """The nearest folder at or above base that an install is recorded for; base itself when there is none."""
+    base = os.path.realpath(base)
+    known = {os.path.realpath(p) for p in paths if isinstance(p, str) and p}
+    d = base
+    while d not in known:
+        parent = os.path.dirname(d)
+        if parent == d:
+            return base
+        d = parent
+    return d
+
+
+def in_folder(inst, folder):
+    """True for an install with no project folder (user, managed) or one recorded for folder."""
+    pp = inst.get("projectPath")
+    return not pp or os.path.realpath(pp) == folder
+
+
+def installed_entries(pdir):
+    """[(id, entry)] from installed_plugins.json; raises on an unreadable file."""
+    installed = read_json(os.path.join(pdir, "installed_plugins.json"))
+    plugins = installed.get("plugins") if isinstance(installed, dict) else None
+    if not isinstance(plugins, dict):
+        return []
+    return [(pid, e) for pid, entries in plugins.items() if isinstance(entries, list)
+            for e in entries if isinstance(e, dict)]
+
+
 def folder_of(inst):
     return os.path.expanduser("~") if inst.get("scope") == "user" else inst.get("projectPath")
 
@@ -251,24 +280,16 @@ def why_not_updatable(inst):
     return None
 
 
-def outdated_line():
-    """The check-only notice, from JSON files and .git entries alone."""
-    pdir = plugins_dir()
-    installed = read_json(os.path.join(pdir, "installed_plugins.json"))
-    plugins = installed.get("plugins") if isinstance(installed, dict) else None
-    if not isinstance(plugins, dict):
-        return None
-    latest = load_catalog(pdir)["latest"]
+def outdated_line(entries, folder):
+    """The check-only notice for folder and user scope, from JSON files and .git entries alone."""
+    latest = load_catalog(plugins_dir())["latest"]
     n, ids = 0, set()
-    for pid, entries in plugins.items():
+    for pid, e in entries:
         want = latest.get(pid)
-        if not want or not isinstance(entries, list):
+        if not want or e.get("version") == want or not in_folder(e, folder) or why_not_updatable(e):
             continue
-        for e in entries:
-            if not isinstance(e, dict) or e.get("version") == want or why_not_updatable(e):
-                continue
-            n += 1
-            ids.add(pid)
+        n += 1
+        ids.add(pid)
     if not n:
         return None
     s = "" if n == 1 else "s"
@@ -285,19 +306,23 @@ def report_line(st):
     if not parts:
         return None
     restart = " Restart running sessions to load the updates." if st.get("updated") else ""
-    return f"plugin-updater, background run: {', '.join(parts)}. {SKILL} --last shows the log.{restart}"
+    at = f" in {st['folder']}" if st.get("folder") else ""
+    return f"plugin-updater, background run{at}: {', '.join(parts)}. {SKILL} --last shows the log.{restart}"
 
 
-def due(st):
-    last = st.get("last_completed")
-    return not isinstance(last, (int, float)) or time.time() - last >= interval_hours() * 3600
+def due(st, folder):
+    """True when no completed run covered folder ("*" is every folder) within the interval."""
+    done = st.get("done")
+    done = done if isinstance(done, dict) else {}
+    last = max([t for t in (done.get("*"), done.get(folder)) if isinstance(t, (int, float))], default=None)
+    return last is None or time.time() - last >= interval_hours() * 3600
 
 
-def spawn(data, lock):
+def spawn(data, lock, folder):
     script = os.path.join(os.path.dirname(os.path.realpath(__file__)), "update-all.sh")
     try:
         with open(os.path.join(data, "last-run.log"), "w", encoding="utf-8") as log:
-            subprocess.Popen(["bash", script, "--background", "--owns-lock", "--data-dir", data],
+            subprocess.Popen(["bash", script, "--background", "--owns-lock", "--data-dir", data, "--cwd", folder],
                              cwd=os.path.expanduser("~"), stdin=subprocess.DEVNULL, stdout=log,
                              stderr=subprocess.STDOUT, start_new_session=True, close_fds=True)
     except OSError:
@@ -307,6 +332,16 @@ def spawn(data, lock):
 def hook():
     """SessionStart: report an unreported background run, then start a detached run when due; returns at once."""
     try:
+        try:
+            payload = json.load(sys.stdin)
+        except (OSError, ValueError):
+            payload = {}
+        base = (payload.get("cwd") if isinstance(payload, dict) else None) or os.getcwd()
+        try:
+            entries = installed_entries(plugins_dir())
+        except (OSError, ValueError):
+            entries = None
+        folder = session_folder(base, [e.get("projectPath") for _, e in entries or []])
         data = default_data_dir()
         msgs = []
         st = read_state(data)
@@ -317,12 +352,12 @@ def hook():
             if line:
                 msgs.append(line)
         if option("CC_PLUGIN_UPDATER_AUTO", "on") != "off":
-            if due(st):
+            if due(st, folder):
                 lock, _ = acquire_lock(data)
                 if lock:
-                    spawn(data, lock)
-        elif option("CC_PLUGIN_UPDATER_HINT", "on") != "off":
-            line = outdated_line()
+                    spawn(data, lock, folder)
+        elif entries and option("CC_PLUGIN_UPDATER_HINT", "on") != "off":
+            line = outdated_line(entries, folder)
             if line:
                 msgs.append(line)
         if msgs:
@@ -361,16 +396,18 @@ def tail(text):
 
 
 def parse_args(argv):
-    ap = argparse.ArgumentParser(prog="update-all.sh", description="Update every installed Claude Code plugin, one install at a time.")
+    ap = argparse.ArgumentParser(prog="update-all.sh", description="Update the Claude Code plugins installed for the current folder and at user scope, one install at a time.")
     ap.add_argument("--dry-run", action="store_true", help="list what would be updated; run no `claude plugin update`")
     ap.add_argument("--no-refresh", action="store_true", help="skip `claude plugin marketplace update` and compare against the clones as they are")
     ap.add_argument("--scope", action="append", choices=["user", "project", "local"], help="only this scope (repeatable)")
-    ap.add_argument("--project", action="append", metavar="PATH", help="only installs whose project folder is PATH (repeatable)")
+    ap.add_argument("--all", action="store_true", help="every project folder, not only the current one")
+    ap.add_argument("--project", action="append", metavar="PATH", help="only installs whose project folder is PATH, in place of the current folder (repeatable)")
     ap.add_argument("--plugin", action="append", metavar="NAME", help="only this plugin, as name or name@marketplace (repeatable)")
     ap.add_argument("--last", action="store_true", help="print the last background run's log and exit")
     ap.add_argument("--data-dir", metavar="DIR", help="run state, lock and log (default: ${CLAUDE_PLUGIN_DATA})")
     ap.add_argument("--background", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--owns-lock", action="store_true", help=argparse.SUPPRESS)
+    ap.add_argument("--cwd", help=argparse.SUPPRESS)
     return ap.parse_args(argv)
 
 
@@ -381,6 +418,8 @@ def wanted(inst, a):
         pp = inst.get("projectPath")
         if not pp or os.path.realpath(pp) not in a.project:
             return False
+    elif not a.all and not in_folder(inst, a.folder):
+        return False
     if a.plugin:
         pid = inst.get("id", "")
         if pid not in a.plugin and pid.partition("@")[0] not in a.plugin:
@@ -447,11 +486,14 @@ def update(argv):
     try:
         rc, counts = plan_and_run(a)
     finally:
-        prev = read_state(data)
+        prev = read_state(data).get("done")
+        done = dict(prev) if isinstance(prev, dict) else {}
+        covered = counts.pop("covered", [])
         completed = rc in (0, 1) and not counts.get("interrupted")
+        if completed:
+            done.update(dict.fromkeys(covered, time.time()))
         st = dict(counts, rc=rc, completed=completed, background=a.background, reported=not a.background,
-                  finished_at=time.strftime("%Y-%m-%d %H:%M:%S %Z"),
-                  last_completed=time.time() if completed else prev.get("last_completed"))
+                  finished_at=time.strftime("%Y-%m-%d %H:%M:%S %Z"), done=done)
         try:
             write_state(data, st)
         except OSError:
@@ -489,7 +531,19 @@ def plan_and_run(a):
         return 2 if a.dry_run else (2, {})
 
     cat = load_catalog(pdir)
-    installs = [i for i in installs if isinstance(i, dict) and i.get("id") and wanted(i, a)]
+    installs = [i for i in installs if isinstance(i, dict) and i.get("id")]
+    a.folder = None
+    if a.project:
+        covered = sorted(a.project)
+        print(f"Folders: {', '.join(covered)}.")
+    elif a.all:
+        covered = ["*"]
+        print("Folders: every project folder, and user scope.")
+    else:
+        a.folder = session_folder(a.cwd or os.getcwd(), [i.get("projectPath") for i in installs])
+        covered = [a.folder]
+        print(f"Folder: {a.folder}, and user scope. --all covers every project folder.")
+    installs = [i for i in installs if wanted(i, a)]
     installs.sort(key=lambda i: (i["id"], i.get("scope") != "user", i.get("projectPath") or ""))
 
     current, skipped, jobs = [], [], []
@@ -526,7 +580,8 @@ def plan_and_run(a):
     counts = {"updated": len(results["updated"]), "failed": len(results["failed"]),
               "needs_you": len(results["needs_you"]), "interrupted": interrupted,
               "orphaned": sum(1 for _, w in skipped if w == GONE),
-              "worktree": sum(1 for _, w in skipped if w == WORKTREE)}
+              "worktree": sum(1 for _, w in skipped if w == WORKTREE),
+              "folder": a.folder, "covered": covered}
     return rc, counts
 
 

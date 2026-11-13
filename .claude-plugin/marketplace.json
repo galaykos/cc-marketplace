@@ -167,7 +167,7 @@
     {
       "name": "plugin-updater",
       "source": "./plugins/plugin-updater",
-      "description": "Keeps every installed Claude Code plugin current in every scope (user, project, local) and every project folder. At session start, once a day by default, it runs the updater detached: refreshes the marketplaces and runs claude plugin update one install at a time for each install behind its marketplace clone; the next session shows one line with what changed or needs you. /plugin-updater:update-plugins runs it on demand, --dry-run lists only, --last shows the last background run. It never accepts a changed marketplace command, and skips missing folders and git worktrees. Each switch is a /config option."
+      "description": "Keeps the Claude Code plugins of the folder you work in current: its project and local installs plus your user-scope ones. At session start, once a day per folder by default, it runs the updater detached: refreshes the marketplaces and runs claude plugin update one install at a time for each install behind its marketplace clone; the next session shows one line with what changed or needs you. /plugin-updater:update-plugins runs it on demand; --all covers every project folder, --dry-run lists only, --last shows the last background run. It never accepts a changed marketplace command, and skips missing folders and git worktrees. Each switch is a /config option."
     },
     {
       "name": "godot",
