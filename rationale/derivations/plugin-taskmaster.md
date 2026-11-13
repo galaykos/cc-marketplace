@@ -465,6 +465,190 @@ and 11 (22 of 45 fail on the old script and reader), `shape-guard.test.sh` (B's 
 leaves A's guard up; an owner-less file guards no session), and
 `scripts/smoke/hook-guard-tests.sh` "two sessions: B's phase stays out of A's claim key".
 
+## plugins/taskmaster/scripts/preview-check.sh
+
+### Why it exists (2026-11-13, taskmaster 0.59.0)
+
+Milestone M3 of `taskmaster-docs/specs/2026-11-12-preview-feedback.md` (gitignored), "render checks". Both
+preview servers' headers said that nothing proves a browser rendered a page: the model wrote a pass and
+showed it, and nothing looked at the result first. This script loads the page in a real headless browser at
+three widths, collects what the page's own check found, and prints it to the model before the user sees the
+pass. `scripts/find-browser.sh`, the browser lookup this script and `preview-feedback.sh` both source, points
+here too.
+
+### How it runs
+
+- **The DevTools pipe, not `--window-size`.** The design was one `--window-size=W,H --screenshot` launch
+  per width, as `preview-feedback.sh shot` does. Measured on Chrome 157 (`--headless=new`) and Playwright's
+  Chromium 1248: `--window-size=375,900` gives `innerWidth` 500. The new headless mode will not make a window
+  narrower than 500 px; `--screen-info` does not change that, and plain `--headless` measured the same.
+  So the script starts the browser with `--remote-debugging-pipe` and speaks the
+  DevTools protocol from stdlib Python (NUL-terminated JSON on fds 3 and 4).
+  `Emulation.setDeviceMetricsOverride` gives exact widths (375 measured as 375); `Page.captureScreenshot`
+  with `captureBeyondViewport` gives a full-page PNG while `100vh` stays the 800 px viewport (measured with a
+  `100vh` hero); `Runtime.evaluate` awaits the page's check promise, so no virtual-time budget has to guess
+  when the check is done. One browser serves every width.
+- **Reused from `shot`.** The browser lookup, moved to `find-browser.sh` so the two lists cannot drift; the
+  sandbox rule (on, unless root or `PREVIEW_BROWSER_NO_SANDBOX=1`); `timeout` around the browser (90 s, a
+  backstop behind the script's own 60 s deadline and 20 s per width); a throwaway `--user-data-dir`, removed
+  on exit. The browser runs in its own session, so a stuck one is killed as a group. The output escaping is
+  `preview-feedback.sh`'s `show()`, copied with its blank-character set, because findings carry page text.
+- **No network.** `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1` plus
+  `--disable-background-networking`, `--disable-sync`, `--no-pings`, `--disable-extensions`. Measured: an
+  image at `http://127.0.0.2:<port>/` and one at `http://localhost:<port>/` were both reported as failed
+  loads, and the server on 127.0.0.2 logged no request from the browser, so an IP literal does not slip past
+  the rule.
+- **The page checks, the server keeps the result (as first built; replaced before release, see "The check left the page" below).** The shell's loader `document.write`s
+  `<script src="/_check.js">` only with `?_check=1`. A parser-inserted script runs before the shell's own
+  scripts, so the check's `console.error` wrapper and `error` listener see their errors; an inserted
+  `<script>` element would run after them. The page posts per width to `POST /_check`; serve.py clamps and
+  stores the record, and the script reads it back from disk, matched by a run token in the URL. So one
+  sanitiser stands between page text and the output. Records live in `.checks/<page>-<sha1 prefix>/` as
+  `<width>.json`, the PNGs beside them; the script empties that folder before each run.
+- **One line per finding.** The same check, selector, text and detail at several widths print once, with
+  `widths`. The badge counts the same way, so the two numbers agree (E6 aside: the script computes it, the
+  page never posts it).
+- **`?static=1`** keeps the reload client, the feedback controls, the badge and, new here, the version
+  picker out of the checked page. The picker names the file, so two passes with the same content never
+  screenshot alike.
+
+### What each check measures, its thresholds, and what it misses
+
+**E1 load.** Blank: the body box is under 1 px in either direction, or it holds no text and no
+img/svg/canvas/video/picture/iframe/object/embed. Console: every `console.error` call, uncaught `error`
+event and unhandled rejection after the loader ran. Every check caps one text at 10 findings per width, so
+one defect class cannot crowd the 8 KiB post. Failed loads: an `error` event on an element (captured at the
+window, so img, script, link and source), resource-timing entries with `responseStatus` 400 or more, and same-origin entries with no status, no bytes and not fetch, XHR or beacon (no response at all);
+the check's own routes are left out. Misses: an error before the loader runs; a cross-origin CSS background
+or font that fails (no `error` event, and timing hides its status); a page that loads fine and shows the
+wrong thing.
+
+**E2 layout.**
+- Sideways scroll: `scrollWidth` over `clientWidth` by more than 1 px (subpixel layout) for the document and
+  for each shell `.vd-frame > .vd-content`. That box is `overflow: auto` for its 560 px height cap, and CSS
+  turns the other axis to `auto` with it, so sideways scroll there is never intended. Any other scroll box is
+  taken to scroll on purpose (a table wrapper). The finding names the outermost element whose box passes the
+  edge, skipping elements inside a nested scroll or clip box, else the first element whose own text runs
+  past it (an unbroken string). The first version named the deepest element; on the real run that was a
+  header cell of a table that a long reference had widened, and outermost names the table.
+- Wider than the viewport: the outermost box wider than the viewport by more than 1 px, not inside a
+  sideways scroll box and not the sideways-scroll culprit, which leaves the case where an ancestor cuts it
+  off instead of scrolling.
+- Clipped text: `overflow` `hidden` or `clip` on an axis, a client box of 2 px or more both ways (a 1 px
+  visually hidden label is not a clip), scroll size over client size by more than 1 px across or 2 px down
+  (some fonts overhang a tight line height), and a rendered text fragment outside the padding box by the same
+  margins. Text inside a nested scroll or clip box is cut to that box first. An ellipsis or line clamp passes
+  when a `title` on the element or an ancestor, or its own `aria-label`, holds the full text.
+- Overlap: each child against its next two siblings, both rendered and in flow (`position` static, relative
+  or sticky, no float, block-level display); their rendered text fragments, cut to their clip boxes so text
+  scrolled out of a variant box does not count, intersect by more than 2 px both ways. Absolute and fixed
+  boxes are skipped as usually intended (badges), inline runs because their bounding boxes share lines.
+- Targets: `a[href]`, button, input, select, textarea, summary and focusable elements with an interactive
+  role, rendered, not disabled or inert. Flagged under 23.5 px either way (24 less half a pixel of rounding)
+  only when WCAG 2.5.8's spacing test fails too: a 24 px circle on its centre meets another target, or another
+  small target's centre is under 24 px away. A target inline in a parent that holds more text, and a native
+  checkbox or radio with the default appearance, are excepted. axe's `target-size` rule is switched off, so a
+  small target is one finding, not one under E2 and one under E3. The shell's callout badges (1.5em) drew no
+  finding on the real run.
+- Misses: overlap from absolute or fixed boxes, floats and inline runs; another scroll box scrolling
+  sideways by accident; clipping inside the margins; a carousel's off-box slides read as clipped; a hit area
+  enlarged by a pseudo-element.
+
+**E3 accessibility.** `axe.run(document)` with tags wcag2a, wcag2aa, wcag21a, wcag21aa and wcag22aa,
+`target-size` off, violations only; impact serious or critical, one finding per rule: the rule id as the
+text, the first node's target as the selector, the impact, help text and node count as the detail. Serious
+and critical keep the list to what blocks someone (contrast, names, labels). Misses: moderate and minor
+impacts; best-practice rules (landmarks, heading order); what axe marks incomplete (contrast over images and
+gradients); states hidden by default, since the shell shows `populated` and axe skips `display: none`.
+Vendored: axe-core 4.14.0 from npm, `axe.min.js` (sha256 `20c09fe1…e878`, pinned by the harness), MPL-2.0,
+which is file-level copyleft: the file ships unmodified beside its licence and third-party notices. 652 KB,
+read from disk on each request and served to loopback only.
+
+**E4 stand-in content.** Text nodes of the whole body, hidden data-state blocks included (script, style,
+template and textarea excluded), against: `lorem ipsum`, `dolor sit amet`, `consectetur adipiscing`;
+`placeholder`; `TODO`, `TBD` or `FIXME` in capitals (so a "todo list" passes); "your" or "some" plus one of
+13 nouns plus "(goes) here", or "text/content/copy/title goes here"; a whole text node that is one of 21
+generic words (item, row, card…) plus a number, N or X. One finding per pattern with the count of further
+hits. Identical rows: three or more siblings that are `tr`, `li` or `article`, or hold two or more elements,
+with the same collapsed text of two or more characters, outside `data-state="loading"` (a loading block
+repeats by design); cells are not rows, so three "Paid" chips in a column pass. Empty: a table with no `td`
+holding text or a control, or a list with no `li` doing so, rendered or inside a data-state block, outside
+`data-state="empty"`. Misses: realistic-looking wrong data; stand-ins in attributes (`alt`, `aria-label`); a
+pattern word used on purpose; an unfilled SLOT (a comment renders nothing, outside `<title>`).
+
+**E5 variants (advisory).** Each pair of `.vd-frame > .vd-content`. Identical: the same collapsed
+`textContent`, the same element sequence (tag, sorted classes, every attribute but `id`, `class`, `for`,
+`headers` and the id-reference ARIA attributes) and the same palette. Several axes: the shared fraction
+(Jaccard) of distinct words, of parent>child tag-and-class pairs, and of colour and font values (`color`,
+a visible `background-color`, `background-image`, the border colour where a border is drawn, family, size
+and weight) are all under 0.5. The shell's own rules set what may differ: a theme-axis pass has identical
+content and different token presets (palette differs, so not identical); a motion pass has identical
+structure and different `vd-m-*` classes (classes are in the sequence). 0.5, "less than half in common on all
+three", is a judgment, not a measurement. On the real run's layout pass (table against cards, the same three
+invoices) the shares were words 0.70 and 0.76, tag pairs 0.27, palette 0.96 and 0.97 across the two passes:
+one axis, nothing reported, two of three far above the line. Misses: two axes changed with the third close;
+whether the variants differ on the axis the header names; anything outside the content box.
+
+**E6 change (advisory).** Only for `current.html` or a ledger pass. The previous pass is the newest entry in
+`/_versions.json` that is not the page, not newer than it (1 s slack), and differs from it in bytes, which
+skips the pass's own dated copy of `current.html`. The script screenshots that pass at the widest width and
+compares the two PNGs in an `about:blank` canvas in the same browser: a pixel changed when alpha differs or a
+channel moves by more than 24 of 255 (room for antialiasing; identical renders measured 0 changed). It
+reports the share, the count and the bounding box; pages of different heights are compared on the union,
+the difference counted as changed. It prints with `"advisory": true` and never counts, since a new pass is
+meant to change. Misses: whether the change is the one asked for; a height change shifts everything below
+it, so the box covers it (the real run: 7 px taller, box x 0-1279, y 41-818); the previous pass may belong to
+another decision; one width only.
+
+### Red, then green
+
+The harness was written first and run against nothing: 48 of 58 failed (`bash: …/preview-check.sh: No such
+file or directory`). With the runner, routes and loader in place but `check.js` running no checks, 14
+failed. Each of the 11 per-check fixtures was missed, for example `FAIL E2 overflow at 375 only: want exit 1
+and [E2|page scrolls sideways|375], got 0 and []` and `FAIL E3 low contrast (axe): want exit 1 and
+[E3|color-contrast|375,768,1280], got 0 and []`; the escape case had no detail to decode; and two showed a
+bug: E6 ran for a page under `f/`, which is no ledger pass (`FAIL no E6 outside the ledger`), and printed its
+box as x0-y0, x1-y1. With the checks wired, one failure was left: `FAIL E4 three identical rows: … got …
+E5|variants differ on several axes`. The fixture's variants did differ in data, markup and colours (one
+customer against three), so the fixture was wrong, not E5; its B now repeats the same card. Then 58 of 58
+in 11 s.
+
+### The real run (2026-11-13)
+
+A two-variant shell page (invoice table against invoice cards, built like the admin-table starter) with an
+image that 404s, an unbroken 39-character payment reference, lorem ipsum in one card and grey on grey text
+(`#a1a1aa` on `#d4d4d8`). The script started the server itself and printed 7 findings in 0.77 s wall time:
+E1 the 404 at all widths; E2 variant A scrolling sideways at 375 and 768 (the reference widened the table to
+515 px), variant B at 375 (the reference itself named), and at 1280 the reference spilling over the next card
+as overlapping text; E3 `color-contrast`, 2 elements; E4 lorem ipsum. The 375 PNG shows the header controls
+wrapped, the table cut at the frame's edge with the broken image's alt text, the grey bar, and the reference
+running out of its card. Fixed as pass 2 (initials instead of the image, `overflow-wrap: anywhere`, real
+text, `#3f3f46` on `#f4f4f5`) and copied to `current.html`: 0 findings, exit 0, 0.71 s, and E6 against pass
+1: 8.67 % of pixels. The badge was driven in Chrome on the same page: "checked: 0 findings" at load, "not
+checked" after an edit reloaded the tab, "checked: 0 findings" again after a check run, in the same document.
+
+### Not covered
+
+The macOS and Edge lookup paths; a browser that starts and then hangs (the 60 s deadline and a group kill
+handle it, untested); what the PNGs show (one looked at by eye, above); the shell `shot` path still uses
+`--window-size`, so its viewports under 500 px render 500 px wide.
+
+### Review fixes (2026-11-13, taskmaster 0.59.0)
+
+A review of the uncommitted tree listed defects; each was reproduced first, the harness case red before the fix and green after (red run: the new `preview-check.test.sh` on the unfixed tree, 47 passed, 23 failed).
+
+**The check left the page (M9, H1, L6).** check.js ran in the page through the shell's `?_check=1` loader and posted to `POST /_check`; the runner trusted `window.__vdCheck`, which page script can replace. Red: a page setting `window.__vdCheck` to an object printed its own `error` raw on stderr (`FAIL forged answer escaped: a raw ESC reached the output`), and a page that swallowed the real post and posted an empty one with the `_run` token from its URL hid lorem ipsum (`FAIL a forged empty post does not hide lorem ipsum: want exit 1 and [E4|lorem ipsum|375,768,1280], got 0 and []`). Now the runner registers check.js with `Page.addScriptToEvaluateOnNewDocument` in a named world (so its load-error listener is in place before the first resource), evaluates axe-core there after `load`, calls `__vdRun()` and reads the findings over DevTools, then writes each width's record itself. Console errors and uncaught errors, which an isolated world does not see (measured: Blink dispatches a script's ErrorEvent only in its own world), come from `Runtime.consoleAPICalled` and `Runtime.exceptionThrown`, ten per width as check.js counted them, events past 200 counted. The shell's loader and the `/_check.js`, `/_axe.js` and `POST /_check` routes are gone, so a page not built from the shell is checked too (red: `got 5`). A width not reported prints `{"not_reported": width, "reason": ...}` on stdout through `show()`, never page text on stderr. Measured on the shell: the browser's own `/favicon.ico` probe of a plain page read as a failed load; it is skipped, as design-kit skips it.
+
+**Nothing leaves the machine (H3, M7, L13).** With `http_proxy` set and no desktop session variables, Chrome sent `GET http://example.com/logo.png` and its own update and time requests to a loopback proxy, since the resolver rule excludes 127.0.0.1; `--proxy-server=http://127.0.0.1:9` wins over the environment and loopback still bypasses it. A page's Blob download was saved to `$HOME/Downloads`; `Browser.setDownloadBehavior {deny}` is now the first command. A STUN address on 127.0.0.1 got a UDP packet; `--webrtc-ip-handling-policy=disable_non_proxied_udp` stops it (the `--force-` spelling did nothing on Chrome 157).
+
+**Failures keep what was collected (M8, L12).** A page busy for 34 s after load: the check timed out at 20 s, the screenshot outside the per-width try then timed out, and the run exited 6 with nothing printed (`FAIL a busy page: got 6`). The shot is now inside the width's handling (the width reads not reported), E6 has its own try and degrades to an advisory, and findings and the summary print before any non-zero exit. The driver is `exec`'d and handles TERM, HUP and INT once (timeout(1) signals the child and then its group): it closes the browser and removes its profile, which is now made in Python. Red: `FAIL TERM: profile: left behind`.
+
+**Thresholds (M11, L7, M14).** Overlap compared raw range rects at 2 px, so the shell's `.vd-display` (32 px, line-height 1.15) above `.vd-t1` read as overlapping by 85x4 px with Noto Sans; it now compares 0.8 em glyph bands, 4 px each way and 35% of the smaller band, design-kit's rule. A FontFace the page starts loading at `load` kept `document.fonts.ready` pending: 20 s and exit 5 on the old code and on the new code without a limit, 4 s with a 3 s race. (A font requested before `load` holds the load event itself; that still times out at 20 s.) Element walks stop at 4000, counted in the summary's `capped`.
+
+**Records (L9).** Folders whose records and `run.json` name only pages no longer in the docroot are removed at each run (red: the folder stayed). Records are runner-written, so the server's shared 2 MiB budget and any-integer width went with the route.
+
+**What a hostile page can still do.** Its script runs while it is measured: change the DOM it is measured on, detect a headless browser, keep the main thread busy so a width reads not reported, log errors, open dialogs (accepted), and reach any loopback service, `POST /_feedback` of this server included. It can no longer read, replace or answer for the check, nor write a record.
+
 ## plugins/taskmaster/scripts/preview-cleanup.sh
 
 ### Header
@@ -569,6 +753,10 @@ of 63 failed), then fixed.
 
 One http shot of a shell page was looked at by eye: "Pay now" outlined, no feedback controls, and the
 server log showed Chrome's `GET /current.html?static=1&_outline=%23plain`.
+
+### Review fixes (2026-11-13, taskmaster 0.59.0)
+
+`find-browser.sh` was sourced through `dirname "$0"` unchecked; run through a symlink in another folder, the source failed and `shot` reported "no Chromium-family browser found" (exit 4). It is now sourced from the resolved script directory, and a failed source exits 1 naming the file. Red: `FAIL find-browser.sh missing: want exit 1 naming it, got 4`. `shot` still uses `--window-size`: measured on Chrome 157, a 390 px window lays the page out at `innerWidth` 500 and writes a 390 px PNG of it. Moving `shot` to preview-check.sh's DevTools driver would mean a second copy of that driver or a shared module, so it is stated in the header's misses instead.
 
 ## plugins/taskmaster/scripts/preview.sh
 
@@ -1137,3 +1325,27 @@ stayed; an element text and a console entry crossing the cut inside an emoji pos
 lone `\ud83d`. After: no throw, the entry reads `boom [object Object]`; the box opened and the selector
 `#vd-a > .vd-content > span[data-note="line1\a line2"]` resolved to the element; both strings ended in the
 whole emoji (201 and 301 UTF-16 units). The value is now `CSS.escape`d and the query guarded.
+
+### Render-check routes (2026-11-13, taskmaster 0.59.0)
+
+- **Routes.** `GET /_check.js` (this folder's `check.js`) and `GET /_axe.js` (`vendor/axe-core/axe.min.js`)
+  are read from disk per request and served to loopback only, so a LAN device never runs a check. `POST
+  /_check` takes `/_feedback`'s guards and 8192-byte cap with its own `X-Preview-Check` header; the page must
+  name an existing `.html` file inside the docroot with no dot segment, and the width must be a number from 1
+  to 10^7, else 400. Findings are clamped (selector 300, text 120, detail 400 characters), check ids other
+  than E1 to E5 dropped, at most 60 kept, the rest counted in `dropped`.
+- **The record.** One file per page and width, `.checks/<page>-<sha1 prefix>/<width>.json`, written through a
+  dot temp file and a rename, so a reader never sees half of one. It carries the page's sha256 when posted;
+  `GET /_checks?page=` counts only records whose hash matches the file now, so an edited page reads "not
+  checked" (`stale: true`). The folder and its parent must be real directories, not symlinks; a post that
+  would take the folder's JSON past 2 MiB writes nothing and gets 507.
+- **The event.** A stored record streams `event: checked` with the page path; the shell's reload client
+  turns it into a badge refresh without a reload. Stream items became `(event, data)` pairs for it; `change`
+  is unchanged.
+- Residual: any script on a served page can post findings for any page in the docroot, and the badge counts
+  them. Harness: `scripts/__tests__/preview-check.test.sh` (accept, the clamp, five rejects, never served,
+  stale), and `serve.test.sh` still passes unchanged (140).
+
+### Render-check routes removed (2026-11-13, taskmaster 0.59.0 review)
+
+`GET /_check.js`, `GET /_axe.js` and `POST /_check` are gone: the check runs in an isolated world that preview-check.sh drives and which writes the records, so no route lets a page plant or overwrite one. `GET /_checks` stays and reads those records. The "checked" event the post used to stream now comes from the watcher: a changed `.checks/<folder>/run.json`, which preview-check.sh writes last, streams `checked` with the page it names. A page key with a control character (a NUL made `Path.resolve()` raise `ValueError`, and the connection dropped with no answer) is no page: 404 with the JSON error. Red: `FAIL checks, a NUL in the page: want 404, got 000`, `FAIL no route takes findings: POST /_check answered {"recorded": true, "findings": 0}`.

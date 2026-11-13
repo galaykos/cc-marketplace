@@ -53,7 +53,9 @@
 # carries cookies and localStorage only — no sessionStorage, IndexedDB or auth header.
 # No per-component crops, no scroll or animation settling beyond one 3 s budget
 # (virtual time on the plain path, real time behind a login), no device emulation past
-# the viewport size (no touch, no mobile UA, no DPR change). A pixel counts as changed
+# the viewport size (no touch, no mobile UA, no DPR change); on the plain path headless Chrome
+# lays a page out no narrower than 500 px, so --device mobile is laid out 500 wide and its PNG
+# cut to 390 (dk check emulates exact widths). A pixel counts as changed
 # when any channel moves by more than 10, so antialiasing and font hinting differences
 # between two machines count as change. Shots written outside the preview docroot
 # (an --out elsewhere) open from disk but 404 through the server.

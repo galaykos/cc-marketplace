@@ -119,6 +119,7 @@ const HTML = `<div class="w">
 <section class="card panel" id="dkn-panel" role="dialog" aria-label="Notes on this page" hidden>
 <h2>Notes on this page</h2>
 <p>Click an element, or Tab to one and press Enter, to leave a note on it. Esc closes.</p>
+<p class="chk"></p>
 <button type="button" data-act="page">Note on this page</button>
 <ul aria-label="Notes left on this page"></ul>
 <p role="status" aria-live="polite"></p>
@@ -155,7 +156,7 @@ function start() {
   root.appendChild(document.createRange().createContextualFragment(HTML));
   const $ = (s) => root.querySelector(s);
   const tog = $('.tog'), hl = $('.hl'), panel = $('.panel'), list = $('ul'), status = $('[role=status]');
-  const box = $('.box'), on = $('.on'), ta = $('textarea');
+  const box = $('.box'), on = $('.on'), ta = $('textarea'), chk = $('.chk');
   // a page's document-level key handlers (a deck's Space, a board's F/E/K) must not see typing in the widget
   for (const t of ['keydown', 'keyup', 'keypress']) host.addEventListener(t, (e) => e.stopPropagation());
   document.documentElement.appendChild(host);
@@ -198,10 +199,21 @@ function start() {
     panel.hidden = !v;
     if (!v) { closeBox(true); hl.style.display = 'none'; target = null; } else refresh();
   }
+  // the last `dk check` of this page, from /_checks (loopback only)
+  async function checked() {
+    try {
+      const r = await fetch(location.origin + '/_checks?page=' + encodeURIComponent(location.pathname), { cache: 'no-store' });
+      const c = r.ok ? await r.json() : null;
+      if (!c) return;
+      chk.textContent = !c.checked ? 'Not checked' : 'Checked ' + String(c.ts).replace('T', ' ').slice(0, 16) + ' UTC: '
+        + c.findings + (c.findings === 1 ? ' finding' : ' findings') + (c.changed_since ? '; the page changed since' : '');
+    } catch (e) { /* the line stays empty */ }
+  }
   async function refresh() {
+    checked();
     let rows;
     try {
-      const r = await fetch('/_notes?page=' + encodeURIComponent(location.pathname), { cache: 'no-store' });
+      const r = await fetch(location.origin + '/_notes?page=' + encodeURIComponent(location.pathname), { cache: 'no-store' });
       if (!r.ok) return;
       rows = await r.json();
     } catch (e) { return; }
@@ -239,7 +251,7 @@ function start() {
     while (enc.encode(json).length > 8000) { body.text = cut(body.text, Math.floor(Array.from(body.text).length * 0.8)); json = JSON.stringify(body); }
     say('Sending…');
     try {
-      const r = await fetch('/_note', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Design-Kit-Note': '1' }, body: json });
+      const r = await fetch(location.origin + '/_note', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Design-Kit-Note': '1' }, body: json });
       if (!r.ok) throw new Error('the server answered ' + r.status);
       ta.value = ''; closeBox(); tog.focus();
       say('Sent. The session reads it with dk notes.');

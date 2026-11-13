@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # preview-feedback.sh list [--all] | wait [--timeout S] | reply --id ID --status addressed|dismissed [--text LINE] | shot --id ID, each with [--docroot DIR] (default taskmaster-docs/mockups): reads DIR/.feedback.jsonl, the rows serve.py's POST /_feedback appends; prints rows as JSON, one per line, control, format and blank-rendering characters escaped; a handed-out row still open is unread again after 15 min; wait (stats every 0.5 s, parses on a change, default 600 s) and reply rewrite under DIR/.feedback.lock (serve.py's flock) through a dot temp file and a rename.
-# Exit: 0 done (list/wait print rows, wait then marks them handed_out with the time, reply prints the row, shot prints the PNG path); 2 bad argument; 3 wait timed out, nothing printed; 4 shot found no Chromium-family browser ($PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 no row with that id, or shot's row has no anchor or a page outside DIR; 1 python3 missing, wait could not print, the browser failed or ran past 30 s, or no PNG written.
-# Misses: row text is whatever the page posted, third-party script on it included; shot loads the page from 127.0.0.1 when preview.sh's server answers, else from disk (file://, where page script has file-scheme reach), with the default theme, scheme and states, not the row's; a row appended by anything other than serve.py skips the lock.
+# Exit: 0 done (list/wait print rows, wait then marks them handed_out with the time, reply prints the row, shot prints the PNG path); 2 bad argument; 3 wait timed out, nothing printed; 4 shot found no Chromium-family browser ($PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 no row with that id, or shot's row has no anchor or a page outside DIR; 1 python3 or find-browser.sh (beside this script) missing, wait could not print, the browser failed or ran past 30 s, or no PNG written.
+# Misses: row text is whatever the page posted, third-party script on it included; shot loads the page from 127.0.0.1 when preview.sh's server answers, else from disk (file://, where page script has file-scheme reach), with the default theme, scheme and states, not the row's, and a viewport under 500 px is laid out 500 wide, its PNG cut to the row's width (headless Chrome's --window-size floor; preview-check.sh emulates exact widths); a row appended by anything other than serve.py skips the lock.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-feedback.sh
 set -u
 
@@ -28,25 +28,8 @@ case "$cmd" in
 esac
 command -v python3 >/dev/null 2>&1 || { echo "preview-feedback.sh: python3 not found" >&2; exit 1; }
 
-find_browser() {
-  if [ -n "${PREVIEW_BROWSER:-}" ]; then
-    [ -x "$PREVIEW_BROWSER" ] && { echo "$PREVIEW_BROWSER"; return 0; }
-    return 1
-  fi
-  local c
-  for c in google-chrome chromium chromium-browser microsoft-edge chrome; do
-    command -v "$c" >/dev/null 2>&1 && { command -v "$c"; return 0; }
-  done
-  for c in "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-           "/Applications/Chromium.app/Contents/MacOS/Chromium" \
-           "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
-           "$HOME/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-           "$HOME"/Library/Caches/ms-playwright/chromium-*/chrome-mac*/Chromium.app/Contents/MacOS/Chromium \
-           "$HOME"/.cache/ms-playwright/chromium-*/chrome-linux*/chrome; do
-    [ -x "$c" ] && { echo "$c"; return 0; }
-  done
-  return 1
-}
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/find-browser.sh" || { echo "preview-feedback.sh: cannot load $here/find-browser.sh (it ships beside this script)" >&2; exit 1; }
 
 run() {
   python3 - "$cmd" "$docroot" "$all" "$timeout" "$id" "$status" "$text" <<'PY'

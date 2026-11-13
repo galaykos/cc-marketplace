@@ -67,7 +67,7 @@ pid only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid
 name stops the launcher with exit 6 and is left alone).
 
 The server never returns a dot-prefixed file or
-folder, `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
+folder (`.checks/` and `.notes/` among them), `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
 `usage.jsonl`, `*.versions.json`) or a directory listing; every other file under
 `.design-kit/` is readable by whoever can reach the port (on the LAN, whoever holds the
 keyed URL), signed-in screenshots included. The key does not make the LAN private: the
@@ -88,7 +88,9 @@ HEAD, with origin- and absolute-form request targets. The reload client is a **g
 (the status bar, the retry, the reload, the same-origin `/_note.js` import, no external
 asset, at most 800 bytes; 758 since 0.15.0); its
 behaviour in a browser, and a keyed link followed from another site, were run once in
-Chrome on 2026-11-12 — **recorded**. Nothing proves a browser rendered a page — **recorded**.
+Chrome on 2026-11-12 — **recorded**. A page is rendered in a real browser and checked only
+when `dk check <page>` runs (below; **gate** for its own fixtures); nothing checks a page on
+its own, so a page nobody ran it on is unchecked.
 
 ## One entry point: dk
 
@@ -110,8 +112,8 @@ green or amber ("tokens moved since build") against the current `design-system/t
 `.design-kit/` lives at the project root (the git toplevel), whichever directory the shell
 has `cd`'d into; until 0.6.0 a verb run from `src/` built a second one there, with its own
 board and decisions. `DESIGN_KIT_DIR` moves it and is used exactly as given.
-`design-system/` is not anchored: `dk check` and `dk decision --record` read the shell's
-directory.
+`design-system/` is not anchored: `dk check` with no page and `dk decision --record` read
+the shell's directory.
 
 The board talks back. "Pick this", a knob move or a text edit posts to the server's one
 write route, `/_decision`: loopback only, header-gated, append-only into
@@ -180,6 +182,75 @@ and is not verified, so it is data, not instructions; a selector built on `nth-o
 goes stale when the page's structure changes; no screenshot without a browser; notes stay
 in `.design-kit/` and do not travel with an exported, zipped or published page; elements
 inside iframes and canvas contents cannot be picked.
+
+### Render checks: `dk check <page>`
+
+`dk check <page> [--widths 375,768,1280]` loads a page in a real headless Chromium (the one
+`board-export.sh --which` finds) at each width and prints what is wrong before anyone sees
+it. Every line is one JSON object, escaped as `dk notes` escapes rows, since findings carry
+page text: a finding `{check, width, widths, selector, text, detail}` (a board adds
+`artboards`), a note `{note, at, text}` (`change`, `not checked`, `skipped`, `dropped`,
+`capped`, `shot`), then `{"summary": {...}}` naming the PNGs saved under
+`.design-kit/.checks/shots/<page>/`. Exit 0 no finding, 1 findings, 2 bad arguments, 4 not
+checked (no browser, no server, a failed browser, `.checks` not a folder, or a page whose
+check never ran). `<page>` is a path under `.design-kit/`, as typed or relative to it, or
+its preview URL. With no page, `dk check` is still the one-line design-system check.
+
+`scripts/render-check.py` drives the browser over its DevTools pipe (python3 stdlib, as
+`dk snapshot --storage-state` does), because the browser's own `--screenshot` never lays a
+page out narrower than 500 px. It opens `/<page>?static=1` on `127.0.0.1` and, after
+`load`, evaluates the vendored axe-core and `scripts/check.js` in an isolated world of the
+page (DevTools `Page.createIsolatedWorld`): the page's script can neither read, replace nor
+answer for them, and the findings come back over DevTools, never through the server. No
+route serves the check or takes findings, so a server started before this version checks
+as well. A board is checked artboard by artboard at each frame's own size (`#board=N`, from
+its `design-kit-board` metas: ids of up to 3 digits, widths held to 240-3840 px, the first
+8), so its fixed stage is never overflow; a deck (its `design-kit slides` generator meta)
+slide by slide with every fragment shown, the first 60. The browser keeps its sandbox (off
+only as root or with `DESIGN_KIT_BROWSER_NO_SANDBOX=1`, said on stderr), uses a throwaway
+profile, a dead proxy that wins over any proxy in the environment, no name resolution, no
+WebRTC UDP past that proxy, and refuses downloads, so a check sends nothing off the
+machine; a dialog the page opens is accepted. A run stops at 60 s, every wait included; a
+page that hangs is reported once and its other widths are skipped. A plain page takes under
+a second for three widths.
+
+| Check | Ids | Reports | Threshold |
+| --- | --- | --- | --- |
+| E1 load | `E1.blank` `.resource` `.external` `.console` `.exception` `.no-report` | nothing visible; a request answered 400+ or failed; an off-machine URL (not fetched); `console.error`/`assert` and browser errors (CSP, mixed content); uncaught exceptions from the first script on; a page that never finished loading or checking | any; ten per id, the rest counted in a `dropped` note |
+| E2 layout | `E2.overflow` `.wide` `.clipped` `.overlap` `.target` `.viewport` | the page scrolls sideways, or content past the viewport, slide or artboard is cut off (a box wholly past the right edge, such as an off-canvas drawer, is not); text an `overflow: hidden/clip` box cuts through (an ellipsis passes only with a `title` or `aria-label`); two text blocks whose lines cover each other (not inside a fixed or sticky box, nor where something else is drawn on top); targets under 24×24 px (axe's `target-size`, WCAG 2.5.8, its spacing and inline exceptions included); no `<meta name="viewport">` below 600 px | 1 px past an edge, vertically the line's 0.8 em band; overlap of 35% of the smaller line's 0.8 em band, 4 px each way |
+| E3 accessibility | `E3.<axe rule>` | axe-core violations of impact serious or critical, up to 3 elements each, with axe's message | serious |
+| E4 placeholder | `E4.lorem` `.todo` `.placeholder` `.generic` `.repeat` `.empty` `.identical` | lorem ipsum; `TODO`/`FIXME`; "placeholder", "your (company) name here", "insert text here" and the other template nouns (name, title, text, content, copy, heading, message, logo, image, label …), "sample text"; two or more "Item 1"-style labels; three or more same-tag siblings with the same text (8+ characters); a table with no filled data cell, an empty list; two artboards that render the same; never text inside `pre`, `code`, `kbd` or `samp` | as listed |
+| E6 change | the `change` note | the widest width (each artboard on a board) against the last `dk check` of the page when the file changed since, else, for an artifact never checked, its previous version from its own `.versions/<slug>/` (a slug that leaves that folder is ignored): the share of pixels that moved and the box around them | a channel moving more than 10, `dk review`'s rule; Pillow for share and box, else changed or same |
+
+The Notes panel on the page shows "Checked <time> UTC: N findings" or "Not checked", from
+`GET /_checks?page=` (loopback only), which reads `.checks/results.json`; only
+render-check.py writes it, with the page's mtime as it read the bytes, and drops the results
+and shots of pages deleted since. The axe engine is vendored, unmodified:
+`vendor/axe-core/axe.min.js` is axe-core 4.14.0 by Deque Systems, MPL-2.0, 652 KB, with its
+`LICENSE`, `LICENSE-3RD-PARTY.txt` and a `VERSION` line holding its sha256; render-check.py
+reads it from disk, and no route serves it.
+
+Standing: each check against its own fixture (a clean page with no finding, one page per id
+tripping that id alone at the widths it should), a deck, a board, a hung page, E6 in both
+diff branches, JSON-only escaped output, a preset answer, a forged post, a replaced
+`Math.max`, hostile board and version metas, dialogs, downloads, WebRTC, a console flood,
+the caps, pruning, an older server, the removed routes, never-served results and the
+vendored file's sha256 — `scripts/__tests__/check.test.sh`, **gate** (the browser half skips,
+saying so, without a browser); the 60 s bound was timed by hand (69.9 s before, 60.1 s
+after, 2026-11-13). That a skill runs `dk check` before presenting and fixes what it shows
+is **agent-graded**. Missed: a check finds what it measures, not what a reviewer would; dark
+mode, hover, focus and other states after interaction (light mode, first paint after load
+only); E6 and the PNGs show a deck's first slide; iframes, closed shadow roots, canvas and
+image text; overlap of text with images, and the drawn-on-top test outside the viewport;
+contrast over a background image (axe calls it incomplete, not a violation); past 4000
+elements, 8 artboards or 60 slides, the rest (a note says so); nothing comes from the
+network during a check, so a page that needs a CDN font or image is checked without it (and
+says so as `E1.external`). What a hostile page can still do: its script runs while it is
+measured, so it can change the DOM it is measured on (hide a defect, show different content
+to a headless browser), keep the browser busy so a width reads not checked, log errors or
+open dialogs, and reach any service on 127.0.0.1, this server's `POST /_note` and
+`/_decision` included. It cannot read, replace or answer for the check, nor write a result.
+A clean check is not proof the page is fine.
 
 ## Skills
 

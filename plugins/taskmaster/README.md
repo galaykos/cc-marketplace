@@ -259,9 +259,11 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
   (warn) on PostToolUse
 - **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
   `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`, `preview.sh`,
-  `preview-feedback.sh`, `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
+  `preview-feedback.sh`, `preview-check.sh`, `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
   (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
-  drives both its writers and its reader; `serve.test.sh` drives the preview server itself)
+  drives both its writers and its reader; `serve.test.sh` drives the preview server itself;
+  `find-browser.sh` is the browser lookup both preview scripts source)
+- **Vendored**: `vendor/axe-core/` — axe-core 4.14.0, which the render checks run (see below)
 
 Every hook fails open and every one has an off switch. `CC_REMIND=off` silences the
 clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
@@ -331,3 +333,57 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   whatever was typed and nothing verifies it; the screenshot uses the default theme and states, not the
   row's; console errors thrown before the shell's own script runs are not captured; a lower rung serves
   `.feedback.jsonl` (`python3 -m http.server` serves dot files).
+
+### Render checks
+
+`bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-check.sh" [--docroot DIR] [--page PATH] [--widths 375,768,1280]`
+loads one page (default `current.html`) from this docroot's serve.py, starting it through `preview.sh` when
+none answers, in a headless Chromium-family browser at each width. Every line it prints is one escaped JSON
+object: a finding, an E6 advisory, a `{"not_reported": width, "reason": ...}`, then the summary. Exit 0 means
+no findings, 1 findings, 3 to 6 not checked or not at every width (the header lists them). Each width's record
+and a full-page PNG land in the docroot's `.checks/<page>-<hash>/` (a dot folder, never served), and the
+folders of pages deleted since go. Three widths took under a second on a two-variant page here. Findings
+carry page text, so they print with control and invisible characters escaped. visual-decisions runs it on
+each pass before asking for the pick, fixes what it shows, re-runs once and names what is left.
+
+| Check | Reports | Misses |
+| --- | --- | --- |
+| E1 load | a body with no text or media; console errors, uncaught errors and rejections, read from the browser from the first script on (ten, the rest counted as dropped); a resource that failed (an error event, or a 4xx/5xx in the resource timing; not the browser's own `/favicon.ico` probe) | a failed cross-origin CSS background or font; a page that renders the wrong thing |
+| E2 layout | the page, or a shell variant box, scrolling sideways, naming the outermost element past the edge or the one whose unbroken text runs past it; a box wider than the viewport that is cut off; text cut by `overflow: hidden` or `clip` (an ellipsis whose full text is in a `title` or `aria-label` passes); text of in-flow block siblings whose lines' 0.8 em glyph bands overlap by 4 px each way and 35% of the smaller band (design-kit's rule, so the shell's `.vd-display` above `.vd-t1` passes); a focusable target under 24 by 24 px with another target within 12 px of its centre (the WCAG 2.5.8 spacing, inline and native-control exceptions) | overlap caused by absolute or fixed positioning, floats or inline runs; another scroll box that scrolls sideways by accident; clipping within 2 px; the off-screen slides of a carousel read as clipped |
+| E3 accessibility | axe-core's WCAG 2.0 to 2.2 A and AA rules at impact serious or critical: rule id, first element, help text, element count (`target-size` is off, E2 measures it) | moderate and minor impacts; best-practice rules; what axe marks incomplete; data-state blocks the page does not show by default |
+| E4 stand-in content | lorem ipsum, "placeholder", TODO, TBD or FIXME, "your text here" and the like, a whole text that is a generic word plus a number ("Item 3", "Row N"); three or more sibling rows or cards (`tr`, `li`, `article`, or blocks of two or more elements) with the same text outside a `data-state="loading"` block; a table with no filled cell or a list with no filled item outside a `data-state="empty"` block | realistic-looking wrong data; stand-ins in attributes such as `alt`; such a word used on purpose |
+| E5 variants, advisory | two variants with the same text, markup (tags, classes, attributes), colours and fonts; two variants sharing less than half of their words, of their parent-child tag pairs and of their colour and font values | two axes changed while a third stays close; the axis the header names; anything outside `.vd-frame > .vd-content` |
+| E6 change, advisory | for `current.html` or a ledger pass: the share of pixels that differ from the newest older ledger pass whose bytes differ, at the widest width, and the box around them; printed with `"advisory": true`, not counted as a finding | whether the change was the one asked for; a page that grew or shrank shifts everything below it, so the box covers it all; that pass can belong to another decision |
+
+Thresholds and the reasons for them: `rationale/derivations/plugin-taskmaster.md`, section
+`plugins/taskmaster/scripts/preview-check.sh`.
+
+- **Standing.** Gate for each check against its own fixture page, and for a clean shell page reporting
+  nothing, in `scripts/__tests__/preview-check.test.sh` with a real browser (it prints SKIP and passes on a
+  machine without one). Agent-graded: that the model runs the script and acts on what it prints; no eval
+  measures it.
+- **How the page runs it.** The script registers `check.js` in an isolated world of every page it loads
+  (DevTools `Page.addScriptToEvaluateOnNewDocument` with a world name), evaluates the vendored axe-core there
+  after `load`, calls the check and reads its findings back over DevTools, then writes each width's record
+  itself. No route serves the check or takes findings (`/_check.js`, `/_axe.js` and `POST /_check` are gone)
+  and the shell carries no loader, so any page in the docroot can be checked. Gate: `preview-check.test.sh`.
+- **Exact widths.** Chrome's headless mode will not make a window narrower than 500 px, so the script
+  drives the browser over its DevTools pipe and emulates each width; stdlib Python, no Node, no Playwright.
+- **No network.** During a check every host but 127.0.0.1 fails to resolve, a dead proxy at 127.0.0.1:9
+  overrides any proxy in the environment, WebRTC sends no UDP past it and downloads are refused, so a page
+  that needs a CDN or a hosted font is reported as a failed load. A web font the page starts late holds the
+  check 3 s at most; a page with more than 4000 elements is measured on its first 4000 (`capped` in the
+  summary). Gate: `preview-check.test.sh`, with a proxy in the environment, a download and a STUN address.
+- **What a hostile page can still do.** Its script runs while it is measured: it can change the DOM it is
+  measured on (hide a defect, show a headless browser something else), keep the browser busy so a width reads
+  not reported, log errors, open dialogs (accepted) and reach any service on 127.0.0.1, this server's
+  `POST /_feedback` included. It cannot read, replace or answer for the check, nor write a record. A clean
+  check is not proof the page is fine.
+- **Badge.** A page built from the shell shows "checked: N findings" or "not checked" in its header, from
+  `GET /_checks?page=`. A result counts only while the page's bytes are the ones checked, and a check run
+  updates an open tab without a reload (serve.py streams `checked` when the run's `run.json` appears).
+  Absent on the lower rungs and with `?static=1`. Gate for the route and the event; the badge itself was
+  driven once in Chrome on 2026-11-13 (recorded).
+- **Vendored library.** `vendor/axe-core/` holds axe-core 4.14.0, `axe.min.js` unmodified (652 KB), under
+  the Mozilla Public License 2.0 (`LICENSE`), with its third-party notices (`LICENSE-3RD-PARTY.txt`) and a
+  `VERSION` line. The harness fails if the file's SHA-256 changes.

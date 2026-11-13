@@ -7,6 +7,7 @@
 #   dk serve [--lan|--stop]                 start / expose / stop the preview server, print its URL
 #   dk system [target] [--out DIR]          extract → copy kit into previews → serve → URL
 #   dk check                                one line: design-system current, moved, or missing
+#   dk check <page> [--widths 375,768,1280] the page in a headless browser: findings, one escaped JSON line each
 #   dk drift [PATHS|--staged|--diff REF] [--ci] | --print-hook   literal colours + named
 #                                           Tailwind palette utilities reaching no token
 #   dk snapshot [--routes R] [--device desktop|mobile|both] [--base-url U] [--out DIR]
@@ -81,7 +82,7 @@ export DESIGN_KIT_DIR="$DK"
 WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
 # help exits before ensure_ignored, so `dk --help` writes nothing
-case "$verb" in -h|--help|"") sed -n '2,53p' "$0"; exit 0 ;; esac
+case "$verb" in -h|--help|"") sed -n '2,54p' "$0"; exit 0 ;; esac
 
 # drift --print-hook writes nothing either: it prints the PostToolUse snippet for the user to paste, and installs nothing.
 if [ "$verb" = drift ] && [ "${1:-}" = "--print-hook" ]; then
@@ -200,6 +201,12 @@ case "$verb" in
     echo "url=$(keyed "${base}previews/kit.html")"; log ok "$out/tokens.json" ;;
 
   check)
+    if [ $# -gt 0 ]; then
+      # render-check.py owns its exits: 0 no finding, 1 findings, 2 bad arguments, 4 not checked (no browser, no server, the browser failed).
+      set +e; python3 "$here/render-check.py" --docroot "$DK" "$@"; rc=$?; set -e
+      case "$rc" in 0|1) log ok "$1" ;; 4) log skip "$1" ;; *) log fail "$1" ;; esac
+      exit "$rc"
+    fi
     if [ ! -f design-system/tokens.json ]; then echo "design-system: none — run /design-kit:system first"; log skip; exit 0; fi
     set +e; out="$(python3 "$here/system-extract.py" . --dry-run --check 2>&1)"; rc=$?; set -e
     if echo "$out" | grep -q "unrecognized arguments: --check"; then echo "design-system: check unavailable in this build"; log skip; exit 0; fi
@@ -366,7 +373,7 @@ PY
   notes)
     # Rows are page-originated: printed as escaped JSON, never as prose. Exit 3: nothing to print; 2: bad arguments.
     notes_py() { python3 - "$DK" "$here/serve.py" "$@" <<'PY'
-import calendar, contextlib, hashlib, importlib.util, json, os, re, sys, tempfile, time, unicodedata
+import calendar, contextlib, hashlib, importlib.util, json, os, re, sys, tempfile, time
 from urllib.parse import quote
 dk, serve, *args = sys.argv[1:]
 spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
@@ -374,8 +381,6 @@ path = os.path.join(dk, m.NOTES)
 decisions = os.path.join(dk, "decisions.jsonl")
 announced = os.path.join(dk, ".notes-pick")  # the last pick a --wait printed, so the next one waits past it
 LEASE = 15 * 60  # a handed-out note still open comes back after this many seconds
-# Variation selectors and the letters that render blank (Hangul fillers, the empty Braille cell): not C*, yet they hide text.
-BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
 def die(msg, rc):
     print("dk notes: " + msg, file=sys.stderr); sys.exit(rc)
 # One parse: --shot ID stands alone, each option once, one verb at a time.
@@ -396,16 +401,10 @@ if len(verbs) > 1: die(" and ".join(verbs) + " do not go together", 2)
 if "--shot" in o and len(args) != 2: die("--shot ID takes no other argument", 2)
 if "--timeout" in o and "--wait" not in o: die("--timeout goes with --wait", 2)
 if ("--status" in o or "--text" in o) and "--reply" not in o: die("--status and --text go with --reply", 2)
-def hidden(c):
-    cat = unicodedata.category(c)
-    return cat[0] == "C" or cat in ("Zl", "Zp") or ord(c) in BLANK
-def show(row):
-    """One JSON line with control, format, separator and blank-rendering characters escaped (taskmaster's preview-feedback.sh does the same)."""
-    return "".join(json.dumps(c)[1:-1] if hidden(c) else c for c in json.dumps(row, ensure_ascii=False))
 def emit(rows):
     """Print and flush before anything is marked: a reader that cannot write, or is killed here, hands nothing out."""
     try:
-        for r in rows: print(show(r))
+        for r in rows: print(m.show(r))
         sys.stdout.flush()
     except OSError as exc:
         print("dk notes: could not print (%s); nothing marked" % exc.strerror, file=sys.stderr); os._exit(1)
@@ -576,5 +575,5 @@ print("server: " + (u or "not running"))
 PY
     log ok ;;
 
-  *) echo "dk: unknown verb $verb" >&2; sed -n '7,26p' "$0" >&2; exit 2 ;;
+  *) echo "dk: unknown verb $verb" >&2; sed -n '7,27p' "$0" >&2; exit 2 ;;
 esac

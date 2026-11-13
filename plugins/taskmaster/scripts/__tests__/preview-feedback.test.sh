@@ -209,6 +209,10 @@ out="$(PREVIEW_BROWSER="$T/no-such-browser" bash "$R" shot --docroot "$E" --id "
 [ "$rc" = 4 ] && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] && ok || bad "shot without a browser" "want exit 4 and one line, got $rc: $out"
 out="$(PREVIEW_BROWSER="$T/no-such-browser" bash "$R" shot --docroot "$E" --id "$note_id" 2>/dev/null)"
 [ -z "$out" ] && ok || bad "shot without a browser: stdout" "the message went to stdout, where png=\$(shot) takes it for a path: $out"
+# Run through a symlink in another folder, find-browser.sh is not beside it: exit 1 naming it, not "no browser".
+mkdir -p "$T/linked"; ln -s "$R" "$T/linked/preview-feedback.sh"
+out="$(bash "$T/linked/preview-feedback.sh" shot --docroot "$E" --id "$note_id" 2>&1)"; rc=$?
+[ "$rc" = 1 ] && case "$out" in *find-browser.sh*) true ;; *) false ;; esac && ok || bad "find-browser.sh missing" "want exit 1 naming it, got $rc: $out"
 
 # A stand-in browser records its arguments and its parent, writes a PNG signature, exits $FAKE_RC.
 fake="$T/fake-browser"
