@@ -5,4 +5,4 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 # all-plugins installs the marketplace's plugins; these rows update what is already installed, from any marketplace.
 plugin-updater:update-plugins	skill	any	installed-plugin-update	invoked as /plugin-updater:update-plugins	-
-plugin-updater:session-start	hook	any	installed-plugin-update	SessionStart startup: one systemMessage line reporting an unreported background run; starts a detached run when the last completed one is older than CC_PLUGIN_UPDATER_INTERVAL hours, unless CC_PLUGIN_UPDATER_AUTO=off, which leaves a line counting outdated installs	plugin-updater:update-plugins
+plugin-updater:session-start	hook	any	installed-plugin-update	SessionStart startup: one systemMessage line reporting an unreported background run; starts a detached run for the session's folder and user scope when that folder's last completed one is older than CC_PLUGIN_UPDATER_INTERVAL hours, unless CC_PLUGIN_UPDATER_AUTO=off, which leaves a line counting that folder's outdated installs	plugin-updater:update-plugins

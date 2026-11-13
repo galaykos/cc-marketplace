@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.13 — 2026-11-13
+
+- **The scout catalog's `plugin-updater` row follows that plugin's 0.2.0**: it now updates the current project folder and user scope, and every folder only under `--all`. The catalog row is generated (`scripts/generate.sh`).
+
 ## 0.18.12 — 2026-11-13
 
 - **The scout catalog lists `plugin-updater`**, the new plugin that updates every installed plugin across scopes and project folders. It has no manifest signal, so `/stack-scan:suggest` offers it in the universal tier only. The catalog row is generated (`scripts/generate.sh`).
