@@ -74,7 +74,7 @@ def hidden(c):
 
 
 def show(row):
-    """One JSON line; a control, format, private-use, unassigned or separator character, a variation selector or a blank-rendering letter is escaped, so a row can neither act on a terminal nor hide text."""
+    """One JSON line; a control, format, private-use, unassigned or separator character, a variation selector or a blank-rendering letter is escaped, so a row cannot act on a terminal; U+034F and U+3000 still print raw."""
     out = json.dumps(row, ensure_ascii=False)
     return "".join(json.dumps(c)[1:-1] if hidden(c) else c for c in out)
 
@@ -141,15 +141,16 @@ def handed_at(row):
 
 
 def unread(entries):
-    """Open rows never handed out, or handed out more than LEASE ago: a waiter that died or was never read loses nothing."""
+    """Open rows never handed out, or notes handed out more than LEASE ago. A pick has no reply that closes it, so its hand-out is final."""
     now = time.time()
-    return [e for e in entries if e[0] and e[0].get("status") == "open"
-            and handed_at(e[0]) is not None and now - handed_at(e[0]) >= LEASE]
+    return [e for e in entries if e[0] and e[0].get("status") == "open" and handed_at(e[0]) is not None
+            and (handed_at(e[0]) == 0 or (e[0].get("kind") == "note" and now - handed_at(e[0]) >= LEASE))]
 
 
 def lease_ends(entries):
     """The earliest time a lease on an open row runs out, so wait re-reads then without a change on disk."""
-    ends = [handed_at(e[0]) + LEASE for e in entries if e[0] and e[0].get("status") == "open" and handed_at(e[0])]
+    ends = [handed_at(e[0]) + LEASE for e in entries
+            if e[0] and e[0].get("status") == "open" and e[0].get("kind") == "note" and handed_at(e[0])]
     return min(ends, default=float("inf"))
 
 

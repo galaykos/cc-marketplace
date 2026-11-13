@@ -128,6 +128,17 @@ out="$(bash "$R" list --docroot "$L")"
 out="$(bash "$R" wait --docroot "$L" --timeout 2)"; rc=$?
 [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | ids)" = ls01 ] && ok || bad "lease: wait" "want ls01 again, got $rc: $out"
 [ -z "$(bash "$R" list --docroot "$L")" ] && ok || bad "lease: renewed" "the row is still listed after wait handed it out again"
+# A pick has no reply step, so nothing ever closes it: once handed out it must stay handed out, or every later pass re-reads an old answer.
+python3 - "$L/.feedback.jsonl" <<'EOF'
+import json, sys, time
+ago = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 20 * 60))
+with open(sys.argv[1], "w") as h:
+    h.write(json.dumps({"id": "pk01", "page": "current.html", "kind": "pick", "variant": "B", "anchor": None, "text": "",
+                        "context": {}, "status": "open", "reply": "", "handed_out": ago}) + "\n")
+EOF
+[ -z "$(bash "$R" list --docroot "$L")" ] && ok || bad "lease: pick" "a pick handed out 20 min ago was listed again"
+out="$(bash "$R" wait --docroot "$L" --timeout 1)"; rc=$?
+[ "$rc" = 3 ] && [ -z "$out" ] && ok || bad "lease: pick wait" "want a timeout (3) and no output, got $rc: $out"
 
 # ---- a row reaches stdout before it is marked: a waiter that cannot write hands nothing out ----
 if [ -w /dev/full ]; then
