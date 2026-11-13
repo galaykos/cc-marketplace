@@ -196,6 +196,9 @@ jobs:
       # ships tests) from expanding literally and failing the step.
       - name: Plugin author-time lint + harness tests (all plugins)
         run: |
+          # The render-check harnesses start Chrome with its sandbox on; the runner's AppArmor default denies the
+          # unprivileged user namespace that sandbox needs, and the browser then never answers (run 43384361491).
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           i=0
           for t in plugins/*/scripts/__tests__/*.test.sh; do
             [ -f "$t" ] || continue
