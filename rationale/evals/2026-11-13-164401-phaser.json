@@ -1,0 +1,970 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.323",
+  "startedAt": "2026-11-13T16:44:01.488Z",
+  "durationSeconds": 130,
+  "costUsd": 2.1982625999999996,
+  "partial": false,
+  "suite": {
+    "root": "plugins/phaser",
+    "ablation": "with-without",
+    "threshold": 1,
+    "concurrency": 4,
+    "plugins": [
+      {
+        "name": "phaser",
+        "version": "0.2.0",
+        "path": "plugins/phaser"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "hud-relaunch",
+      "dir": "evals/hud-relaunch",
+      "source": "case_yaml",
+      "promptMarkdown": "My Phaser 4 game (`\"phaser\": \"4.2.1\"` in package.json) runs a HUD scene on top of the gameplay\nscene. When the player loses a life, GameScene calls `this.scene.restart()`. GameScene looks like\nthis:\n\n```js\ncreate() {\n  this.scene.launch('HUD');\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nHUD keeps its own `score` field: `create()` sets it to 0, and a `'coin'` event from GameScene\nadds to it. Players report that the HUD score goes back to 0 every time they lose a life, though\nnothing in GameScene touches the score. Why does that happen, and what is the smallest fix?\n",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 15,
+      "graders": [
+        {
+          "name": "phaser-skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "phaser-best-practices"
+          }
+        },
+        {
+          "name": "launch-restarts-running-scene",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "In Phaser, `this.scene.launch(key)` on a scene that is already running shuts it down and\nstarts it again: launch goes through the Scene Manager's start, which restarts a running,\npaused or sleeping scene. So every `GameScene.create()` after a restart relaunches HUD, HUD's\n`create()` runs again and the score is set back to 0. `this.scene.restart()` on GameScene\nrestarts only GameScene.\n\nPASS requires both:\n1. The cause named is the `launch('HUD')` call in GameScene's `create()` restarting the HUD,\n   which is already running, so HUD's `create()` resets the score.\n2. The fix launches HUD only once: guard with `this.scene.isActive('HUD')` (or\n   `isSleeping`/`isPaused`), launch it from a scene that runs once (boot or menu), or move\n   the launch out of the code path that runs on every restart. Keeping the score in the\n   registry or in GameScene is acceptable only together with stopping the relaunch.\n\nFAIL if the answer says `launch` on a running scene does nothing or is ignored, blames\n`GameScene.restart()` for restarting HUD, or names another cause without the relaunch.\n\nNot graded: code style, event wiring, whether it also mentions `bringToTop`.\n",
+          "config": {
+            "criteria": "In Phaser, `this.scene.launch(key)` on a scene that is already running shuts it down and\nstarts it again: launch goes through the Scene Manager's start, which restarts a running,\npaused or sleeping scene. So every `GameScene.create()` after a restart relaunches HUD, HUD's\n`create()` runs again and the score is set back to 0. `this.scene.restart()` on GameScene\nrestarts only GameScene.\n\nPASS requires both:\n1. The cause named is the `launch('HUD')` call in GameScene's `create()` restarting the HUD,\n   which is already running, so HUD's `create()` resets the score.\n2. The fix launches HUD only once: guard with `this.scene.isActive('HUD')` (or\n   `isSleeping`/`isPaused`), launch it from a scene that runs once (boot or menu), or move\n   the launch out of the code path that runs on every restart. Keeping the score in the\n   registry or in GameScene is acceptable only together with stopping the relaunch.\n\nFAIL if the answer says `launch` on a running scene does nothing or is ignored, blames\n`GameScene.restart()` for restarting HUD, or names another cause without the relaunch.\n\nNot graded: code style, event wiring, whether it also mentions `bringToTop`.\n",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.09974649999999999,
+            "judgeCostUsd": 0.0007479,
+            "durationSeconds": 15,
+            "startedAt": "2026-11-13T16:44:01.497Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-XXsnpA/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The reset is caused by `this.scene.launch('HUD')`, not by anything that touches the score.\n\n## Why it happens\n\n`launch()` goes through the Scene Manager's `start`. If the target scene is already running (or paused or sleeping), `start` shuts it down and starts it again. So every life lost does this:\n\n1. GameScene restarts, and its `create()` runs again.\n2. `this.scene.launch('HUD')` sees that HUD is already running and restarts it.\n3. HUD's `create()` runs again and sets `score = 0`.\n\n## Smallest fix\n\nOnly launch the HUD if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nHUD now starts once and lives through every GameScene restart, so `score` keeps its value. If you want to hide it between levels, use `setVisible()` or `sleep`/`wake` rather than relaunching it.\n\n## Two related issues to check\n\n- **The first `'lives'` emit is missed.** Scene operations are queued until the Scene Manager's next update. On the line after `launch()`, HUD hasn't run `create()` yet, so its `'lives'` listener doesn't exist, and that first emit has no listener. Later restarts work because HUD is already listening by then. To fix it, have HUD read the starting value when it is created, for example `this.scene.get('Game').lives` in its `create()`. Or pass it as launch data: `this.scene.launch('HUD', { lives: this.lives })`, then read it in HUD's `init(data)`.\n- **Listeners may stack up.** If HUD registers its listeners with something like `this.scene.get('Game').events.on('coin', …)` and never removes them on shutdown, each old restart could leave an extra `'coin'` handler behind. You'd see one coin counted several times. Launching HUD only once stops new duplicates. It's still worth adding cleanup in HUD:\n\n  ```js\n  this.events.once('shutdown', () => game.events.off('coin', this.onCoin, this));\n  ```\n\nOne more Phaser behaviour: scenes draw in the order of the scene list, not the order they were launched. If HUD is listed before GameScene in your game config and ends up drawn underneath it, call `this.scene.bringToTop('HUD')`."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.09410149999999999,
+            "judgeCostUsd": 0.00037890000000000005,
+            "durationSeconds": 12,
+            "startedAt": "2026-11-13T16:44:01.497Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-LrGXLa/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it happens\n\nThe culprit is `this.scene.launch('HUD')` in `GameScene.create()`, not anything that touches the score.\n\nIn Phaser, `launch` goes through the Scene Manager's `start`. If the target scene is already running, paused or asleep, `start` shuts it down and starts it again. So when GameScene loses a life:\n\n1. `this.scene.restart()` re-runs `GameScene.create()`.\n2. That calls `this.scene.launch('HUD')` again.\n3. The HUD is already running, so Phaser restarts it.\n4. `HUD.create()` runs again and sets `score = 0`.\n\n## Smallest fix\n\nOnly launch the HUD if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nThe HUD then survives GameScene restarts and keeps its score. If you need to hide it, use `setVisible()` or `sleep`/`wake` instead of launching it again.\n\n## A related bug on the next line\n\n`launch` doesn't run straight away. Scene operations wait until the Scene Manager's next update. So on the very first run, `this.events.emit('lives', ...)` fires before `HUD.create()` has attached its listener, and that first `'lives'` event is lost. Two ways to fix it:\n\n- **Have the HUD pull the value:** in `HUD.create()`, read it with `this.scene.get('Game').lives`, then listen for later changes.\n- **Delay the emit by a frame:** `this.time.delayedCall(0, () => this.events.emit('lives', this.lives))`.\n\nAlso check whether `HUD.create()` subscribes with `this.scene.get('Game').events.on(...)`. If it does, remove those listeners when GameScene shuts down, for example with `events.off` on GameScene's `'shutdown'` event. Otherwise they can pile up across restarts. Phaser does clear a scene's own event emitter on shutdown, so this may not bite you, but it's worth checking."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.095754,
+            "judgeCostUsd": 0.000612,
+            "durationSeconds": 15,
+            "startedAt": "2026-11-13T16:44:01.497Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-73ppt1/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why it happens:** in Phaser, `this.scene.launch('HUD')` does not skip a scene that is already running. `launch` goes through the Scene Manager's `start`, and `start` on a running (or paused or sleeping) scene shuts it down and starts it again. So each `this.scene.restart()` of GameScene runs GameScene's `create()` again, which calls `launch('HUD')` again. That restarts HUD, and HUD's `create()` sets `score = 0`. GameScene never touches the score; it just restarts the HUD.\n\n**Smallest fix:** only launch the HUD if it isn't already running.\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nOn the first run HUD isn't active, so it launches. On every restart after that it's still running, so it's left alone and keeps its score.\n\n**A related bug on the next line:** scene operations are queued until the next Scene Manager update. On the very first run, HUD hasn't started yet when `this.events.emit('lives', ...)` runs. Its `create()` hasn't attached a listener, so that first `'lives'` event is lost. After restarts it arrives, because the HUD is already listening. If the HUD shows the wrong lives count at game start, have HUD read the starting value itself in its `create()`. For example, put it in `this.registry` and read it from there, or read `this.scene.get('Game').lives`. Don't rely on an event sent before HUD exists.\n\nIf you ever need to hide the HUD (on a game-over screen, say), use `sleep`/`wake` or `setVisible()` rather than launching it again."
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0820712,
+            "judgeCostUsd": 0.0005052000000000001,
+            "durationSeconds": 21,
+            "startedAt": "2026-11-13T16:44:01.497Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-HVCL2u/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it happens\n\n`this.scene.launch('HUD')` does not check whether HUD is already running. It queues a **start** for that scene, and in Phaser's SceneManager, starting a scene that is already active or paused shuts it down and starts it again. Phaser 4 keeps the Phaser 3 scene manager behavior here.\n\nHere is the sequence:\n\n1. The player loses a life, and GameScene calls `this.scene.restart()`.\n2. GameScene's `create()` runs again and calls `this.scene.launch('HUD')`.\n3. HUD is already running, so it gets shut down and restarted.\n4. HUD's `create()` runs again and sets `score = 0`.\n\nGameScene never touches the score. GameScene restarting the HUD is what resets it.\n\n## Smallest fix\n\nOnly launch the HUD if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nAn alternative is to launch the HUD once from a boot or menu scene, so GameScene never launches it at all.\n\n## Two related things to check\n\n- **Duplicate `'coin'` listeners.** If HUD's `create()` subscribes with `this.scene.get('Game').events.on('coin', ...)`, every HUD restart has been adding another listener. A scene's event emitter isn't cleared when the scene restarts; it's only cleared when the scene is destroyed. If coins have been counting double or triple after deaths, this is the cause. The fix above stops new duplicates. To be safe, also remove the listener in HUD's shutdown handler:\n  ```js\n  this.events.once('shutdown', () => game.events.off('coin', this.onCoin, this));\n  ```\n- **The first `'lives'` emit is probably missed.** `launch` is queued, so on the very first run HUD's `create()` hasn't run yet when GameScene emits `'lives'`. On later restarts the HUD is already alive and receives it. To get the starting value to the HUD reliably, pass it as launch data (`this.scene.launch('HUD', { lives: this.lives })` and read it in HUD's `init(data)`), or store lives in `this.registry` and have HUD read it in `create()`."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0799102,
+            "judgeCostUsd": 0.0010281999999999995,
+            "durationSeconds": 22,
+            "startedAt": "2026-11-13T16:44:13.819Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-sma6sU/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why it happens:** `this.scene.launch('HUD')` doesn't check whether HUD is already running. It queues a `start` for HUD, and when the SceneManager starts a scene that's already active (or paused), it shuts that scene down and starts it again. When GameScene restarts, its `create()` runs again, calls `launch('HUD')`, and HUD gets restarted too. HUD's `create()` then runs again and sets `score = 0`. GameScene never touches the score; the reset comes from HUD's own `create()` re-running.\n\n**Smallest fix:** only launch HUD if it isn't already running.\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nHUD now stays alive across GameScene restarts and keeps its score.\n\nTwo related things to check:\n\n1. **Duplicate listeners.** A scene shutdown doesn't clear the listeners on its `events` emitter; only a destroy does. If HUD's `create()` does something like `game.events.on('coin', ...)`, every HUD restart under the old code added another listener, so coins may have been counted 2×, 3×, and so on after deaths. The fix above stops new duplicates. If HUD can still be restarted some other way, register with `once`/`off` or remove the listeners in HUD's `shutdown` handler.\n\n2. **The first `'lives'` emit is probably missed.** `launch` is queued, so HUD's `create()` hasn't run yet when GameScene emits `'lives'` on the very first start. After a restart HUD is already listening, so you'd only see this on the initial load. To fix it, have HUD read the starting value directly in its `create()` (e.g. `this.scene.get('Game').lives`), or pass it in with `this.scene.launch('HUD', { lives: this.lives })` and read it in HUD's `init(data)`.\n\nI explained this from how Phaser's SceneManager has handled `launch` since Phaser 3. I didn't check it against the 4.2.1 source. If HUD still resets after this change, put a `console.log` in HUD's `create()` to see how often it runs."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.0990254,
+            "judgeCostUsd": 0.00047919999999999994,
+            "durationSeconds": 24,
+            "startedAt": "2026-11-13T16:44:16.273Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-I6v9Jy/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The score resets because `this.scene.launch('HUD')` doesn't skip a scene that's already running. It restarts it.\n\n## Why it happens\n\n`launch(key)` queues a `start` for that scene in the SceneManager. When `start` targets a scene that's already running (or paused or sleeping), the manager shuts that scene down and starts it again. The HUD's `create()` then runs a second time and sets `score = 0`.\n\nSo each time the player loses a life:\n\n1. GameScene calls `this.scene.restart()`.\n2. GameScene's `create()` runs again.\n3. That `create()` calls `this.scene.launch('HUD')`.\n4. The HUD is already running, so it gets restarted.\n5. The HUD's `create()` runs and sets `score = 0`.\n\nGameScene never touches the score. It's the restart of the HUD that resets it.\n\nI couldn't find Phaser's source in this workspace, so this comes from how the SceneManager has worked since Phaser 3 rather than from reading 4.2.1 directly. You can confirm it in your build by adding a `console.log` to HUD's `create()` and losing a life.\n\n## Smallest fix\n\nOnly launch the HUD if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nAnother option is to launch the HUD once from a boot or menu scene, so GameScene's restarts never touch it.\n\n## Two related problems to check\n\n- **Duplicate listeners.** Suppose the HUD subscribes with something like `this.scene.get('Game').events.on('coin', ...)` inside its own `create()`. Each HUD restart then adds another listener, because those listeners live on GameScene's emitter and aren't removed when the HUD shuts down. Once the fix above is in place, the HUD's `create()` runs only once, so this stops. If you ever do restart the HUD on purpose, remove those listeners in its `shutdown` event.\n- **Missed first `'lives'` event.** `launch` is queued, so the HUD's `create()` hasn't run yet when GameScene emits `'lives'` on the very first start. That first event is lost. After a restart, the HUD (now kept running) is already listening, so it does get the event. If the starting lives value doesn't show up, have the HUD read the value from GameScene in its own `create()`, or emit the event from GameScene on the next frame."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "hud-relaunch-vendor",
+      "dir": "evals/hud-relaunch-vendor",
+      "source": "case_yaml",
+      "promptMarkdown": "My Phaser 4 game (`\"phaser\": \"4.2.1\"` in package.json) runs a HUD scene on top of the gameplay\nscene. When the player loses a life, GameScene calls `this.scene.restart()`. GameScene looks like\nthis:\n\n```js\ncreate() {\n  this.scene.launch('HUD');\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nHUD keeps its own `score` field: `create()` sets it to 0, and a `'coin'` event from GameScene\nadds to it. Players report that the HUD score goes back to 0 every time they lose a life, though\nnothing in GameScene touches the score. Why does that happen, and what is the smallest fix?\n",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 15,
+      "graders": [
+        {
+          "name": "phaser-skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "phaser-best-practices"
+          }
+        },
+        {
+          "name": "launch-restarts-running-scene",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "In Phaser, `this.scene.launch(key)` on a scene that is already running shuts it down and\nstarts it again: launch goes through the Scene Manager's start, which restarts a running,\npaused or sleeping scene. So every `GameScene.create()` after a restart relaunches HUD, HUD's\n`create()` runs again and the score is set back to 0. `this.scene.restart()` on GameScene\nrestarts only GameScene.\n\nPASS requires both:\n1. The cause named is the `launch('HUD')` call in GameScene's `create()` restarting the HUD,\n   which is already running, so HUD's `create()` resets the score.\n2. The fix launches HUD only once: guard with `this.scene.isActive('HUD')` (or\n   `isSleeping`/`isPaused`), launch it from a scene that runs once (boot or menu), or move\n   the launch out of the code path that runs on every restart. Keeping the score in the\n   registry or in GameScene is acceptable only together with stopping the relaunch.\n\nFAIL if the answer says `launch` on a running scene does nothing or is ignored, blames\n`GameScene.restart()` for restarting HUD, or names another cause without the relaunch.\n\nNot graded: code style, event wiring, whether it also mentions `bringToTop`.\n",
+          "config": {
+            "criteria": "In Phaser, `this.scene.launch(key)` on a scene that is already running shuts it down and\nstarts it again: launch goes through the Scene Manager's start, which restarts a running,\npaused or sleeping scene. So every `GameScene.create()` after a restart relaunches HUD, HUD's\n`create()` runs again and the score is set back to 0. `this.scene.restart()` on GameScene\nrestarts only GameScene.\n\nPASS requires both:\n1. The cause named is the `launch('HUD')` call in GameScene's `create()` restarting the HUD,\n   which is already running, so HUD's `create()` resets the score.\n2. The fix launches HUD only once: guard with `this.scene.isActive('HUD')` (or\n   `isSleeping`/`isPaused`), launch it from a scene that runs once (boot or menu), or move\n   the launch out of the code path that runs on every restart. Keeping the score in the\n   registry or in GameScene is acceptable only together with stopping the relaunch.\n\nFAIL if the answer says `launch` on a running scene does nothing or is ignored, blames\n`GameScene.restart()` for restarting HUD, or names another cause without the relaunch.\n\nNot graded: code style, event wiring, whether it also mentions `bringToTop`.\n",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.09750710000000001,
+            "judgeCostUsd": 0.0007896999999999995,
+            "durationSeconds": 18,
+            "startedAt": "2026-11-13T16:44:16.869Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-WNtyy9/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why:** `this.scene.launch('HUD')` doesn't skip a scene that's already running. `launch` goes through the Scene Manager's `start`, and `start` on a running (or paused or sleeping) scene shuts it down and starts it again. So every time a lost life triggers `this.scene.restart()`, GameScene's `create()` runs again, calls `launch('HUD')`, and the HUD is restarted too. Its `create()` runs and sets `score = 0`. GameScene never touches the score. The HUD resets it itself because it gets relaunched.\n\n**Smallest fix:** launch the HUD only if it isn't already running.\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nThe HUD then stays up across GameScene restarts and keeps its score. To hide it between levels or on a game-over screen, use `setVisible()` or `sleep`/`wake`. Don't relaunch it.\n\n**A related problem with the first `'lives'` emit:** scene operations are queued until the Scene Manager's next update. On the very first run, the HUD hasn't run its `create()` yet when the line after `launch` executes. That means it hasn't subscribed, and the first `'lives'` event is lost. (On later restarts the HUD is already running, so the emit reaches it.) If the HUD shows the wrong lives count at startup, have the HUD read the starting value in its own `create()`, for example `this.scene.get('GameScene').lives`. You can also have GameScene emit after the HUD signals it's ready.\n\nThe same mistake can also show up as the HUD drawing underneath the game. Scenes render in scene-list order, not launch order. If HUD is listed before GameScene in your config, call `this.scene.bringToTop('HUD')` once."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.0968356,
+            "judgeCostUsd": 0.0005861999999999998,
+            "durationSeconds": 15,
+            "startedAt": "2026-11-13T16:44:22.767Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-PaRRUe/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The reset comes from `this.scene.launch('HUD')` in `GameScene.create()`. It runs again on every restart.\n\n## Why it happens\n\n`scene.restart()` runs GameScene's `create()` again, so `launch('HUD')` runs again. In Phaser 4, `launch` goes through the Scene Manager's `start`. If the target scene is already running (or paused or sleeping), `start` shuts it down and starts it fresh. So each lost life also restarts the HUD, its `create()` runs again, and `score = 0`. GameScene never touches the score; it restarts the HUD by relaunching it.\n\n## Smallest fix\n\nLaunch the HUD only if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) this.scene.launch('HUD');\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nOn the first `create()` the HUD isn't active, so it launches. On every restart it's already running, so it's left alone and keeps its score. If you ever put the HUD to sleep instead of leaving it running, `isActive` returns false, so this guard would relaunch it and reset it again. In that case check `this.scene.isSleeping('HUD')` and call `this.scene.wake('HUD')`.\n\n## A related bug on the next line\n\nScene operations are queued until the Scene Manager's next update. When `this.events.emit('lives', ...)` runs right after the first `launch`, the HUD hasn't run `create()` yet, so nothing is listening and the first `'lives'` event is lost. After restarts the event does arrive, because the HUD keeps running. To fix the first load, have the HUD read the starting value itself in its `create()`, for example `this.scene.get('Game').lives`, or emit `'lives'` after the HUD is up."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.091175,
+            "judgeCostUsd": 0.0003702000000000002,
+            "durationSeconds": 12,
+            "startedAt": "2026-11-13T16:44:34.818Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-15X4eT/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why it happens:** `this.scene.restart()` reruns GameScene's `create()`, which calls `this.scene.launch('HUD')` again. In Phaser, `launch` goes through the Scene Manager's `start`. When the target scene is already running (or paused or sleeping), `start` shuts it down and starts it again. So every lost life restarts the HUD, its `create()` runs again, and `score` goes back to 0. GameScene never changes the score. Restarting the HUD is what resets it.\n\n**Smallest fix:** only launch the HUD if it isn't already running.\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nNow the HUD scene starts once and keeps running across GameScene restarts, so its `score` survives.\n\n**Two related problems to check:**\n\n1. **The first `'lives'` emit is lost.** Scene operations are queued until the next Scene Manager update. On the first run, the HUD hasn't run `create()` yet when `emit('lives', ...)` fires on the next line, so it has no listener. You can fix this either way:\n   - Have the HUD read the starting value in its own `create()`, e.g. `this.scene.get('GameScene').lives`.\n   - Defer the emit until after the HUD has started.\n2. **Listeners on the restarted GameScene.** If the HUD subscribes with `this.scene.get('GameScene').events.on('coin', ...)`, check that the subscription still works after GameScene restarts. Phaser normally keeps the same `Scene` instance and its `events` emitter across a restart, so it should. But if GameScene removes listeners on shutdown (for example with `this.events.removeAllListeners()` or `off`), the HUD will stop getting `'coin'` events after the first death. In that case, move the score into the registry (`this.registry.set('score', ...)`) or subscribe again on GameScene's `'create'` event."
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.07959200000000001,
+            "judgeCostUsd": 0.0016779999999999994,
+            "durationSeconds": 25,
+            "startedAt": "2026-11-13T16:44:35.994Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-pK71BA/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why it happens:** `this.scene.launch('HUD')` doesn't check whether HUD is already running. It queues a `start`, and when the Scene Manager starts a scene that's already active (or paused), it shuts it down and starts it again. That means every `this.scene.restart()` in GameScene runs `create()` again, which calls `launch('HUD')` again. HUD gets restarted, and its `create()` resets `score` to 0. GameScene never touches the score; it just restarts the HUD.\n\n**Smallest fix:** change `launch` to `run`:\n\n```js\ncreate() {\n  this.scene.run('HUD');\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\n`run` starts HUD only if it isn't running. If HUD is paused, it resumes it; if it's sleeping, it wakes it; if it's already active, it does nothing. HUD's `create()` then runs only once, so `score` carries over between lives. You could also guard the call with `if (!this.scene.isActive('HUD')) this.scene.launch('HUD');`, but `run` does the same in one call.\n\nTwo related things to check after the change:\n\n- **The first `'lives'` emit is lost.** Starting a scene is queued, so HUD's `create()` runs after GameScene's `create()` has finished. On the very first start, nothing is listening yet when `'lives'` fires. After the fix, restarts work because HUD is already listening. For the initial value, pass it as launch data (`this.scene.run('HUD', { lives: this.lives })` and read it in HUD's `init(data)`), or have HUD read it from GameScene when it's created.\n- **Duplicate listeners.** If HUD's `create()` adds handlers like `game.events.on('coin', …)`, the current restart loop may have been stacking them, unless you remove them on shutdown. With `run`, `create()` runs once, so each handler is added only once.\n\nI haven't run this on 4.2.1. This is how `launch`, `start` and `run` behave in Phaser 3, and I'm assuming Phaser 4's Scene Manager hasn't changed it. If `run` doesn't fix it for you, check `ScenePlugin#run` in your installed `node_modules/phaser`."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.0885878,
+            "judgeCostUsd": 0.000651399999999999,
+            "durationSeconds": 21,
+            "startedAt": "2026-11-13T16:44:37.859Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-lQj3aD/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The problem is `this.scene.launch('HUD')`, not anything that touches the score.\n\n## Why it happens\n\n`this.scene.restart()` reruns GameScene's `create()`, so `this.scene.launch('HUD')` runs again on every lost life. Launching a scene that is already running doesn't do nothing. Phaser's SceneManager handles it like `start`: if the target scene is active or paused, it shuts the scene down and starts it again. So every restart of GameScene also restarts HUD, and HUD's `create()` sets `score = 0` again.\n\nI couldn't check this against your installed copy because there's no Phaser source in this workspace. This is how SceneManager has handled `start`/`launch` on a running scene since Phaser 3, and 4.x keeps that behaviour.\n\n## Smallest fix\n\nOnly launch HUD if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nA cleaner option is to launch HUD once from a Boot or Preload scene, so GameScene restarts never touch it.\n\n## Two related issues to check\n\n1. **Duplicate listeners.** GameScene's event emitter keeps its listeners when the scene restarts. If HUD subscribes in its `create()` (for example `game.events.on('coin', ...)`), every HUD restart has been adding another handler. Once HUD stops restarting, that pile-up stops too. If HUD ever does need to restart, remove its listeners on its own `shutdown` event.\n2. **The first `'lives'` emit is probably missed.** `launch` is queued and doesn't run until the SceneManager's next update. That means HUD's `create()` hasn't run yet, and nothing is listening, when GameScene emits `'lives'` on the very first start. After the fix above, the emit on later restarts will reach HUD. For the first start, have HUD read the initial value directly in its `create()` (e.g. `this.scene.get('GameScene').lives`), or pass it as data: `this.scene.launch('HUD', { lives: this.lives })`."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 2,
+            "costUsd": 0.0875028,
+            "judgeCostUsd": 0.0014349999999999996,
+            "durationSeconds": 20,
+            "startedAt": "2026-11-13T16:44:40.628Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-iosB7S/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "launch-restarts-running-scene",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The reset comes from `this.scene.launch('HUD')`, not from anything that touches the score.\n\n## Why it happens\n\n`launch()` doesn't skip a scene that's already running. In Phaser's `ScenePlugin`, `launch` queues a stop and then a start for the target scene:\n\n```js\nlaunch: function (key, data) {\n    if (key && key !== this.key) {\n        this.manager.queueOp('stop', key);\n        this.manager.queueOp('start', key, data);\n    }\n    return this;\n}\n```\n\nSo each time the player loses a life:\n\n1. `GameScene` calls `this.scene.restart()`.\n2. `GameScene.create()` runs again and calls `this.scene.launch('HUD')`.\n3. The HUD is stopped and started again, so `HUD.create()` runs and sets `score = 0`.\n\nThe HUD gets restarted along with the gameplay scene.\n\n## Smallest fix\n\nOnly launch the HUD if it isn't already running:\n\n```js\ncreate() {\n  if (!this.scene.isActive('HUD')) {\n    this.scene.launch('HUD');\n  }\n  this.events.emit('lives', this.lives);\n  // ... level setup\n}\n```\n\nAnother option is to launch the HUD once from a boot or menu scene and never from `GameScene.create()`.\n\n## Two related issues to check\n\n- **Duplicate listeners.** If the HUD subscribes with `game.events.on('coin', ...)`, those subscriptions can outlive a `GameScene` restart, because shutdown doesn't clear that emitter. Once the HUD stops restarting, make sure it doesn't add a new listener on each restart, or one coin will count two or more times. To guard against this, subscribe once, or remove the listener in `GameScene`'s `shutdown` event.\n- **The first `'lives'` emit can be lost.** Scene operations are queued, so on the first run the HUD's `create()` may not have run yet when `'lives'` fires, and the HUD never receives it. The HUD should read the starting value itself, for example by passing it as launch data: `this.scene.launch('HUD', { lives: this.lives })`.\n\nI couldn't check this against your installed copy because there's no `node_modules` in the working directory. This is how `launch` behaves in Phaser 3's source, and I'm assuming 4.2.1 still works the same way. To confirm, look at `launch` in `node_modules/phaser/src/scene/ScenePlugin.js`."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "onfloor-dynamic",
+      "dir": "evals/onfloor-dynamic",
+      "source": "case_yaml",
+      "promptMarkdown": "Phaser 4.2.1, Arcade Physics with gravity y 600. The player can stand on a crate and push it\naround:\n\n```js\nthis.player = this.physics.add.sprite(100, 300, 'player');\nthis.crate = this.physics.add.sprite(100, 400, 'crate');\nthis.physics.add.collider(this.player, this.crate);\nthis.physics.add.collider(this.crate, this.ground);   // ground is a static group\nthis.physics.add.collider(this.player, this.ground);\n```\n\nJump logic in `update()`:\n\n```js\nif (this.cursors.up.isDown && this.player.body.onFloor()) {\n  this.player.setVelocityY(-400);\n}\n```\n\nJumping works from the ground but never from the top of the crate, though the player visibly\nrests on it. Why, and how do I fix it while keeping the crate pushable sideways?\n",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 15,
+      "graders": [
+        {
+          "name": "phaser-skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "phaser-best-practices"
+          }
+        },
+        {
+          "name": "onfloor-dynamic-body",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "In Arcade Physics, `body.onFloor()` reads `body.blocked.down`. `blocked` is set against the\nworld bounds, tiles, static bodies and immovable or non-pushable bodies. Two ordinary dynamic\nbodies set only `touching`. On a pushable dynamic crate `onFloor()` therefore stays false, while\n`body.touching.down` is true.\n\nPASS requires both:\n1. The cause: the crate is an ordinary dynamic (pushable) body, so the collision sets\n   `touching.down` and not `blocked.down`, and `onFloor()` reads only `blocked`.\n2. A fix that keeps the crate pushable: the ground check also accepts `body.touching.down`\n   (for example `body.blocked.down || body.touching.down`). Making the crate immovable,\n   non-pushable or static passes only if the answer says this stops it being pushed and\n   still gives the `touching.down` route.\n\nFAIL if the answer blames collider order, gravity, velocity sign, body size or offset, or\ntiming, or says `onFloor()` should already be true; or if its only fix makes the crate\nimmovable, non-pushable or static without noting that the user wanted it pushable.\n\nNot graded: coyote time, jump buffering, code style.\n",
+          "config": {
+            "criteria": "In Arcade Physics, `body.onFloor()` reads `body.blocked.down`. `blocked` is set against the\nworld bounds, tiles, static bodies and immovable or non-pushable bodies. Two ordinary dynamic\nbodies set only `touching`. On a pushable dynamic crate `onFloor()` therefore stays false, while\n`body.touching.down` is true.\n\nPASS requires both:\n1. The cause: the crate is an ordinary dynamic (pushable) body, so the collision sets\n   `touching.down` and not `blocked.down`, and `onFloor()` reads only `blocked`.\n2. A fix that keeps the crate pushable: the ground check also accepts `body.touching.down`\n   (for example `body.blocked.down || body.touching.down`). Making the crate immovable,\n   non-pushable or static passes only if the answer says this stops it being pushed and\n   still gives the `touching.down` route.\n\nFAIL if the answer blames collider order, gravity, velocity sign, body size or offset, or\ntiming, or says `onFloor()` should already be true; or if its only fix makes the crate\nimmovable, non-pushable or static without noting that the user wanted it pushable.\n\nNot graded: coyote time, jump buffering, code style.\n",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.09841739999999999,
+            "judgeCostUsd": 0.0013212000000000007,
+            "durationSeconds": 18,
+            "startedAt": "2026-11-13T16:44:47.241Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-fDqkED/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The skill confirmed what I suspected: this is how Arcade Physics behaves, not a bug in your code.\n\n## Why\n\nIn Arcade, `body.onFloor()` just returns `body.blocked.down`. **`blocked` only gets set when a body hits something that can't move**: a static body, an immovable or non-pushable body, or the world bounds. Your ground is a static group, so jumping from it works.\n\nThe crate is an ordinary dynamic, pushable body. When two dynamic bodies collide, Arcade separates them and sets **`touching.down`** on the player, not `blocked.down`. So while the player rests on the crate, `onFloor()` stays `false` and the jump check never passes.\n\n## Fix\n\nKeep the crate dynamic and pushable, and widen the ground check to include `touching.down`:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\n`touching` is reset each physics step and refilled by the colliders. When you read it in `update()`, it reflects the most recent step, which is what you want here.\n\n### What not to do\n\nThe usual advice is `this.crate.setImmovable(true)` or `setPushable(false)`. That makes `onFloor()` work on the crate, but it also stops the player from pushing the crate sideways, which you don't want.\n\n### Optional: only count standing on top\n\n`touching.down` is set only when the player's bottom edge meets something, so bumping the crate from the side won't count as grounded. If you want the check to be explicit, or to add a small amount of \"coyote time\", you can record it in the collider callback:\n\n```js\nthis.physics.add.collider(this.player, this.crate, (player, crate) => {\n  if (player.body.touching.down && crate.body.touching.up) {\n    this.lastGroundedAt = this.time.now;\n  }\n});\n```\n\nOne related thing you may notice: when the player lands on the crate, the crate takes part of the impact. Its collider with the ground stops it from sinking, so this is fine. If the crate jitters under the player, give it some mass or drag (`this.crate.setDragX(...)`, `this.crate.body.mass = 2`). Remember that drag only works while the crate's x-acceleration is zero."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 4,
+            "costUsd": 0.1210915,
+            "judgeCostUsd": 0.0017672999999999994,
+            "durationSeconds": 25,
+            "startedAt": "2026-11-13T16:44:59.124Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-1oICfj/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why:** `onFloor()` only reads `body.blocked.down`. Arcade Physics sets `blocked` only when the thing below you can't move: world bounds, a tile, a static body, or a body that's immovable or `setPushable(false)`. Your crate is an ordinary dynamic body, so when the player lands on it, the two bodies are pushed apart and only `touching.down` gets set. The player is resting on the crate, but `blocked.down` stays `false`, so the jump condition never passes.\n\nThe usual fix for \"onFloor on a platform\" is `crate.setImmovable(true)` or `setPushable(false)`. That would also stop the player from pushing the crate sideways, so it doesn't work for you.\n\n**Fix:** keep the crate dynamic and accept either flag in the jump check:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\n- `blocked.down` covers the static ground, tiles and world bounds.\n- `touching.down` covers the crate or any other dynamic body under the player.\n- Both are reset at the start of every physics step, so neither stays `true` after the player leaves the surface.\n\n**Optional extras:**\n\n1. **Keep the crate from sliding forever after a push:**\n   ```js\n   this.crate.setDragX(600);   // drag only works while acceleration on that axis is 0\n   ```\n2. **Collider order.** Add `crate ↔ ground` before `player ↔ crate`, so the crate has settled on the ground before the player is resolved against it each step:\n   ```js\n   this.physics.add.collider(this.crate, this.ground);\n   this.physics.add.collider(this.player, this.ground);\n   this.physics.add.collider(this.player, this.crate);\n   ```\n   This may make the crate steadier under the player. Don't count on it to make `onFloor()` work; the `touching.down` check above is what fixes the jump.\n3. **Ignoring side contact.** `touching.down` is only set by contact from above, so walking into the crate's side won't let the player jump. If you later add dynamic bodies you shouldn't be able to jump off (enemies, for example), filter by what's below. You can store a flag in the `player ↔ crate` collide callback, or check `this.player.body.bottom <= this.crate.body.top + 2`."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.1044376,
+            "judgeCostUsd": 0.0011728000000000008,
+            "durationSeconds": 20,
+            "startedAt": "2026-11-13T16:45:01.037Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-nxCAAO/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why:** In Arcade Physics, `onFloor()` reads `body.blocked.down`. That flag is only set when the body lands on something that can't be pushed: the world bounds, a static body, or a body that is immovable or `pushable = false`. Your crate is an ordinary dynamic body. When the player lands on it, the collision is resolved between two pushable bodies, so Phaser sets only `player.body.touching.down` and never `blocked.down`. The player rests on the crate, but `onFloor()` stays `false`. It works on the ground because the ground is a static group.\n\n**Fix (crate stays pushable):** Check `touching.down` as well as `onFloor()`:\n\n```js\nconst body = this.player.body;\nconst grounded = body.onFloor() || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\n`touching` is reset at the start of every physics step and set again during collision. So it's only `true` while the player is actually resting on something. It won't allow a jump in mid-air.\n\n**Avoid \"fixing\" it by making the crate solid:**\n\n- `crate.setImmovable(true)` or `crate.setPushable(false)` would make `onFloor()` work. But the player could then no longer push the crate sideways, which is the behavior you want to keep.\n- An immovable crate also no longer gets pushed out of the static ground, so it can sink or fall through it.\n\n**Optional tightening:** `touching.down` is also `true` when the player lands on any other dynamic body, such as an enemy's head. If you only want ground and crates to count, record it in the collider callback instead:\n\n```js\nthis.physics.add.collider(this.player, this.crate, (player, crate) => {\n  if (player.body.touching.down && crate.body.touching.up) this.onCrate = true;\n});\n\n// in update(), before the jump check:\nconst grounded = this.player.body.onFloor() || this.onCrate;\n// ...jump logic...\nthis.onCrate = false;  // reset at the end of update(); the collider sets it again next step\n```"
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0700586,
+            "judgeCostUsd": 0.0010246000000000005,
+            "durationSeconds": 18,
+            "startedAt": "2026-11-13T16:45:01.053Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-gqbnXM/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it fails\n\n`body.onFloor()` only returns `body.blocked.down`. Arcade Physics sets `blocked` for **world bounds, tiles and static bodies**. Your ground is a static group, so it sets `blocked.down`.\n\nThe crate is a **dynamic** body. When two dynamic bodies collide, Arcade sets `touching.down` on the player (and `touching.up` on the crate), not `blocked.down`. So while the player rests on the crate, `onFloor()` is `false` and the jump never fires.\n\n## Fix\n\nCheck both flags:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\nThis works in `update()` because the collider runs during the physics step just before `update()`, so `touching` still holds this frame's result.\n\nYou don't need to change the crate, so it stays pushable sideways. **Don't** make it `setImmovable(true)` or a static body to get `blocked` instead: that would stop the player from pushing it.\n\n## Things to watch for\n\n- **Side contacts**: `touching.down` is only set when the player is on top of the crate. Pressing against its side sets `touching.left` or `touching.right`, so the player can't wall-jump off it by accident.\n- **Other dynamic bodies**: `touching.down` is true when the player stands on *any* dynamic body. If only some surfaces should allow jumping, set a flag in the collider callback instead:\n  ```js\n  this.physics.add.collider(this.player, this.crate, (player, crate) => {\n    if (player.body.touching.down && crate.body.touching.up) this.onCrate = true;\n  });\n  // in update(): grounded = body.blocked.down || this.onCrate; then this.onCrate = false;\n  ```\n- **Crate feel**: add `this.crate.setDragX(600)` (or a similar value) so the crate stops when you stop pushing instead of sliding away. Optionally use `this.crate.setMass(2)` so it feels heavier than the player and doesn't jitter under them."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0735436,
+            "judgeCostUsd": 0.0018055999999999992,
+            "durationSeconds": 21,
+            "startedAt": "2026-11-13T16:45:05.217Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-eT9Sgn/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it fails\n\n`body.onFloor()` only checks `body.blocked.down`. Arcade Physics sets the `blocked` flags only for collisions with **immovable/static things**: world bounds, static bodies, and tiles. Your ground is a static group, so standing on it sets `blocked.down`.\n\nThe crate is a **dynamic** body. Body-vs-body contact sets `body.touching.down` instead, and `blocked.down` stays `false`. So the player is resting on the crate, but `onFloor()` says no.\n\n## Fix\n\nTreat either flag as \"grounded\":\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\nReading `touching` inside `update()` is safe. The Arcade world steps and resolves colliders before your scene's `update()` runs, so the flags reflect the current frame.\n\nThe crate stays pushable sideways because nothing about it changes: it's still a normal dynamic, pushable body.\n\n## Optional tweaks for a steadier crate\n\n```js\n// Register crate↔ground before player↔crate so the crate is settled on the\n// ground before the player's weight is resolved against it (less jitter/sinking).\nthis.physics.add.collider(this.crate, this.ground);\nthis.physics.add.collider(this.player, this.ground);\nthis.physics.add.collider(this.player, this.crate);\n\nthis.crate.setDragX(600);   // stops sliding once the player stops pushing\nthis.crate.setMass(2);      // heavier = pushes more slowly; tune to taste\n```\n\nIf the crate still sinks or jitters when the player lands on it, the collider order above is usually what fixes it.\n\n**Don't** use `setImmovable(true)` on the crate. That would make `onFloor()` work, but the player could no longer push the crate."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0726054,
+            "judgeCostUsd": 0.0008354,
+            "durationSeconds": 20,
+            "startedAt": "2026-11-13T16:45:19.522Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-hOnkji/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it happens\n\n`body.onFloor()` only returns `body.blocked.down`. Arcade Physics sets `blocked` only when a body hits something that can't move: a static body, an immovable body, or the world bounds. Your crate is a normal dynamic body. When the player lands on it, the separation code sets `player.body.touching.down = true` but leaves `blocked.down` false. So `onFloor()` stays false and the jump never fires, even though the player is resting on the crate.\n\nOn the ground it works because the ground is a static group, which sets `blocked.down`.\n\n## Fix\n\nCheck `touching.down` as well as `blocked.down`:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\nThis doesn't change the crate at all, so it stays dynamic and pushable sideways. Don't make the crate `immovable` or set `pushable = false`. Either one would make `onFloor()` work, but the player could no longer push the crate.\n\n## Notes\n\n- **When it's valid:** `touching` is reset at the start of each physics step and filled in during collision. Reading it in `update()` gives you the result of the latest step, which is what you want.\n- **Side effect:** `touching.down` is true when the player is on top of any dynamic body: the crate, an enemy, another player. If you only want to allow jumping off certain objects, use a collide callback instead:\n  ```js\n  this.physics.add.collider(this.player, this.crate, (p, c) => {\n    if (p.body.touching.down && c.body.touching.up) this.onCrate = true;\n  });\n  // in update(): grounded = body.blocked.down || this.onCrate; then reset this.onCrate = false at the end of update()\n  ```\n- **If the player jitters on the crate:** add the `crate`–`ground` collider before the `player`–`crate` collider. The crate then settles on the ground before the player is separated from it."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    },
+    {
+      "name": "onfloor-dynamic-vendor",
+      "dir": "evals/onfloor-dynamic-vendor",
+      "source": "case_yaml",
+      "promptMarkdown": "Phaser 4.2.1, Arcade Physics with gravity y 600. The player can stand on a crate and push it\naround:\n\n```js\nthis.player = this.physics.add.sprite(100, 300, 'player');\nthis.crate = this.physics.add.sprite(100, 400, 'crate');\nthis.physics.add.collider(this.player, this.crate);\nthis.physics.add.collider(this.crate, this.ground);   // ground is a static group\nthis.physics.add.collider(this.player, this.ground);\n```\n\nJump logic in `update()`:\n\n```js\nif (this.cursors.up.isDown && this.player.body.onFloor()) {\n  this.player.setVelocityY(-400);\n}\n```\n\nJumping works from the ground but never from the top of the crate, though the player visibly\nrests on it. Why, and how do I fix it while keeping the crate pushable sideways?\n",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 15,
+      "graders": [
+        {
+          "name": "phaser-skill-fired",
+          "type": "tool_used",
+          "weight": 1,
+          "config": {
+            "tool": "Skill",
+            "input_match": "phaser-best-practices"
+          }
+        },
+        {
+          "name": "onfloor-dynamic-body",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "In Arcade Physics, `body.onFloor()` reads `body.blocked.down`. `blocked` is set against the\nworld bounds, tiles, static bodies and immovable or non-pushable bodies. Two ordinary dynamic\nbodies set only `touching`. On a pushable dynamic crate `onFloor()` therefore stays false, while\n`body.touching.down` is true.\n\nPASS requires both:\n1. The cause: the crate is an ordinary dynamic (pushable) body, so the collision sets\n   `touching.down` and not `blocked.down`, and `onFloor()` reads only `blocked`.\n2. A fix that keeps the crate pushable: the ground check also accepts `body.touching.down`\n   (for example `body.blocked.down || body.touching.down`). Making the crate immovable,\n   non-pushable or static passes only if the answer says this stops it being pushed and\n   still gives the `touching.down` route.\n\nFAIL if the answer blames collider order, gravity, velocity sign, body size or offset, or\ntiming, or says `onFloor()` should already be true; or if its only fix makes the crate\nimmovable, non-pushable or static without noting that the user wanted it pushable.\n\nNot graded: coyote time, jump buffering, code style.\n",
+          "config": {
+            "criteria": "In Arcade Physics, `body.onFloor()` reads `body.blocked.down`. `blocked` is set against the\nworld bounds, tiles, static bodies and immovable or non-pushable bodies. Two ordinary dynamic\nbodies set only `touching`. On a pushable dynamic crate `onFloor()` therefore stays false, while\n`body.touching.down` is true.\n\nPASS requires both:\n1. The cause: the crate is an ordinary dynamic (pushable) body, so the collision sets\n   `touching.down` and not `blocked.down`, and `onFloor()` reads only `blocked`.\n2. A fix that keeps the crate pushable: the ground check also accepts `body.touching.down`\n   (for example `body.blocked.down || body.touching.down`). Making the crate immovable,\n   non-pushable or static passes only if the answer says this stops it being pushed and\n   still gives the `touching.down` route.\n\nFAIL if the answer blames collider order, gravity, velocity sign, body size or offset, or\ntiming, or says `onFloor()` should already be true; or if its only fix makes the crate\nimmovable, non-pushable or static without noting that the user wanted it pushable.\n\nNot graded: coyote time, jump buffering, code style.\n",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 4,
+            "costUsd": 0.1301671,
+            "judgeCostUsd": 0.001403699999999999,
+            "durationSeconds": 29,
+            "startedAt": "2026-11-13T16:45:21.212Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-XPPKsY/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "The crate is a normal dynamic body, and `onFloor()` doesn't count those as floor.\n\n## Why\n\n`onFloor()` only reads `body.blocked.down`. Arcade Physics sets the `blocked` flags only when the other body can't move: world bounds, tiles, static bodies, or bodies that are immovable or non-pushable. Your crate is an ordinary dynamic body. When the player lands on it, the two bodies are separated by mass, and that sets only `touching.down` on the player. `blocked.down` stays `false`. The player looks like it's resting on the crate, but to the physics engine it's just touching another movable body. So `onFloor()` returns `false` and the jump never fires.\n\nThe usual fix is `crate.setImmovable(true)` or `crate.setPushable(false)`, but either one stops the player from pushing the crate sideways. That's not what you want.\n\n## Fix: check `touching.down` as well\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\n- `blocked.down` still covers the static ground.\n- `touching.down` covers standing on the crate, or on any other dynamic body.\n- The crate stays fully dynamic, so sideways pushing works as before.\n\n`touching` is reset every physics step and set again during collision, so in `update()` it reflects the latest contact. It also won't let the player jump repeatedly in mid-air: one frame after the jump the player is no longer touching the crate.\n\n**One thing to watch:** `touching.down` is true when standing on *any* dynamic body, including enemies or projectiles that have a collider with the player. If that matters, limit it to the crate:\n\n```js\nconst onCrate = body.touching.down && this.crate.body.touching.up;\nconst grounded = body.blocked.down || onCrate;\n```\n\n## If you want stricter control\n\nYou can make the crate immovable (`this.crate.setImmovable(true)`) and move it yourself in the player–crate collider callback when the player hits its left or right side:\n\n```js\nthis.physics.add.collider(this.player, this.crate, (player, crate) => {\n  if (player.body.touching.right || player.body.touching.left) {\n    crate.setVelocityX(player.body.velocity.x);\n  }\n});\n```\n\nThen remember to stop the crate (with drag or by zeroing its x velocity) when the push ends. This gives you `onFloor()` on top of the crate and full control over how pushing feels. It's more work, so only switch if the `touching.down` check isn't enough for you."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 3,
+            "costUsd": 0.10024359999999999,
+            "judgeCostUsd": 0.0007199999999999984,
+            "durationSeconds": 17,
+            "startedAt": "2026-11-13T16:45:24.618Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-GKdpeV/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Why:** in Arcade Physics, `onFloor()` only checks `body.blocked.down`. `blocked` is set when a body hits something that can't be moved: a static body, an immovable body, a non-pushable body, or the world bounds. Your crate is an ordinary dynamic, pushable body. When two dynamic bodies collide, Arcade only sets `body.touching.down`. So `onFloor()` stays `false` the whole time the player stands on the crate, even though the collision holds them up.\n\nThe usual fix would be `crate.setImmovable(true)` or `setPushable(false)`, but that also stops you pushing the crate sideways. Change the ground check instead:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\n- `blocked.down` covers the static ground group and the world bounds.\n- `touching.down` covers standing on the crate, or on any other dynamic body.\n- Both are cleared and recalculated every physics step, so you won't get a stale \"grounded\" after leaving the crate.\n- The crate stays dynamic and pushable, so your sideways pushing works as before.\n\n**Optional changes:**\n\n- **Stop the crate sliding or sinking.** Give it some friction so it stops when you stop pushing, and a bit more mass so the player's weight doesn't nudge it:\n  ```js\n  this.crate.setDragX(600);\n  this.crate.body.setMass(2);\n  ```\n- **Only count certain bodies as ground.** `touching.down` is true when standing on any dynamic body, including enemies. If you only want the crate (and similar objects) to count, record it in the collider callback:\n  ```js\n  this.physics.add.collider(this.player, this.crate, (p, c) => {\n    if (p.body.touching.down && c.body.touching.up) this.onCrate = true;\n  });\n  // in update(): grounded = body.blocked.down || this.onCrate; then this.onCrate = false;\n  ```\n\nFor most platformers the one-line `blocked.down || touching.down` check is enough."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 4,
+            "costUsd": 0.12406709999999999,
+            "judgeCostUsd": 0.0016454999999999994,
+            "durationSeconds": 24,
+            "startedAt": "2026-11-13T16:45:26.045Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-gEnLNe/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "phaser-skill-fired",
+                "passed": true,
+                "weight": 1,
+                "explanation": "Skill called 1x (expected 1..∞)",
+                "withOnly": true,
+                "scored": false
+              },
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Your jump check only looks at `blocked.down`, and standing on a pushable crate never sets that flag.\n\n## Why\n\n`body.onFloor()` just returns `body.blocked.down`. Arcade Physics sets a body's `blocked` flags only when the thing it hits can't move: world bounds, a tile, a static body, or a body that is `immovable` or `setPushable(false)`.\n\nYour crate is an ordinary dynamic body. When the player lands on it, Arcade treats it as two movable bodies pushing each other apart. That sets `player.body.touching.down` but leaves `player.body.blocked.down` false. The player rests on the crate, but `onFloor()` stays false, so the jump never fires.\n\nThe usual fix is `crate.setImmovable(true)` or `crate.setPushable(false)`. That would turn on `blocked.down`, but it would also stop you pushing the crate sideways, which you want to keep.\n\n## Fix: check `touching.down` as well\n\nLeave the crate as it is and change the ground check:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\n- `blocked.down` still covers the static ground and world bounds.\n- `touching.down` covers the crate, and any other dynamic body you stand on.\n- The crate stays pushable sideways because none of its physics settings change.\n\n## Caveats\n\n- `touching.down` is true for any contact from below, so the player could also jump off an enemy's head. If that matters, check what you're standing on in the collider callback instead:\n\n  ```js\n  this.physics.add.collider(this.player, this.crate, (player, crate) => {\n    if (player.body.touching.down && crate.body.touching.up) this.onCrate = true;\n  });\n  // in update(): grounded = body.blocked.down || this.onCrate; then reset this.onCrate = false at the end of update()\n  ```\n\n- Holding up while the player is still overlapping the crate after takeoff can trigger a second jump. If you see double-jumps, require `body.velocity.y >= 0` as well, or use `Phaser.Input.Keyboard.JustDown(this.cursors.up)` so each key press jumps only once."
+              }
+            ]
+          }
+        ],
+        "without": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.06872610000000001,
+            "judgeCostUsd": 0.00038010000000000127,
+            "durationSeconds": 16,
+            "startedAt": "2026-11-13T16:45:39.317Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-lXPSdT/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it happens\n\n`body.onFloor()` only returns `body.blocked.down`. Arcade Physics keeps two separate sets of contact flags:\n\n| Flag | Set when the body collides with… |\n|---|---|\n| `body.blocked.*` | world bounds, **static** bodies, tilemap tiles |\n| `body.touching.*` | **another dynamic body**, such as your crate |\n\nThe ground is a static group, so standing on it sets `blocked.down` and `onFloor()` returns `true`. The crate is a dynamic sprite, so standing on it only sets `touching.down`. `blocked.down` stays `false`, and `onFloor()` never passes while you're on the crate.\n\n## Fix\n\nCheck both flags:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\nThis doesn't touch the crate's physics setup, so the crate stays fully pushable sideways. Don't solve this by making the crate `setImmovable(true)`. That would let the player stand on it more firmly, but it would also stop the player from pushing it.\n\n## Optional tweaks\n\n- **Stop the crate sliding forever after a push:**\n  ```js\n  this.crate.setDragX(600);        // or setFriction / set velocityX to 0 when not touched\n  ```\n- **Avoid accidental \"jumps\" off the crate's side:** `touching.down` is only set when the player's bottom edge hits the crate's top. Side contact sets `touching.left`/`right`, so pushing the crate won't let the player jump in mid-air.\n- **Forgiving jumps:** If the player and crate jitter a little while stacked, `touching.down` can flicker for a frame. Adding a short \"coyote time\" smooths that out:\n  ```js\n  if (grounded) this.lastGrounded = this.time.now;\n  if (this.cursors.up.isDown && this.time.now - this.lastGrounded < 100) {\n    this.player.setVelocityY(-400);\n    this.lastGrounded = 0;\n  }\n  ```"
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0718955,
+            "judgeCostUsd": 0.0006895000000000009,
+            "durationSeconds": 20,
+            "startedAt": "2026-11-13T16:45:41.605Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-DcCDHW/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it fails\n\n`body.onFloor()` only checks `body.blocked.down`. Arcade Physics sets `blocked` only for contact with world bounds, static bodies and tilemap tiles. Your ground is a static group, so jumping from the ground works.\n\nThe crate is a dynamic body. When two dynamic bodies collide, Arcade sets `touching.down` instead of `blocked.down`. So while the player rests on the crate, `onFloor()` returns `false` and the jump is skipped.\n\n## Fix\n\nAlso check `touching.down`:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\nThe colliders resolve during the physics step, which runs before your scene's `update()`. So `touching` is already filled in for the current frame when you read it.\n\nThe crate stays dynamic, so it remains pushable sideways. Don't use `setImmovable(true)` or a static body to make `blocked` work: that would stop the crate from being pushed.\n\n## Optional tweaks\n\n- **Only count real landings.** `touching.down` is set by any dynamic body below the player, including enemies. To limit jumps to things like crates, put them in a group and check that contact:\n  ```js\n  const onCrate = body.touching.down && this.crate.body.touching.up;\n  const grounded = body.blocked.down || onCrate;\n  ```\n- **Stop the crate sliding after a push:**\n  ```js\n  this.crate.setDragX(600);\n  ```\n  Optionally add `this.crate.body.setMass(2)` so pushing it feels heavier.\n- **Pushing the crate from on top.** If moving while standing on the crate drags it along, that comes from friction between the bodies. Use `this.crate.body.friction.x = 0` (or the reverse) depending on whether you want the player to carry the crate or slide over it."
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.0712,
+            "judgeCostUsd": 0.0007739999999999986,
+            "durationSeconds": 21,
+            "startedAt": "2026-11-13T16:45:50.026Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Kxujhp/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "onfloor-dynamic-body",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "## Why it fails\n\n`body.onFloor()` only checks `body.blocked.down`. In Arcade Physics, `blocked` is set only by collisions with **static** bodies, tiles, and world bounds. Your crate is a **dynamic** body (`physics.add.sprite`). When the player rests on it, Arcade separates the two bodies and sets `body.touching.down` instead of `blocked.down`. So `onFloor()` returns `false` the whole time the player is standing on the crate.\n\nThe ground is a static group, which is why jumping from the ground works.\n\n## Fix\n\nCheck both flags:\n\n```js\nconst body = this.player.body;\nconst grounded = body.blocked.down || body.touching.down;\n\nif (this.cursors.up.isDown && grounded) {\n  this.player.setVelocityY(-400);\n}\n```\n\nThis works in `update()` because Arcade resets `touching` at the start of each physics step and fills it in while running colliders. Both of those happen before your scene's `update()` runs, so the flag is current when you read it.\n\nYou don't need to change the crate to keep it pushable sideways. It stays a dynamic, pushable body, and the player-crate collider still lets the player shove it left and right. The change above only affects how you detect that the player is standing on something.\n\n## Optional extras\n\n- **Stop the crate sliding forever after a push:** `this.crate.setDragX(600);` (or set a high `friction`/`drag` to suit).\n- **Stop the player from launching the crate when landing on it:** this is usually fine because the ground blocks the crate. If you see jitter, try `this.crate.body.setMass(2)` or a bit more.\n- **Stop a held key from re-triggering the jump on every landing:** use `Phaser.Input.Keyboard.JustDown(this.cursors.up)` instead of `isDown`."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1,
+        "scoreWithout": 1,
+        "passRateWithout": 1,
+        "delta": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 4,
+    "casesPassed": 4,
+    "overallScore": 1,
+    "overallPassRate": 1,
+    "meanDelta": 0
+  }
+}

@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.32.1 — 2026-11-13
+
+- **The `phaser` routing row is gone.** The phaser plugin was removed on 2026-11-13: Phaser's own skills carry its v3→v4 table, and its two other traps showed no lift in a base/vendor/ours eval (`rationale/gamedev-review-2026-11-13/`, marketplace repository).
+
 ## 0.32.0 — 2026-11-12
 
 - **`low-cognitive-load` and `solid-principles` are no longer routed after an edit.** Their 16 rows matched every `.ts`, `.js`, `.py`, `.go`, `.rb`, `.rs`, `.tsx`, `.jsx`, `.vue` and `.php` source file, so they fired on comment-only and moved-unchanged edits and were declined in one line in the sessions sampled on 2026-11-12. code-architecture's `coding-entry` skill already loads `low-cognitive-load` before the first edit; both skills stay reachable by description. A plain source file with no stack row now draws no nudge. What an installer loses: the post-edit design reminder on a file no other row matches. Pinned by `route.test.sh` case 17, which fails if either skill routes again. Not measured: whether fewer nudges raises the load rate of the ones that remain.

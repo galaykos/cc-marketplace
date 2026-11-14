@@ -16,7 +16,7 @@ MAP='understand|stack-scan,brain|read manifests, lockfiles, routes, pages, model
 shape|taskmaster,approaches,ui-ux|write the spec inline: goal, criteria, non-goals, ASCII wireframe
 decide|approaches|one paragraph per option + pick + kill-trigger in decisions.md
 plan|taskmaster,code-architecture|write cards inline: file set, verify command, done-criterion each
-build|task-runner,laravel,web-dev,ui-ux,database,security,testing,craft-layer|dispatch scope-locked general-purpose workers with the discipline preamble
+build|task-runner,laravel,web-dev,ui-ux,ui-libraries,database,security,testing,craft-layer,devops|dispatch scope-locked general-purpose workers with the discipline preamble
 verify|testing,code-architecture,task-runner|run the suite yourself; browser via the official playwright plugin, Chrome MCP, or npx playwright
 review|code-review,ui-ux,security,laravel,web-dev,resilience,api-design,database|one read-only reviewer subagent per diff
 ship|git-workflow|offer three spelled-out destinations via AskUserQuestion — merge locally (into the base branch, no review), push and open a PR (for review), keep the branch open (leave it, come back); headless keeps the branch

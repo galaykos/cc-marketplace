@@ -22,7 +22,8 @@ evidence is machine-local by nature.
     findings.md           # reviewer findings and what was done with each; points at decisions.md rows
     evidence/             # screenshots, console dumps, test output the accept step recorded
   archive/<slug>-<at>/    # a closed program: its program.json (evidence paths rewritten to the
-                          # archive), milestones/ and a copy of the md files
+                          # archive), milestones/, the md files and capabilities.tsv — moved, so the
+                          # next program starts with an empty decisions.md
 ```
 
 ## program.json

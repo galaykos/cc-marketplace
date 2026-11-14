@@ -4,6 +4,17 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.18.14 — 2026-11-13
+
+- **Framework-native tooling has rows for Unity's, Epic's and Phaser's own agent tools.**
+  - `unity@claude-plugins-official` prints for a Unity project, beside `unity-traps`.
+  - `unreal-engine-skills-for-claude-code@claude-plugins-official` prints for a `*.uproject`.
+  - Phaser's `node_modules/phaser/skills/` prints for a `phaser` dependency.
+  - Each row says what this marketplace's engine plugin adds, and where they overlap.
+  - Source: the 2026-11-13 game-dev review (`rationale/gamedev-review-2026-11-13/`, marketplace repository).
+  - Standing: recorded; no script re-reads the vendors.
+- **`phaser` is removed from the signals, stack-relevance and catalog tables.** The Phaser row in Framework-native tooling now says why: the vendor skills carry its v3→v4 table, and its other two traps showed no lift (base model 3/3 with and without the vendor skills).
+
 ## 0.18.13 — 2026-11-13
 
 - **The scout catalog's `plugin-updater` row follows that plugin's 0.2.0**: it now updates the current project folder and user scope, and every folder only under `--all`. The catalog row is generated (`scripts/generate.sh`).

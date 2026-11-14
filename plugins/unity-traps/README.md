@@ -24,12 +24,24 @@ Companions, neither installed for you:
 
   | | covers |
   |---|---|
-  | `unity-traps` (this plugin) | the narrow set of Unity 6 answers a model gets wrong from memory, and the offline `.meta`/GUID checker, which needs no running Editor |
+  | `unity-traps` (this plugin) | the narrow set of Unity 6 answers a model gets wrong from memory, and a `.meta`/GUID and API checker that a hook runs after file moves |
   | `unity` (Unity's) | breadth across the engine, and the Unity CLI for driving the Editor (see "Driving the Editor") |
+
+  Neither checker needs a running Editor. The Unity CLI's `unity projects verify` reports missing
+  and orphaned `.meta` files, duplicate GUIDs, conflict markers, an invalid manifest and Editor
+  version drift. This plugin's checker adds:
+  - assets moved without their `.meta`;
+  - scene and prefab references to a missing script;
+  - malformed `.meta` files, and class/file name and case mismatches;
+  - C# names the project's own Unity or Cinemachine version deprecated or removed.
+
+  It runs from the hook, with no beta binary to install (`unity --version` 1.0.0-beta.17 was
+  read on 2026-11-13).
 
   ```bash
   claude plugin marketplace add Unity-Technologies/unity-agent-plugin
   claude plugin install unity@unity-agent-plugin
+  # or, from the official directory: claude plugin install unity@claude-plugins-official
   ```
 
   Both have a skill on pixel-perfect rendering and sprite atlases. Where they disagree, this plugin's

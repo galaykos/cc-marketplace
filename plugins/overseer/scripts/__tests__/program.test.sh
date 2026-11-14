@@ -17,11 +17,11 @@
 # adds all land; `dispatch check` refuses a prompt missing the preamble/scope/skill/verify (2) and
 # passes a complete one (0), `--kind reader|reviewer` drops the scope/verify checks and demands a RETURN shape
 # and a read-only statement, a relative state-file mention or an unstopped dev server is a WARN; skill-path.sh
-# resolves the newest cache dir that has the file and a project skill; `close` refuses with open milestones (2), archives otherwise, and
-# init may follow; a gated brief (--kind brief: Verify: range, sections, a pin) satisfies accept's dispatch and pin gates and silences the
+# resolves the newest cache dir that has the file and a project skill; `close` refuses with open milestones (2), archives otherwise
+# (decisions.md moves with it), and init may follow; a gated brief (--kind brief: Verify: range, sections, a pin) satisfies accept's dispatch and pin gates and silences the
 # no-reviewer WARN; a milestone's fourth fix dispatch (follow-up or *fix* worker) is refused unless --over-cap records why; hands-off
-# without a budget WARNs; capability-scan flags a CI trigger that misses the base branch and never emits
-# `unknown` as an installed name. The harness never touches the live repo (mktemp only).
+# without a budget WARNs; capability-scan flags a CI trigger that misses the base branch, never emits
+# `unknown` as an installed name, and lists every plugin kinds.tsv names. The harness never touches the live repo (mktemp only).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 PS="$here/../program.sh"; SCAN="$here/../capability-scan.sh"; HOOK="$here/../../hooks/announce.sh"
@@ -240,7 +240,8 @@ expect 0 "park m3" -- "$PS" milestone set --id m3 --status parked --reason "dep 
 mkdir -p "$SD/milestones/m1/evidence" && printf 'x' > "$SD/milestones/m1/evidence/in-dir.png"
 expect 0 "evidence stored inside the program dir" -- "$PS" evidence add --id m1 --kind review --note "in dir" --file "$SD/milestones/m1/evidence/in-dir.png"
 expect 0 "close" -- "$PS" close
-[ ! -f "$SD/program.json" ] && ls -d "$SD"/archive/crm-*/milestones/m1 >/dev/null 2>&1 && [ -f "$SD/decisions.md" ] && ok || bad "archive layout"
+[ ! -f "$SD/program.json" ] && ls -d "$SD"/archive/crm-*/milestones/m1 >/dev/null 2>&1 && ok || bad "archive layout"
+[ ! -e "$SD/decisions.md" ] && grep -q "ASSUMED: team gallery" "$SD"/archive/crm-*/decisions.md && ok || bad "close moves decisions.md into the archive, so the next program starts without the last one's rows"
 arch_pj=$(ls "$SD"/archive/crm-*/program.json)
 jq -e '[.milestones[].evidence[].file|select(contains("/archive/") and endswith("/milestones/m1/evidence/in-dir.png"))]|length==1' "$arch_pj" >/dev/null && ok || bad "an evidence path inside the program dir is rewritten to the archive"
 jq -e 'all(.milestones[].evidence[].file; contains("/milestones/") and (contains("/archive/")|not)|not)' "$arch_pj" >/dev/null && ok || bad "no archived evidence path still points at the live milestones dir"
@@ -251,8 +252,8 @@ expect 0 "status on empty roadmap" -- "$PS" status
 grep -q "no milestones registered" "$WS/out" && ok || bad "status explains empty roadmap"
 
 # ---- hands-off accept gate ---------------------------------------------------------------------
+# no decisions.md removal here: the closed program's ASSUMED row must not satisfy this program's gate
 "$PS" init --goal "Third" --slug third --hands-off --reason "headless" >/dev/null 2>&1
-rm -f "$SD/decisions.md"; "$PS" init --goal "Third" --slug third --hands-off --reason "headless" >/dev/null 2>&1
 "$PS" milestone add --id m1 --title t --branch b >/dev/null; "$PS" milestone set --id m1 --status building >/dev/null
 mkdir -p "$SD/milestones/m1/dispatch"; wprompt "$SD/milestones/m1/dispatch/1.md" "$STACKSK" "$TESTSK"
 env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1.md" --milestone m1 >/dev/null 2>&1 || bad "hands-off worker dispatch gates"
@@ -458,6 +459,11 @@ printf '%s' "$out" | grep -q "does not trigger on base 'master'" && ok || bad "s
 printf '%s' "$out" | grep "^# install" | grep -q "playwright" && bad "scan still lists playwright as installable" || ok
 js=$(PATH=/usr/bin:/bin HOME="$W3" "$SCAN" --root "$W3" --json 2>/dev/null)
 printf '%s' "$js" | jq -e '(.phases|map(.installed[])|index("unknown"))==null and .cli_available==false and (.ci[0].triggers_on_base==false)' >/dev/null && ok || bad "scan --json: no unknown, ci parsed: $js"
+# accept trusts capabilities.tsv for "installed": a plugin kinds.tsv names but the scan never lists reads as uninstalled, and its group stops gating
+scanned=$(printf '%s' "$js" | jq -r '.phases[] | .installed[], .missing[]' | sort -u)
+for p in $(grep -v '^#' "$here/../../kinds.tsv" | cut -f2 | tr ' |' '\n\n' | grep ':' | cut -d: -f1 | grep -vx project | sort -u); do
+  printf '%s\n' "$scanned" | grep -qx "$p" && ok || bad "capability-scan lists $p, which kinds.tsv requires"
+done
 rm -rf "$W3"
 
 # ---- session-root gate ------------------------------------------------------------------------
@@ -504,7 +510,7 @@ grep -q "ov/a<->ov/b" "$WS/err" && grep -q "integration" "$WS/err" && ok || bad 
 printf 'phase\tinstalled\tmissing\nbuild\tlaravel,ui-ux,testing\t-\nreview\tcode-review\t-\n' > "$W2/.claude/overseer/capabilities.tsv"
 mkdir -p "$W2/.claude/overseer/milestones/m1/dispatch/.claude/candor"; printf 'READ: /x/.claude/plugins/cache/mkt/ui-ux/1.0.0/skills/a11y-audit/SKILL.md\nAGENT: code-review:code-reviewer\n' > "$W2/.claude/overseer/milestones/m1/dispatch/1.md"; printf 'x' > "$W2/.claude/overseer/milestones/m1/dispatch/.claude/candor/last"
 expect 0 "close --divergent-ok passes and records" -- env OVERSEER_ROOT="$W2" "$PS" close --divergent-ok "user merges after review"
-grep -q "closed with divergent done branches" "$W2/.claude/overseer/decisions.md" && ok || bad "divergent-ok decision row"
+grep -q "closed with divergent done branches" "$W2"/.claude/overseer/archive/g2-*/decisions.md && ok || bad "divergent-ok decision row, archived with the program"
 grep -q "installed per the scan: 4" "$WS/out" && grep -q "pinned in a dispatch: 2" "$WS/out" && grep -q "never pinned: laravel testing" "$WS/out" && ok || bad "plugins-used line counts AGENT lines too: $(grep 'plugins' "$WS/out")"
 [ ! -d "$W2"/.claude/overseer/archive/g2-*/milestones/m1/dispatch/.claude ] && ok || bad "foreign hook scratch dirs pruned from the archive"
 grep -q "deferred suggestions (1)" "$WS/out" && grep -qx "  m1: pagination on the index" "$WS/out" && ok || bad "suggestions printed at close without a trailing pipe: $(grep -A1 'deferred' "$WS/out")"

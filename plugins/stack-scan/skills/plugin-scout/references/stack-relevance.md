@@ -34,7 +34,6 @@ those rows exist because three tokens share a name with plugins removed on
 | Game — Godot | `godot` | `project.godot` at the scan root | `godot` |
 | Game — Unity | `unity-traps` | `ProjectSettings/ProjectVersion.txt` beside an `Assets/` directory — a lone `*.csproj` is not Unity | `unity` |
 | Game — Unreal | `unreal` | a `*.uproject` at the scan root | `unreal` |
-| Game — Phaser | `phaser` | package.json dep `phaser` | `phaser` |
 | Game — Meshy (AI 3D) | `meshy` | `MESHY_API_KEY` in `.env`/`.env.example`; package.json dep `meshy-cli`, `@meshy-ai/cli` or `@meshy-ai/meshy-mcp-server`; or a `meshy` server in `.mcp.json` — a `*.glb` alone is not evidence, every three.js repo has them | `meshy` |
 | Game — pixel art and 2D maps | `pixel-art` | a `*.aseprite`, `*.tmx`, `*.tmj`, `*.tsj`, `*.tiled-project`, `*.ldtk` or `*.ldtkl` file, or a `*.tsx` whose root element is `<tileset>` — a bare `.tsx` is React, and `*.ase` alone is weak (Adobe Swatch Exchange shares it) | `pixel-art`, `aseprite`, `tiled`, `ldtk` |
 | Game — any engine | `gamedev` | any Game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, or `butler push` in a CI file | `gamedev`, or any Game token above |

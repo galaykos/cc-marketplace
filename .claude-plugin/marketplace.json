@@ -185,14 +185,9 @@
       "description": "Unreal Engine 5 traps a model gets wrong from memory — UE 5.8 Zen Server as the default cooked output store (Saved/Cooked holds only ue.projectstore), the 5.8 Visual Studio/MSVC/Windows SDK/Xcode minimums, Enhanced Input mapping contexts that fail on clients and player-mappable key rebinding through User Settings, headless automation tests, UObjects held from plain C++, and Behavior Tree node memory."
     },
     {
-      "name": "phaser",
-      "source": "./plugins/phaser",
-      "description": "Phaser skill carrying only what changed from Phaser 3 to 4 and still gets written the v3 way: preFX/postFX and BitmapMask replaced by filters, setLighting, setTintFill reduced to a console error, Math.TAU corrected from π/2 to 2π, Geom.Point removed, roundPixels off by default, pipelines rewritten as render nodes; plus the scene.launch restart and three Arcade Physics footguns (two-sided collision masks, onFloor on dynamic bodies, drag under acceleration). Reads the lockfile before advising."
-    },
-    {
       "name": "gamedev",
       "source": "./plugins/gamedev",
-      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal, phaser)."
+      "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal)."
     },
     {
       "name": "blender",
@@ -305,6 +300,7 @@
     "unity": "unity-traps",
     "prompt-coach": null,
     "pixijs": null,
-    "toolchain-experts": null
+    "toolchain-experts": null,
+    "phaser": null
   }
 }

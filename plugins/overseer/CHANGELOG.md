@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.2 — 2026-11-13
+
+Three bugs found by the 2026-11-13 necessity review (`rationale/overseer-necessity-review-2026-11-13.md`, marketplace repository), each reproduced first.
+
+- **`close` moves the program's `decisions.md`, `suggestions.md`, `charter.md`, `discovery.md` and `capabilities.tsv` into the archive instead of copying them.** Left in place, the closed program's ASSUMED row let the next `--hands-off` program pass `accept`'s "at least one ASSUMED decision" gate without asking or assuming anything itself. `resume` also showed the old program's last decision and suggestion count. The harness had worked around this by deleting `decisions.md` before its hands-off case; it no longer does, so that case now fails on 0.11.1. Standing: gate (`scripts/__tests__/program.test.sh`).
+- **`capability-scan.sh` lists `devops` and `ui-libraries` in the build phase.** `accept` trusts the scan for which plugins are installed, and the scan never listed devops, so an `infra` milestone was never held to a devops skill pin. Its WARN also said devops was not installed when it was. A new harness case checks that the scan lists every plugin `kinds.tsv` names. Standing: gate.
+- **`status-core.test.sh` names the node version it needs.** On node below 22.18 it now fails with "needs node 22.18+" instead of `ERR_UNKNOWN_FILE_EXTENSION`. CI runs node 24 and is unaffected.
+- **`hooks/status-core.ts` checks the found milestone for `undefined` before reading it.** Claude Code 2.1.323's `plugin validate --strict` failed the plugin with TS2339 on `ms[i]`. The CI pin, 2.1.300, did not. Behaviour is unchanged (`status-core.test.sh` 14/14, `claude plugin test` pass).
+
 ## 0.11.1 — 2026-11-12
 
 - **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).

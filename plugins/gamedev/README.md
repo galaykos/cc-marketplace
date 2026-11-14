@@ -6,8 +6,8 @@ across upgrades, and meeting platform floors for text size and loudness. It carr
 model gets wrong from memory — store rules, platform limits, changed defaults — plus four
 scripts with exit codes.
 
-It is the companion to this marketplace's engine plugins — godot, unity-traps, unreal and
-phaser — which carry the per-engine rules and name `gamedev` as
+It is the companion to this marketplace's engine plugins — godot, unity-traps and
+unreal — which carry the per-engine rules and name `gamedev` as
 theirs. Install it next to the one your project uses; nothing installs the pair for you.
 
 ## Install
