@@ -466,11 +466,11 @@ NOISY="$ELIDED
 // increment the counter
 counter++;"
 denies "both denies: elision alone" "$(write src/stats.ts "$NOISY")" "$PH"
-if [ -n "$(find "$R/.claude/comment-discipline" -name 'elision-blocked-*' 2>/dev/null)" ] \
-   && [ -z "$(find "$R/.claude/comment-discipline" -name 'blocked-*' 2>/dev/null)" ]; then
+if [ -n "$(find "$R/.cc-artifacts/comment-discipline" -name 'elision-blocked-*' 2>/dev/null)" ] \
+   && [ -z "$(find "$R/.cc-artifacts/comment-discipline" -name 'blocked-*' 2>/dev/null)" ]; then
   pass "both denies: elision alone: only the elision marker is spent"
 else
-  fail "both denies: elision alone: only the elision marker is spent" "$(find "$R/.claude" 2>/dev/null | tr '\n' ' ')"
+  fail "both denies: elision alone: only the elision marker is spent" "$(find "$R/.cc-artifacts" 2>/dev/null | tr '\n' ' ')"
 fi
 case "$(reason "$(export CC_ELISION_GUARD=off; write src/stats.ts "$NOISY")")" in
   comment-discipline:*) pass "both denies: elision alone: the same write draws the comment deny once elision is off" ;;
@@ -549,7 +549,7 @@ warns "elision guard off still warns" "$d" "$(post_write src/stats.ts "$ELIDED")
 fresh; put src/stats.ts "$BASE"
 d=$(export CC_REMIND=off; write src/fresh.ts "$ELIDED"); put src/fresh.ts "$ELIDED"
 w=$(export CC_REMIND=off; post_write src/fresh.ts "$ELIDED")
-left=$(find "$R/.claude" -name 'elision-warn-*' 2>/dev/null)
+left=$(find "$R/.cc-artifacts" -name 'elision-warn-*' 2>/dev/null)
 if [ -z "$d$w$left" ]; then pass "CC_REMIND=off silences the elision warning"
 else fail "CC_REMIND=off silences the elision warning" "got [$d] [$w], markers left: [$left]"; fi
 denies "CC_REMIND=off silences the elision warning: the deny stays on" \
@@ -806,7 +806,7 @@ case "$(reason "$(edit src/count.ts '  counter += 1;' '  // ...
   comment-discipline:*) ;;
   *) fail "marker from a denied call never warns later" "want the comment deny on the first edit" ;;
 esac
-left=$(find "$R/.claude" -name 'elision-warn-*' 2>/dev/null)
+left=$(find "$R/.cc-artifacts" -name 'elision-warn-*' 2>/dev/null)
 if [ -z "$left" ]; then pass "marker from a denied call never warns later: the deny removes it"
 else fail "marker from a denied call never warns later: the deny removes it" "left: $left"; fi
 post_edit src/count.ts 'let counter = 0;' 'let counter = 1;' >/dev/null
@@ -819,7 +819,7 @@ export function bump(): void {')"
 else fail "marker from a denied call never warns later" "denied: $d"; fi
 write src/left.ts "$ELIDED" >/dev/null
 post_write src/left.ts 'export const none = 0;' >/dev/null
-left=$(find "$R/.claude" -name 'elision-warn-*' 2>/dev/null)
+left=$(find "$R/.cc-artifacts" -name 'elision-warn-*' 2>/dev/null)
 if [ -z "$left" ]; then pass "marker from a denied call never warns later: a clean write consumes a sibling's leftover"
 else fail "marker from a denied call never warns later: a clean write consumes a sibling's leftover" "left: $left"; fi
 
@@ -843,7 +843,7 @@ $ELIDED
 EOF"
 d=$(run_bash "$TWO"); put src/one.ts "$ELIDED"; put src/two.ts "$ELIDED"
 w=$(post_bash "$TWO" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
-left=$(find "$R/.claude" -name 'elision-warn-*' 2>/dev/null)
+left=$(find "$R/.cc-artifacts" -name 'elision-warn-*' 2>/dev/null)
 case "$d|$w|$left" in
   "|elision-guard: one.ts"*"elision-guard: two.ts"*"|") pass "two heredoc files both warn, no marker left" ;;
   *) fail "two heredoc files both warn, no marker left" "got [$d] [$w], markers left: [$left]" ;;

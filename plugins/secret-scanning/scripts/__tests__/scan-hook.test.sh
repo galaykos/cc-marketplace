@@ -238,8 +238,8 @@ bash_allow  "redaction marker written with CC_SECRET_REDACT=off" "echo '$MASKED'
 bash_allow  "redaction marker written with CC_SECRET_REDACT=False" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=False
 bash_allow  "redaction marker written with CC_SECRET_REDACT=0" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=0
 bash_allow  "redaction marker written with cc_secret_redact off in /config" "echo '$MASKED' >> notes.txt" CLAUDE_PLUGIN_OPTION_CC_SECRET_REDACT=false
-if [ -z "$(find "$REPO" -name .claude 2>/dev/null)" ]; then pass=$((pass+1));
-else echo "FAIL no state: a .claude/ dir appeared under $REPO"; fail=$((fail+1)); fi
+if [ -z "$(find "$REPO" \( -name .claude -o -name .cc-artifacts \) 2>/dev/null)" ]; then pass=$((pass+1));
+else echo "FAIL no state: a .claude/ or .cc-artifacts/ dir appeared under $REPO"; fail=$((fail+1)); fi
 
 # The PostToolUse lane (bash-write-effects): a secret a python run wrote warns as a Write of it is denied, never as a deny; the first
 # call in a repo only sets the marker; a run that wrote nothing, a placeholder, and a file an Edit changed between two Bash calls stay silent.

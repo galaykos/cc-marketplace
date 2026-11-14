@@ -27,7 +27,7 @@
     {
       "name": "design-kit",
       "source": "./plugins/design-kit",
-      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (an HTML deck; PDF and PPTX by script), /design-kit:design (2-4 artboard directions with knobs), /design-kit:in-codebase (the design rendered with the project's OWN components; handoff-bundle intake with a token-drift table), /design-kit:system (tokens, typefaces and components into design-system/), /design-kit:artifact (a self-contained page, shared on consent), /design-kit:motion (a static design animated into a looping showcase) and /design-kit:film (a beat-synced product film from a brief, with checks by script). One localhost URL under .design-kit/; nothing leaves the machine unless you say yes."
+      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (an HTML deck; PDF and PPTX by script), /design-kit:design (2-4 artboard directions with knobs), /design-kit:in-codebase (the design rendered with the project's OWN components; handoff-bundle intake with a token-drift table), /design-kit:system (the project's tokens, typefaces and components), /design-kit:artifact (a self-contained page, shared on consent), /design-kit:motion (a static design animated into a looping showcase) and /design-kit:film (a beat-synced product film from a brief, with checks by script). One localhost URL under .cc-artifacts/design-kit/; nothing leaves the machine unless you say yes."
     },
     {
       "name": "laravel",
@@ -42,7 +42,7 @@
     {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
-      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/)."
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under .cc-artifacts/taskmaster/ (no collision with a project's own docs/)."
     },
     {
       "name": "git-workflow",
@@ -62,7 +62,7 @@
     {
       "name": "overseer",
       "source": "./plugins/overseer",
-      "description": "A program-level product owner for long, multi-session, multi-branch builds. /overseer:start \"Build a CRM that manages clients\" inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, then delivers each milestone on its own branch by briefing the taskmaster pipeline and task-runner execution with skill-pinned dispatch prompts. An accept script refuses to close a UI milestone until the app was driven in a real browser at three widths with a clean console; headless kinds (audit, library) close on a suite tail plus a captured run log. State under .claude/overseer/ lets /overseer:resume continue in a fresh session."
+      "description": "A program-level product owner for long, multi-session, multi-branch builds. /overseer:start \"Build a CRM that manages clients\" inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, then delivers each milestone on its own branch by briefing the taskmaster pipeline and task-runner execution with skill-pinned dispatch prompts. An accept script refuses to close a UI milestone until the app was driven in a real browser at three widths with a clean console; headless kinds (audit, library) close on a suite tail plus a captured run log. State under .cc-artifacts/overseer/ lets /overseer:resume continue in a fresh session."
     },
     {
       "name": "stack-scan",
@@ -117,7 +117,7 @@
     {
       "name": "brain",
       "source": "./plugins/brain",
-      "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only — it never annotates code, and nothing outside brain/ is ever modified."
+      "description": "An Obsidian-style codebase map for a project: .cc-artifacts/brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only — it never annotates code, and nothing outside .cc-artifacts/brain/ is ever modified."
     },
     {
       "name": "resilience",
@@ -152,7 +152,7 @@
     {
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
-      "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Hand it a contract, RFP, standard, filing or long PDF and it swaps corroboration for coverage of that local corpus. Writes the report inline and to research/<topic>-<date>.md."
+      "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Hand it a contract, RFP, standard, filing or long PDF and it swaps corroboration for coverage of that local corpus. Writes the report inline and to .cc-artifacts/ultra-deep-research/<topic>-<date>.md."
     },
     {
       "name": "all-plugins",

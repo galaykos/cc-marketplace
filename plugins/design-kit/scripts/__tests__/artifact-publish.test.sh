@@ -15,16 +15,16 @@ git -C "$tmp/repo" remote add origin "$tmp/remote.git"
 git -C "$tmp/repo" -c user.name=t -c user.email=t@x push -q origin main
 echo dirty > "$tmp/repo/scratch.txt"
 head_before="$(git -C "$tmp/repo" rev-parse HEAD)"
-mkdir -p "$tmp/repo/.design-kit/artifacts"
-printf '<!doctype html><html><head><title>First page</title></head><body>one</body></html>' > "$tmp/repo/.design-kit/artifacts/first.html"
-printf '<!doctype html><html><head><title>Second page</title></head><body>two</body></html>' > "$tmp/repo/.design-kit/artifacts/second.html"
+mkdir -p "$tmp/repo/.cc-artifacts/design-kit/artifacts"
+printf '<!doctype html><html><head><title>First page</title></head><body>one</body></html>' > "$tmp/repo/.cc-artifacts/design-kit/artifacts/first.html"
+printf '<!doctype html><html><head><title>Second page</title></head><body>two</body></html>' > "$tmp/repo/.cc-artifacts/design-kit/artifacts/second.html"
 
 cd "$tmp/repo"
-out="$(GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x bash "$here/artifact-publish.sh" .design-kit/artifacts/first.html)"
+out="$(GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x bash "$here/artifact-publish.sh" .cc-artifacts/design-kit/artifacts/first.html)"
 case "$out" in *"not pushed"*) ;; *) echo "FAIL: dry run output: $out"; exit 1 ;; esac
 git ls-remote --heads origin design-kit-pages | grep -q . && { echo "FAIL: pushed without --push"; exit 1; }
 
-out="$(GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x bash "$here/artifact-publish.sh" .design-kit/artifacts/first.html --push)"
+out="$(GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x bash "$here/artifact-publish.sh" .cc-artifacts/design-kit/artifacts/first.html --push)"
 case "$out" in *"pushed design-kit-pages to origin"*) ;; *) echo "FAIL: push output: $out"; exit 1 ;; esac
 git ls-remote --heads origin design-kit-pages | grep -q . || { echo "FAIL: branch not on remote"; exit 1; }
 git fetch -q origin design-kit-pages
@@ -34,7 +34,7 @@ git show FETCH_HEAD:.nojekyll >/dev/null 2>&1 || { echo "FAIL: .nojekyll"; exit 
 git log -1 --format=%B FETCH_HEAD | grep -qiE 'co-authored-by|generated with' && { echo "FAIL: attribution trailer"; exit 1; }
 [ "$(git show FETCH_HEAD --format=%P -s)" = "" ] || { echo "FAIL: first commit should be an orphan root"; exit 1; }
 
-GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x bash "$here/artifact-publish.sh" .design-kit/artifacts/second.html --push >/dev/null
+GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@x GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@x bash "$here/artifact-publish.sh" .cc-artifacts/design-kit/artifacts/second.html --push >/dev/null
 git fetch -q origin design-kit-pages
 git show FETCH_HEAD:index.html | grep -q 'artifacts/first.html' || { echo "FAIL: index lost first"; exit 1; }
 git show FETCH_HEAD:index.html | grep -q 'artifacts/second.html' || { echo "FAIL: index missing second"; exit 1; }

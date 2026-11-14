@@ -195,7 +195,7 @@ for (const mode of ['light', 'dark'] as const) {
      colours, or the motion preference. Those contexts exist to break the page
      on purpose, and a picture of a deliberately broken page teaches nothing
      about the design that ships. */
-const SHOTS_DIR = '.craft-layer/shots'
+const SHOTS_DIR = '.cc-artifacts/craft-layer/shots'
 
 const BREAKPOINTS = [
   ['phone', 390, 844],
@@ -282,7 +282,7 @@ test.describe('capture: the shipped design, at the widths people read it', () =>
 
 /* Layout floors, report-only: craft-reviewer judges these values against the concept's argument, and no value
    may fail this test — it fails only when the page does not load or answers to another title.
-   Contract, `<project>/.craft-layer/layout-floors.json`:
+   Contract, `<project>/.cc-artifacts/craft-layer/layout-floors.json`:
    {"stamp":{"started","baseUrl","title"},"breakpoints":{"<width>":{"headlineLines",
    "ctaInFirstViewport","navLines" (1280 only),"pagePolarity","sections":[{"index","polarity"}],
    "emptyGridCells"}}}
@@ -293,7 +293,7 @@ test.describe('capture: the shipped design, at the widths people read it', () =>
    beneath); a hero outside `main`; a primary action that is neither a link nor a button; an empty
    cell is still counted when only a pseudo-element icon or a plain background colour (a swatch) fills
    it, and an unfilled track (fewer items than columns) is not counted at all. */
-const FLOORS_FILE = '.craft-layer/layout-floors.json'
+const FLOORS_FILE = '.cc-artifacts/craft-layer/layout-floors.json'
 const PRIMARY_ACTION = process.env.CRAFT_PRIMARY_ACTION?.trim()
 const NOT_FOUND = 'not found' as const
 
@@ -323,7 +323,7 @@ test('layout floors: measured at the capture widths, never a verdict', async ({ 
     if (cta === NOT_FOUND && heroAction) cta = inFirstViewport(heroAction)
     breakpoints[String(width)] = { ...floors, ctaInFirstViewport: cta }
   }
-  mkdirSync('.craft-layer', { recursive: true })
+  mkdirSync('.cc-artifacts/craft-layer', { recursive: true })
   writeFileSync(FLOORS_FILE, JSON.stringify({
     stamp: { started, baseUrl: URL, title: EXPECT_TITLE || NOT_FOUND },
     breakpoints,

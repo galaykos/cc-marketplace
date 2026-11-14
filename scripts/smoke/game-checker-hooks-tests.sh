@@ -92,7 +92,7 @@ cs Shield > "$U/Game/Assets/Shield.cs"; meta 44444444444444444444444444444444 > 
 mv "$U/Game/Assets/Shield.cs" "$U/Game/Assets/Gameplay/Shield.cs"
 check "unity: a python shutil.move fires" fire 'moved-without-meta' "$U_HOOK" "$(payload PostToolUse Bash "$U" "$WS/u8.jsonl" u12 "python3 -c \"import shutil; shutil.move('Game/Assets/Shield.cs', 'Game/Assets/Gameplay/Shield.cs')\"" "")"
 check "unity: without CLAUDE_PLUGIN_DATA the repo state dir ignores itself" fire 'moved-without-meta' "$U_HOOK" "$(payload PostToolUse Bash "$U" "$WS/u9.jsonl" u13 "mv Game/Assets/Shield.cs Game/Assets/Gameplay/Shield.cs" "")" CLAUDE_PLUGIN_DATA=
-if [ -f "$U/.claude/unity-traps/.gitignore" ] && [ -z "$(git -C "$U" status --porcelain .claude 2>/dev/null)" ]; then
+if [ -f "$U/.cc-artifacts/unity-traps/.gitignore" ] && [ -z "$(git -C "$U" status --porcelain .cc-artifacts 2>/dev/null)" ]; then
   pass=$((pass + 1)); echo "PASS  unity: repo-fallback state dir is invisible to git"
 else
   fail=$((fail + 1)); echo "FAIL  unity: repo-fallback state dir is invisible to git"

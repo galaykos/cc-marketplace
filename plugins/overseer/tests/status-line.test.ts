@@ -2,7 +2,8 @@ import type { On } from 'claude-code'
 import { describe, expect, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
-const PROGRAM = '/work/.claude/overseer/program.json'
+const PROGRAM = '/work/.cc-artifacts/overseer/program.json'
+const LEGACY = '/work/.claude/overseer/program.json'
 
 type Milestone = { id: string; title: string; status: string; depends?: string[] }
 
@@ -80,8 +81,12 @@ function seat(on: On, live: Live = {}) {
 
     const file = world.disk.get(e.path)
 
-    return file
-      ? { value: { kind: 'file', size: file.text.length, mtimeMs: file.mtimeMs, isLink: false } }
+    if (file) {
+      return { value: { kind: 'file', size: file.text.length, mtimeMs: file.mtimeMs, isLink: false } }
+    }
+
+    return [...world.disk.keys()].some(key => key.startsWith(`${e.path}/`))
+      ? { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false } }
       : { deny: `ENOENT: ${e.path}` }
   })
 
@@ -189,9 +194,29 @@ describe('status-line', () => {
 
     expect(world.line, 'unchanged after reads').toBe('overseer  milestone 1/2  m1 Walking skeleton (queued)')
 
-    await $.tool.call({ tool: 'Edit', file_path: '/work/.claude/overseer/program.json', old_string: 'a', new_string: 'b' })
+    await $.tool.call({ tool: 'Edit', file_path: PROGRAM, old_string: 'a', new_string: 'b' })
 
     expect(world.line).toBe('overseer  milestone 2/2  m2 Client list (queued)')
+  })
+
+  test('shows a program an older overseer left under .claude/overseer/', async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set(LEGACY, { text: JSON.stringify({ goal: 'Build a CRM', milestones: IN_FLIGHT }), mtimeMs: 1 })
+    await start($)
+
+    expect(world.line).toBe(IN_FLIGHT_LINE)
+  })
+
+  test('once .cc-artifacts/overseer/ exists, a program left under .claude/overseer/ no longer counts', async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set(LEGACY, { text: JSON.stringify({ goal: 'Build a CRM', milestones: IN_FLIGHT }), mtimeMs: 1 })
+    world.disk.set('/work/.cc-artifacts/overseer/decisions.md', { text: '# Decisions', mtimeMs: 1 })
+    await start($)
+
+    expect(world.line, 'a closed program in the new dir hides the stale copy').toBe(undefined)
+    expect(world.io.filter(entry => entry.startsWith('read ')), 'the old file is never read').toEqual([])
   })
 
   test('clears when program.json is gone', async ($, on) => {

@@ -16,7 +16,8 @@ const CARD_HEADER = /^\s*\|\s*card\s*\|/i
 
 const MILESTONE = /^###\s+Milestone\s+(\S+)\s+—\s+(.+?)\s*$/
 
-const SPEC = /taskmaster-docs\/specs\/[^\s/]+?\.md/
+// Plugins before 2026-11-14 wrote specs under taskmaster-docs/specs/.
+const SPEC = /(?:\.cc-artifacts\/taskmaster|taskmaster-docs)\/specs\/[^\s/]+?\.md/
 
 // `skipped` is closed in hooks/announce.sh, and parked is the only closed status that is not done.
 const STATUSES: [RegExp, Status][] = [

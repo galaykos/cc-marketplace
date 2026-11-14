@@ -4,9 +4,10 @@
  * The card index hooks/board.ts last parsed, rewritten at session start, after
  * every tool call and when /task-board opens the pane, from CLI 2.1.291: the
  * active run's, else while the pane is open the newest 00-INDEX.md under
- * taskmaster-docs/tasks/ by mtime, `runActive` false and `phase` the live
- * sentinel's or empty. `mtimeMs` is null with no index or one that cannot be
- * statted, and the model's `specPath` is joined to the same root as the index.
+ * .cc-artifacts/taskmaster/tasks/ (or an older project's taskmaster-docs/tasks/)
+ * by mtime, `runActive` false and `phase` the live sentinel's or empty.
+ * `mtimeMs` is null with no index or one that cannot be statted, and the
+ * model's `specPath` is joined to the same root as the index.
  * With no run and the pane closed, no index found, or the board
  * switched off, every field is null, `runActive` and `hasRedTeam` false and
  * `phase` empty. `hasRedTeam` is otherwise whether /taskmaster:redteam was
@@ -16,8 +17,8 @@
  * live background check started, else null; a board saved before 0.49.2 has
  * neither. `receipt` is what scripts/check-receipt.sh check last said of the
  * suite (asked at a turn end, or once the receipt file, HEAD or the git index
- * moved) while .claude/task-runner/receipt.json exists, else null; `cmd` is the
- * recorded command. A board saved before 0.49.3 has none.
+ * moved) while .cc-artifacts/task-runner/receipt.json exists, else null; `cmd`
+ * is the recorded command. A board saved before 0.49.3 has none.
  */
 export type TaskBoard = {
   indexPath: string | null

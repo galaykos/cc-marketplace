@@ -7,7 +7,8 @@
 # the --storage-state checks (a missing, malformed or empty file, one inside a repo
 # that git does not ignore, a TRACKED one → exit 1; an ignored one reaches the browser
 # layer → exit 2 at a dead URL), a review run from a SUBDIRECTORY landing in the root's
-# .design-kit/ with a git-ref base read from the toplevel, and — only when a
+# .cc-artifacts/design-kit/ with a git-ref base read from the toplevel (and one whose shots sit under
+# the pre-2026-11-14 .design-kit/), and — only when a
 # Chromium-family browser is installed — one real shoot of two routes at two device
 # sizes off a throwaway python3 -m http.server, plus a cookie-guarded route shot
 # through a state file, where the SERVER logs the cookie and a localStorage beacon,
@@ -28,8 +29,8 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 snap="$here/snapshot.sh"
 tmp="$(mktemp -d)"
 stop_all() {
-  bash "$here/preview.sh" --docroot "$tmp/proj/.design-kit" --stop >/dev/null 2>&1 || true
-  bash "$here/preview.sh" --docroot "$tmp/repo/.design-kit" --stop >/dev/null 2>&1 || true
+  bash "$here/preview.sh" --docroot "$tmp/proj/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true
+  bash "$here/preview.sh" --docroot "$tmp/repo/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true
 }
 trap 'stop_all; rm -rf "$tmp"' EXIT
 fail() { echo "FAIL: $*"; exit 1; }
@@ -87,20 +88,20 @@ printf '{"cookies":[],"origins":[]}' > "$tmp/empty.json"
 rc_of run snapshot --storage-state "$tmp/empty.json" --base-url "http://127.0.0.1:$port_dead"
 [ "$rc" = 1 ] || fail "a state file with nothing in it should exit 1, got $rc: $out"
 # inside a repo: refused unless git ignores it, and a TRACKED file never counts as ignored
-repo="$tmp/repo"; mkdir -p "$repo/app/Models" "$repo/.design-kit/auth"; git -C "$repo" init -q
-printf '.design-kit/\n' > "$repo/.gitignore"
-printf '%s' "$state_ok" > "$repo/auth.json"; printf '%s' "$state_ok" > "$repo/.design-kit/auth/walk.json"
+repo="$tmp/repo"; mkdir -p "$repo/app/Models" "$repo/.cc-artifacts/design-kit/auth"; git -C "$repo" init -q
+printf '.cc-artifacts/design-kit/\n' > "$repo/.gitignore"
+printf '%s' "$state_ok" > "$repo/auth.json"; printf '%s' "$state_ok" > "$repo/.cc-artifacts/design-kit/auth/walk.json"
 rc_of bash -c "cd '$repo' && bash '$snap' snapshot --storage-state auth.json --base-url http://127.0.0.1:$port_dead"
 [ "$rc" = 1 ] && grep -q 'REFUSED' <<<"$out" && grep -q 'session token' <<<"$out" \
   || fail "an un-ignored state file inside a repo must be REFUSED with the reason, got $rc: $out"
 # ignored: it passes every check and reaches the browser layer — exit 2 at the dead URL (or
 # at the missing browser), never the 1 a refusal is
-rc_of bash -c "cd '$repo/app/Models' && bash '$snap' snapshot --storage-state ../../.design-kit/auth/walk.json --base-url http://127.0.0.1:$port_dead"
+rc_of bash -c "cd '$repo/app/Models' && bash '$snap' snapshot --storage-state ../../.cc-artifacts/design-kit/auth/walk.json --base-url http://127.0.0.1:$port_dead"
 [ "$rc" = 2 ] || fail "an ignored state file should pass the checks and stop at the browser layer (2), got $rc: $out"
-git -C "$repo" add -f .design-kit/auth/walk.json
-rc_of bash -c "cd '$repo' && bash '$snap' snapshot --storage-state .design-kit/auth/walk.json --base-url http://127.0.0.1:$port_dead"
+git -C "$repo" add -f .cc-artifacts/design-kit/auth/walk.json
+rc_of bash -c "cd '$repo' && bash '$snap' snapshot --storage-state .cc-artifacts/design-kit/auth/walk.json --base-url http://127.0.0.1:$port_dead"
 [ "$rc" = 1 ] && grep -q 'REFUSED' <<<"$out" || fail "a TRACKED state file must be refused even when a pattern ignores it, got $rc: $out"
-git -C "$repo" rm -q --cached .design-kit/auth/walk.json
+git -C "$repo" rm -q --cached .cc-artifacts/design-kit/auth/walk.json
 
 # --- unreachable: the browser or the server, both NOT MEASURED, both exit 2 ------
 port_free="$(free_port)"
@@ -135,7 +136,7 @@ for r in routes:
     png(os.path.join(d, dev, name + ".png"))
 PY
 }
-sets="$proj/.design-kit/shots"
+sets="$proj/.cc-artifacts/design-kit/shots"
 mkfix "$sets/aaa111" "255,255,255" desktop:index desktop:pricing mobile:index
 mkfix "$sets/bbb222" "255,255,255" desktop:index mobile:index          # unchanged pair
 mkfix "$tmp/red" "255,0,0" desktop:pricing                              # the changed one
@@ -167,7 +168,7 @@ if [ "$has_pillow" = 1 ]; then
 $out"
   grep -q '| index | desktop | 0.00 | same |' <<<"$out" || fail "an identical pair should read 0.00%:
 $out"
-  [ -f "$proj/.design-kit/reviews/diff/desktop__pricing.png" ] || fail "no heatmap written"
+  [ -f "$proj/.cc-artifacts/design-kit/reviews/diff/desktop__pricing.png" ] || fail "no heatmap written"
   echo "snapshot.test.sh: Pillow $(python3 -c 'import PIL;print(PIL.__version__)') — heatmap branch exercised"
 else
   grep -q 'no diff engine: install Pillow' <<<"$out" || fail "without Pillow the table must say so: $out"
@@ -185,23 +186,30 @@ grep -q '| pricing | desktop | no diff engine: install Pillow | changed |' <<<"$
 $out"
 grep -q 'no diff engine: install Pillow' "$proj/$page" || fail "the no-engine page must say so too"
 
-# --- SUBDIRECTORY cwd: the review lands in the ROOT's .design-kit/ (finding 2 of the
+# --- SUBDIRECTORY cwd: the review lands in the ROOT's .cc-artifacts/design-kit/ (finding 2 of the
 # marketplace's rationale/2026-09-25-session-plugin-usage-review.md), and a git-ref base is
 # read from the toplevel — `git archive` refuses a pathspec outside the cwd, so from a
 # subdirectory the committed shots were never found.
-rsets="$repo/.design-kit/shots"
+rsets="$repo/.cc-artifacts/design-kit/shots"
 mkfix "$rsets/aaa111" "255,255,255" desktop:index
 mkfix "$rsets/bbb222" "255,0,0" desktop:index; touch "$rsets/bbb222"
 review_fresh bash -c "cd '$repo/app/Models' && bash '$snap' review --base '$rsets/aaa111'"
 [ "$rc" = 0 ] || fail "review from a subdirectory should exit 0, got $rc: $out"
 rpage="$(sed -n 's/^review=//p' <<<"$out")"
-case "$rpage" in "../../.design-kit/reviews/"*) ;; *) fail "the review page is not under the root's .design-kit/: $rpage" ;; esac
-[ -f "$repo/app/Models/$rpage" ] && [ ! -e "$repo/app/Models/.design-kit" ] || fail "a .design-kit/ appeared under the subdirectory: $out"
-git -C "$repo" add -f .design-kit/shots/aaa111 && git -C "$repo" -c user.name=t -c user.email=t@t commit -q -m shots
+case "$rpage" in "../../.cc-artifacts/design-kit/reviews/"*) ;; *) fail "the review page is not under the root's .cc-artifacts/design-kit/: $rpage" ;; esac
+[ -f "$repo/app/Models/$rpage" ] && [ ! -e "$repo/app/Models/.cc-artifacts" ] || fail "a .cc-artifacts/ appeared under the subdirectory: $out"
+git -C "$repo" add -f .cc-artifacts/design-kit/shots/aaa111 && git -C "$repo" -c user.name=t -c user.email=t@t commit -q -m shots
 rc_of bash -c "cd '$repo/app/Models' && bash '$snap' review --base HEAD --current '$rsets/bbb222'"
 [ "$rc" = 0 ] && grep -q '| index | desktop | .* | changed |' <<<"$out" \
   || fail "a git-ref base read from a subdirectory should pair the committed shots, got $rc: $out"
-bash "$here/preview.sh" --docroot "$repo/.design-kit" --stop >/dev/null 2>&1 || true; unset DESIGN_KIT_PORT
+# a ref from before 2026-11-14 committed its shots under .design-kit/shots: read there when the new path holds none
+mkdir -p "$repo/.design-kit/shots"; cp -R "$rsets/aaa111" "$repo/.design-kit/shots/aaa111"
+git -C "$repo" rm -r -q --cached .cc-artifacts/design-kit/shots/aaa111 && git -C "$repo" add -f .design-kit/shots/aaa111 \
+  && git -C "$repo" -c user.name=t -c user.email=t@t commit -q -m legacy-shots
+rc_of bash -c "cd '$repo/app/Models' && bash '$snap' review --base HEAD --current '$rsets/bbb222'"
+[ "$rc" = 0 ] && grep -q '| index | desktop | .* | changed |' <<<"$out" \
+  || fail "a git-ref base holding only .design-kit/shots should pair those, got $rc: $out"
+bash "$here/preview.sh" --docroot "$repo/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true; unset DESIGN_KIT_PORT
 
 # --- the real surface: a throwaway server, a real browser, two devices ----------
 if [ "$have_browser" = 0 ]; then
@@ -252,8 +260,8 @@ PY
   start_guard() { ( exec python3 "$tmp/guard.py" "$1" "$tmp/guard.log" >/dev/null ) & }
   serve_bg guard_pid gport start_guard
   printf '{"cookies":[{"name":"dk_session","value":"ok123","domain":"127.0.0.1","path":"/","expires":-1,"httpOnly":true,"secure":false,"sameSite":"Lax"}],"origins":[{"origin":"http://127.0.0.1:%s","localStorage":[{"name":"tok","value":"ls-ok"}]}]}' \
-    "$gport" > "$repo/.design-kit/auth/walk.json"
-  rc_of bash -c "cd '$repo/app/Models' && bash '$snap' snapshot --routes /secret --device both --base-url http://127.0.0.1:$gport --storage-state ../../.design-kit/auth/walk.json --out '$tmp/authshot'"
+    "$gport" > "$repo/.cc-artifacts/design-kit/auth/walk.json"
+  rc_of bash -c "cd '$repo/app/Models' && bash '$snap' snapshot --routes /secret --device both --base-url http://127.0.0.1:$gport --storage-state ../../.cc-artifacts/design-kit/auth/walk.json --out '$tmp/authshot'"
   [ "$rc" = 0 ] || fail "a signed-in shoot should exit 0, got $rc: $out"
   [ "$(grep -c '^/secret cookie$' "$tmp/guard.log")" = 2 ] || fail "the cookie did not reach the server on both shots: $(cat "$tmp/guard.log")"
   grep -q '^/beacon?ls=ls-ok cookie$' "$tmp/guard.log" || fail "localStorage was not seeded: $(cat "$tmp/guard.log")"
@@ -265,8 +273,8 @@ w = [struct.unpack(">I", open(p, "rb").read(33)[16:20])[0] for p in sys.argv[1:3
 assert w == [1440, 390], w
 PY
   # an expired session is still shot, but never silently: the WARN names where it landed
-  sed 's/ok123/expired/' "$repo/.design-kit/auth/walk.json" > "$repo/.design-kit/auth/stale.json"
-  rc_of bash -c "cd '$repo' && bash '$snap' snapshot --routes /secret --base-url http://127.0.0.1:$gport --storage-state .design-kit/auth/stale.json --out '$tmp/staleshot'"
+  sed 's/ok123/expired/' "$repo/.cc-artifacts/design-kit/auth/walk.json" > "$repo/.cc-artifacts/design-kit/auth/stale.json"
+  rc_of bash -c "cd '$repo' && bash '$snap' snapshot --routes /secret --base-url http://127.0.0.1:$gport --storage-state .cc-artifacts/design-kit/auth/stale.json --out '$tmp/staleshot'"
   [ "$rc" = 0 ] && grep -q "WARN /secret (desktop) ended on http://127.0.0.1:$gport/login" <<<"$out" \
     || fail "a stale session should shoot with a WARN naming the login URL, got $rc: $out"
   echo "snapshot.test.sh: shot a cookie-guarded route through --storage-state — the server saw the cookie and the seeded localStorage"

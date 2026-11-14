@@ -10,7 +10,8 @@ When it prints the one line saying there is no program, stop there and point to
 `/overseer:start` (do not invent one).
 
 Then invoke the `overseer` skill from this plugin and continue the program recorded under
-`.claude/overseer/`. Read it with `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" status`.
+`.cc-artifacts/overseer/` (a program from before 2026-11-14: `.claude/overseer/`, which
+`program.sh` copies over on its first call). Read it with `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" status`.
 
 1. Reconcile state with git per the skill's **Resume** rule — does each milestone's
    branch exist, is it merged, is a task-runner index still open for it. The board's

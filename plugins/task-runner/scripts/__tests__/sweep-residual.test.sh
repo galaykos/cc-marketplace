@@ -59,23 +59,38 @@ expect "no mode is a usage error"        3 --id m1 --dir "$FX"
 seed
 bash "$S" --freeze --id m3 --dir "$FX" --pattern 'axios' >/dev/null 2>&1
 bash "$S" --measure --id m3 --dir "$FX" >/dev/null 2>&1
-n=$(jq -r '.measurements | length' "$FX/.claude/task-runner/sweep-m3.json" 2>/dev/null)
+n=$(jq -r '.measurements | length' "$FX/.cc-artifacts/task-runner/sweep-m3.json" 2>/dev/null)
 if [ "${n:-0}" -ge 1 ]; then echo "PASS: measurement recorded in state ($n)"
 else echo "FAIL: measurement not recorded"; rc=1; fi
 
-orig=$(jq -r '.original_total' "$FX/.claude/task-runner/sweep-m3.json" 2>/dev/null)
+orig=$(jq -r '.original_total' "$FX/.cc-artifacts/task-runner/sweep-m3.json" 2>/dev/null)
 if [ "${orig:-0}" -eq 6 ]; then echo "PASS: original total frozen (6)"
 else echo "FAIL: original total wrong (got ${orig:-none}, want 6)"; rc=1; fi
 
 # STATE ROOT (0.41.0): a --dir inside a git repo keeps its state at the repo ROOT. Before,
-# `--dir src` left src/.claude/task-runner/ beside the code it scanned.
+# `--dir src` left src/.cc-artifacts/task-runner/ beside the code it scanned.
 G="$FX/g"; mkdir -p "$G/src"; git init -q "$G" 2>/dev/null
 printf 'axios.get(a)\n' > "$G/src/a.ts"
 expect "freeze with --dir in a subdirectory"       0 --freeze  --id m4 --dir "$G/src" --pattern 'axios'
-if [ -f "$G/.claude/task-runner/sweep-m4.json" ] && [ ! -e "$G/src/.claude" ]; then
+if [ -f "$G/.cc-artifacts/task-runner/sweep-m4.json" ] && [ ! -e "$G/src/.claude" ] && [ ! -e "$G/src/.cc-artifacts" ]; then
   echo "PASS: state lands at the repo root, none beside the scanned dir"
-else echo "FAIL: state not at the repo root (or a src/.claude/ appeared)"; rc=1; fi
+else echo "FAIL: state not at the repo root (or a src/.claude/ or src/.cc-artifacts/ appeared)"; rc=1; fi
 expect "measure finds the root-anchored state"      2 --measure --id m4 --dir "$G/src"
+
+# A sweep frozen before 2026-11-14 keeps its state in .claude/task-runner/: measured from a one-time copy, which takes the
+# measurement, while the old file and the pattern it holds stay out of the scan and as they were.
+O="$FX/old"; mkdir -p "$O/src"; git init -q "$O" 2>/dev/null
+printf 'axios.get(a)\n' > "$O/src/a.ts"
+bash "$S" --freeze --id m5 --dir "$O" --pattern 'axios' >/dev/null 2>&1
+mkdir -p "$O/.claude"; mv "$O/.cc-artifacts/task-runner" "$O/.claude/task-runner"; rmdir "$O/.cc-artifacts"
+before=$(cksum < "$O/.claude/task-runner/sweep-m5.json")
+expect "a sweep frozen under .claude/task-runner/ is measured" 2 --measure --id m5 --dir "$O"
+if [ "$(jq -r '.measurements | length' "$O/.cc-artifacts/task-runner/sweep-m5.json" 2>/dev/null)" = 1 ] &&
+   [ "$(cksum < "$O/.claude/task-runner/sweep-m5.json")" = "$before" ]; then
+  echo "PASS: the measurement lands in the copy under .cc-artifacts/task-runner/, the old state untouched"
+else echo "FAIL: legacy sweep state"; rc=1; fi
+printf 'fetch(a)\n' > "$O/src/a.ts"
+expect "once fixed, neither state file counts as residual" 0 --measure --id m5 --dir "$O"
 
 [ "$rc" -eq 0 ] && echo "All sweep-residual fixtures passed."
 exit "$rc"

@@ -18,7 +18,7 @@ itself is a requirement. A single widget or page stays in visual-decisions. (Pro
 
 ## The demo artifact
 
-One self-contained HTML file — `taskmaster-docs/mockups/YYYY-MM-DD-<slug>-walkthrough.html`,
+One self-contained HTML file — `.cc-artifacts/taskmaster/mockups/YYYY-MM-DD-<slug>-walkthrough.html`,
 copied to `walkthrough.html` on the same session preview server (port
 `${PREVIEW_PORT:-8123}`, see visual-decisions; own file so it never clobbers the
 mockup tab):

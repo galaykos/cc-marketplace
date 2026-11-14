@@ -72,10 +72,11 @@ and show which and the steps ahead before anything runs.
      `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`,
      and say it may not be the loaded copy: over full paths `sort -V` orders by
      marketplace name first, so it can pick another marketplace's copy, older or not.
-     If none of these exists, or the one you ran left no `.claude/cc-phase/${CLAUDE_SESSION_ID}.json`
-     at the repo root (a taskmaster before 0.56.0 writes a repo-wide file instead), write
+     If none of these exists, or the one you ran left no `.cc-artifacts/cc-phase/${CLAUDE_SESSION_ID}.json`
+     (nor, from a taskmaster before 0.60.0, `.claude/cc-phase/${CLAUDE_SESSION_ID}.json`) at the repo root
+     (a taskmaster before 0.56.0 writes a repo-wide file instead), write
      `{"phase":"build","owner":"code-architecture:work","session_id":"${CLAUDE_SESSION_ID}","started_at":"<ISO-8601 UTC>"}`
-     to `.claude/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root (`git rev-parse --show-toplevel`; outside
+     to `.cc-artifacts/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root (`git rev-parse --show-toplevel`; outside
      git, the project directory). Do the work, reading a primed path when the work reaches
      that surface; verify it; then clear it (`phase-sentinel.sh clear --session "${CLAUDE_SESSION_ID}"`,
      else delete that file; never another session's). No other lane writes it: the receiving commands write their own.

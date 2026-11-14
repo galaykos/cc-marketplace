@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.2; earlier versions have no entries rather than invented ones.
 
+## 0.14.0 — 2026-11-14
+
+- **Picked warnings go to `.cc-artifacts/hindsight/anti-patterns.md`**, not `.claude/hindsight/anti-patterns.md`. Claude Code refuses a Write into `.claude/` as a sensitive path, and `.cc-artifacts/` is the one folder a project gitignores for what plugins write during development. When only the old folder exists, the harvest copies it over once before the first pick and never touches it. The README says how a team tracks the file instead of ignoring it, and the proposed CLAUDE.md pointer may replace one that names the old path. Standing: agent-graded — the skill tells the model to copy, no script checks it.
+- **Brain notes and the existing-coverage check use the brain map's new home, `.cc-artifacts/brain/`** (brain 0.5.0). A map still in `brain/` is read there, and copied over once before the first note is written. Standing: agent-graded.
+- Unchanged: the ledger, reports and skill-use log stay under `~/.claude/hindsight/<slug>/`, outside the project.
+
 ## 0.13.0 — 2026-11-12
 
 - **Removed: `/hindsight:claude-md` and its stale-reference script.** No logged use in 40 days on the maintainer's machine. For auditing a CLAUDE.md use the host's `/doctor prompt-audit` (Claude Code 2.1.283+).

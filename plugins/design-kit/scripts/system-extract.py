@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""system-extract.py — extract a design system from a repo, a live URL, a brand asset directory, or a rendered page (--source rendered, via system-render.mjs) into design-system/.
+"""system-extract.py — extract a design system from a repo, a live URL, a brand asset directory, or a rendered page (--source rendered, via system-render.mjs) into .cc-artifacts/design-kit/design-system/.
 
 Writes tokens.json (DTCG-shaped), DESIGN-SYSTEM.md (the `## Design system` block plus a component inventory) and kit.html (a UI-kit page, one `@dsCard` per card). Every token points back to a source line (in rendered mode, an element), nothing is invented, and the same input gives byte-identical output.
 Misses: repo mode reads text with regexes (a Tailwind config built from imports or functions yields its literal entries only); URL mode runs no JS, so runtime-injected styles are invisible (it says so; rendered mode runs it, and its names are values, not roles); which of two primaries is THE primary is flagged, never decided; kit.html cards are static stand-ins, not the components.
@@ -952,15 +952,18 @@ def guess_source(target):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Extract a design system into design-system/.")
+    ap = argparse.ArgumentParser(description="Extract a design system into .cc-artifacts/design-kit/design-system/.")
     ap.add_argument("target", help="repo dir, https URL, or brand asset dir")
     ap.add_argument("--source", choices=("repo", "url", "brand", "rendered"), default=None)
-    ap.add_argument("--out", default="design-system")
+    ap.add_argument("--out", default=None, help="default .cc-artifacts/design-kit/design-system")
     ap.add_argument("--kit-shell", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "skills", "system", "assets", "kit-shell.html"))
     ap.add_argument("--project-name", default=None)
     ap.add_argument("--dry-run", action="store_true", help="print the token table; write nothing")
     ap.add_argument("--check", action="store_true", help="compare against <out>/tokens.json: exit 1 and print `check:` lines on drift; writes nothing")
     args = ap.parse_args(argv)
+    default_out = args.out is None
+    if default_out:
+        args.out = os.path.join(".cc-artifacts", "design-kit", "design-system")
     source = args.source or guess_source(args.target)
     ex = Extraction()
     if source == "repo":
@@ -983,7 +986,10 @@ def main(argv=None):
     project = args.project_name or (urllib.parse.urlsplit(args.target).netloc if is_url else os.path.basename(os.path.abspath(args.target)))
     tokens = build_tokens(ex)
     if args.check:
-        return 1 if check_tokens(tokens, os.path.join(args.out, "tokens.json")) else 0
+        saved = os.path.join(args.out, "tokens.json")
+        if default_out and not os.path.isfile(saved) and os.path.isfile(os.path.join("design-system", "tokens.json")):
+            saved = os.path.join("design-system", "tokens.json")  # plugins before 2026-11-14 wrote it here
+        return 1 if check_tokens(tokens, saved) else 0
     if args.dry_run:
         for path, node in flat(tokens):
             dk = node["$extensions"]["design-kit"]

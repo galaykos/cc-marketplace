@@ -26,11 +26,11 @@ expect "the first claim gets the base block" 0 "Ports 47100-47109 are this track
 expect "a second track gets the next block" 0 "Ports 47110-47119 are this track's (beta)" "$R" claim --id beta --base $BASE
 expect "claiming again returns the same block" 0 "Ports 47100-47109" "$R" claim --id alpha --base $BASE
 expect "list names both claims" 0 "beta 47110-47119" "$R" list
-[ -f "$R/.claude/task-runner/.gitignore" ] && ok "the registry is gitignored" || bad "no .gitignore beside the registry"
+[ -f "$R/.cc-artifacts/task-runner/.gitignore" ] && ok "the registry is gitignored" || bad "no .gitignore beside the registry"
 
 git -C "$R" worktree add -q "$T/wt" -b track-x 2>/dev/null
 expect "a worktree sees the main repository's claims" 0 "Ports 47120-47129 are this track's (gamma)" "$T/wt" claim --id gamma --base $BASE
-[ ! -e "$T/wt/.claude/task-runner/ports" ] && ok "nothing is written inside the worktree" || bad "the worktree got its own registry"
+[ ! -e "$T/wt/.cc-artifacts/task-runner/ports" ] && ok "nothing is written inside the worktree" || bad "the worktree got its own registry"
 
 expect "release frees the block" 0 "" "$R" release --id alpha
 expect "the freed block is handed out again" 0 "Ports 47100-47109 are this track's (delta)" "$R" claim --id delta --base $BASE
@@ -53,7 +53,7 @@ else
   printf 'SKIP: listening-port case (python3 is required)\n'
 fi
 
-mkdir -p "$R/.claude/task-runner/ports/.lock"; touch -d '5 minutes ago' "$R/.claude/task-runner/ports/.lock"
+mkdir -p "$R/.cc-artifacts/task-runner/ports/.lock"; touch -d '5 minutes ago' "$R/.cc-artifacts/task-runner/ports/.lock"
 expect "a lock left by a killed run is taken over" 0 "this track's (late)" "$R" claim --id late --base $BASE
 
 expect "an id with a slash is a usage error" 3 "usage" "$R" claim --id ../x
@@ -64,6 +64,16 @@ expect "an unknown mode is a usage error" 3 "usage" "$R" grab --id z
 expect "outside a repository is a usage error" 3 "not inside a git repository" "$T" claim --id z
 expect "the last block under the port ceiling is claimable" 0 "Ports 65526-65535" "$R" claim --id top --base 65526
 expect "no block left under the ceiling exits 1" 1 "no free block" "$R" claim --id over --base 65526
+
+# Claims made before 2026-11-14 sit in .claude/task-runner/ports/: copied once, they still hold their blocks, and the old
+# registry is left as it was.
+O="$T/old"; mkdir -p "$O/.claude/task-runner/ports"
+git -C "$O" init -q && git -C "$O" config user.email t@t.t && git -C "$O" config user.name t \
+  && echo a > "$O/a.txt" && git -C "$O" add a.txt && git -C "$O" commit -qm seed || { printf 'FAIL: cannot build a repository\n'; exit 1; }
+printf '%s 10\n' "$BASE" > "$O/.claude/task-runner/ports/alpha.claim"; before=$(cd "$O/.claude" && find . -type f -exec cksum {} + | sort)
+expect "a claim held under .claude/task-runner/ports/ keeps its block" 0 "Ports 47110-47119 are this track's (beta)" "$O" claim --id beta --base $BASE
+[ -f "$O/.cc-artifacts/task-runner/ports/beta.claim" ] && [ "$(cd "$O/.claude" && find . -type f -exec cksum {} + | sort)" = "$before" ] \
+  && ok "the new claim lands in .cc-artifacts/task-runner/ports/, the old registry untouched" || bad "legacy registry"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]

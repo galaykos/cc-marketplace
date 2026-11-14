@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first. Started at 0.13.5; earlier versions have no entries rather than invented ones.
 
+## 0.17.0 — 2026-11-14
+
+- **`references/marketplace-scratch.tsv` opens with `.cc-artifacts/`**, the folder every plugin now writes its project artifacts to, so `scratch-ignore.sh --apply` ignores all of them in one line. The paths older versions wrote stay as `legacy` rows, so the directories they left stay ignored; `.claude/code-architecture/`, `.claude/security/` and `.claude/secret-scanning/` are added, and `.claude/hindsight/` is now ignored. `brain/`, `design-system/` and `research/` stay `state` rows, listed and never ignored, because a project's own directory can carry those names. The `plugin-data` rows are unchanged. Standing: gate for the block (`scratch-ignore.test.sh`); the inventory itself is recorded.
+- **`scripts/receipt-fresh.sh` reads task-runner's receipt at `.cc-artifacts/task-runner/receipt.json`**, and at `.claude/task-runner/` only while the new one is absent; a receipt task-runner copied across may name its log under `.claude/task-runner/receipts/`. Untracked files under `.cc-artifacts/` no longer count as changes, matching task-runner's `check-receipt.sh`. Standing: gate (`receipt-fresh.test.sh`, five new cases; the digest's byte-identity with the writer is `scripts/smoke/receipt-contract-tests.sh`).
+- **`/git-workflow:finish` writes a hand-made phase sentinel to `.cc-artifacts/cc-phase/`** (was `.claude/cc-phase/`), needed only when neither path holds one; its scratch and receipt prose and `branch-completion` name the new paths, and the brain map it offers to refresh is `.cc-artifacts/brain/INDEX.md` (an older project's `brain/INDEX.md`). Standing: agent-graded.
+
 ## 0.16.0 — 2026-11-12
 
 - **`scripts/merge-when-green.sh --pr <n>` waits for a PR's checks, then merges.** One merge go-ahead used to cost two or three: in three sessions the user typed it again after CI finished, and twice the model tried `--auto` on a repository that refuses auto-merge. The script polls the check rollup, merges the commit it saw green (`--match-head-commit`), never uses `--auto` and never deletes the branch. It merges nothing on a red or cancelled check, when no check reports within `--grace`, at `--timeout`, or after five failed lookups in a row. Residual: it does not see a required status the rollup omits, or a check that starts after every listed one passed. Pinned by `scripts/__tests__/merge-when-green.test.sh`, red against a cut that read "no checks yet" as green.

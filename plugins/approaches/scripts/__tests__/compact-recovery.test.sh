@@ -22,9 +22,9 @@ FX=$(mktemp -d); trap 'rm -rf "$FX"' EXIT
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 
-mkdir -p "$FX/proj/.claude/approaches"
+mkdir -p "$FX/proj/.cc-artifacts/approaches"
 printf '{"task":"widget-rewrite","by":"approach-deliberation","at":"2026-08-31T00:00:00Z"}\n' \
-  > "$FX/proj/.claude/approaches/deliberated.json"
+  > "$FX/proj/.cc-artifacts/approaches/deliberated.json"
 
 fire() { # source cwd -> stdout
   jq -nc --arg s "$1" --arg c "$2" \
@@ -59,7 +59,7 @@ case "$out" in
 esac
 
 # --- 5. never invents a decision when no marker exists ----------------------------
-mkdir -p "$FX/bare/.claude"
+mkdir -p "$FX/bare/.claude" "$FX/bare/.cc-artifacts"
 out=$(fire compact "$FX/bare")
 if [ -z "$out" ]; then echo "PASS: silent when no deliberation marker exists"
 else echo "FAIL: announced a decision that never happened ($out)"; rc=1; fi
@@ -78,7 +78,7 @@ else echo "FAIL: exit=$s output='$out'"; rc=1; fi
 # abandoned deliberation announced itself on every compaction of every future session.
 # These two cases fail against that logic: the old hook announced the stale marker and
 # left it on disk.
-STALE="$FX/proj/.claude/approaches/deliberated.json"
+STALE="$FX/proj/.cc-artifacts/approaches/deliberated.json"
 python3 -c 'import os,sys,time; p=sys.argv[1]; os.utime(p,(time.time()-3*3600,)*2)' "$STALE" 2>/dev/null \
   || touch -t "$(date -v-3H +%Y%m%d%H%M 2>/dev/null || date -d '3 hours ago' +%Y%m%d%H%M)" "$STALE"
 out=$(fire compact "$FX/proj")
@@ -100,14 +100,27 @@ esac
 # --- 9. SUBDIRECTORY cwd (finding 2, rationale/2026-09-25-session-plugin-usage-review.md):
 # the payload cwd follows the model's `cd`. A marker at the repo root must be announced
 # from app/Models, by its absolute path, and nothing may appear under the subdirectory.
-G="$FX/repo"; mkdir -p "$G/app/Models" "$G/.claude/approaches"; git -C "$G" init -q
-printf '{"task":"root-task","by":"approach-deliberation"}\n' > "$G/.claude/approaches/deliberated.json"
+G="$FX/repo"; mkdir -p "$G/app/Models" "$G/.cc-artifacts/approaches"; git -C "$G" init -q
+printf '{"task":"root-task","by":"approach-deliberation"}\n' > "$G/.cc-artifacts/approaches/deliberated.json"
 out=$(fire compact "$G/app/Models")
 case "$out" in
-  *root-task*"$G/.claude/approaches/deliberated.json"*) echo "PASS: root marker announced from a subdirectory cwd, by absolute path" ;;
+  *root-task*"$G/.cc-artifacts/approaches/deliberated.json"*) echo "PASS: root marker announced from a subdirectory cwd, by absolute path" ;;
   *) echo "FAIL: subdirectory cwd missed the root marker ($out)"; rc=1 ;;
 esac
-if [ ! -e "$G/app/Models/.claude" ]; then echo "PASS: no .claude/ appears under the subdirectory"
-else echo "FAIL: a .claude/ dir appeared under the subdirectory"; rc=1; fi
+if [ ! -e "$G/app/Models/.claude" ] && [ ! -e "$G/app/Models/.cc-artifacts" ]; then echo "PASS: no .claude/ or .cc-artifacts/ appears under the subdirectory"
+else echo "FAIL: a .claude/ or .cc-artifacts/ dir appeared under the subdirectory"; rc=1; fi
+
+# --- 10. Plugins before 2026-11-14 wrote the marker under .claude/approaches/: copied
+# over once and announced from the new path; the old file is left as it was.
+O="$FX/old"; mkdir -p "$O/.claude/approaches"; git -C "$O" init -q
+printf '{"task":"old-task","by":"approach-deliberation"}\n' > "$O/.claude/approaches/deliberated.json"
+before=$(cksum < "$O/.claude/approaches/deliberated.json")
+out=$(fire compact "$O")
+case "$out" in
+  *old-task*"$O/.cc-artifacts/approaches/deliberated.json"*) echo "PASS: an old-path marker is copied over and announced from .cc-artifacts/" ;;
+  *) echo "FAIL: old-path marker not announced from the new path ($out)"; rc=1 ;;
+esac
+if [ "$(cksum < "$O/.claude/approaches/deliberated.json")" = "$before" ]; then echo "PASS: the .claude/approaches/ marker is untouched"
+else echo "FAIL: the old marker changed"; rc=1; fi
 
 exit $rc

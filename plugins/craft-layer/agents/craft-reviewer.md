@@ -180,7 +180,7 @@ without exception:
       name, every offer-spine slot answered, the what-line clear of the concept's metaphor
       vocabulary, a proof region present as slots not deleted.
 - [ ] A redesign PRESERVED what it found — when the contract's `Redesign:` is `keep-brand` or
-      `new-look`, every value in `<project>/.craft-layer/preserve.json` (routes, anchor ids, nav
+      `new-look`, every value in `<project>/.cc-artifacts/craft-layer/preserve.json` (routes, anchor ids, nav
       labels, form fields in order, analytics ids, logo, legal copy) still ships, or its change has
       a matching `approved` entry (`item` = `<key>:<recorded value>`) and is as asked; a changed
       value with no entry is one finding, "approval not recorded". `logo` and `legal` are judged by
@@ -221,7 +221,7 @@ without exception:
       report-only measurement, not a gate. A break the argument makes on purpose PASSES, the
       argument cited in the coverage note; only an un-argued break is a finding, and a floor
       finding never fails the audit on its own. The first four read the injected
-      `<project>/.craft-layer/layout-floors.json` per breakpoint; a `"not found"` value, or an
+      `<project>/.cc-artifacts/craft-layer/layout-floors.json` per breakpoint; a `"not found"` value, or an
       absent or stale file, is `not measured` for that row — never estimated from source or shots.
       The last three are graded from shots and source; no shots injected → graded from source
       alone, and said so.

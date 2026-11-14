@@ -146,20 +146,20 @@ Only then: remove the worktree, `git branch -D <branch>`, report what died.
 
 ## Refresh the project map
 
-If the repo carries a committed `brain/INDEX.md` (brain plugin) whose `built:` stamp
-is behind the merged result, offer `/brain index` (incremental) alongside the
-destination step — a branch finish is exactly when the map went stale. Never run it
-unasked; it edits committed files.
+If the repo carries a brain map — `.cc-artifacts/brain/INDEX.md`, or a committed `brain/INDEX.md`
+from before 2026-11-14 — whose `built:` stamp is behind the merged result, offer `/brain index`
+(incremental) alongside the destination step — a branch finish is exactly when the map went
+stale. Never run it unasked; it rewrites the map.
 
 ## Plugin scratch stays off the branch
 
-Plugins of this marketplace write into the project — mockups, preview state,
-scratch entries, run markers. `scripts/scratch-ignore.sh --check` reads the
-inventory in `references/marketplace-scratch.tsv` (pattern, plugin, kind, location,
-the file that writes it) and exits 1 when a `scratch` or `cleaned` path is on disk and
-neither ignored nor tracked; `--apply` writes one managed block into `.gitignore`,
-rewritten in place, never a tracked path (that is warned, not ignored). `state` rows
-— `brain/`, `design-system/`, `research/` — are listed and left to the team.
+Plugins of this marketplace write into the project — mockups, preview state, scratch entries,
+run markers; since 2026-11-14 all under `.cc-artifacts/`, the inventory's first row.
+`scripts/scratch-ignore.sh --check` reads `references/marketplace-scratch.tsv` (pattern, plugin,
+kind, location, the file that writes it) and exits 1 when a `scratch` or `cleaned` path is on disk
+and neither ignored nor tracked; `--apply` writes one managed block into `.gitignore`, rewritten
+in place, never a tracked path (that is warned, not ignored). `legacy` rows are what older
+versions wrote; `state` rows (the older `brain/`, `design-system/`, `research/`) are left to the team.
 `plugin-data` rows are legacy in-repo paths of hook state now under `${CLAUDE_PLUGIN_DATA}`,
 kept in the block so old dirs stay ignored; `home` rows (`~/…`) are never touched.
 Standing: the check is a **gate** inside `/git-workflow:finish`; the inventory is

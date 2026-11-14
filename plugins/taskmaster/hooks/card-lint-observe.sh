@@ -1,5 +1,5 @@
 #!/bin/bash
-# card-lint-observe.sh — PostToolUse, main thread only: once per transcript and card set, warns (never blocks) when a card of the registered taskmaster-index run (.claude/task-runner/active-run.json at the project root) has no card-shape, verify-teeth or skills-stamp lint record. Off: CC_CARDLINT=off or CC_REMIND=off (unset: /config options cc_cardlint / cc_remind). Fails open.
+# card-lint-observe.sh — PostToolUse, main thread only: once per transcript and card set, warns (never blocks) when a card of the registered taskmaster-index run (.cc-artifacts/task-runner/active-run.json at the project root, else the older .claude/task-runner/ one) has no card-shape, verify-teeth or skills-stamp lint record. Off: CC_CARDLINT=off or CC_REMIND=off (unset: /config options cc_cardlint / cc_remind). Fails open.
 # Misses: a set run without /task-runner:run, a recorded `block` verdict, hand-written records, spec-ledger records (written, not graded), cards past 60; in a fanned-out run the first main-thread write may follow the first card.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/hooks/card-lint-observe.sh
 
@@ -56,7 +56,10 @@ cc_option() {
   root=$(cc_state_root "$cwd") || exit 0
 
   # Cheapest test first: a session with no registered run must cost one git rev-parse and one stat.
-  sentinel="$root/.claude/task-runner/active-run.json"
+  sentinel="$root/.cc-artifacts/task-runner/active-run.json"
+  # task-runner before 2026-11-14 registered runs under .claude/task-runner/; read it only while the new dir is absent,
+  # since task-runner copies the old dir in and leaves it, and a run closed after that copy must stay closed.
+  [ -d "$root/.cc-artifacts/task-runner" ] || sentinel="$root/.claude/task-runner/active-run.json"
   [ -r "$sentinel" ] || exit 0
   index=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null) || exit 0
   [ -n "$index" ] || exit 0                      # a non-index run has no card set

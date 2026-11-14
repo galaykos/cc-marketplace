@@ -19,13 +19,13 @@ body { background:#f8fafc; color:#1a4d8f; font-family: Inter, sans-serif }
 </style></head><body><h1 style="color:#1a4d8f">x</h1></body></html>
 EOF
 
-repo="$tmp/repo"; mkdir -p "$repo/src/styles" "$repo/design-system"
+repo="$tmp/repo"; mkdir -p "$repo/src/styles" "$repo/.cc-artifacts/design-kit/design-system"
 cat > "$repo/src/styles/globals.css" <<'EOF'
 @theme { --color-brand: #1a4d8f; }
 :root { --surface: #f8fafc; --font-sans: Inter, ui-sans-serif, system-ui; }
 EOF
 echo "module.exports = { theme: { extend: { colors: { accent: '#0ea5e9' } } } }" > "$repo/tailwind.config.js"
-cat > "$repo/design-system/tokens.json" <<'EOF'
+cat > "$repo/.cc-artifacts/design-kit/design-system/tokens.json" <<'EOF'
 { "color": { "sky": { "$type": "color", "$value": "oklch(70% 0.1 250)" } },
   "font": { "mono": { "$type": "fontFamily", "$value": ["JetBrains Mono", "monospace"] } } }
 EOF
@@ -47,6 +47,11 @@ grep -q '^| font | Space Grotesk | 1 | - | - | no token |$' <<<"$out" || fail "f
 $out"
 grep -q '^summary: match=4 near=1 no-token=2$' <<<"$out" || fail "summary line:
 $out"
+
+# plugins before 2026-11-14 wrote design-system/ at the repo root: read it while the new folder holds no tokens.json
+mkdir -p "$repo/design-system"; mv "$repo/.cc-artifacts/design-kit/design-system/tokens.json" "$repo/design-system/tokens.json"
+grep -q '^| colour | oklch(70% 0.1 250) | 1 | color.sky | .* | match |$' <<<"$(python3 "$drift" "$bundle" --repo "$repo")" \
+  || fail "no fallback to design-system/tokens.json"
 
 empty="$tmp/empty"; mkdir -p "$empty"
 out2="$(python3 "$drift" "$bundle" --repo "$empty")"

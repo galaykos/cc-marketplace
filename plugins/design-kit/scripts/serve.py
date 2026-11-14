@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
 Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
@@ -285,13 +285,16 @@ TOKENS_META = re.compile(r'<meta\s+name="design-kit-tokens"\s+content="([0-9a-f]
 
 
 def _tokens_sha(root):
-    """sha12 of ../design-system/tokens.json relative to the docroot, or None."""
-    p = os.path.join(os.path.dirname(root), "design-system", "tokens.json")
-    try:
-        with open(p, "rb") as fh:
-            return hashlib.sha256(fh.read()).hexdigest()[:12]
-    except OSError:
-        return None
+    """sha12 of <docroot>/design-system/tokens.json, or None. Plugins before 2026-11-14 kept it in
+    <project>/design-system/, two levels above .cc-artifacts/design-kit: read that while the first is absent."""
+    for p in (os.path.join(root, "design-system", "tokens.json"),
+              os.path.join(os.path.dirname(os.path.dirname(root)), "design-system", "tokens.json")):
+        try:
+            with open(p, "rb") as fh:
+                return hashlib.sha256(fh.read()).hexdigest()[:12]
+        except OSError:
+            continue
+    return None
 
 
 def _stamp_of(path):
@@ -308,7 +311,8 @@ def _walk_pages(root):
     pages = []
     current = _tokens_sha(root)
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        # the design system sits in the docroot; its kit.html is listed once, as the previews/ copy dk system makes
+        dirnames[:] = [d for d in dirnames if not d.startswith(".") and not (dirpath == root and d == "design-system")]
         for fn in filenames:
             if fn.startswith(".") or fn in IGNORED or not fn.lower().endswith(PAGE_EXT):
                 continue
@@ -768,7 +772,7 @@ def _minutes(name, default):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--docroot", default=".design-kit")
+    ap.add_argument("--docroot", default=os.path.join(".cc-artifacts", "design-kit"))
     ap.add_argument("--port", type=int, default=int(os.environ.get("DESIGN_KIT_PORT", "8124")))
     ap.add_argument("--lan", action="store_true", help="bind 0.0.0.0 so devices on your network can open it")
     args = ap.parse_args(argv)

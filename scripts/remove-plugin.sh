@@ -179,9 +179,9 @@ if [ -n "$targets" ]; then
   echo "renames entries targeting '$name': $(printf '%s\n' "$targets" | paste -sd ',' - | sed 's/,/, /g') — kept (append-only history); their chains $verb through renames[\"$name\"] = $succ_json"
   mp_re="$mp_re|^\./\.claude-plugin/marketplace\.json:[0-9]+: *\"($(printf '%s\n' "$targets" | paste -sd '|' -))\": \"$name\""
 fi
-echo "-- residual references (word-match; excluding .git, .claude, taskmaster-docs, CHANGELOG.md, removed-plugins.tsv, plugins/$name/, and renames entries naming '$name') --"
+echo "-- residual references (word-match; excluding .git, .claude, .cc-artifacts, taskmaster-docs, CHANGELOG.md, removed-plugins.tsv, plugins/$name/, and renames entries naming '$name') --"
 # The plugin's own dir is filtered by full path, not --exclude-dir basename, so a merged skill dir is still scanned; the ledger and renames history are dropped.
-res=$(grep -rInw "$name" --exclude-dir=.git --exclude-dir=taskmaster-docs --exclude-dir=.claude --exclude=CHANGELOG.md --exclude=removed-plugins.tsv . 2>/dev/null \
+res=$(grep -rInw "$name" --exclude-dir=.git --exclude-dir=.cc-artifacts --exclude-dir=taskmaster-docs --exclude-dir=.claude --exclude=CHANGELOG.md --exclude=removed-plugins.tsv . 2>/dev/null \
   | grep -v "^\./plugins/$name/" | grep -vE "$mp_re" || true)
 if [ -z "$res" ]; then
   echo "none"

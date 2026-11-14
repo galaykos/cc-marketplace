@@ -28,7 +28,7 @@ X is read from the invoking context, in this order. Nothing is persisted; this s
 writes no state file (step 2's patch is the reviewer's copy of the diff, not a record).
 
 1. **An active task card** — the card currently in progress, or the
-   `taskmaster-docs/tasks/*/00-INDEX.md` referenced this session. Its acceptance criteria
+   `.cc-artifacts/taskmaster/tasks/*/00-INDEX.md` (older projects: `taskmaster-docs/tasks/`) referenced this session. Its acceptance criteria
    ARE the criteria; use them verbatim.
 2. **The user's stated task** — the request this work descends from, plus whatever success
    criteria they named.
@@ -50,7 +50,7 @@ anything already committed mid-session escapes the review entirely.
 
 - **Git repo:** diff against the point this work started. The base is the first that
   applies: a range your caller passed (task-runner passes `<start_sha>..HEAD`); else, when
-  `.claude/task-runner/active-run.json` names the current branch, its `start_sha` — on a
+  `.cc-artifacts/task-runner/active-run.json` (older projects: `.claude/task-runner/`) names the current branch, its `start_sha` — on a
   stacked branch the merge-base would charge the parent branch's commits to this work;
   else `git merge-base HEAD <default-branch>`. `git diff <base>` gives the
   change, including commits made along the way. When the work sits on the default branch
@@ -70,8 +70,8 @@ Independence breaks the self-grading loop, but it is **best-effort, not guarante
   told to diff, it re-reads whole files and grades against memory. Write step 1's diff
   (plus untracked files as `git diff --no-index /dev/null <file>`, plus
   `git blame -L <a>,+<b> <base> -- <file>` for each modified hunk `@@ -<a>,<b>`) to
-  `.claude/code-architecture/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*`
-  in `.claude/code-architecture/`. Name that path in the prompt and state "cite line
+  `.cc-artifacts/code-architecture/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*`
+  in `.cc-artifacts/code-architecture/`. Name that path in the prompt and state "cite line
   numbers from the working file, not the patch". Never tell a Read/Grep/Glob agent to run
   git. Standing: agent-graded.
 - **Self-review fallback — inside a subagent, headless, no budget, or where subagent

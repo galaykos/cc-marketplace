@@ -31,7 +31,7 @@ stop_json() { # cwd transcript [session_id]
 # A block is exit 0 with {"decision":"block",reason,systemMessage} on stdout: rc=2, the text is stderr plus the reason; a bare exit 2 is rc=exit2.
 expect() {
   local label="$1" err out rc ok=1
-  rm -rf "$2/.claude/candor" "$2/.claude/task-runner/"gate-nudge*
+  rm -rf "$2/.cc-artifacts/candor"
   out=$(stop_json "$2" "$3" "${6:-}" | env ${HOOK_ENV:-} bash "$HOOK" 2>"$WS/stderr"); rc=$?
   err=$(cat "$WS/stderr")
   if [ "$rc" = 0 ] && [ -n "$out" ]; then
@@ -47,11 +47,11 @@ expect() {
 }
 
 repo() { # dir — a committed repo with a run registered before every stop below
-  mkdir -p "$1/.claude/task-runner"
+  mkdir -p "$1/.cc-artifacts/task-runner"
   git -C "$1" init -q && git -C "$1" config user.email t@t.t && git -C "$1" config user.name t
   echo hi > "$1/f.txt"; git -C "$1" add f.txt && git -C "$1" commit -qm init
-  printf '{"slug":"t"}' > "$1/.claude/task-runner/active-run.json"
-  touch -t 200001010000 "$1/.claude/task-runner/active-run.json"
+  printf '{"slug":"t"}' > "$1/.cc-artifacts/task-runner/active-run.json"
+  touch -t 200001010000 "$1/.cc-artifacts/task-runner/active-run.json"
 }
 
 age_minutes() { # file minutes
@@ -77,7 +77,7 @@ expect "in-flight TTL: a 182-minute record is swept, the stop blocks" "$RA" "$CL
 if [ ! -e "$REC" ]; then pass=$((pass+1)); printf 'PASS  in-flight TTL: the 182-minute record is deleted from disk\n'
 else fail=$((fail+1)); printf 'FAIL  in-flight TTL: the 182-minute record is deleted from disk\n'; fi
 
-RP="$WS/bgpid"; repo "$RP"; mkdir -p "$RP/.claude/task-runner/bg"; PIDF="$RP/.claude/task-runner/bg/running.pid"
+RP="$WS/bgpid"; repo "$RP"; mkdir -p "$RP/.cc-artifacts/task-runner/bg"; PIDF="$RP/.cc-artifacts/task-runner/bg/running.pid"
 # Named like the gate: with /proc the hook checks the recorded PID's command line, not only that it is live.
 printf 'sleep 600 & s=$!\ntrap "kill $s; exit 0" TERM\nwait\n' > "$WS/behavioral-gate.sh"
 bash "$WS/behavioral-gate.sh" >/dev/null 2>&1 & LIVE=$!
@@ -95,9 +95,9 @@ expect "bg PID deadline: a fresh running.pid whose deadline passed a minute ago 
 kill "$LIVE" 2>/dev/null; wait "$LIVE" 2>/dev/null
 
 RB="$WS/disclosure"; repo "$RB"
-printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$(git -C "$RB" rev-parse HEAD)" > "$RB/.claude/task-runner/gate-pass.json"
-mkdir -p "$RB/.claude/task-runner/reductions"
-printf '{"kind":"dispatch","id":"zq7k","reason":"x"}' > "$RB/.claude/task-runner/reductions/dispatch-zq7k.json"
+printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$(git -C "$RB" rev-parse HEAD)" > "$RB/.cc-artifacts/task-runner/gate-pass.json"
+mkdir -p "$RB/.cc-artifacts/task-runner/reductions"
+printf '{"kind":"dispatch","id":"zq7k","reason":"x"}' > "$RB/.cc-artifacts/task-runner/reductions/dispatch-zq7k.json"
 T="$WS/said200.jsonl"; { asst "Reduced: zq7k, one dispatch."; zebra 199; } > "$T"
 expect "disclosure tail: an id on the 200th-last line of assistant text counts as named" "$RB" "$T" 0 "__NONE__"
 T="$WS/said201.jsonl"; { asst "Reduced: zq7k, one dispatch."; zebra 200; } > "$T"

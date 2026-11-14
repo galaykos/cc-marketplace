@@ -78,8 +78,8 @@ new_case; listed; edit "$P/src/App.tsx"
 fire
 expect "a UI edit with no browser call since: one block, JSON on stdout, exit 0" is_block \
   '(.reason | contains("src/App.tsx") and contains("375, 768 and 1280") and contains("console") and contains("CC_UI_CHECK=off")) and (.systemMessage | contains("App.tsx"))'
-if [ "$(markers "$P/.claude/ui-ux")" = 1 ]; then pass "the block's state file lands in the project (key hashed, not a raw path)"
-else fail "the block's state file lands in the project (key hashed, not a raw path)" "found $(markers "$P/.claude/ui-ux") under $P/.claude/ui-ux"; fi
+if [ "$(markers "$P/.cc-artifacts/ui-ux")" = 1 ]; then pass "the block's state file lands in the project (key hashed, not a raw path)"
+else fail "the block's state file lands in the project (key hashed, not a raw path)" "found $(markers "$P/.cc-artifacts/ui-ux") under $P/.cc-artifacts/ui-ux"; fi
 fire
 expect "the same edits after a block: silent" is_silent
 browse; edit "$P/src/styles/app.css"
@@ -171,10 +171,10 @@ fire
 expect "test, mock, e2e, story and setupTests files: silent" is_silent
 
 new_case; listed
-for f in .claude/x.html .github/y.html taskmaster-docs/mockups/a.html dist/index.html build/b.css out/c.html coverage/d.html \
+for f in .claude/x.html .github/y.html .cc-artifacts/taskmaster/mockups/a.html taskmaster-docs/mockups/a.html dist/index.html build/b.css out/c.html coverage/d.html \
          storybook-static/e.html node_modules/pkg/f.css; do write "$P/$f"; done
 fire
-expect "scratch and generated paths (.claude, taskmaster-docs, dist, build, out, coverage, storybook-static, node_modules): silent" is_silent
+expect "scratch and generated paths (.claude, .cc-artifacts, taskmaster-docs, dist, build, out, coverage, storybook-static, node_modules): silent" is_silent
 
 new_case; listed
 for f in packages/web/dist/a.html apps/site/.next/b.html src/.nuxt/c.css web/.svelte-kit/d.html pkg/node_modules/e.css \
@@ -209,18 +209,18 @@ for v in off OFF false 0 no; do fire false CC_UI_CHECK=$v; is_silent || loud="$l
 [ -z "$loud" ] && pass "CC_UI_CHECK=off, OFF, false, 0 or no: silent" || fail "CC_UI_CHECK=off, OFF, false, 0 or no: silent" "spoke under:$loud"
 fire false CC_UI_CHECK=WARN
 expect "CC_UI_CHECK=WARN reads as warn: systemMessage, no block" is_notice
-rm -f "$P"/.claude/ui-ux/ui-check-*
+rm -f "$P"/.cc-artifacts/ui-ux/ui-check-*
 fire false CLAUDE_PLUGIN_OPTION_CC_UI_CHECK=off
 expect "the /config option cc_ui_check set to off: silent" is_silent
 fire false CC_UI_CHECK=on CLAUDE_PLUGIN_OPTION_CC_UI_CHECK=off
 expect "CC_UI_CHECK=on beats the /config option: block" is_block
 
-new_case; listed; edit "$P/src/App.tsx"; mkdir -p "$P/.claude/ui-ux"; chmod 555 "$P/.claude/ui-ux"
+new_case; listed; edit "$P/src/App.tsx"; mkdir -p "$P/.cc-artifacts/ui-ux"; chmod 555 "$P/.cc-artifacts/ui-ux"
 fire
-if [ -w "$P/.claude/ui-ux" ]; then echo "SKIP  state that cannot be saved: this user can write a mode-555 directory"
+if [ -w "$P/.cc-artifacts/ui-ux" ]; then echo "SKIP  state that cannot be saved: this user can write a mode-555 directory"
 else expect "state that cannot be saved: systemMessage, no block (an unrecorded block could repeat every stop)" is_notice \
   '.systemMessage | contains("could not save")'; fi
-chmod 755 "$P/.claude/ui-ux"
+chmod 755 "$P/.cc-artifacts/ui-ux"
 
 new_case; edit "$P/src/App.tsx"; mkdir -p "$P/.claude"
 printf '{"enabledPlugins":{"playwright@claude-plugins-official":true}}\n' > "$P/.claude/settings.json"
@@ -244,7 +244,7 @@ fire
 expect "local settings disabling playwright beat user settings enabling it: systemMessage" is_notice "$NOTICE"
 printf '{"enabledPlugins":{"playwright@claude-plugins-official":false}}\n' > "$CLAUDE_CONFIG_DIR/settings.json"
 printf '{"enabledPlugins":{"playwright@claude-plugins-official":true}}\n' > "$P/.claude/settings.local.json"
-rm -f "$P"/.claude/ui-ux/ui-check-*
+rm -f "$P"/.cc-artifacts/ui-ux/ui-check-*
 fire
 expect "local settings enabling playwright beat user settings disabling it: block" is_block
 rm -f "$CLAUDE_CONFIG_DIR/settings.json"
@@ -254,7 +254,7 @@ printf '{"mcpServers":{"chrome-devtools":{"command":"npx","args":["chrome-devtoo
 fire
 expect "a chrome server in .mcp.json nobody approved: systemMessage" is_notice "$NOTICE"
 mkdir -p "$P/.claude"; printf '{"enableAllProjectMcpServers":true}\n' > "$P/.claude/settings.json"
-rm -f "$P"/.claude/ui-ux/ui-check-*
+rm -f "$P"/.cc-artifacts/ui-ux/ui-check-*
 fire
 expect "the same server once project servers are approved: block" is_block
 
@@ -263,7 +263,7 @@ printf '{"mcpServers":{"chrome-devtools":{"command":"npx","args":["chrome-devtoo
 fire
 expect "a chrome MCP server in the user's .claude.json: block" is_block
 jq -n --arg p "$P" '{mcpServers:{"chrome-devtools":{command:"npx"}}, projects:{($p):{disabledMcpServers:["chrome-devtools"]}}}' > "$CLAUDE_CONFIG_DIR/.claude.json"
-rm -f "$P"/.claude/ui-ux/ui-check-*
+rm -f "$P"/.cc-artifacts/ui-ux/ui-check-*
 fire
 expect "the same server disabled for this project: systemMessage" is_notice "$NOTICE"
 rm -f "$CLAUDE_CONFIG_DIR/.claude.json"
@@ -391,8 +391,8 @@ fire
 expect "a running background subagent with no UI work in its file: judged now, the parent's edit blocks" is_block '.reason | contains("src/Main.tsx")'
 new_case; listed; edit "$P/src/Main.tsx"; in_sub r1 false background; edit "$P/src/BUSY.VUE"; in_main
 fire
-if is_silent && [ "$(markers "$P/.claude/ui-ux")" = 0 ]; then pass "a running background subagent doing UI work (matched in any case): silent, nothing recorded"
-else fail "a running background subagent doing UI work (matched in any case): silent, nothing recorded" "rc=$RC out=${OUT:-<silent>} markers=$(markers "$P/.claude/ui-ux")"; fi
+if is_silent && [ "$(markers "$P/.cc-artifacts/ui-ux")" = 0 ]; then pass "a running background subagent doing UI work (matched in any case): silent, nothing recorded"
+else fail "a running background subagent doing UI work (matched in any case): silent, nothing recorded" "rc=$RC out=${OUT:-<silent>} markers=$(markers "$P/.cc-artifacts/ui-ux")"; fi
 age "${T%.jsonl}/subagents/agent-r1.jsonl" 31
 fire
 expect "an unfinished subagent idle for 31 minutes is skipped: the parent's edit blocks" is_block \
@@ -413,19 +413,19 @@ fire
 expect "without CLAUDE_PROJECT_DIR a nested repo is the project: the parent repo's edit is outside it, silent" is_silent
 fire false CLAUDE_PROJECT_DIR="$D"
 expect "CLAUDE_PROJECT_DIR decides the project: the same edit blocks" is_block
-[ "$(markers "$D/.claude/ui-ux")" = 1 ] && pass "its state lands under CLAUDE_PROJECT_DIR" \
-  || fail "its state lands under CLAUDE_PROJECT_DIR" "found $(markers "$D/.claude/ui-ux") under $D/.claude/ui-ux"
+[ "$(markers "$D/.cc-artifacts/ui-ux")" = 1 ] && pass "its state lands under CLAUDE_PROJECT_DIR" \
+  || fail "its state lands under CLAUDE_PROJECT_DIR" "found $(markers "$D/.cc-artifacts/ui-ux") under $D/.cc-artifacts/ui-ux"
 
 new_case; listed; edit "$P/src/App.tsx"; T1=$T
 T="${T%.jsonl}-second.jsonl"; W=$T; : > "$T"; listed; edit "$P/src/App.tsx"
 fire; second=$OUT; T=$T1; fire
-if [ -n "$second" ] && is_block && [ "$(markers "$P/.claude/ui-ux")" = 2 ]; then pass "one state file per session: a second session's block does not silence the first"
-else fail "one state file per session: a second session's block does not silence the first" "first=${OUT:-<silent>} markers=$(markers "$P/.claude/ui-ux")"; fi
+if [ -n "$second" ] && is_block && [ "$(markers "$P/.cc-artifacts/ui-ux")" = 2 ]; then pass "one state file per session: a second session's block does not silence the first"
+else fail "one state file per session: a second session's block does not silence the first" "first=${OUT:-<silent>} markers=$(markers "$P/.cc-artifacts/ui-ux")"; fi
 
 new_case; listed; edit "$P/src/App.tsx"
 fire false CLAUDE_PLUGIN_DATA="$TMP/data"
-if is_block && [ "$(markers "$TMP/data")" -ge 1 ] && [ "$(markers "$P/.claude")" = 0 ]; then pass "with CLAUDE_PLUGIN_DATA set the state lands there, none in the project"
-else fail "with CLAUDE_PLUGIN_DATA set the state lands there, none in the project" "rc=$RC data=$(markers "$TMP/data") project=$(markers "$P/.claude")"; fi
+if is_block && [ "$(markers "$TMP/data")" -ge 1 ] && [ "$(markers "$P/.cc-artifacts")" = 0 ] && [ "$(markers "$P/.claude")" = 0 ]; then pass "with CLAUDE_PLUGIN_DATA set the state lands there, none in the project"
+else fail "with CLAUDE_PLUGIN_DATA set the state lands there, none in the project" "rc=$RC data=$(markers "$TMP/data") project=$(markers "$P/.cc-artifacts")+$(markers "$P/.claude")"; fi
 
 new_case; listed; edit "$P/src/App.tsx"
 printf '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__plugin_playwright_playwright__browser_navigate","input":{"url":"http://loc\n' >> "$T"

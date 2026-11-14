@@ -29,10 +29,10 @@ has() { if printf '%s' "$2" | grep -qF -- "$3"; then echo "PASS: $1"; else echo 
 BARE="$WS/bare"; mkdir -p "$BARE"
 check "1 no active-run.json: silent (the always-on budget stays 0)" "$(fire "$BARE")" ""
 
-RUN="$WS/run"; mkdir -p "$RUN/.claude/task-runner" "$RUN/tasks/demo"
+RUN="$WS/run"; mkdir -p "$RUN/.cc-artifacts/task-runner" "$RUN/tasks/demo"
 printf '{"slug":"2026-09-22-demo","branch":"feat/orders","index_path":"tasks/demo/00-INDEX.md"}\n' \
-  > "$RUN/.claude/task-runner/active-run.json"
-mkdir -p "$RUN/.claude/cc-phase"; printf '{"phase":"build","owner":"task-runner:run","session_id":"S1"}\n' > "$RUN/.claude/cc-phase/S1.json"
+  > "$RUN/.cc-artifacts/task-runner/active-run.json"
+mkdir -p "$RUN/.cc-artifacts/cc-phase"; printf '{"phase":"build","owner":"task-runner:run","session_id":"S1"}\n' > "$RUN/.cc-artifacts/cc-phase/S1.json"
 cat > "$RUN/tasks/demo/00-INDEX.md" <<'EOF'
 | card | title | status |
 |---|---|---|
@@ -55,8 +55,8 @@ if printf '%s' "$line2" | grep -q 'phase `'; then echo "FAIL: 6d another session
 check "7 source=compact is skill-router's lane, not this one" "$(fire "$RUN" compact)" ""
 check "8 source=resume announces" "$(printf '%s' "$(fire "$RUN" resume)" | grep -c .)" "1"
 
-rm -rf "$RUN/.claude/cc-phase"
-printf '{"slug":"plain"}\n' > "$RUN/.claude/task-runner/active-run.json"
+rm -rf "$RUN/.cc-artifacts/cc-phase"
+printf '{"slug":"plain"}\n' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 line=$(fire "$RUN")
 check "9 a run with no index still announces" "$(printf '%s' "$line" | grep -c .)" "1"
 if printf '%s' "$line" | grep -q 'cards still open'; then echo "FAIL: 10 no index means no invented card count"; rc=1; else echo "PASS: 10 no index means no invented card count"; fi
@@ -69,22 +69,22 @@ check "12 malformed payload fails open" "$out" "rc=0"
 
 # 13-15) STATE ROOT (0.41.0). The payload cwd follows the model's `cd`; the run is
 #        registered at the project root. Before, a session opened in a subdirectory
-#        looked for app/Models/.claude/task-runner/active-run.json and said nothing.
+#        looked for app/Models/.cc-artifacts/task-runner/active-run.json and said nothing.
 git init -q "$RUN" 2>/dev/null
 mkdir -p "$RUN/app/Models"
 printf '{"slug":"2026-09-22-demo","branch":"feat/orders","index_path":"tasks/demo/00-INDEX.md"}\n' \
-  > "$RUN/.claude/task-runner/active-run.json"
+  > "$RUN/.cc-artifacts/task-runner/active-run.json"
 line=$(fire "$RUN/app/Models")
 has "13 subdirectory cwd: the root's run is announced" "$line" '`2026-09-22-demo`'
 has "14 subdirectory cwd: the root-relative index still resolves" "$line" '2 of 4 cards still open'
-check "15 subdirectory cwd: no .claude/ created there" "$([ -e "$RUN/app/Models/.claude" ] && echo yes)" ""
+check "15 subdirectory cwd: no .claude/ or .cc-artifacts/ created there" "$([ -e "$RUN/app/Models/.claude" ] || [ -e "$RUN/app/Models/.cc-artifacts" ] && echo yes)" ""
 
 # 16) a tag named like the run's branch: --abbrev-ref printed `heads/feat/orders`, and the line
 #     told the session it was on another branch than its own run's
-TAGR="$WS/tagged"; mkdir -p "$TAGR/.claude/task-runner"
+TAGR="$WS/tagged"; mkdir -p "$TAGR/.cc-artifacts/task-runner"
 git init -q -b feat/orders "$TAGR" 2>/dev/null && git -C "$TAGR" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
 git -C "$TAGR" tag feat/orders
-printf '{"slug":"tagged","branch":"feat/orders"}\n' > "$TAGR/.claude/task-runner/active-run.json"
+printf '{"slug":"tagged","branch":"feat/orders"}\n' > "$TAGR/.cc-artifacts/task-runner/active-run.json"
 line=$(fire "$TAGR")
 check "16 a tag named like the branch: no 'you are on' another branch" "$(printf '%s' "$line" | grep -c 'you are on')" "0"
 # 17) symbolic-ref's exit 1 is a detached head, named as candor names it; any other exit is unknown and never compared
@@ -95,11 +95,24 @@ check "17a symbolic-ref exiting 128: no 'you are on'" "$(printf '%s' "$line" | g
 git -C "$TAGR" checkout -q --detach
 has "17b a detached head beside a run on a branch: 'you are on HEAD'" "$(fire "$TAGR")" '(you are on `HEAD`)'
 
-ODD="$WS/odd"; mkdir -p "$ODD/.claude/task-runner" "$ODD/tasks/odd"
-printf '{"slug":"2026-10-08-odd","index_path":"tasks/odd/00-INDEX.md"}\n' > "$ODD/.claude/task-runner/active-run.json"
+ODD="$WS/odd"; mkdir -p "$ODD/.cc-artifacts/task-runner" "$ODD/tasks/odd"
+printf '{"slug":"2026-10-08-odd","index_path":"tasks/odd/00-INDEX.md"}\n' > "$ODD/.cc-artifacts/task-runner/active-run.json"
 printf '%s\n' '| card | title | status |' '|---|---|---|' '| 01 | a | committed e93ffc7 — verify 7/7 |' \
   '| 02 | b | Committed 3f6acd7 |' '| 03 | c | done (f403ab9) |' '| 04 | d | pending |' > "$ODD/tasks/odd/00-INDEX.md"
 line=$(fire "$ODD")
 has "20 a status outside the vocabulary is counted open and named" "$line" '3 of 4 cards still open (2 with a status outside pending, in_progress, done, parked, blocked: counted open)'
+
+# 21-24) a run registered before 2026-11-14: its run file under .claude/task-runner/, its index under taskmaster-docs/,
+#        this session's phase under .claude/cc-phase/. Announced from a one-time copy; the old files stay as they were.
+OLD="$WS/old"; mkdir -p "$OLD/.claude/task-runner" "$OLD/.claude/cc-phase" "$OLD/taskmaster-docs/tasks/old"
+printf '{"slug":"2026-11-01-old","index_path":"taskmaster-docs/tasks/old/00-INDEX.md"}\n' > "$OLD/.claude/task-runner/active-run.json"
+printf '{"phase":"verify","owner":"task-runner:run","session_id":"S1"}\n' > "$OLD/.claude/cc-phase/S1.json"
+printf '%s\n' '| card | title | status |' '|---|---|---|' '| 01 | a | done |' '| 02 | b | pending |' > "$OLD/taskmaster-docs/tasks/old/00-INDEX.md"
+before=$(cd "$OLD/.claude" && find . -type f -exec cksum {} + | sort)
+line=$(fire "$OLD")
+has "21 a run under .claude/task-runner/ is announced, its taskmaster-docs/ index counted" "$line" '`2026-11-01-old` — 1 of 2 cards still open'
+has "22 this session's phase under .claude/cc-phase/ is still named" "$line" 'phase `verify` set by task-runner:run'
+check "23 the run file is copied to .cc-artifacts/task-runner/" "$(jq -r .slug "$OLD/.cc-artifacts/task-runner/active-run.json" 2>/dev/null)" "2026-11-01-old"
+check "24 the old files are left as they were" "$(cd "$OLD/.claude" && find . -type f -exec cksum {} + | sort)" "$before"
 
 exit $rc

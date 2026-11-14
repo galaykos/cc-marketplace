@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Drives receipt-fresh.sh on receipts written here with the reader's own digest: fresh only for a passing check at this HEAD on this tree with
-# task-runner's log; stale for every other HEAD, tree, exit, command, log or file shape. Every git command runs in a scratch repo that is its own root.
+# task-runner's log; stale for every other HEAD, tree, exit, command, log or file shape; an older .claude/task-runner/ receipt read only while
+# the .cc-artifacts/ one is absent. Every git command runs in a scratch repo that is its own root.
 set -u
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
 here="$(cd "$(dirname "$0")/.." && pwd)" || exit 1; s="$here/receipt-fresh.sh"
@@ -21,12 +22,13 @@ expect() {
 
 eval "$(sed -n '/^tree_digest() {$/,/^}$/p' "$s")"
 declare -F tree_digest >/dev/null || { echo "FAIL: no tree_digest in $s"; exit 1; }
-R=.claude/task-runner/receipt.json
+# B is task-runner's state dir; like task-runner, it holds a .gitignore of `*`. Before 2026-11-14 it was .claude/task-runner.
+B=.cc-artifacts/task-runner; R=$B/receipt.json
 # receipt [<exit>] [<log>] — a version-1 receipt for HEAD and the tree as it is now, holding one suite check and its log.
 receipt() {
   local h; h=$(git rev-parse HEAD) || exit 1
-  local log=".claude/task-runner/receipts/suite-${h:0:12}.txt"
-  mkdir -p .claude/task-runner/receipts && printf '$ make test\nexit %s\n' "${1:-0}" > "$log"
+  local log="$B/receipts/suite-${h:0:12}.txt"
+  mkdir -p "$B/receipts" && printf '*\n' > "$B/.gitignore" && printf '$ make test\nexit %s\n' "${1:-0}" > "$log"
   jq -n --arg h "$h" --arg t "$(ROOT=$repo tree_digest)" --arg l "${2-$log}" --argjson e "${1:-0}" --arg c "make test" \
     '{version:1, head:$h, tree:$t, checks:{suite:{cmd:$c, exit:$e, log:$l, at:"2026-10-26T00:00:00Z"}}}' > "$R"
 }
@@ -46,11 +48,11 @@ git config user.email t@t; git config user.name t; git config commit.gpgsign fal
 expect "a repository with no commit" 1 '^stale: the repository has no commit yet$' --name suite
 echo one > a.txt; mkdir -p src; echo x > src/b.txt; echo x > src/c.txt; echo .env > .gitignore
 git add -A && git commit -q -m one || exit 1
-expect "no receipt" 1 '^stale: no receipt at \.claude/task-runner/receipt\.json$' --name suite
+expect "no receipt" 1 '^stale: no receipt at \.cc-artifacts/task-runner/receipt\.json$' --name suite
 
 receipt
 h=$(git rev-parse HEAD)
-expect "clean tree, passing check" 0 "^fresh: suite passed at ${h:0:7} \(make test\), log \.claude/task-runner/receipts/suite-${h:0:12}\.txt$" --name suite
+expect "clean tree, passing check" 0 "^fresh: suite passed at ${h:0:7} \(make test\), log \.cc-artifacts/task-runner/receipts/suite-${h:0:12}\.txt$" --name suite
 expect "the expected command" 0 '^fresh: ' --name suite --cmd "make test"
 expect "another command" 1 '^stale: recorded command differs: make test$' --name suite --cmd "make check"
 expect "run from a subdirectory" 0 '^fresh: ' --name suite --root src
@@ -62,7 +64,9 @@ mkdir -p .claude/other; echo scratch > .claude/other/x.txt
 expect "untracked file under .claude/" 0 '^fresh: ' --name suite
 mkdir -p taskmaster-docs; echo spec > taskmaster-docs/spec.md
 expect "untracked file under taskmaster-docs/" 0 '^fresh: ' --name suite
-rm -rf .claude/other taskmaster-docs
+mkdir -p .cc-artifacts/taskmaster/specs; echo spec > .cc-artifacts/taskmaster/specs/a.md
+expect "untracked file under .cc-artifacts/" 0 '^fresh: ' --name suite
+rm -rf .claude/other taskmaster-docs .cc-artifacts/taskmaster
 mkdir -p .claude/skills/x; echo skill > .claude/skills/x/SKILL.md
 expect "untracked project skill" 1 '^stale: files changed since the check ran$' --name suite
 rm -rf .claude/skills
@@ -107,11 +111,11 @@ h=$(git rev-parse HEAD)
 
 receipt 1
 expect "failed check" 1 '^stale: suite exited 1$' --name suite
-receipt; rm .claude/task-runner/receipts/*.txt
+receipt; rm "$B"/receipts/*.txt
 expect "missing log" 1 '^stale: the suite log file is missing' --name suite
-receipt; echo appended >> ".claude/task-runner/receipts/suite-${h:0:12}.txt"
+receipt; echo appended >> "$B/receipts/suite-${h:0:12}.txt"
 expect "log not ending with exit 0" 1 '^stale: the suite log does not end with exit 0' --name suite
-receipt 0 .claude/task-runner/receipts/other.txt; cp ".claude/task-runner/receipts/suite-${h:0:12}.txt" .claude/task-runner/receipts/other.txt
+receipt 0 "$B/receipts/other.txt"; cp "$B/receipts/suite-${h:0:12}.txt" "$B/receipts/other.txt"
 expect "log at another path" 1 '^stale: the suite log is not the one task-runner writes' --name suite
 receipt 0 ""
 expect "empty log path" 1 '^stale: the suite log is not the one task-runner writes' --name suite
@@ -132,6 +136,18 @@ expect "truncated JSON" 1 'cannot be read as a receipt$' --name suite
 expect "empty receipt" 1 'cannot be read as a receipt$' --name suite
 echo '[1,2]' > "$R"
 expect "a JSON array" 1 'cannot be read as a receipt$' --name suite
+
+# A task-runner from before 2026-11-14 wrote .claude/task-runner/: read only while the new receipt is absent, never written.
+rm -rf .cc-artifacts; B=.claude/task-runner; R=$B/receipt.json; receipt
+legacy_sum=$(cat "$R" "$B/receipts/suite-${h:0:12}.txt" | cksum)
+expect "an old-only receipt is read, with its own log" 0 "^fresh: suite passed at ${h:0:7} \(make test\), log \.claude/task-runner/receipts/suite-${h:0:12}\.txt$" --name suite
+if [ "$(cat "$R" "$B/receipts/suite-${h:0:12}.txt" | cksum)" = "$legacy_sum" ] && [ ! -e .cc-artifacts ]; then ok; else
+  bad "the old receipt stays untouched and nothing is written to .cc-artifacts/" "$(ls -A)"; fi
+B=.cc-artifacts/task-runner; R=$B/receipt.json; receipt 1
+expect "a new receipt wins over an old passing one" 1 '^stale: suite exited 1$' --name suite
+# task-runner copies the old dir across once; the copied receipt still names its log under .claude/task-runner/.
+cp .claude/task-runner/receipt.json "$R"
+expect "a copied receipt naming its log under .claude/ reads fresh" 0 "^fresh: suite passed at ${h:0:7} \(make test\), log \.claude/task-runner/receipts/suite-${h:0:12}\.txt$" --name suite
 
 echo "receipt-fresh.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

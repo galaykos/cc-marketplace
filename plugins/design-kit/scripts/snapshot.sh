@@ -8,14 +8,14 @@
 #     loads each route in the Chromium-family browser board-export.sh locates — asked
 #     for as `board-export.sh --which`, so the discovery and its install hint live in
 #     one place — and writes <out>/<device>/<route-slug>.png. <out> defaults to
-#     .design-kit/shots/<git short sha, else a UTC timestamp>/, and a second shoot at
+#     .cc-artifacts/design-kit/shots/<git short sha, else a UTC timestamp>/, and a second shoot at
 #     the same commit writes <sha>-2 rather than over the set you are about to
 #     compare against. desktop is 1440x900, mobile 390x844. --base-url defaults to
 #     `codebase-scaffold.sh --detect`'s dev_url.
 #   review --base <dir|git-ref> [--current DIR]
 #     pairs the newest shot set (or --current) against the base — a directory, or a
 #     git ref whose shots were committed, extracted read-only into
-#     .design-kit/shots/_base-<ref>/ — writes .design-kit/reviews/<pair>.html with
+#     .cc-artifacts/design-kit/shots/_base-<ref>/ — writes .cc-artifacts/design-kit/reviews/<pair>.html with
 #     before | after | a pixel-diff heatmap per route, serves it through preview.sh,
 #     and prints one table row per route with the changed-pixel percentage. Either
 #     side may name a set dir or any parent of one. The heatmap and the percentage
@@ -37,11 +37,11 @@
 # shot, with a WARN naming where it landed; a file holding cookies for other hosts than
 # the base URL's draws a WARN too. The file holds a live session token: one
 # inside a git work tree that git does not ignore (a tracked file never counts as
-# ignored) is REFUSED, exit 1 — keep it under .design-kit/, which dk.sh keeps ignored,
+# ignored) is REFUSED, exit 1 — keep it under .cc-artifacts/design-kit/, which dk.sh keeps ignored,
 # or outside the repo.
 #
 # WHERE SHOTS GO. $DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root),
-# else .design-kit at the git toplevel — not under a subdirectory the shell cd'd into.
+# else .cc-artifacts/design-kit at the git toplevel — not under a subdirectory the shell cd'd into.
 #
 # EXIT. 0 shot / rendered · 1 bad arguments (a refused or malformed --storage-state
 # too) · 2 the browser or the server was unreachable, printed as NOT MEASURED and never
@@ -71,7 +71,7 @@ set -euo pipefail
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/snapshot.sh
 
 here="$(cd "$(dirname "$0")" && pwd)"
-DK="${DESIGN_KIT_DIR:-$(git rev-parse --show-cdup 2>/dev/null || true).design-kit}"
+DK="${DESIGN_KIT_DIR:-$(git rev-parse --show-cdup 2>/dev/null || true).cc-artifacts/design-kit}"
 
 usage() { sed -n '2,/^set -euo pipefail$/p' "$0" | sed '$d'; }
 die() { echo "snapshot: $1" >&2; exit "${2:-1}"; }
@@ -98,7 +98,7 @@ check_state() {
   dir="$(cd "$(dirname "$1")" && pwd)"
   if top="$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)"; then
     git -C "$dir" check-ignore -q -- "$(basename "$1")" 2>/dev/null \
-      || die "REFUSED --storage-state $1: it is inside the git work tree $top and git does not ignore it (or it is tracked). It holds a live session token the next \`git add -A\` would commit. Move it under .design-kit/ (dk keeps that ignored) or outside the repo, or gitignore it." 1
+      || die "REFUSED --storage-state $1: it is inside the git work tree $top and git does not ignore it (or it is tracked). It holds a live session token the next \`git add -A\` would commit. Move it under .cc-artifacts/design-kit/ (dk keeps that ignored) or outside the repo, or gitignore it." 1
   fi
   python3 - "$1" <<'PY' || die "--storage-state $1 is not a Playwright storageState: want {\"cookies\": [{\"name\", \"value\", \"domain\", …}], \"origins\": [{\"origin\", \"localStorage\": [{\"name\", \"value\"}]}]} holding at least one cookie or localStorage entry" 1
 import json, sys
@@ -411,6 +411,8 @@ else
   top="$(git rev-parse --show-toplevel)"
   shots_rel="$(python3 -c 'import os,sys;print(os.path.relpath(os.path.realpath(sys.argv[1]),os.path.realpath(sys.argv[2])))' "$DK/shots" "$top")"
   git -C "$top" archive "$base" -- "$shots_rel" 2>/dev/null | tar -x -C "$base_root" 2>/dev/null || true
+  # a ref from before 2026-11-14 committed its shots under .design-kit/shots: read those when the new path held none
+  [ -n "$(ls -A "$base_root")" ] || git -C "$top" archive "$base" -- .design-kit/shots 2>/dev/null | tar -x -C "$base_root" 2>/dev/null || true
 fi
 base_set="$(find_set "$base_root")"
 [ -n "$base_set" ] || die "--base '$base' carries no shot set (a desktop/ or mobile/ dir of PNGs)" 1

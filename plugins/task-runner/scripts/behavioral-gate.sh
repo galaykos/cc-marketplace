@@ -9,11 +9,24 @@ PROG=behavioral-gate
 BG_RECORD_DIR=
 log()   { printf '%s: %s\n' "$PROG" "$*" >&2; }
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 # bg_record: what this script concluded for HEAD, which candor's Stop gate checks the model-written gate-pass.json against; armed by the bg dir existing, written on every exit path, never fatal.
 bg_record() { # bg_record <verdict-label> [runners]
   # --record-dir names the live repo's bg dir; the default is the git toplevel, never $(pwd) (a disposable checkout, a subdirectory).
-  bg_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.claude/task-runner/bg}"
+  bg_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.cc-artifacts/task-runner/bg}"
   [ -d "$bg_dir" ] && [ -w "$bg_dir" ] || return 0
   command -v git >/dev/null 2>&1 || return 0
   bg_head=$(git rev-parse HEAD 2>/dev/null) || return 0
@@ -124,8 +137,8 @@ while [ $# -gt 0 ]; do
     --runner-for)     shift; [ $# -ge 2 ] || usage "--runner-for requires <lang> '<cmd>::<empty-output-regex>'"; set_runner_for "$1" "$2"; shift 2 ;;
     --isolate)        ISOLATE=1; shift ;;
     --in-place)       IN_PLACE=1; shift ;;
-    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list-or-@listfile> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2
-                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600); a run it cuts short is unverifiable-suite.\n  Where the host sets no limit (CLI 2.1.288+ outside -p, SDK, CI and cloud), raise it for a long suite set,\n  e.g. BEHAVIORAL_GATE_TOTAL=14400; 0 is not "no total", it cuts every run.\n  Run the gate in background Bash with timeout 7200000: a foreground call ends by 10 minutes, a background one\n  by 30 unless its timeout says more (2 h max), with no verdict.\n  --isolate works in <repo>/.claude/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
+    -h|--help)   printf 'usage: %s (--isolate | --in-place) --changed <file-or-list-or-@listfile> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--runner '\''<cmd>::<empty-regex>'\''] [--runner-for <py|js|go|php|rs|rb|java> '\''<cmd>::<empty-regex>'\''] [--record-dir <live-repo>/.cc-artifacts/task-runner/bg]\n' "$PROG" >&2
+                 printf '  --runner adds a runner; --runner-for replaces that language'\''s built-in one.\n  BEHAVIORAL_GATE_TIMEOUT=<seconds> caps each suite run (default 1800; entrypoint probes: 60).\n  BEHAVIORAL_GATE_TOTAL=<seconds> caps the whole gate (default 6600); a run it cuts short is unverifiable-suite.\n  Where the host sets no limit (CLI 2.1.288+ outside -p, SDK, CI and cloud), raise it for a long suite set,\n  e.g. BEHAVIORAL_GATE_TOTAL=14400; 0 is not "no total", it cuts every run.\n  Run the gate in background Bash with timeout 7200000: a foreground call ends by 10 minutes, a background one\n  by 30 unless its timeout says more (2 h max), with no verdict.\n  --isolate works in <repo>/.cc-artifacts/task-runner/iso/ and exports BG_TREE_REL (its path from the repo root).\n' >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -148,12 +161,13 @@ iso_refuse() { log "--isolate: $1 — refusing; nothing was run"; exit 3; }
 
 live_top=""
 command -v git >/dev/null 2>&1 && live_top=$(git rev-parse --show-toplevel 2>/dev/null || true)
+[ -z "$live_top" ] || tr_state_dir "$live_top" >/dev/null
 
 if [ "$ISOLATE" = 1 ]; then
   [ -n "$live_top" ] || iso_refuse "$(pwd) is not inside a git work tree, so there is no HEAD to check out"
   ISO_LIVE=$(cd "$live_top" && pwd -P) || iso_refuse "cannot resolve the live toplevel $live_top"
   trap 'iso_cleanup' EXIT INT TERM
-  ISO_ROOT="$ISO_LIVE/.claude/task-runner/iso"
+  ISO_ROOT="$ISO_LIVE/.cc-artifacts/task-runner/iso"
   mkdir -p "$ISO_ROOT" 2>/dev/null || iso_refuse "cannot create $ISO_ROOT"
   [ -e "$ISO_ROOT/.gitignore" ] || printf '*\n' > "$ISO_ROOT/.gitignore" || iso_refuse "cannot write $ISO_ROOT/.gitignore"
   # A tree older than a day is a dead gate's: a suite exhausting memory kills the gate before its trap runs.
@@ -179,7 +193,7 @@ if [ "$ISOLATE" = 1 ]; then
   # Relative links when the tree is at the expected depth: an absolute host path dangles in a container mounting the repo elsewhere.
   BG_TREE_REL=${ISO_TREE#"$ISO_LIVE"/}; export BG_TREE_REL
   dep_up="$ISO_LIVE"
-  case "$BG_TREE_REL" in .claude/task-runner/iso/*/tree) dep_up=../../../../.. ;; esac
+  case "$BG_TREE_REL" in .cc-artifacts/task-runner/iso/*/tree) dep_up=../../../../.. ;; esac
   for dep in vendor node_modules; do
     if [ -d "$ISO_LIVE/$dep" ] && [ ! -e "$ISO_TREE/$dep" ]; then
       ln -s "$dep_up/$dep" "$ISO_TREE/$dep" && [ -d "$ISO_TREE/$dep" ] || iso_refuse "cannot link $dep into $ISO_TREE"
@@ -200,12 +214,12 @@ if [ "$ISOLATE" = 1 ]; then
     APP_KEY="base64:$(head -c 32 /dev/urandom | base64 | tr -d '\n')"; export APP_KEY
   fi
   # The record belongs to the live repo, not the tree about to be deleted.
-  : "${BG_RECORD_DIR:=$ISO_LIVE/.claude/task-runner/bg}"
+  : "${BG_RECORD_DIR:=$ISO_LIVE/.cc-artifacts/task-runner/bg}"
   # Keep the caller's position: `--changed` paths are relative to it.
   iso_rel=$(pwd -P); iso_rel=${iso_rel#"$ISO_LIVE"}
   if [ -d "$ISO_TREE$iso_rel" ]; then cd "$ISO_TREE$iso_rel"; else cd "$ISO_TREE"; fi
   log "isolate: running in $(pwd) (worktree of HEAD $(git rev-parse --short HEAD 2>/dev/null)); removed on exit"
-elif [ "$IN_PLACE" = 0 ] && [ -n "$live_top" ] && [ -e "$live_top/.claude/task-runner/active-run.json" ]; then
+elif [ "$IN_PLACE" = 0 ] && [ -n "$live_top" ] && [ -e "$live_top/.cc-artifacts/task-runner/active-run.json" ]; then
   log "refusing to run in $live_top: it is a registered task-runner run's LIVE tree, and a suite run here can mutate it"
   log "re-run with --isolate (the gate builds and removes its own worktree), or --in-place if cwd is already a disposable copy"
   exit 3
@@ -219,7 +233,7 @@ pid_cleanup() {
   [ -n "$PID_FILE" ] && [ "$(head -n 1 "$PID_FILE" 2>/dev/null)" = "$$" ] && rm -f "$PID_FILE"
   return 0
 }
-pid_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.claude/task-runner/bg}"
+pid_dir="${BG_RECORD_DIR:-${live_top:-$(pwd)}/.cc-artifacts/task-runner/bg}"
 if [ -d "$pid_dir" ] && [ -w "$pid_dir" ] && [ -w "$(dirname "$pid_dir")" ]; then
   if printf '%s\n%s\n%s\n' "$$" "$(git rev-parse HEAD 2>/dev/null)" "$deadline" > "$pid_dir/running.pid" 2>/dev/null; then
     PID_FILE="$pid_dir/running.pid"

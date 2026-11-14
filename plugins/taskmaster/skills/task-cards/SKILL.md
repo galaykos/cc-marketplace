@@ -150,7 +150,7 @@ milestones — each one independently shippable and verifiable:
 ## Output layout
 
 ```
-taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
+.cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/
   00-INDEX.md
   01-extract-invoice-totals.md ...
 ```

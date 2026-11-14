@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
-# track-ports.sh — hands each parallel track its own block of TCP ports: `claim --id <track>` prints one sentence naming a block no other claim holds and nothing listens on, `release --id <track>` frees it, `list` prints the claims. Claims live in the main repository's .claude/task-runner/ports/, shared by every worktree.
+# track-ports.sh — hands each parallel track its own block of TCP ports: `claim --id <track>` prints one sentence naming a block no other claim holds and nothing listens on, `release --id <track>` frees it, `list` prints the claims. Claims live in the main repository's .cc-artifacts/task-runner/ports/, shared by every worktree.
 # Misses: a server whose port is hardcoded in config or code and never reads the sentence, a process that binds a port after the claim, ports held by another repository's run, and everything that is not a port (a local database, caches, a Docker daemon).
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/track-ports.sh
 set -uo pipefail
 
 PROG=track-ports
 usage() { printf '%s: usage: %s claim --id <track> [--count <n>] [--base <port>] | release --id <track> | list\n' "$PROG" "$PROG" >&2; exit 3; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 mode=${1:-}; [ $# -gt 0 ] && shift
 id=""; count=10; base=4100
@@ -25,9 +38,10 @@ case "$base" in '' | *[!0-9]*) usage ;; esac
 
 common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || { printf '%s: not inside a git repository\n' "$PROG" >&2; exit 3; }
 root=$(dirname "$common")
-dir="$root/.claude/task-runner/ports"
+tr=$(tr_state_dir "$root")
+dir="$tr/ports"
 mkdir -p "$dir" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$dir" >&2; exit 3; }
-[ -e "$root/.claude/task-runner/.gitignore" ] || printf '*\n' > "$root/.claude/task-runner/.gitignore" 2>/dev/null
+[ -e "$tr/.gitignore" ] || printf '*\n' > "$tr/.gitignore" 2>/dev/null
 
 say() { printf 'Ports %s-%s are this track'"'"'s (%s): bind every server and test listener there, never on a default port.\n' "$1" "$(($1 + $2 - 1))" "$3"; }
 claims() { # one "<id> <base> <count>" line per claim

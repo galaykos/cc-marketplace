@@ -18,9 +18,10 @@ computed. This file is the contract those references implement.
 
 - **Sole index writer.** Only this orchestrator writes `00-INDEX.md`. Track-workers
   never write it, and it never travels into a worktree (it lives in gitignored
-  `taskmaster-docs/`). Per-track/per-card status is written by the orchestrator
-  **between waves** — a wave is a blocking batch, so status cannot update mid-wave;
-  race-freedom comes from the single sequential orchestrator, not from locking.
+  `.cc-artifacts/taskmaster/`, older projects `taskmaster-docs/`). Per-track/per-card
+  status is written by the orchestrator **between waves** — a wave is a blocking batch, so
+  status cannot update mid-wave; race-freedom comes from the single sequential orchestrator,
+  not from locking.
 - **Strict dependency waves, not rolling.** Fan-out is fork-join: a Workflow `agent()`
   batch blocks until all its tracks return. Milestones therefore run in waves — launch
   every currently-launchable eligible milestone (deps already merged) as ONE batch,
@@ -33,7 +34,7 @@ computed. This file is the contract those references implement.
   dependency order, interleaved with the waves.
 - **One worktree + one branch per track.** Named `<run-branch>-track-<slug>` where
   `<slug>` is a git-ref-safe milestone slug. The orchestrator creates the worktree and
-  its `<wt>/.claude/task-runner/` directory before dispatch. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+  its `<wt>/.cc-artifacts/task-runner/` directory before dispatch. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Track-worker dispatch
 
@@ -102,7 +103,7 @@ them — the worker cannot:
   which also makes naming it in the report mandatory
 - the per-card **negative-control** records, which the gate counts the same way: the leaf
   RUNS the control but must be told to write it to the MAIN repo's
-  `.claude/task-runner/nc` by absolute path, because `.claude/` is gitignored and a
+  `.cc-artifacts/task-runner/nc` by absolute path, because that dir is gitignored and a
   worktree-local record merges nowhere (`references/algorithm.md` § Dispatch item 6)
 
 Without these records a tracks run blocks at completion having done nothing wrong. Records
@@ -129,7 +130,7 @@ per-track green is stale after merge. Therefore:
   If invoked on a protected/base branch (master/main) or a dirty tree, create or require
   a run branch first, or refuse with guidance — track merges must never land on a base
   branch and must reach the `git-workflow:finish` gate.
-- **Ownership + liveness.** Write a `.claude/task-runner/tracks-run-<id>.lock` marker.
+- **Ownership + liveness.** Write a `.cc-artifacts/task-runner/tracks-run-<id>.lock` marker.
   Worktrees live under `.claude/worktrees/`. Cleanup and orphan detection touch **only**
   worktrees/branches in this run's `<run-branch>-track-*` namespace, cross-checked
   against `git worktree list`; foreign worktrees and any other live run's worktrees are

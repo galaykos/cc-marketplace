@@ -18,11 +18,11 @@ unset CLAUDE_PROJECT_DIR
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not found"; exit 0; }
 
-G="$FX/repo"; mkdir -p "$G/sub" "$G/.claude/task-runner/walk/m1/desktop"
+G="$FX/repo"; mkdir -p "$G/sub" "$G/.cc-artifacts/task-runner/walk/m1/desktop"
 git init -q "$G" 2>/dev/null
-printf 'png' > "$G/.claude/task-runner/walk/m1/desktop/index.png"
+printf 'png' > "$G/.cc-artifacts/task-runner/walk/m1/desktop/index.png"
 mkdir -p "$FX/outside"
-RD="$G/.claude/task-runner/reductions"
+RD="$G/.cc-artifacts/task-runner/reductions"
 
 pass() { echo "PASS: $1"; }
 fail() { echo "FAIL: $1"; rc=1; }
@@ -44,22 +44,22 @@ case "$err" in *"REDUCED (other) x1"*) pass "the reduction is disclosed on stder
 
 # 2. --evidence is recorded, repo-relative, and echoed.
 run_in "$G" --kind coverage --id bg-0123456789ab --reason "UI files, no JS runner" \
-  --evidence .claude/task-runner/walk/m1
+  --evidence .cc-artifacts/task-runner/walk/m1
 if [ "$got" -eq 0 ] &&
-   [ "$(jq -r '.evidence' "$RD/coverage-bg-0123456789ab.json" 2>/dev/null)" = ".claude/task-runner/walk/m1" ]; then
+   [ "$(jq -r '.evidence' "$RD/coverage-bg-0123456789ab.json" 2>/dev/null)" = ".cc-artifacts/task-runner/walk/m1" ]; then
   pass "--evidence recorded repo-relative"
 else fail "--evidence not recorded (rc=$got)"; fi
-case "$err" in *"evidence for this reduction: .claude/task-runner/walk/m1"*) pass "evidence echoed on stderr" ;;
+case "$err" in *"evidence for this reduction: .cc-artifacts/task-runner/walk/m1"*) pass "evidence echoed on stderr" ;;
   *) fail "evidence not echoed: $err" ;; esac
 
 # A FILE is evidence too, not only a directory.
 run_in "$G" --kind coverage --id walk-m1 --reason "one shot" \
-  --evidence .claude/task-runner/walk/m1/desktop/index.png
-[ "$got" -eq 0 ] && [ "$(jq -r '.evidence' "$RD/coverage-walk-m1.json" 2>/dev/null)" = ".claude/task-runner/walk/m1/desktop/index.png" ] \
+  --evidence .cc-artifacts/task-runner/walk/m1/desktop/index.png
+[ "$got" -eq 0 ] && [ "$(jq -r '.evidence' "$RD/coverage-walk-m1.json" 2>/dev/null)" = ".cc-artifacts/task-runner/walk/m1/desktop/index.png" ] \
   && pass "a file path is accepted as evidence" || fail "file evidence (rc=$got)"
 
 # 3. A missing evidence path is a usage error and leaves NO record.
-run_in "$G" --kind coverage --id gone1 --reason "r" --evidence .claude/task-runner/walk/nope
+run_in "$G" --kind coverage --id gone1 --reason "r" --evidence .cc-artifacts/task-runner/walk/nope
 if [ "$got" -eq 3 ] && [ ! -e "$RD/coverage-gone1.json" ]; then
   pass "missing evidence path rejected (rc=3), no record"
 else fail "missing evidence: want rc=3 and no record, got rc=$got"; fi
@@ -80,12 +80,23 @@ run_in "$G" --id k2 --reason "r"
 
 # 5. From a subdirectory: the record lands at the repo root, none in sub/, and a
 # relative --evidence resolves against the shell's cwd.
-run_in "$G/sub" --kind suite --id s1 --reason "narrowed" --evidence ../.claude/task-runner/walk/m1
-if [ "$got" -eq 0 ] && [ -f "$RD/suite-s1.json" ] && [ ! -e "$G/sub/.claude" ] &&
-   [ "$(jq -r '.evidence' "$RD/suite-s1.json" 2>/dev/null)" = ".claude/task-runner/walk/m1" ]; then
+run_in "$G/sub" --kind suite --id s1 --reason "narrowed" --evidence ../.cc-artifacts/task-runner/walk/m1
+if [ "$got" -eq 0 ] && [ -f "$RD/suite-s1.json" ] && [ ! -e "$G/sub/.claude" ] && [ ! -e "$G/sub/.cc-artifacts" ] &&
+   [ "$(jq -r '.evidence' "$RD/suite-s1.json" 2>/dev/null)" = ".cc-artifacts/task-runner/walk/m1" ]; then
   pass "subdirectory call anchors at the repo root; relative evidence resolved"
-else fail "subdirectory call (rc=$got; sub/.claude exists? $([ -e "$G/sub/.claude" ] && echo yes || echo no))"; fi
-[ -f "$G/.claude/task-runner/.gitignore" ] && pass "state root ignores itself" || fail "no .claude/task-runner/.gitignore"
+else fail "subdirectory call (rc=$got; sub/.claude or sub/.cc-artifacts exists? $([ -e "$G/sub/.claude" ] || [ -e "$G/sub/.cc-artifacts" ] && echo yes || echo no))"; fi
+[ -f "$G/.cc-artifacts/task-runner/.gitignore" ] && pass "state root ignores itself" || fail "no .cc-artifacts/task-runner/.gitignore"
+
+# 6. A run registered before 2026-11-14 keeps its records in .claude/task-runner/: the next record lands beside a one-time
+# copy of them under .cc-artifacts/task-runner/, and the old dir is left as it was.
+O="$FX/old"; mkdir -p "$O/.claude/task-runner/reductions"; git init -q "$O" 2>/dev/null
+printf '{"kind":"dispatch","id":"d1","reduced":true,"reason":"r"}\n' > "$O/.claude/task-runner/reductions/dispatch-d1.json"
+before=$(cd "$O/.claude" && find . -type f -exec cksum {} + | sort)
+run_in "$O" --kind other --id o1 --reason "r"
+if [ "$got" -eq 0 ] && [ -f "$O/.cc-artifacts/task-runner/reductions/other-o1.json" ] && [ -f "$O/.cc-artifacts/task-runner/reductions/dispatch-d1.json" ] &&
+   [ "$(cd "$O/.claude" && find . -type f -exec cksum {} + | sort)" = "$before" ]; then
+  pass "a legacy run's records are copied once and the new record lands beside them; .claude/task-runner/ untouched"
+else fail "legacy records (rc=$got): $(cd "$O" && find .claude .cc-artifacts -type f 2>&1 | tr '\n' ' ')"; fi
 
 [ "$rc" -eq 0 ] && echo "All reduction-record fixtures passed."
 exit "$rc"

@@ -81,8 +81,8 @@ read blame. Before the first such dispatch, write `git diff <scope>` (plus each 
 in scope as `git diff --no-index /dev/null <file>`, plus
 `git blame --porcelain -L <a>,+<b> <base> -- <file>` for each modified hunk `@@ -<a>,<b>`;
 porcelain carries each commit's subject, which the history pass reads) to
-`.claude/code-review/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*` in
-`.claude/code-review/` so the patch never lists itself as untracked. Name that path in every
+`.cc-artifacts/code-review/rv/diff-<short HEAD>.patch`, with a `.gitignore` holding `*` in
+`.cc-artifacts/code-review/` so the patch never lists itself as untracked. Name that path in every
 reviewer prompt and state "cite line numbers from the working file, not the patch". Never
 tell a Read/Grep/Glob agent to run git. An agent that runs tools (`analyzer-expert`,
 `devops-reviewer`) has Bash and gets the scope instead. Standing: agent-graded — nothing

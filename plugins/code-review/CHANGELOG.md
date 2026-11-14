@@ -3,6 +3,13 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.38.0 — 2026-11-14
+
+- **`/code-review:review` writes the reviewer diff to `.cc-artifacts/code-review/rv/diff-<short HEAD>.patch`** (was `.claude/code-review/rv/`), with the `*` `.gitignore` in `.cc-artifacts/code-review/`. Claude Code refuses a Write under `.claude/`; `.cc-artifacts/` is the one folder every marketplace plugin now writes its project artifacts to.
+- **Hook state with no plugin data dir moves to `.cc-artifacts/code-review/` and `.cc-artifacts/comment-discipline/`** (was `.claude/…`): review base, seen, fired and credit files, deny and density markers, bash-effects markers, through the shared plugin-state block in `conventions.sh`, `density.sh`, `review-debt.sh`, `scan.sh` and `verbosity.sh`. They start fresh, so a context's review base is re-recorded on its next prompt. The `$HOME/.claude/comment-discipline/` ledgers do not move.
+- **`review-debt.sh` stays silent during a task-runner run in `.cc-artifacts/task-runner/`**, else in `.claude/task-runner/` while the new dir does not exist, and counts no file under `.cc-artifacts/`.
+- Standing: gate (`review-debt.test.sh`, with an old-path-only run case; `cwd-guard.test.sh`; `elision-guard.test.sh`; the marketplace repository's comment-discipline smoke harnesses); agent-graded that a reviewer dispatch names the diff path.
+
 ## 0.37.0 — 2026-11-12
 
 - **New: the `analyzer-expert` agent, the `analyzer-triage` skill and `scripts/detect-analyzers.sh`, merged in from toolchain-experts.** That plugin left the marketplace. If you had it installed, this plugin now carries it; uninstall the old one.

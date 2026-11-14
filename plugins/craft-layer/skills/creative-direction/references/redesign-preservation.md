@@ -27,8 +27,8 @@ skips `hue-repeat` and `font-repeat` for every value, not only the kept ones.
 `greenfield`. Generator output is not a site: a starter page or kit, demo routes, auth
 scaffolding (Breeze or Jetstream's `/login` and `/register`, create-next-app's layout).
 `greenfield` on a target that has a site is the user's call, never an inference. A site that is
-an earlier craft run's own output — a `.craft-layer/run-log.md` or stamped `craft/` artifacts in
-the target — defaults to `new-look` instead, so the run still differs from the run log, unless
+an earlier craft run's own output — a run log in `.cc-artifacts/craft-layer/` (or an older
+`.craft-layer/`) or stamped `craft/` artifacts in the target — defaults to `new-look` instead, so the run still differs from the run log, unless
 the existing `preserve.json` records `keep-brand`, which carries forward; `preserve.json` is
 written either way. The mode is the contract's `Redesign` row, marked `(inferred ← <signal>)`
 when the run derived it. The default fails safe: a user who wanted a new look says so at the
@@ -80,7 +80,7 @@ when the user approves that item, recorded in `preserve.json`'s `approved`. A br
 ## `preserve.json`
 
 Written at `/craft-layer:craft` step 0, before the deck draw, for `keep-brand` and `new-look`
-only, at `<project>/.craft-layer/preserve.json` — project state that outlives the session, not
+only, at `<project>/.cc-artifacts/craft-layer/preserve.json` — project state that outlives the session, not
 a `craft/` run artifact:
 
 ```json

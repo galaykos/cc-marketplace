@@ -1,5 +1,5 @@
 #!/bin/bash
-# PostToolUse (and PostToolUseFailure on Bash) in a registered run: warns when an edited path, a Bash write target or a file changed after an interpreter run (8 each) is outside the union of the run's live scope*.json allow lists; never checked: the run's index dir and .claude/<dir>/ state except skills, agents, commands, hooks, rules, output-styles, worktrees.
+# PostToolUse (and PostToolUseFailure on Bash) in a registered run: warns when an edited path, a Bash write target or a file changed after an interpreter run (8 each) is outside the union of the run's live scope*.json allow lists; never checked: the run's index dir, taskmaster's ledgers, .cc-artifacts/<dir>/ other than taskmaster and .claude/<dir>/ state except skills, agents, commands, hooks, rules, output-styles, worktrees.
 # Misses: a worker in another worktree, scope files written mid-run (they widen the union), writes neither the parser nor git can name, absolute paths outside the root, any file in the index's dir (an index at the root exempts nothing); a malformed scope file disarms the call. Advisory; fails open.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/scope.sh
 MAX_BASH_TARGETS=8
@@ -141,7 +141,7 @@ cc_bash_write_targets() {
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -151,7 +151,7 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }
@@ -185,6 +185,20 @@ cc_bash_write_effects() {
   return 0
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || { echo "task-runner scope-lock: jq not found — scope not enforced this call" >&3; exit 0; }
@@ -195,9 +209,9 @@ cc_bash_write_effects() {
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
-  tr_dir="$root/.claude/task-runner"
+  tr_dir=$(tr_state_dir "$root")
 
-  # Nothing in .claude/task-runner/ belongs in a commit: the first hook to see the directory makes it ignore itself.
+  # Nothing in .cc-artifacts/task-runner/ belongs in a commit: the first hook to see the directory makes it ignore itself.
   if [ -d "$tr_dir" ] && [ ! -e "$tr_dir/.gitignore" ]; then printf '*\n' > "$tr_dir/.gitignore" 2>/dev/null; fi
 
   # No registered run: every scope file is a leftover; one older than active-run.json is from an earlier registration.
@@ -228,14 +242,17 @@ cc_bash_write_effects() {
     jq -e '.allow | type == "array"' "$s" >/dev/null 2>&1 || { echo "task-runner scope-lock: $(basename "$s") has no \"allow\" array (expected {\"allow\":[\"path\",\"dir/\"],\"task\":\"<id>\"}) — scope not enforced this call" >&3; exit 0; }
   done
 
-  # The orchestrator's own bookkeeping: the index's siblings (cards, PLAN.md, .lint-records/) and plugin scratch under .claude/<dir>/.
+  # The orchestrator's own bookkeeping: the index's siblings (cards, PLAN.md, .lint-records/) and plugin scratch under .cc-artifacts/<dir>/ or .claude/<dir>/.
   idx_dir=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null); idx_dir="${idx_dir#./}"
   case "$idx_dir" in "$root"/*) idx_dir="${idx_dir#"$root"/}" ;; esac
   case "$idx_dir" in /* | ../*) idx_dir="" ;; */*) idx_dir="${idx_dir%/*}/" ;; *) idx_dir="" ;; esac
   exempt() {
     case "$1" in
       .claude/skills/* | .claude/agents/* | .claude/commands/* | .claude/hooks/* | .claude/rules/* | .claude/output-styles/* | .claude/worktrees/*) ;;
-      .claude/*/*) return 0 ;;
+      # taskmaster's ledgers moved here from .claude/taskmaster/; its other files came from taskmaster-docs/, which was checked.
+      .cc-artifacts/taskmaster/ledger-* | .cc-artifacts/taskmaster/goal-ledger-*) return 0 ;;
+      .cc-artifacts/taskmaster/*) ;;
+      .claude/*/* | .cc-artifacts/*/*) return 0 ;;
     esac
     [ -n "$idx_dir" ] && case "$1" in "$idx_dir"*) return 0 ;; esac
     return 1

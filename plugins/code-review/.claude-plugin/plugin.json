@@ -1,6 +1,6 @@
 {
   "name": "code-review",
-  "version": "0.37.0",
+  "version": "0.38.0",
   "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline (default: no comment; write-time hooks warn, and deny the strictest patterns, a file over a 0.3:1 comment ceiling and code replaced by a // ... existing code ... placeholder, twice per file each; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, an analyzer-expert agent that RUNS the project's configured phpstan, psalm, tsc, vue-tsc, eslint, biome or stylelint and reports what its config cannot see, and the code-smells, reuse-hygiene, comment-discipline and analyzer-triage skills; the fan-in loads every installed matching stack skill in one pass.",
   "author": {
     "name": "Ivan-WG",

@@ -675,7 +675,7 @@ BEHAVIORAL_GATE_TIMEOUT=1 case_run "BEHAVIORAL_GATE_TIMEOUT=1 over a 5 s suite -
 # LIVE project: a committed .env.example and artisan, an untracked .env holding the
 # "credentials", and a test that drops ran.marker in whatever directory it runs in — so
 # "was the live tree touched" is a file check, not an inference. The gate's worktrees go
-# under the fixture's own .claude/task-runner/iso/ (2026-10-14: $TMPDIR is invisible to a
+# under the fixture's own .cc-artifacts/task-runner/iso/ (2026-10-14: $TMPDIR is invisible to a
 # container that mounts the repo), so leftovers are countable there; TMPDIR stays private
 # to this harness to prove nothing lands in it any more.
 iso_ok()  { printf 'PASS: %s\n' "$1"; pass=$((pass+1)); }
@@ -684,7 +684,7 @@ iso_gate() { # iso_gate <dir> <args...> -> sets IRC, IOUT
   set +e; IOUT=$( cd "$1" && shift && TMPDIR="$ISO_TMP" "$BG" "$@" 2>&1 ); IRC=$?; set -e
 }
 ISO_TMP="$WS/isotmp"; mkdir -p "$ISO_TMP"
-LIVE="$WS/live-app"; mkdir -p "$LIVE/.claude/task-runner/bg"
+LIVE="$WS/live-app"; mkdir -p "$LIVE/.cc-artifacts/task-runner/bg"
 cat > "$LIVE/impl.js" <<'JS'
 module.exports = () => 42;
 JS
@@ -702,7 +702,7 @@ test('impl', () => {
 JS
 printf 'APP_KEY=\nAPP_URL=http://localhost\n' > "$LIVE/.env.example"
 printf '#!/usr/bin/env php\n' > "$LIVE/artisan"
-printf '.env\nran.marker\n.claude/\nnode_modules/\n' > "$LIVE/.gitignore"
+printf '.env\nran.marker\n.cc-artifacts/\nnode_modules/\n' > "$LIVE/.gitignore"
 mkdir -p "$LIVE/node_modules"
 ( cd "$LIVE" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
 printf 'APP_KEY=base64:LIVE-SECRET\nAPP_URL=https://live.example\n' > "$LIVE/.env"
@@ -711,7 +711,7 @@ live_head=$(git -C "$LIVE" rev-parse HEAD)
 
 # I1. --isolate: runs in its own worktree, builds env there, records to the LIVE bg dir,
 #     leaves no worktree and no temp dir behind, and the live tree is byte-identical.
-PROBE="$WS/iso-probe"; LIVE_P=$(cd "$LIVE" && pwd -P); ISO_DIRS="$LIVE/.claude/task-runner/iso"
+PROBE="$WS/iso-probe"; LIVE_P=$(cd "$LIVE" && pwd -P); ISO_DIRS="$LIVE/.cc-artifacts/task-runner/iso"
 set +e; IOUT=$( cd "$LIVE" && BG_EXPECT_ISO=1 BG_PROBE_OUT="$PROBE" TMPDIR="$ISO_TMP" "$BG" --isolate --changed impl.js 2>&1 ); IRC=$?; set -e
 d="--isolate green suite -> covered(0), live tree untouched, worktree removed"
 if [ "$IRC" != 0 ] || ! printf '%s' "$IOUT" | grep -q 'covered'; then iso_bad "$d" "rc=$IRC" "$IOUT"
@@ -721,16 +721,16 @@ elif [ "$(git -C "$LIVE" status --porcelain)" != "$live_status" ]; then iso_bad 
 elif [ "$(git -C "$LIVE" worktree list | wc -l | tr -d ' ')" != 1 ]; then iso_bad "$d" "worktree left behind" "$(git -C "$LIVE" worktree list)"
 elif [ -n "$(ls -A "$ISO_TMP")" ]; then iso_bad "$d" "temp dir left behind in TMPDIR" "$(ls -A "$ISO_TMP")"
 elif [ "$(ls -A "$ISO_DIRS")" != .gitignore ]; then iso_bad "$d" "iso dir holds more than its .gitignore" "$(ls -A "$ISO_DIRS")"
-elif ! grep -q '"verdict":"covered"' "$LIVE/.claude/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "no bg record in the LIVE bg dir"
+elif ! grep -q '"verdict":"covered"' "$LIVE/.cc-artifacts/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "no bg record in the LIVE bg dir"
 else iso_ok "$d"; fi
 
-# I1b. WHERE it ran (2026-10-14): inside the repo's gitignored .claude/task-runner/iso/, so a
+# I1b. WHERE it ran (2026-10-14): inside the repo's gitignored .cc-artifacts/task-runner/iso/, so a
 #      container mounting the repo sees the tree; BG_TREE_REL names it from the repo root; and
 #      the dependency link is relative, because an absolute host path dangles in the container.
-d="--isolate tree lives under .claude/task-runner/iso/, BG_TREE_REL names it, deps linked relatively"
+d="--isolate tree lives under .cc-artifacts/task-runner/iso/, BG_TREE_REL names it, deps linked relatively"
 probe_cwd=$(sed -n 1p "$PROBE" 2>/dev/null || true); probe_rel=$(sed -n 2p "$PROBE" 2>/dev/null || true); probe_link=$(sed -n 3p "$PROBE" 2>/dev/null || true)
 case "$probe_cwd" in
-  "$LIVE_P/.claude/task-runner/iso/bg."*/tree)
+  "$LIVE_P/.cc-artifacts/task-runner/iso/bg."*/tree)
     if [ "$probe_rel" != "${probe_cwd#"$LIVE_P"/}" ]; then iso_bad "$d" "BG_TREE_REL=<$probe_rel> for cwd <$probe_cwd>"
     elif [ "$probe_link" != ../../../../../node_modules ]; then iso_bad "$d" "node_modules -> <$probe_link>, want ../../../../../node_modules"
     elif [ "$(cat "$ISO_DIRS/.gitignore")" != '*' ]; then iso_bad "$d" "iso/.gitignore is not '*'"
@@ -760,7 +760,7 @@ test('nearest .env', () => {
   fs.writeFileSync(process.env.BG_PROBE_OUT, found + '\n' + (found ? fs.readFileSync(found, 'utf8') : ''));
 });
 JS
-printf '.env\n.claude/\n' > "$LIVE2/.gitignore"
+printf '.env\n.cc-artifacts/\n' > "$LIVE2/.gitignore"
 ( cd "$LIVE2" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
 printf 'DATABASE_URL=postgres://LIVE-SECRET\n' > "$LIVE2/.env"; live2_sum=$(cksum < "$LIVE2/.env")
 PROBE2="$WS/iso-probe-env"
@@ -779,7 +779,7 @@ cat > "$LIVE3/impl.test.js" <<'JS'
 const test = require('node:test'); const fs = require('node:fs');
 test('tree .env', () => { fs.writeFileSync(process.env.BG_PROBE_OUT, fs.readFileSync('.env', 'utf8')); });
 JS
-printf 'APP_SECRET=from-dist\n' > "$LIVE3/.env.dist"; printf '.env\n.claude/\n' > "$LIVE3/.gitignore"
+printf 'APP_SECRET=from-dist\n' > "$LIVE3/.env.dist"; printf '.env\n.cc-artifacts/\n' > "$LIVE3/.gitignore"
 ( cd "$LIVE3" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
 printf 'APP_SECRET=LIVE-SECRET\n' > "$LIVE3/.env"
 PROBE3="$WS/iso-probe-dist"
@@ -796,7 +796,7 @@ iso_gate "$UNBORN" --isolate --changed impl.js
 d="--isolate, worktree add fails -> refuse(3), suite never ran"
 if [ "$IRC" != 3 ] || ! printf '%s' "$IOUT" | grep -q 'nothing was run'; then iso_bad "$d" "rc=$IRC" "$IOUT"
 elif [ -e "$UNBORN/ran.marker" ]; then iso_bad "$d" "suite ran IN PLACE after the setup failed"
-elif [ -n "$(ls -A "$ISO_TMP")" ] || [ -n "$(find "$UNBORN/.claude/task-runner/iso" -name 'bg.*' 2>/dev/null)" ]; then iso_bad "$d" "temp dir left behind"
+elif [ -n "$(ls -A "$ISO_TMP")" ] || [ -n "$(find "$UNBORN/.cc-artifacts/task-runner/iso" -name 'bg.*' 2>/dev/null)" ]; then iso_bad "$d" "temp dir left behind"
 else iso_ok "$d"; fi
 
 # I3. --isolate outside any git work tree -> refuse(3).
@@ -805,7 +805,7 @@ d="--isolate outside a git work tree -> refuse(3)"
 { [ "$IRC" = 3 ] && printf '%s' "$IOUT" | grep -q 'not inside a git work tree'; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
 
 # I4. no flag inside a registered run's live tree -> refuse(3), naming --isolate; nothing ran.
-printf '{"slug":"t"}\n' > "$LIVE/.claude/task-runner/active-run.json"
+printf '{"slug":"t"}\n' > "$LIVE/.cc-artifacts/task-runner/active-run.json"
 iso_gate "$LIVE" --changed impl.js
 d="no flag in a registered run's live tree -> refuse(3) naming --isolate"
 if [ "$IRC" != 3 ] || ! printf '%s' "$IOUT" | grep -q -- '--isolate'; then iso_bad "$d" "rc=$IRC" "$IOUT"
@@ -824,14 +824,14 @@ d="--in-place escape with the sentinel present -> covered(0) in cwd"
 { [ "$IRC" = 0 ] && [ -e "$LIVE/ran.marker" ]; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
 
 # I7. STATE ROOT (0.41.0): --in-place from a SUBDIRECTORY writes its verdict record to the
-#     repo root's armed bg dir. Before, it looked for sub/.claude/task-runner/bg, found it
+#     repo root's armed bg dir. Before, it looked for sub/.cc-artifacts/task-runner/bg, found it
 #     unarmed, and left the root's record (I1's "covered") untouched.
 mkdir -p "$LIVE/docs"
 iso_gate "$LIVE/docs" --in-place --changed notes.md
-d="--in-place from a subdirectory -> verdict recorded at the repo root, no sub/.claude"
+d="--in-place from a subdirectory -> verdict recorded at the repo root, no sub/.cc-artifacts"
 if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
-elif ! grep -q '"verdict":"no-executable-surface"' "$LIVE/.claude/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "root bg record not rewritten"
-elif [ -e "$LIVE/docs/.claude" ]; then iso_bad "$d" "a .claude/ appeared under docs/"
+elif ! grep -q '"verdict":"no-executable-surface"' "$LIVE/.cc-artifacts/task-runner/bg/bg-$live_head.json" 2>/dev/null; then iso_bad "$d" "root bg record not rewritten"
+elif [ -e "$LIVE/docs/.claude" ] || [ -e "$LIVE/docs/.cc-artifacts" ]; then iso_bad "$d" "a .claude/ or .cc-artifacts/ appeared under docs/"
 else iso_ok "$d"; fi
 
 # I8. IN FLIGHT (2026-10-14): while the gate runs, the LIVE bg dir holds running.pid naming the
@@ -840,7 +840,7 @@ else iso_ok "$d"; fi
 #     Line 3 (2026-10-15) is the deadline candor holds a stop until: start + total + 60 s.
 printf '#!/bin/sh\nsleep 2\necho "3 tests, 0 failures"\n' > "$LIVE/slow-suite.sh"; chmod +x "$LIVE/slow-suite.sh"
 ( cd "$LIVE" && git add slow-suite.sh && git -c user.email=t@t -c user.name=t commit -qm slow )
-slow_head=$(git -C "$LIVE" rev-parse HEAD); PIDF="$LIVE/.claude/task-runner/bg/running.pid"; rm -f "$PIDF"
+slow_head=$(git -C "$LIVE" rev-parse HEAD); PIDF="$LIVE/.cc-artifacts/task-runner/bg/running.pid"; rm -f "$PIDF"
 bg_inflight() { # starts the gate in the background, sets GPID, T0 and T1, waits for running.pid
   T0=$(date +%s)
   ( cd "$LIVE" && TMPDIR="$ISO_TMP" exec "$BG" --isolate --changed calc.ex --runner './slow-suite.sh::^0 tests' ) >"$WS/i8.out" 2>&1 &
@@ -870,6 +870,24 @@ set +e; wait "$GPID"; set -e
 d="a running.pid another gate rewrote is not removed by this one's exit"
 [ "$(head -n 1 "$PIDF" 2>/dev/null)" = 999999 ] && iso_ok "$d" || iso_bad "$d" "file: <$(cat "$PIDF" 2>/dev/null)>"
 rm -f "$PIDF"
+
+# I9. a run registered before 2026-11-14 keeps its state in .claude/task-runner/: the gate still refuses the live tree,
+#     copies that dir once (never iso/), records the verdict in the copy, and leaves the old dir as it was.
+OLDL="$WS/live-old"; mkdir -p "$OLDL/.claude/task-runner/bg" "$OLDL/.claude/task-runner/iso/bg.dead"
+cp "$LIVE/impl.js" "$LIVE/impl.test.js" "$OLDL/"; printf 'ran.marker\n.claude/\n.cc-artifacts/\n' > "$OLDL/.gitignore"
+( cd "$OLDL" && git init -q && git add -A && git -c user.email=t@t -c user.name=t commit -qm fixture )
+printf '{"slug":"t"}\n' > "$OLDL/.claude/task-runner/active-run.json"; old_head=$(git -C "$OLDL" rev-parse HEAD)
+old_tree=$(cd "$OLDL/.claude" && find . | sort)
+iso_gate "$OLDL" --changed impl.js
+d="a run under .claude/task-runner/ -> the live tree is still refused(3)"
+{ [ "$IRC" = 3 ] && [ ! -e "$OLDL/ran.marker" ]; } && iso_ok "$d" || iso_bad "$d" "rc=$IRC" "$IOUT"
+iso_gate "$OLDL" --in-place --changed notes.md
+d="a run under .claude/task-runner/ -> the verdict lands in .cc-artifacts/task-runner/bg/, iso/ not copied, the old dir as it was"
+if [ "$IRC" != 0 ]; then iso_bad "$d" "rc=$IRC" "$IOUT"
+elif ! grep -q '"verdict":"no-executable-surface"' "$OLDL/.cc-artifacts/task-runner/bg/bg-$old_head.json" 2>/dev/null; then iso_bad "$d" "no record in the new bg dir"
+elif [ -e "$OLDL/.cc-artifacts/task-runner/iso" ]; then iso_bad "$d" "iso/ was copied"
+elif [ "$(cd "$OLDL/.claude" && find . | sort)" != "$old_tree" ]; then iso_bad "$d" "the old dir changed"
+else iso_ok "$d"; fi
 
 # ---- TT. the gate's own total (2026-10-15). From CLI 2.1.285 the host stops a background Bash
 # call at its timeout (2 h max) and the stopped gate writes no verdict; seven suites at 1800 s ran

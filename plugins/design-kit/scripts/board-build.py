@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """board-build.py — render a design board (2–4 artboards on one canvas) from a spec.
 
-Reads a JSON or markdown spec (skills/design/references/spec-format.md), fills skills/design/assets/board-shell.html, writes .design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path; accent, spacing, radius and body font come from --tokens (default design-system/tokens.json) by path-name heuristic, else the shell's defaults. Exit 2 on fewer than 2 or more than 4 artboards, an empty body, "lorem ipsum", or any external reference in a body (the board renders with the network off).
+Reads a JSON or markdown spec (skills/design/references/spec-format.md), fills skills/design/assets/board-shell.html, writes .cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path; accent, spacing, radius and body font come from --tokens (default .cc-artifacts/design-kit/design-system/tokens.json, else a pre-2026-11-14 design-system/tokens.json) by path-name heuristic, else the shell's defaults. Exit 2 on fewer than 2 or more than 4 artboards, an empty body, "lorem ipsum", or any external reference in a body (the board renders with the network off).
 Misses: realistic-looking but wrong content, an artboard that is a palette swap of its neighbour (agent-graded), and the bodies' accessibility (a hand-written body can undo the shell's floor).
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/board-build.py
 """
@@ -263,7 +263,7 @@ def tokens_stamp(tokens_path):
 
 
 def dk_dir():
-    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit at the git root (the cwd outside git)."""
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .cc-artifacts/design-kit at the git root (the cwd outside git)."""
     import subprocess
     if os.environ.get("DESIGN_KIT_DIR"):
         return os.environ["DESIGN_KIT_DIR"]
@@ -272,7 +272,7 @@ def dk_dir():
         up = r.stdout.strip() if r.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
         up = ""
-    return os.path.join(up, ".design-kit")
+    return os.path.join(up, ".cc-artifacts", "design-kit")
 
 
 def with_stamp(page, tokens_path):
@@ -285,14 +285,15 @@ def with_stamp(page, tokens_path):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="render a design board from a spec")
     ap.add_argument("spec", help="spec .json or .md (see references/spec-format.md)")
-    ap.add_argument("--out", help="output .html (default .design-kit/boards/YYYY-MM-DD-<slug>.html)")
-    ap.add_argument("--tokens", default=None, help="DTCG tokens.json (default design-system/tokens.json if present)")
+    ap.add_argument("--out", help="output .html (default <docroot>/boards/YYYY-MM-DD-<slug>.html)")
+    ap.add_argument("--tokens", default=None, help="DTCG tokens.json (default .cc-artifacts/design-kit/design-system/tokens.json, else design-system/tokens.json, if present)")
     ap.add_argument("--device", choices=sorted(DEVICES), default=None, help="frame for artboards that name none")
     ap.add_argument("--docroot", default=dk_dir())
     args = ap.parse_args(argv)
 
     spec = load_spec(args.spec)
-    tokens = args.tokens if args.tokens is not None else ("design-system/tokens.json" if os.path.isfile("design-system/tokens.json") else None)
+    # plugins before 2026-11-14 wrote design-system/ under the cwd: read it while the new one is absent
+    tokens = args.tokens if args.tokens is not None else next((p for p in (os.path.join(".cc-artifacts", "design-kit", "design-system", "tokens.json"), os.path.join("design-system", "tokens.json")) if os.path.isfile(p)), None)
     theme, used = read_tokens(tokens)
     html = with_stamp(build(spec, theme, args.device), tokens if (tokens and os.path.isfile(tokens)) else None)
     out = args.out or os.path.join(args.docroot, "boards", f"{_dt.date.today():%Y-%m-%d}-{slugify(spec.get('title') or 'board')}.html")

@@ -111,6 +111,12 @@ only in a SessionStart hook; other events are doc-stated. An event that lacks it
 to the repo path, which splits a writer from a reader running on another event.
 ```
 
+2026-11-14: the in-repo fallback moved from `<root>/.claude/<name>` to `<root>/.cc-artifacts/<name>`.
+The user wanted every plugin artifact in one folder to gitignore and leave out of a deploy, and
+`.claude/` is a protected path: a `claude -p --permission-mode acceptEdits` Write into
+`.claude/artifacts/t/a.md` was refused as "a sensitive file", while `.cc-artifacts/t/c.md` was
+written. The fallback is a cache, so nothing is carried over from the old dir.
+
 ## templates/blocks/bash-write-targets.md
 
 ### Banner and canonical copy
@@ -881,6 +887,11 @@ drops whole bytes rather than stopping `tr`. A UUID loses nothing; `.` is exclud
 key can be `..`. An empty key is status 1: the caller writes and reads nothing rather than
 a file no session owns. Added 2026-11-12 (taskmaster 0.56.0).
 
+2026-11-14: sentinels moved to `<root>/.cc-artifacts/cc-phase/` (same reason as plugin-state.md
+above). `cc_phase_file_legacy` names the old `.claude/cc-phase/` path so a reader still sees a
+sentinel written by a plugin from before the move; nothing writes there. Version skew is
+fail-open: an old reader misses a new sentinel and its hook proceeds, as with no sentinel.
+
 ## templates/blocks/phase-guard.md
 
 ### Banner
@@ -1067,6 +1078,9 @@ sentinel over its own expired one inside that window loses the new one until its
 write. Milliseconds wide; recorded, not fixed. The nested-ifs session test and its
 subsection above describe code that no longer exists. Why: `plugin-taskmaster.md` §
 `plugins/taskmaster/scripts/phase-sentinel.sh`, 2026-11-12.
+
+2026-11-14: reads `cc_phase_file`, else `cc_phase_file_legacy`, and sweeps expired sentinels in
+both dirs. Harness: `scripts/smoke/hook-guard-tests.sh` (new dir, plus one legacy-dir case).
 
 ## templates/blocks/quote-match.md
 

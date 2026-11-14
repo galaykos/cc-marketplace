@@ -73,15 +73,21 @@ out="$(fire "$(mk "$named" 20)" "$c")"
 [ -z "$out" ] && pass "silent when the ask names the files" || fail "silent when the ask names the files" "$out"
 
 # ---- 5. SILENT while a run is registered — scope.sh owns that turn ---------------------
-c="$TMP/cwd$_n"; mkdir -p "$c"; mkdir -p "$c/.claude/task-runner"
-echo '{"slug":"t"}' > "$c/.claude/task-runner/active-run.json"
+c="$TMP/cwd$_n"; mkdir -p "$c"; mkdir -p "$c/.cc-artifacts/task-runner"
+echo '{"slug":"t"}' > "$c/.cc-artifacts/task-runner/active-run.json"
 out="$(fire "$(mk 'fix the login page title' 20)" "$c")"
 [ -z "$out" ] && pass "silent while a run is registered (no two voices on one lane)" \
   || fail "silent while a run is registered (no two voices on one lane)" "$out"
+# A run registered before 2026-11-14 under .claude/task-runner/ is still a run.
+c="$TMP/cwd$_n-old"; mkdir -p "$c/.claude/task-runner"
+echo '{"slug":"t"}' > "$c/.claude/task-runner/active-run.json"
+out="$(fire "$(mk 'fix the login page title' 20)" "$c")"
+[ -z "$out" ] && pass "silent while a run registered under .claude/task-runner/ is open" \
+  || fail "silent while a run registered under .claude/task-runner/ is open" "$out"
 # A LEFTOVER scope.json with no run: scope.sh ignores it since 0.41.0, so yielding to it
 # would leave nobody watching.
-c="$TMP/cwd$_n-left"; mkdir -p "$c/.claude/task-runner"
-echo '{"allow":[]}' > "$c/.claude/task-runner/scope.json"
+c="$TMP/cwd$_n-left"; mkdir -p "$c/.cc-artifacts/task-runner"
+echo '{"allow":[]}' > "$c/.cc-artifacts/task-runner/scope.json"
 out="$(fire "$(mk 'fix the login page title' 20)" "$c")"
 [ -n "$out" ] && pass "a leftover scope.json with no run does not mute it" \
   || fail "a leftover scope.json with no run does not mute it" "stayed silent"
@@ -91,7 +97,7 @@ c="$TMP/cwd-bound"; mkdir -p "$c"; tp="$(mk 'fix the login page title' 20)"
 a="$(fire "$tp" "$c")"; b="$(fire "$tp" "$c")"
 if [ -n "$a" ] && [ -z "$b" ]; then pass "one question per request, not per edit"
 else fail "one question per request, not per edit" "first='${a:0:30}' second='${b:0:30}'"; fi
-if [ -n "$(find "$c/.claude/task-runner" -name 'drift-*' -type f 2>/dev/null)" ]
+if [ -n "$(find "$c/.cc-artifacts/task-runner" -name 'drift-*' -type f 2>/dev/null)" ]
 then pass "the marker lands on disk (key hashed, not a raw path)"
 else fail "the marker lands on disk (key hashed, not a raw path)" "none under $c"; fi
 printf '{"type":"user","message":{"role":"user","content":"now fix the footer"}}\n' >> "$tp"
@@ -116,15 +122,15 @@ out="$(python3 -c 'import json;print(json.dumps({"hook_event_name":"PostToolUse"
 G="$TMP/gitrepo"; mkdir -p "$G/app/Models"; git init -q "$G" 2>/dev/null
 out="$(fire "$(mk 'fix the login page title' 20)" "$G/app/Models")"
 [ -n "$out" ] && pass "subdirectory cwd: still fires" || fail "subdirectory cwd: still fires" "stayed silent"
-[ -n "$(find "$G/.claude/task-runner" -name 'drift-*' -type f 2>/dev/null)" ] \
+[ -n "$(find "$G/.cc-artifacts/task-runner" -name 'drift-*' -type f 2>/dev/null)" ] \
   && pass "subdirectory cwd: the marker lands at the repo root" \
-  || fail "subdirectory cwd: the marker lands at the repo root" "none under $G/.claude"
-[ ! -e "$G/app/Models/.claude" ] && [ ! -e "$G/app/.claude" ] \
-  && pass "subdirectory cwd: no .claude/ created there" \
-  || fail "subdirectory cwd: no .claude/ created there" "found one under $G/app"
+  || fail "subdirectory cwd: the marker lands at the repo root" "none under $G/.cc-artifacts"
+[ ! -e "$G/app/Models/.claude" ] && [ ! -e "$G/app/.claude" ] && [ ! -e "$G/app/Models/.cc-artifacts" ] && [ ! -e "$G/app/.cc-artifacts" ] \
+  && pass "subdirectory cwd: no .claude/ or .cc-artifacts/ created there" \
+  || fail "subdirectory cwd: no .claude/ or .cc-artifacts/ created there" "found one under $G/app"
 # The run registered at the root must be seen from the subdirectory too. Before, the
 # yield looked under the payload cwd and spoke over scope.sh during a live run.
-echo '{"slug":"t"}' > "$G/.claude/task-runner/active-run.json"
+echo '{"slug":"t"}' > "$G/.cc-artifacts/task-runner/active-run.json"
 out="$(fire "$(mk 'fix the header nav' 20)" "$G/app/Models")"
 [ -z "$out" ] && pass "subdirectory cwd: yields to the run registered at the root" \
   || fail "subdirectory cwd: yields to the run registered at the root" "$out"

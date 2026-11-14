@@ -4,6 +4,13 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.34.0 — 2026-11-14
+
+- **The theme preview goes to `.cc-artifacts/taskmaster/mockups/theme.html`** (was `taskmaster-docs/mockups/`), the docroot taskmaster 0.60.0 serves. `/ui-ux:theme`, shadcn-theming and the theme-shell starter name it; an older theme page is not carried over.
+- **The preview guard knows the new mockups folder.** A page under `.cc-artifacts/taskmaster/mockups/`, or such a folder at or above cwd, asks as a mockup; `taskmaster-docs/mockups` still counts.
+- **Hook state kept in the project, when `CLAUDE_PLUGIN_DATA` is unset, moved to `.cc-artifacts/ui-ux/`** (was `.claude/ui-ux/`): `ui-check.sh` and `palette-default.sh` carry the regenerated shared plugin-state block. These are one-shot markers, so none is carried over: in a session begun on 0.33.x, the palette nudge or a browser-check block can come once more.
+- Standing: gate (`ui-check.test.sh` and `palette-default.test.sh` for the state path; the marketplace repository's `scripts/smoke/preview-guard-tests.sh` for the guard); recorded for the command and skill text.
+
 ## 0.33.2 — 2026-11-12
 
 - **`/ui-ux:audit` runs the project's style and accessibility tools through code-review's `analyzer-expert`.** toolchain-experts and its `ui-expert` agent left the marketplace; the same checks moved into code-review 0.37.0.

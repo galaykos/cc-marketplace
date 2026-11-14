@@ -1183,7 +1183,7 @@ EOF_CLAUSE
   return $bad
 }
 
-# pc_phase_guard <plugins_root> — a Prompt/Stop/Pre/PostToolUse hook or mod file whose lane names a phase other than `any` and never names .claude/cc-phase/ (the per-session sentinels): "phase-unguarded|phase-guard-mod …".
+# pc_phase_guard <plugins_root> — a Prompt/Stop/Pre/PostToolUse hook or mod file whose lane names a phase other than `any` and never names .cc-artifacts/cc-phase/ or the legacy .claude/cc-phase/ (the per-session sentinels): "phase-unguarded|phase-guard-mod …".
 # Proves the read, not that every branch honours the verdict (agent-graded); rowless artifacts are pc_lanes_coverage's, unresolved mod rows pc_lanes_resolve's.
 # Why, limits, history: rationale/derivations/scripts-lib.md § pc_phase_guard
 pc_phase_guard() {
@@ -1197,7 +1197,7 @@ pc_phase_guard() {
       sh=$(_pc_hook_script "$sh" "$d")
       [ -f "$sh" ] || continue
       rel=$(basename "$sh")
-      grep -qF '.claude/cc-phase/' "$sh" 2>/dev/null && continue
+      grep -qF -e '.cc-artifacts/cc-phase/' -e '.claude/cc-phase/' "$sh" 2>/dev/null && continue
       # A lane phase of `any` declares a guard that must fire in every phase; a hook with no row is pc_lanes_coverage's.
       lane_phase=$(awk -F'\t' -v a="$p:${rel%.sh}" '$1==a {print $3; exit}' \
                     "$d/lane.tsv" 2>/dev/null)
@@ -1218,7 +1218,7 @@ EOF
     mf=$(_pc_mod_file "$root" "${art%%:*}" "${art##*:}") || continue
     case "${mf##*/}" in
       cc-kit.*) ;;
-      *) grep -qF -e 'liveSentinel(' -e 'registerSuggestion(' -e '.claude/cc-phase/' "$mf" 2>/dev/null \
+      *) grep -qF -e 'liveSentinel(' -e 'registerSuggestion(' -e '.cc-artifacts/cc-phase/' -e '.claude/cc-phase/' "$mf" 2>/dev/null \
            && continue ;;
     esac
     printf 'phase-guard-mod %s\n' "$art"

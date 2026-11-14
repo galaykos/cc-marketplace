@@ -87,8 +87,8 @@ file written then reverted, a `mv` or `cp -p` destination that keeps an older mt
 such run of each session (the marker holds the session's cksum; another session's reads as
 none); a `$HOME` root or a repo with `status.showUntrackedFiles=no` reads nothing. It reads
 anything else that changed a file since its previous call (an IDE, a parallel agent) as this
-run's write. Its marker lives in the plugin's data dir, else under `<repo>/.claude/security/`
-behind a `*` `.gitignore`. `write-scan.test.sh` runs a python write, the first call, a run that
+run's write. Its marker lives in the plugin's data dir, else under `<repo>/.cc-artifacts/security/`
+(`.claude/security/` before 0.13.0) behind a `*` `.gitignore`. `write-scan.test.sh` runs a python write, the first call, a run that
 wrote nothing, an Edit between two runs, a tracked file's added line, a failed run's
 `PostToolUseFailure` envelope and another session's marker. A non-matching Bash call costs
 11.9 ms median and a matching one that wrote nothing 21.3 ms on a synthetic 2,786-file repo

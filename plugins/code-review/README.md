@@ -196,7 +196,8 @@ does not read CLAUDE.md. `CC_COMMENT_GUARD=off` (below) switches the comment den
 leaves the warnings on; the elision deny keeps running. `verbosity.sh` applies the same rule to terminal
 prose. Markers live in the plugin's data directory,
 `${CLAUDE_PLUGIN_DATA}/<project-key>/comment-discipline/`, when the host provides one, else
-under `.claude/comment-discipline/` at the project root; the ledgers are
+under `.cc-artifacts/comment-discipline/` at the project root (`.claude/comment-discipline/` before
+0.38.0); the ledgers are
 `$HOME/.claude/comment-discipline/*-ledger.jsonl`. The project root is the git toplevel,
 else `CLAUDE_PROJECT_DIR` — not whatever directory the shell has
 `cd`'d into, which scattered one state dir per directory until 0.23.0. Silence any
@@ -624,7 +625,7 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   guard, middleware, impersonation, session, oauth, webhook, payment, crypt, registration,
   sign-up, `migrations/`). Since 0.34.5 guard counts only as a word or a camelCase part
   (`Guard.php`, `src/guards/`, `JwtGuard.php`), not inside `GuardPost` or `Guardian`.
-  Markdown, lockfiles, `.claude/`, `taskmaster-docs/` and vendor/build dirs don't count, nor,
+  Markdown, lockfiles, `.claude/`, `.cc-artifacts/`, `taskmaster-docs/` and vendor/build dirs don't count, nor,
   since 0.34.5, images, 3D models, Unity assets, audio, video, fonts, archives and compiled
   binaries; a diff with only those says nothing.
   Once per commit: it speaks again only after HEAD moves and the count has grown. A reviewer

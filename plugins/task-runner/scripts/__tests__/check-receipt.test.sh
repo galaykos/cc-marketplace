@@ -36,22 +36,22 @@ is_fresh() { local out; out=$(check "$1" "${3:-suite}"); local r=$?
   [ "$r" = 0 ] && [ "${out#fresh: }" != "$out" ] && ok "$2" || bad "$2" "rc=$r out=<$out>"; }
 is_stale() { local out; out=$(check "$1" "${4:-suite}"); local r=$?
   [ "$r" = 1 ] && case "$out" in "stale: "*"$3"*) true ;; *) false ;; esac && ok "$2" || bad "$2" "rc=$r out=<$out>"; }
-edit_receipt() { jq "$1" "$R/.claude/task-runner/receipt.json" > "$WS/edited" && mv "$WS/edited" "$R/.claude/task-runner/receipt.json"; }
+edit_receipt() { jq "$1" "$R/.cc-artifacts/task-runner/receipt.json" > "$WS/edited" && mv "$WS/edited" "$R/.cc-artifacts/task-runner/receipt.json"; }
 
 seeded; H=$(git -C "$R" rev-parse HEAD)
 out=$(check "$R"); r=$?
 [ "$r" = 0 ] && [ "$out" = "fresh: suite passed at ${H:0:7} (sh -c 'echo suite ok')" ] \
   && ok "a passing run reads fresh: one line naming the check, HEAD's first 7 and the command" || bad "fresh line" "rc=$r out=<$out>"
-jq -e --arg h "$H" --arg log ".claude/task-runner/receipts/suite-${H:0:12}.txt" \
+jq -e --arg h "$H" --arg log ".cc-artifacts/task-runner/receipts/suite-${H:0:12}.txt" \
   '.version == 1 and .head == $h and (.tree | test("^[0-9a-f]{40,64}$")) and (.checks | keys) == ["suite"]
    and .checks.suite.cmd == "sh -c '"'"'echo suite ok'"'"'" and .checks.suite.exit == 0 and .checks.suite.log == $log
-   and (.checks.suite.at | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$"))' "$R/.claude/task-runner/receipt.json" >/dev/null \
+   and (.checks.suite.at | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$"))' "$R/.cc-artifacts/task-runner/receipt.json" >/dev/null \
   && ok "receipt.json holds version 1, the full HEAD, a tree digest and checks.suite {cmd, exit, log, at}" \
-  || bad "receipt shape" "$(cat "$R/.claude/task-runner/receipt.json")"
+  || bad "receipt shape" "$(cat "$R/.cc-artifacts/task-runner/receipt.json")"
 
 seeded; H=$(git -C "$R" rev-parse HEAD)
 out=$(cd "$R/src" || exit 1; "$CR" run --name lint -- sh -c 'pwd; seq 1 100; exit 7' 2>/dev/null); r=$?
-L="$R/.claude/task-runner/receipts/lint-${H:0:12}.txt"
+L="$R/.cc-artifacts/task-runner/receipts/lint-${H:0:12}.txt"
 [ "$r" = 7 ] && ok "run exits with the command's exit status" || bad "run exit" "rc=$r"
 [ "$(head -1 <<<"$out")" = "$R" ] && ok "run runs the command from the repo root, whatever the shell's directory" || bad "run cwd" "$(head -1 <<<"$out")"
 [ "$(head -1 "$L")" = "\$ sh -c 'pwd; seq 1 100; exit 7'" ] && [ "$(sed -n 2p "$L")" = 41 ] && [ "$(tail -2 "$L" | head -1)" = 100 ] \
@@ -62,7 +62,7 @@ is_fresh "$R" "a second check at the same HEAD and tree keeps the first one's re
 
 seeded
 in_r run --name suite -- sh -c 'echo "a b"; exit 0' "it's" '' >/dev/null 2>&1
-cmd=$(jq -r .checks.suite.cmd "$R/.claude/task-runner/receipt.json")
+cmd=$(jq -r .checks.suite.cmd "$R/.cc-artifacts/task-runner/receipt.json")
 eval "set -- $cmd"
 [ "$cmd" = "sh -c 'echo \"a b\"; exit 0' 'it'\\''s' ''" ] && [ $# = 5 ] && [ "$3" = 'echo "a b"; exit 0' ] && [ "$4" = "it's" ] && [ -z "$5" ] \
   && ok "the recorded command keeps each argument's quoting, so it reruns as it ran" || bad "quoting" "cmd=<$cmd> argc=$#"
@@ -89,9 +89,11 @@ seeded; printf 'x\n' > "$R/tool.sh"; in_r run --name suite -- true >/dev/null 2>
 is_stale "$R" "an untracked file made executable reads stale" "files changed"
 seeded; mkdir -p "$R/.claude/notes" "$R/taskmaster-docs/tasks/x"; printf 'n\n' > "$R/.claude/notes/n.md"; printf 'i\n' > "$R/taskmaster-docs/tasks/x/00-INDEX.md"
 is_fresh "$R" "untracked files in .claude/ state and taskmaster-docs/ leave it fresh"
+seeded; mkdir -p "$R/.cc-artifacts/taskmaster/tasks/x"; printf 'i\n' > "$R/.cc-artifacts/taskmaster/tasks/x/00-INDEX.md"
+is_fresh "$R" "an untracked card index under .cc-artifacts/ leaves it fresh"
 seeded; mkdir -p "$R/.claude/skills/new"; printf 'skill\n' > "$R/.claude/skills/new/SKILL.md"
 is_stale "$R" "a new untracked project skill under .claude/skills/ reads stale" "files changed"
-seeded; printf '{}\n' > "$R/.claude/settings.json"
+seeded; mkdir -p "$R/.claude"; printf '{}\n' > "$R/.claude/settings.json"
 is_stale "$R" "a new untracked .claude/settings.json reads stale" "files changed"
 seeded; printf '.env*\n*.log\n' > "$R/.gitignore"; git -C "$R" add .gitignore; git -C "$R" commit -qm ignore
 printf 'A=1\n' > "$R/.env"; in_r run --name suite -- true >/dev/null 2>&1; printf 'noise\n' > "$R/build.log"
@@ -110,14 +112,14 @@ is_stale "$R" "a further edit inside an already dirty submodule reads stale" "fi
 
 seeded; git -C "$R" commit -q --allow-empty -m next
 is_stale "$R" "a new commit reads stale" "the receipt is for another commit"
-seeded; H=$(git -C "$R" rev-parse HEAD); rm -f "$R/.claude/task-runner/receipts/suite-${H:0:12}.txt"
+seeded; H=$(git -C "$R" rev-parse HEAD); rm -f "$R/.cc-artifacts/task-runner/receipts/suite-${H:0:12}.txt"
 is_stale "$R" "a missing log reads stale" "the suite log is missing"
-seeded; H=$(git -C "$R" rev-parse HEAD); cp "$R/.claude/task-runner/receipts/suite-${H:0:12}.txt" "$R/.claude/task-runner/copied.txt"
-edit_receipt '.checks.suite.log = ".claude/task-runner/copied.txt"'
+seeded; H=$(git -C "$R" rev-parse HEAD); cp "$R/.cc-artifacts/task-runner/receipts/suite-${H:0:12}.txt" "$R/.cc-artifacts/task-runner/copied.txt"
+edit_receipt '.checks.suite.log = ".cc-artifacts/task-runner/copied.txt"'
 is_stale "$R" "a log at any other path reads stale" "not the one this script writes"
-seeded; H=$(git -C "$R" rev-parse HEAD); printf 'exit 1\n' >> "$R/.claude/task-runner/receipts/suite-${H:0:12}.txt"
+seeded; H=$(git -C "$R" rev-parse HEAD); printf 'exit 1\n' >> "$R/.cc-artifacts/task-runner/receipts/suite-${H:0:12}.txt"
 is_stale "$R" "a log whose last line is not exit 0 reads stale" "does not end with exit 0"
-seeded; printf '{"version":1,"head":' > "$R/.claude/task-runner/receipt.json"
+seeded; printf '{"version":1,"head":' > "$R/.cc-artifacts/task-runner/receipt.json"
 is_stale "$R" "corrupt JSON reads stale" "the receipt cannot be read"
 seeded; edit_receipt '.version = 2'
 is_stale "$R" "another receipt version reads stale" "cannot be read"
@@ -127,7 +129,7 @@ seeded; edit_receipt '.head = "0123456789abcdef0123456789abcdef01234567"'
 is_stale "$R" "a receipt naming another HEAD reads stale" "another commit (0123456)"
 seeded
 is_stale "$R" "a name the receipt does not hold reads stale" "the receipt holds no lint check" lint
-seeded; rm -f "$R/.claude/task-runner/receipt.json"
+seeded; rm -f "$R/.cc-artifacts/task-runner/receipt.json"
 is_stale "$R" "no receipt reads stale" "no receipt has been written"
 
 seeded
@@ -141,12 +143,25 @@ in_r run --name suite --cmd true -- true >/dev/null 2>&1; r=$?
 
 seeded; in_r run --name lint -- true >/dev/null 2>&1
 git -C "$R" commit -q --allow-empty -m next; in_r run --name lint -- true >/dev/null 2>&1
-[ "$(jq -c '.checks | keys' "$R/.claude/task-runner/receipt.json")" = '["lint"]' ] && [ "$(jq -r .head "$R/.claude/task-runner/receipt.json")" = "$(git -C "$R" rev-parse HEAD)" ] \
-  && ok "a run at another HEAD replaces the receipt, never merges into it" || bad "replace" "$(cat "$R/.claude/task-runner/receipt.json")"
+[ "$(jq -c '.checks | keys' "$R/.cc-artifacts/task-runner/receipt.json")" = '["lint"]' ] && [ "$(jq -r .head "$R/.cc-artifacts/task-runner/receipt.json")" = "$(git -C "$R" rev-parse HEAD)" ] \
+  && ok "a run at another HEAD replaces the receipt, never merges into it" || bad "replace" "$(cat "$R/.cc-artifacts/task-runner/receipt.json")"
 is_stale "$R" "so the earlier HEAD's suite is gone from it" "holds no suite check"
 seeded; printf 'dirty\n' > "$R/b.txt"; in_r run --name lint -- true >/dev/null 2>&1
-[ "$(jq -c '.checks | keys' "$R/.claude/task-runner/receipt.json")" = '["lint"]' ] && ok "a run on another tree replaces the receipt too" \
-  || bad "replace tree" "$(jq -c .checks "$R/.claude/task-runner/receipt.json")"
+[ "$(jq -c '.checks | keys' "$R/.cc-artifacts/task-runner/receipt.json")" = '["lint"]' ] && ok "a run on another tree replaces the receipt too" \
+  || bad "replace tree" "$(jq -c .checks "$R/.cc-artifacts/task-runner/receipt.json")"
+
+# A receipt written before 2026-11-14 sits in .claude/task-runner/ and names its log there: copied once, read fresh, the old dir untouched.
+seeded; mv "$R/.cc-artifacts/task-runner" "$R/.claude-task-runner" && rmdir "$R/.cc-artifacts" && mkdir -p "$R/.claude" \
+  && mv "$R/.claude-task-runner" "$R/.claude/task-runner" \
+  && jq '.checks.suite.log |= sub("^[.]cc-artifacts/"; ".claude/")' "$R/.claude/task-runner/receipt.json" > "$WS/old" \
+  && mv "$WS/old" "$R/.claude/task-runner/receipt.json"
+old=$(cd "$R/.claude" && find . -type f -exec cksum {} + | sort)
+is_fresh "$R" "a receipt only under .claude/task-runner/, its log named there, reads fresh"
+[ -f "$R/.cc-artifacts/task-runner/receipt.json" ] && ok "and is copied to .cc-artifacts/task-runner/" || bad "legacy copy" "$(ls -A "$R/.cc-artifacts/task-runner" 2>&1)"
+in_r run --name lint -- true >/dev/null 2>&1
+[ "$(jq -c '.checks | keys' "$R/.cc-artifacts/task-runner/receipt.json")" = '["lint","suite"]' ] && [ -f "$R/.cc-artifacts/task-runner/receipts/lint-$(git -C "$R" rev-parse --short=12 HEAD).txt" ] \
+  && [ "$(cd "$R/.claude" && find . -type f -exec cksum {} + | sort)" = "$old" ] \
+  && ok "a later run writes the new receipt and log, leaving .claude/task-runner/ as it was" || bad "legacy write" "$(cat "$R/.cc-artifacts/task-runner/receipt.json")"
 
 out=$(cd "$WS" || exit 1; "$CR" check --name suite); r=$?
 [ "$r" = 1 ] && [ "$out" = "stale: not inside a git work tree" ] && ok "check outside a git work tree is stale, exit 1" || bad "no repo" "rc=$r out=<$out>"

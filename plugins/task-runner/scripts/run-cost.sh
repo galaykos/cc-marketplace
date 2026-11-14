@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-cost.sh — one line: what this session's process cost since the registered run began (the mtime of .claude/task-runner/active-run.json, else closed-run.json) or --since.
+# run-cost.sh — one line: what this session's process cost since the registered run began (the mtime of .cc-artifacts/task-runner/active-run.json, else closed-run.json) or --since.
 # Misses: prices; another session's tokens (an index run resumed in a new session: minutes since the first registration, tokens of this session only); a --slug or --fresh re-registration restarts the count, and so does touching the record. Exits 0 always.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/run-cost.sh (marketplace repository)
 
@@ -53,6 +53,20 @@ cc_process_cost() {
   return 0
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 since=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -63,10 +77,11 @@ while [ $# -gt 0 ]; do
 done
 if [ -z "$since" ]; then
   root=$(git rev-parse --show-toplevel 2>/dev/null) || root=$PWD
-  for rec in "$root/.claude/task-runner/active-run.json" "$root/.claude/task-runner/closed-run.json"; do
+  tr=$(tr_state_dir "$root")
+  for rec in "$tr/active-run.json" "$tr/closed-run.json"; do
     [ -f "$rec" ] && since=$(date -r "$rec" +%s 2>/dev/null) && break
   done
-  [ -n "$since" ] || { echo "Process cost: unknown — no run record under $root/.claude/task-runner/ and no --since"; exit 0; }
+  [ -n "$since" ] || { echo "Process cost: unknown — no run record under $tr/ and no --since"; exit 0; }
 fi
 cc_process_cost "$since"
 exit 0

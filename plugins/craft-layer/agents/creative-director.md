@@ -72,7 +72,7 @@ hue and type family are kept: no departure may replace them, so K lands on the o
    rubric with one weighting applied to four candidates from one model has low effective
    variance: the same winner archetype every round. So when two candidates are still level
    after that tie-break, ROTATE the lens that separates them, seeded from
-   `<project>/.craft-layer/run-log.md` (row count modulo the list below; a log absent,
+   `<project>/.cc-artifacts/craft-layer/run-log.md` (row count modulo the list below; a log absent,
    empty or malformed → the carry left after the draw's fifth axis, modulo the list; your
    dispatch passes it with the seed, and a dispatch without it means the seed divided by
    32,256, whole-number. The seed itself would repeat axis 1's index):

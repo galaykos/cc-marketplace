@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.33.0 — 2026-11-14
+
+- **Compaction recall reads `.cc-artifacts/` first.** `compact-capsule.sh` and the `compact` mod read this session's phase sentinel in `.cc-artifacts/cc-phase/`, the task-runner run and scope lock in `.cc-artifacts/task-runner/` and taskmaster ledgers in `.cc-artifacts/taskmaster/`, else the `.claude/` copies plugins wrote before 2026-11-14, and each line names the path it read. `.claude/task-runner/` counts only while `.cc-artifacts/task-runner/` does not exist, so the copy task-runner's one-time migration leaves behind is not reported as a live run.
+- **Hook state with no plugin data dir moves to `.cc-artifacts/skill-router/`** (was `.claude/skill-router/`): `fired-<ctx>.json`, dispatch records, `compact-log.jsonl` and the bash-effects marker, through the shared plugin-state block re-pasted in `route.sh`, `route-prompt.sh`, `summary.sh`, `subagent-skills.sh` and `compact-capsule.sh`, whose phase-file block gains `cc_phase_file_legacy`. These are markers and logs: nothing is copied, they start fresh. `$HOME/.claude/skill-router/` does not move.
+- **No rubric for `.cc-artifacts/`.** `route.sh` is silent on a target there, as under `taskmaster-docs/` and `.claude/`, except `.cc-artifacts/design-kit/`; the subagent filter ignores a dispatch naming a path there. `rules.tsv` routes design-kit's decks, boards, artifacts, motion and film under `.cc-artifacts/design-kit/` as well; the `.design-kit/` rows stay for older projects.
+- `hooks/cc-kit.ts`, the shared mod kit, reads `.cc-artifacts/cc-phase/` and `.cc-artifacts/task-runner/active-run.json` first, then the `.claude/` paths.
+- Standing: gate (`compact-capsule.test.sh` case 8 and `tests/compact.test.ts`, each with an old-path-only case; `route.test.sh` cases 18 and 20; `subagent-skills.test.sh` case 1e).
+
 ## 0.32.1 — 2026-11-13
 
 - **The `phaser` routing row is gone.** The phaser plugin was removed on 2026-11-13: Phaser's own skills carry its v3→v4 table, and its two other traps showed no lift in a base/vendor/ours eval (`rationale/gamedev-review-2026-11-13/`, marketplace repository).

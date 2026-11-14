@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run), the command itself, and an MCP call's tool name against rules.tsv; prints at most NUDGE_CAP `high` plugin:skill nudges, none already loaded, and queues other content matches as pending_low.
-# Silent on targets outside the root, under taskmaster-docs/ or .claude/, git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; a .json/.y(a)ml queues no `low` row; an MCP call other than create_new_file routes by name only. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth, an MCP name hooks.json's matcher does not admit. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
+# Silent on targets outside the root, under taskmaster-docs/, .claude/ or .cc-artifacts/ (not its design-kit/), git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; a .json/.y(a)ml queues no `low` row; an MCP call other than create_new_file routes by name only. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth, an MCP name hooks.json's matcher does not admit. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -26,7 +26,7 @@ cc_state_root() {
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -36,7 +36,7 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }
@@ -319,10 +319,11 @@ route_cmd_mask() {
     return "$rc"
   }
 
-  # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/ and .claude/, not an asset, not ignored by git.
+  # route_target_ok <path> — a file worth a rubric: under the project root, outside taskmaster-docs/, .claude/ and .cc-artifacts/, not an asset, not ignored by git.
+  # .cc-artifacts/design-kit/ stays routable: rules.tsv's design-kit rows key on it, as they did on .design-kit/ and design-system/.
   route_target_ok() {
     case "$1" in "$root"/*) ;; *) return 1 ;; esac
-    case "/${1#"$root"/}" in */taskmaster-docs/*|*/.claude/*) return 1 ;; esac
+    case "/${1#"$root"/}" in */.cc-artifacts/design-kit/*) ;; */taskmaster-docs/*|*/.claude/*|*/.cc-artifacts/*) return 1 ;; esac
     route_ext "$1" asset && return 1
     ! git -C "$root" check-ignore -q -- "$1" 2>/dev/null
   }
@@ -547,7 +548,7 @@ EOF_CMD
     while [ "$i" -lt "${#abs[@]}" ]; do
       set_target "$i"; content="${hcs[$i]}"; i=$((i + 1))
       [ -n "$content" ] || continue
-      case "$target" in *.md|*.mdx|*.markdown|*.txt|*.rst|*.css|*/taskmaster-docs/*) continue ;; esac
+      case "$target" in *.md|*.mdx|*.markdown|*.txt|*.rst|*.css|*/taskmaster-docs/*|*/.cc-artifacts/taskmaster/*) continue ;; esac
       inline=0; inline_ext && inline=1
       data=0; route_ext "$target" data && data=1
       while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do

@@ -129,7 +129,7 @@ else fail=$((fail+1)); printf 'FAIL  exempt transcript writes no ledger row (%s 
 # limit — live in the state file. If it cannot be written the hook has no memory:
 # it would warn on EVERY tool call and re-scan the whole transcript every time,
 # the exact opposite of both claims. Writability is a precondition, not a courtesy.
-UNW="$WS/unwritable"; mkdir -p "$UNW/.claude"; chmod 555 "$UNW/.claude"
+UNW="$WS/unwritable"; mkdir -p "$UNW/.cc-artifacts"; chmod 555 "$UNW/.cc-artifacts"
 UNW_HOME="$WS/home2"
 unw_out=""
 for _ in 1 2 3; do
@@ -143,7 +143,7 @@ if [ -z "$unw_out" ] && [ -z "${unw_rows:-}" -o "${unw_rows:-0}" = "0" ]; then
 else
   fail=$((fail+1)); printf 'FAIL  unwritable state dir silences the hook (out=%s rows=%s)\n' "$unw_out" "${unw_rows:-0}"
 fi
-chmod 755 "$UNW/.claude"
+chmod 755 "$UNW/.cc-artifacts"
 
 # The scratch HOME took cases 1-12's rows — the proof they went nowhere else.
 if [ -s "$CASE_HOME/.claude/comment-discipline/verbosity-ledger.jsonl" ]

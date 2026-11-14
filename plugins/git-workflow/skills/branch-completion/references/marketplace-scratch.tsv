@@ -2,12 +2,17 @@
 # user's project and every path a marketplace hook keeps state in, where that state
 # lives, and whether a branch may carry it.
 #
-# > Last verified: 2026-10-03 — https://github.com/galaykos/cc-marketplace
+# > Last verified: 2026-11-14 — https://github.com/galaykos/cc-marketplace
 #
+# Since 2026-11-14 every plugin writes its project artifacts under .cc-artifacts/<plugin>/,
+# and the first row ignores all of them in one line. A row whose `why` opens with `legacy`
+# is a path an older version wrote: scratch ones stay in the block so the directories they
+# left stay ignored; brain/, design-system/ and research/ stay `state`, since a project's
+# own directory can carry those names.
 # kind: scratch  = previews, exports, caches, run logs, mockups, markers — ignore it
 #       cleaned  = the plugin removes it itself; ignored anyway as a safety net
 #       state    = per-project state a team may WANT tracked — listed, never auto-ignored
-# location: project     = stays in the repo because another plugin, a skill or the user reads it
+# location: project     = in the repo: a plugin, a skill or the user reads it, or an older version left it
 #           plugin-data = legacy in-repo path of per-plugin ephemeral hook state now kept under
 #                         ${CLAUDE_PLUGIN_DATA}; the pattern stays so old dirs remain ignored
 #           home        = per-user state outside the repo (pattern starts ~/), listed for
@@ -16,30 +21,34 @@
 # `why` cites the file that writes the path. A plugin that starts writing a new
 # directory adds its row here; nothing proves this list complete (standing: recorded).
 # Read by scripts/scratch-ignore.sh. Tab-separated: pattern	plugin	kind	location	why
-.design-kit/	design-kit	scratch	project	design-kit/scripts/dk.sh § DK — decks, boards, artifacts, previews, exports, workshop.json, usage.jsonl, decisions.jsonl, .cache/
+.cc-artifacts/	all	scratch	project	every plugin since 2026-11-14 — .cc-artifacts/<plugin>/: taskmaster specs, cards, ledgers and mockups; task-runner and overseer run state; design-kit decks and design-system/; craft-layer run log and shots; ultra-deep-research reports; the brain map; hindsight's anti-patterns.md; cc-phase sentinels; and hook state when ${CLAUDE_PLUGIN_DATA} is unset (the plugin-state block, cc_plugin_state)
 __design-kit__/	design-kit	cleaned	project	design-kit/scripts/codebase-scaffold.sh § MARK — scratch entry on the project's dev server; codebase-cleanup.sh removes it after the pick
-.claude/design-kit/	design-kit	scratch	plugin-data	legacy — no current writer (design-kit/hooks/unread-pick.sh once kept once-per-session markers here); kept so existing dirs stay ignored
-taskmaster-docs/	taskmaster, ui-ux	scratch	project	taskmaster/skills/grill/SKILL.md:162 — specs, cards (taskmaster/commands/task.md:98), questionnaires (taskmaster/skills/grill/references/questionnaire.md:11), mockups (and craft-layer's craft/ run records, craft-layer/commands/craft.md:60); ui-ux/commands/theme.md:38 drops a .gitignore holding * in mockups/
-.craft-layer/	craft-layer	scratch	project	craft-layer/commands/craft.md:41 — run-log.md and shots/ (craft-layer/template/craft-gates/gates.spec.ts § SHOTS_DIR); created with a .gitignore holding *
 .playwright-mcp/	overseer	scratch	project	overseer/skills/overseer/references/acceptance.md:93 — the Playwright MCP's capture dir under the session cwd
-.claude/task-runner/	task-runner	scratch	project	task-runner/hooks/drift.sh § tr_dir — active-run.json, rv/, bg/, gate-pass.json; the first hook to see it drops a .gitignore holding *
-.claude/taskmaster/	taskmaster	scratch	project	taskmaster/skills/grill/SKILL.md:61 and ultra/SKILL.md:136 — ledger-<slug>.md and goal-ledger-<slug>.md; read by grill's Resume and skill-router/hooks/compact-capsule.sh § names
-.claude/overseer/	overseer	scratch	project	overseer/scripts/program.sh § program.json — program.json, milestones/, .reads; machine-local, README:87; self-ignoring
-.claude/approaches/	approaches	scratch	project	approaches/skills/approach-deliberation/SKILL.md:43, taskmaster/commands/brainstorm.md:129, taskmaster/skills/grill/SKILL.md:158 — deliberated.json double-run marker, one object overwritten per task
+.claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
+.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh § ALLOW_BASENAME — the project's allow-list of regexes; a config the team maintains
+.design-kit/	design-kit	scratch	project	legacy — design-kit/scripts/dk.sh § DK before 2026-11-14: decks, boards, artifacts, previews, exports, workshop.json, usage.jsonl, decisions.jsonl, .cache/; now .cc-artifacts/design-kit/
+taskmaster-docs/	taskmaster, ui-ux	scratch	project	legacy — before 2026-11-14: taskmaster specs, cards, questionnaires and mockups (and craft-layer's craft/ run records); ui-ux's theme mockups behind a .gitignore holding *; now .cc-artifacts/taskmaster/
+.craft-layer/	craft-layer	scratch	project	legacy — craft-layer before 2026-11-14: run-log.md, waivers.json, preserve.json, shots/, created with a .gitignore holding *; now .cc-artifacts/craft-layer/, its gates still read the old run log and waivers while the new ones are absent
+.claude/task-runner/	task-runner	scratch	project	legacy — task-runner/hooks/drift.sh § tr_dir before 2026-11-14: active-run.json, receipt.json, receipts/, rv/, bg/, gate-pass.json, behind a .gitignore holding *; now .cc-artifacts/task-runner/
+.claude/taskmaster/	taskmaster	scratch	project	legacy — taskmaster grill and ultra before 2026-11-14: ledger-<slug>.md and goal-ledger-<slug>.md; now .cc-artifacts/taskmaster/
+.claude/overseer/	overseer	scratch	project	legacy — overseer/scripts/program.sh § program.json before 2026-11-14: program.json, milestones/, .reads, self-ignoring; now .cc-artifacts/overseer/
+.claude/approaches/	approaches	scratch	project	legacy — approaches/scripts/mark-deliberated.sh before 2026-11-14: the deliberated.json double-run marker; now .cc-artifacts/approaches/
+.claude/code-architecture/	code-architecture	scratch	project	legacy — code-architecture/skills/drift-review/SKILL.md before 2026-11-14: rv/diff-<short HEAD>.patch behind a .gitignore holding *; now .cc-artifacts/code-architecture/
+.claude/security/	security	scratch	project	legacy — security/hooks/write-scan.sh before 2026-11-14, with ${CLAUDE_PLUGIN_DATA} unset: the bash-effects.mark marker behind a .gitignore holding *; now .cc-artifacts/security/
+.claude/secret-scanning/	secret-scanning	scratch	project	legacy — secret-scanning/hooks/scan.sh and unicode-scan.sh before 2026-11-14, with ${CLAUDE_PLUGIN_DATA} unset: bash-effects markers behind a .gitignore holding *; now .cc-artifacts/secret-scanning/
+.claude/hindsight/	hindsight	scratch	project	legacy — hindsight/skills/harvest/SKILL.md before 2026-11-14: anti-patterns.md, the failed-approach warnings the user approved; now .cc-artifacts/hindsight/
+.claude/cc-phase/	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	legacy — taskmaster/scripts/phase-sentinel.sh § dir before 2026-11-14: <session>.json, one arc-phase sentinel per session, behind a .gitignore holding *; now .cc-artifacts/cc-phase/, whose readers still look here
+.claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	legacy — the repo-wide sentinel before taskmaster 0.56.0; no reader looks at it, taskmaster/scripts/phase-sentinel.sh § legacy removes it
+brain/	brain	state	project	legacy — brain before 2026-11-14 kept its committed map here (INDEX.md); now .cc-artifacts/brain/. Listed, never auto-ignored: a project's own code can carry the name
+design-system/	design-kit	state	project	legacy — design-kit before 2026-11-14: tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md; now .cc-artifacts/design-kit/design-system/. Listed, never auto-ignored: a monorepo's own design-system/ package shares the name
+research/	ultra-deep-research	state	project	legacy — ultra-deep-research before 2026-11-14 saved its cited reports here; now .cc-artifacts/ultra-deep-research/. Listed, never auto-ignored: the name is generic
+.claude/design-kit/	design-kit	scratch	plugin-data	legacy — no current writer (design-kit/hooks/unread-pick.sh once kept once-per-session markers here); kept so existing dirs stay ignored
 .claude/comment-discipline/	code-review	scratch	plugin-data	legacy — code-review/hooks/density.sh § dir, code-review/hooks/scan.sh § dir, code-review/hooks/verbosity.sh § dir: per-project density scratch and blocked markers, read only by those hooks
-.claude/code-review/	code-review	scratch	plugin-data	legacy — code-review/hooks/review-debt.sh § dir: review-base and once-per-HEAD markers of the review-debt nudge, read only by that hook
+.claude/code-review/	code-review	scratch	plugin-data	legacy — code-review/hooks/review-debt.sh § dir: review-base and once-per-HEAD markers of the review-debt nudge, read only by that hook; also /code-review:review's rv/diff-<short HEAD>.patch before 2026-11-14, now .cc-artifacts/code-review/rv/
 .claude/skill-router/	skill-router	scratch	plugin-data	legacy — skill-router/hooks/route.sh § state_dir, skill-router/hooks/summary.sh § state_file, skill-router/hooks/route-prompt.sh § state_f, skill-router/hooks/compact-capsule.sh § dir: fired-<ctx>.json read only by skill-router hooks; compact-log.jsonl read by no hook, grepped by hand (skill-router/README.md, the compact-log.jsonl paragraph)
 .claude/candor/	candor	scratch	plugin-data	legacy — candor/hooks/gate.sh § state_dir: blocked and last markers of the completion gate, read only by that hook
 .claude/testing/	testing	scratch	plugin-data	legacy — testing/hooks/test-shape.sh § dir: shape-<ctx> one-shot markers, read only by that hook
 .claude/ui-ux/	ui-ux	scratch	plugin-data	legacy — ui-ux/hooks/palette-default.sh § dir: palette-<ctx> one-shot markers; ui-ux/hooks/ui-check.sh: ui-check-<ctx> files holding the newest UI edit it sent a turn back for; each read only by its own hook
-.claude/cc-phase/	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	taskmaster/scripts/phase-sentinel.sh § dir — <session>.json, one arc-phase sentinel per session, which every phase-owning command writes and must remove; the writer drops a .gitignore holding *
-.claude/cc-phase.json	taskmaster, git-workflow, task-runner, code-architecture	scratch	project	legacy — the repo-wide sentinel before taskmaster 0.56.0; no reader looks at it, taskmaster/scripts/phase-sentinel.sh § legacy removes it
-.claude/worktrees/	git-workflow	scratch	project	git-workflow/skills/worktree-isolation/SKILL.md:40 — where EnterWorktree puts feature worktrees; a checkout inside a checkout must never be committed
-.claude/hindsight/	hindsight	state	project	hindsight/skills/harvest/SKILL.md:133 — anti-patterns.md holds the failed-approach warnings the user approved; a team may want them
-.claude/destructive-guard-allow	command-guard	state	project	command-guard/hooks/destructive-guard.sh § ALLOW_BASENAME — the project's allow-list of regexes; a config the team maintains
-brain/	brain	state	project	brain/README.md:3 — "A committed, Obsidian-style codebase map"; tracked by design
-design-system/	design-kit	state	project	design-kit/README.md:406 — "design-system/ is yours"; tokens.json, DESIGN-SYSTEM.md, components.json, DECISIONS.md are the record
-research/	ultra-deep-research	state	project	ultra-deep-research/README.md:6 — the cited report is the deliverable
 ~/.claude/skill-router/	skill-router	state	home	skill-router/hooks/summary.sh § dir — <slug>/surfaced.jsonl; read by scripts/turn-cost.sh § surfaced
 ~/.claude/hindsight/	hindsight	state	home	hindsight/hooks/collect.sh § dir, hindsight/hooks/skill-use.sh § dir — <slug>/ledger.jsonl, skills.jsonl; read by hindsight/scripts/select.sh § H and scripts/turn-cost.sh § invoked
 ~/.claude/comment-discipline/	code-review	state	home	code-review/hooks/density.sh § ledger, code-review/hooks/verbosity.sh § ledger — density- and verbosity-ledger.jsonl; read by nothing automatically, kept to revisit the thresholds

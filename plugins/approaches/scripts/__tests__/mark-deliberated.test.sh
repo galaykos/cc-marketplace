@@ -12,7 +12,7 @@ T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 ok()  { printf 'PASS: %s\n' "$1"; pass=$((pass+1)); }
 bad() { printf 'FAIL: %s\n' "$1"; fail=$((fail+1)); }
 R="$T/proj"; mkdir -p "$R/sub"; git -C "$R" init -q
-MK="$R/.claude/approaches/deliberated.json"
+MK="$R/.cc-artifacts/approaches/deliberated.json"
 
 bash "$M" check --task cache-rewrite --cwd "$R" >/dev/null 2>&1; [ $? = 1 ] && ok "no marker: check exits 1" || bad "no marker"
 bash "$M" write --task cache-rewrite --shape "read-through cache" --why "one writer" --kill-trigger "two writers appear" --cwd "$R/sub" >/dev/null 2>&1 \
@@ -31,6 +31,17 @@ bash "$M" check --task cache-rewrite --cwd "$R" >/dev/null 2>&1; [ $? = 1 ] && o
 bash "$M" write --task "Not A Slug" --cwd "$R" >/dev/null 2>&1; [ $? = 3 ] && ok "a non-slug task is a usage error" || bad "slug"
 bash "$M" write --task 'x"; rm -rf /' --cwd "$R" >/dev/null 2>&1; [ $? = 3 ] && ok "quotes in the task are refused" || bad "quote"
 bash "$M" erase --task x >/dev/null 2>&1; [ $? = 3 ] && ok "an unknown subcommand is a usage error" || bad "subcommand"
+
+# Plugins before 2026-11-14 wrote the marker under .claude/approaches/: copied over once, the old dir left as it was.
+O="$T/old"; mkdir -p "$O/.claude/approaches"; git -C "$O" init -q
+printf '{"task":"old-task","by":"approach-deliberation","at":"2026-11-13T00:00:00Z"}\n' > "$O/.claude/approaches/deliberated.json"
+before=$(cksum < "$O/.claude/approaches/deliberated.json")
+bash "$M" check --task old-task --cwd "$O" >/dev/null 2>&1; [ $? = 0 ] && ok "old path: a fresh marker only under .claude/approaches/ is read" || bad "old path: check reads the old marker"
+[ -f "$O/.cc-artifacts/approaches/deliberated.json" ] && ok "old path: the old dir is copied to .cc-artifacts/approaches/" || bad "old path: copied over"
+bash "$M" write --task new-task --cwd "$O" >/dev/null 2>&1
+[ "$(jq -r .task "$O/.cc-artifacts/approaches/deliberated.json")" = new-task ] && ok "old path: write lands under .cc-artifacts/approaches/" || bad "old path: write location"
+[ "$(cksum < "$O/.claude/approaches/deliberated.json")" = "$before" ] && ok "old path: the .claude/approaches/ marker is untouched" || bad "old path: old marker changed"
+bash "$M" check --task old-task --cwd "$O" >/dev/null 2>&1; [ $? = 1 ] && ok "old path: once copied, the old marker is never read again" || bad "old path: old marker read after the copy"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]

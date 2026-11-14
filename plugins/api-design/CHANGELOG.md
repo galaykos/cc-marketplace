@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.11.4; earlier versions have no entries rather than invented ones.
 
+## 0.12.0 — 2026-11-14
+
+- **The reminder hook reads the phase sentinel at `.cc-artifacts/cc-phase/<session>.json`, else the older `.claude/cc-phase/<session>.json`**, and sweeps expired sentinels in both. Regenerated from the shared phase-file and phase-guard blocks; this plugin writes nothing else into a project. Standing: gate (the marketplace repository's `scripts/smoke/hook-guard-tests.sh`).
+
 ## 0.11.7 — 2026-11-12
 
 - **The reminder hook reads only this session's phase sentinel** (`.claude/cc-phase/<session>.json`, written by taskmaster 0.56.0's `phase-sentinel.sh`). Another session in the same repo can no longer silence it or change its rank key. Regenerated from the shared phase-guard block. Standing: gate (the marketplace repository's `scripts/smoke/hook-guard-tests.sh`).

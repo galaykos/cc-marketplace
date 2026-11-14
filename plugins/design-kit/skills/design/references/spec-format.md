@@ -1,7 +1,7 @@
 # Board spec format
 
 `scripts/board-build.py <spec>` accepts JSON or markdown. Write the spec to
-`.design-kit/boards/<slug>.spec.json` (or `.md`) so a later round can edit one artboard and
+`.cc-artifacts/design-kit/boards/<slug>.spec.json` (or `.md`) so a later round can edit one artboard and
 rebuild; the builder writes the board beside it.
 
 ## JSON
@@ -61,10 +61,10 @@ The first `#` heading is the title; `Brief:` and `Device:` lines before the firs
 
 | Flag | Effect |
 |---|---|
-| `--out <path>` | write here instead of `.design-kit/boards/YYYY-MM-DD-<slug>.html` |
-| `--tokens <file>` | DTCG tokens for accent/spacing/radius/font; default `design-system/tokens.json` when present; the path heuristics used are printed to stderr |
+| `--out <path>` | write here instead of `.cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html` |
+| `--tokens <file>` | DTCG tokens for accent/spacing/radius/font; default `.cc-artifacts/design-kit/design-system/tokens.json`, else an older `design-system/tokens.json`, when present; the path heuristics used are printed to stderr |
 | `--device phone\|tablet\|desktop` | default frame when the spec names none |
-| `--docroot <dir>` | default `.design-kit` |
+| `--docroot <dir>` | default `.cc-artifacts/design-kit` |
 
 Exit 2 names the gate that failed: artboard count outside 2–4, an empty body, lorem
 ipsum, an external reference, an unknown device, or an unfilled shell slot.

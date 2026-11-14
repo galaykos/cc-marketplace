@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# preview.sh [--lan|--stop] [--port N] [--docroot DIR] — starts serve.py on DIR (default ./.design-kit) at 127.0.0.1:N (default 8124; 8123 is taskmaster's) once, writing DIR/.preview.{pid,url,bind}; a second start reuses it; --stop ends it, only when the recorded pid is serve.py on DIR, and deletes those files and DIR/.preview.key.
+# preview.sh [--lan|--stop] [--port N] [--docroot DIR] — starts serve.py on DIR (default ./.cc-artifacts/design-kit) at 127.0.0.1:N (default 8124; 8123 is taskmaster's) once, writing DIR/.preview.{pid,url,bind}; a second start reuses it; --stop ends it, only when the recorded pid is serve.py on DIR, and deletes those files and DIR/.preview.key.
 # --lan binds 0.0.0.0 (restarting a loopback server) and prints the URL with the ?key= another device needs; a plain start over a LAN server says LAN mode is still on. serve.py ends itself (DESIGN_KIT_LAN_MINUTES, DESIGN_KIT_IDLE_MINUTES) and removes the pid, url and bind files that still name it. Exit 6: the recorded pid is alive and neither ps nor /proc names it; nothing signalled or removed.
 # Misses: serve.py's own output is discarded; the LAN host is a guess (en0, else hostname -I's first); two starts at once are not locked (taskmaster's launcher is), so both may launch and one fail on the port. Harness: scripts/__tests__/preview.test.sh.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/preview.sh
 set -euo pipefail
 
-docroot=".design-kit"; port="${DESIGN_KIT_PORT:-8124}"; bind="127.0.0.1"; stop=0
+docroot=".cc-artifacts/design-kit"; port="${DESIGN_KIT_PORT:-8124}"; bind="127.0.0.1"; stop=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --stop) stop=1 ;;

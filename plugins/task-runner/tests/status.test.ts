@@ -1,8 +1,8 @@
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
-const INDEX = '/work/taskmaster-docs/tasks/ship/00-INDEX.md'
-const RUN = '/work/.claude/task-runner/active-run.json'
+const INDEX = '/work/.cc-artifacts/taskmaster/tasks/ship/00-INDEX.md'
+const RUN = '/work/.cc-artifacts/task-runner/active-run.json'
 const TOOL = 'mcp__task-runner__card_status'
 
 const row = (id: string, status: string) => `| ${id} | Card ${id} | none | generic | A | ${status} |`
@@ -28,7 +28,7 @@ const BOARD = [
 type Live = { version?: string; env?: Record<string, string>; run?: string | null; index?: string; branch?: string }
 
 function seat(on: On, live: Live = {}) {
-  const run = live.run === undefined ? JSON.stringify({ slug: 'ship', branch: 'feat/x', index_path: 'taskmaster-docs/tasks/ship/00-INDEX.md' }) : live.run
+  const run = live.run === undefined ? JSON.stringify({ slug: 'ship', branch: 'feat/x', index_path: '.cc-artifacts/taskmaster/tasks/ship/00-INDEX.md' }) : live.run
   const world = { disk: new Map<string, string>([[INDEX, live.index ?? BOARD]]), registered: [] as { name: string; isDeferred?: unknown }[], writes: 0 }
 
   if (run !== null) {
@@ -145,6 +145,19 @@ describe('card status tool', () => {
     expect(r.result).toBe('card 2: in_progress → done — (9f1c2b3a)')
     expect(statusOf('02')).toBe('done — (9f1c2b3a)')
     expect(world.disk.get(INDEX)).toBe(BOARD.replace(row('02', 'in_progress'), row('02', 'done — (9f1c2b3a)')))
+  })
+
+  test("writes an older run's index under taskmaster-docs/, registered under .claude/task-runner/", async ($, on) => {
+    const { world } = seat(on, { run: null })
+    const legacy = '/work/taskmaster-docs/tasks/ship/00-INDEX.md'
+
+    world.disk.set(legacy, BOARD)
+    world.disk.set('/work/.claude/task-runner/active-run.json', JSON.stringify({ slug: 'ship', branch: 'feat/x', index_path: 'taskmaster-docs/tasks/ship/00-INDEX.md' }))
+
+    await $.tool.call({ tool: TOOL, card: '2', status: 'done', detail: '(9f1c2b3a)' })
+
+    expect(world.disk.get(legacy)).toBe(BOARD.replace(row('02', 'in_progress'), row('02', 'done — (9f1c2b3a)')))
+    expect(world.disk.get(INDEX)).toBe(BOARD)
   })
 
   test('refuses a parked status with no reason, or a forecast in place of one, and writes nothing', async ($, on) => {

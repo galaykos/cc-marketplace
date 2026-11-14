@@ -119,7 +119,7 @@ The decision aid the whole skill exists for — colours are judged rendered, not
 as variable names:
 
 1. Never hand-write a theme page. Copy `assets/theme-shell.html` (relative to
-   this skill's directory) to `taskmaster-docs/mockups/theme.html` and fill its
+   this skill's directory) to `.cc-artifacts/taskmaster/mockups/theme.html` and fill its
    SLOTs. Creating that directory, drop a `.gitignore` holding `*` in if one is not
    there — the page is scratch and nothing else ignores it. The starter already carries the component skeleton (every button
    variant, a card with form inputs, a destructive alert, badges, a swatch grid,
@@ -140,10 +140,10 @@ as variable names:
    server (`lsof -ti :${PREVIEW_PORT:-8123}`) — when the taskmaster plugin is
    installed, its visual-decisions `assets/serve.py` is the preferred first
    start (adds SSE push-reload; static rungs below degrade to polling). Else
-   start `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups`
+   start `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d .cc-artifacts/taskmaster/mockups`
    in background Bash with `timeout: 7200000` (no python3 →
-   `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
-   `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`) —
+   `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t .cc-artifacts/taskmaster/mockups` →
+   `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} .cc-artifacts/taskmaster/mockups`) —
    the stable URL is `http://localhost:${PREVIEW_PORT:-8123}/theme.html`.
 5. Iterate by rewriting the token blocks in place, re-checking the port before each round:
    from CLI 2.1.285 a background call stops at its `timeout` (30 minutes by default; from

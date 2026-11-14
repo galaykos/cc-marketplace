@@ -3,6 +3,12 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.14.0 — 2026-11-14
+
+- **The deliberation marker moved to `.cc-artifacts/approaches/deliberated.json`** (was `.claude/approaches/deliberated.json`), the folder every marketplace plugin now writes its project artifacts to. When the new folder does not exist and `.claude/approaches/` does, `mark-deliberated.sh` and `compact-recovery.sh` copy its contents over once, then use only the new folder; the old one is never changed. The approach-deliberation skill names the new path.
+- **Both reminder hooks read the phase sentinel at `.cc-artifacts/cc-phase/<session>.json`, else the older `.claude/cc-phase/<session>.json`**, and sweep expired sentinels in both. Regenerated from the shared phase-file and phase-guard blocks.
+- Standing: gate (`mark-deliberated.test.sh` and `compact-recovery.test.sh`, each with an old-path-only case; the phase blocks by the marketplace repository's `scripts/smoke/hook-guard-tests.sh`).
+
 ## 0.13.1 — 2026-11-12
 
 - **Both reminder hooks read only this session's phase sentinel** (`.claude/cc-phase/<session>.json`, written by taskmaster 0.56.0's `phase-sentinel.sh`). Another session in the same repo can no longer silence them or move their rank key. Before, a decide phase declared by session B let `remind.sh` speak for session A after a better-ranked voice had already spoken. Regenerated from the shared phase-guard block. Standing: gate (the marketplace repository's `scripts/smoke/hook-guard-tests.sh`, two-session rank-key case).

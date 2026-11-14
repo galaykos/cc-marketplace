@@ -44,5 +44,24 @@ run_case "empty ledger -> empty-ledger" 2 "empty-ledger" --slug empty
 run_case "no slug -> usage" 3 "usage"
 run_case "path-traversal slug -> usage" 3 "usage" --slug '../etc'
 
+# 7) default dir, a project whose ledger predates 2026-11-14 (.claude/taskmaster/): read, copied once on --init, never touched
+proj="$tmp/proj"; mkdir -p "$proj/.claude/taskmaster"; git -C "$proj" init -q
+printf '# Goal ledger — legacy\n\n- decision: old entry\n' > "$proj/.claude/taskmaster/goal-ledger-legacy.md"
+before=$(cksum < "$proj/.claude/taskmaster/goal-ledger-legacy.md")
+cd "$proj"; unset GOAL_LEDGER_DIR
+run_case "old-path ledger only -> ok" 0 "" --slug legacy
+run_case "old-path ledger only, --init -> ok" 0 "" --init --slug legacy
+cd "$here"
+grep -q 'old entry' "$proj/.cc-artifacts/taskmaster/goal-ledger-legacy.md" 2>/dev/null \
+  && { printf 'PASS: --init copies the old ledger to .cc-artifacts/taskmaster/\n'; pass=$((pass+1)); } \
+  || { printf 'FAIL: --init copies the old ledger to .cc-artifacts/taskmaster/\n'; fail=$((fail+1)); }
+[ "$(cksum < "$proj/.claude/taskmaster/goal-ledger-legacy.md")" = "$before" ] \
+  && { printf 'PASS: the old ledger is left untouched\n'; pass=$((pass+1)); } \
+  || { printf 'FAIL: the old ledger is left untouched\n'; fail=$((fail+1)); }
+if git -C "$proj" check-ignore -q .cc-artifacts/taskmaster/goal-ledger-legacy.md \
+   && ! git -C "$proj" check-ignore -q .cc-artifacts/taskmaster/specs/2026-11-14-x.md; then
+  printf 'PASS: the ledger is git-ignored, a spec beside it is not\n'; pass=$((pass+1))
+else printf 'FAIL: the ledger is git-ignored, a spec beside it is not\n'; fail=$((fail+1)); fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

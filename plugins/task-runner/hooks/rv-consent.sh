@@ -21,6 +21,20 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
 
@@ -32,7 +46,8 @@ cc_state_root() {
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
-  [ -r "$root/.claude/task-runner/active-run.json" ] || [ -r "$root/.claude/task-runner/closed-run.json" ] || exit 0
+  tr=$(tr_state_dir "$root")
+  [ -r "$tr/active-run.json" ] || [ -r "$tr/closed-run.json" ] || exit 0
 
   blob=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null)
   discretionary=0
@@ -77,7 +92,7 @@ cc_state_root() {
   what="the reviewer pass for card"
   printf '%s' "$flat" | grep -q 'reduction-record\.sh' && what="a declared step for"
   # Hands-off (Goal) and overseer (Verify: range) runs have nobody to answer: an ask idled them 1.5-9.5 h (rationale/session-retro-2026-11-05.md, issue 2).
-  sent="$root/.claude/task-runner/active-run.json"; [ -r "$sent" ] || sent="$root/.claude/task-runner/closed-run.json"
+  sent="$tr/active-run.json"; [ -r "$sent" ] || sent="$tr/closed-run.json"
   idx=$(jq -r '.index_path // empty' "$sent" 2>/dev/null)
   case "$idx" in '') ;; /*) ;; *) idx="$root/$idx" ;; esac
   if [ -n "$idx" ] && grep -qiE '^[[:space:]]*(Goal:[[:space:]]*true|Verify:[[:space:]]*range)' "$idx" 2>/dev/null; then

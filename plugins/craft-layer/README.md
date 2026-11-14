@@ -104,8 +104,9 @@ it orchestrates existing surfaces:
 
 
 Working files, at fixed names so a later session — or a standalone
-`/craft-layer:audit` — can find them by glob. They live in the taskmaster docs area when the
-project has one, otherwise the session scratch area, and **never** in the shipped tree:
+`/craft-layer:audit` — can find them by glob. They live in the taskmaster docs area,
+`.cc-artifacts/taskmaster/craft/`, when the project has one (an older `taskmaster-docs/craft/` is
+still read, never written), otherwise the session scratch area, and **never** in the shipped tree:
 
 | File | Written by | Read by |
 | --- | --- | --- |
@@ -137,11 +138,13 @@ one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE
 all-in-code build still owes one, as a first-party declaration.
 
 A second thing lands in the project, and it is deliberately not one of the manifest names above:
-`.craft-layer/`, carrying a `.gitignore` holding `*`. It is git-invisible, and it is the only
+`.cc-artifacts/craft-layer/`, carrying a `.gitignore` holding `*`. It is git-invisible, and it is the only
 craft artifact that must OUTLIVE the session — a run log in session scratch has no memory to
 offer the next run, which is the whole point of it. It holds `run-log.md` (the project memory),
 `waivers.json` (see the divergence gate below), and `shots/` — the audit's captured screenshots,
-two per breakpoint at 390/768/1280 in light and dark.
+two per breakpoint at 390/768/1280 in light and dark. Versions before 2026-11-14 used `.craft-layer/`:
+the gates still read its run log and waivers while the new files are absent, a run copies them
+across before writing, and nothing deletes or writes the old directory.
 
 
 ## Modes, ambition, and boost
@@ -282,7 +285,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
 | Performance / Lighthouse (optional external delegation) | `/resilience:review --concern performance` requires the `resilience` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
-| Pre-build artboards a user picks a direction from, and the project's extracted `design-system/` token record a run should start from | `plugins/design-kit` — `/design-kit:design` and `/design-kit:system`; install it by name, skipped if not installed |
+| Pre-build artboards a user picks a direction from, and the project's extracted `.cc-artifacts/design-kit/design-system/` token record a run should start from (an older project's `design-system/`) | `plugins/design-kit` — `/design-kit:design` and `/design-kit:system`; install it by name, skipped if not installed |
 
 ## Install
 
@@ -304,7 +307,7 @@ Install it with its companions — no plugin pulls another in (see the notice at
   skills as `ui-libraries:<skill>`; without the plugin a build on Aceternity, ReUI, MUI,
   PrimeReact, Astryx or any other library runs without its rules.
 - **`design-kit`, `skill-router` — recommended, not required.** design-kit supplies the
-  artboards and `design-system/` record above; skill-router loads the matching stack
+  artboards and the design-system record above; skill-router loads the matching stack
   skill per file. Every step runs without them.
 - **`resilience` (performance review) — genuinely optional.** `/resilience:review --concern performance` is explicitly skipped when the
   plugin is absent.

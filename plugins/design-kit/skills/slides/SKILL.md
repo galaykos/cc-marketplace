@@ -1,7 +1,7 @@
 ---
 name: slides
 description: Use when asked for a deck, slides, a presentation, a pitch or a talk from a brief, notes or a repo — a self-contained HTML deck with speaker notes on the local preview URL, exported to PDF and an editable PPTX by script. Not for reading or editing an existing .pptx file.
-argument-hint: "[brief | path/to/outline.md] [--theme design-system/tokens.json] [--pdf] [--pptx]"
+argument-hint: "[brief | path/to/outline.md] [--theme FILE] [--pdf] [--pptx]"
 ---
 
 ## Entry: /design-kit:slides
@@ -16,14 +16,15 @@ design-system lookup; `--pdf` / `--pptx` request exports after the build. Every
 script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
 `dk.sh check` first and repeat its one line.
 
-1. Typed with no input (`/design-kit:slides` alone), read `.design-kit/workshop.json` and offer in one
+1. Typed with no input (`/design-kit:slides` alone), read `.cc-artifacts/design-kit/workshop.json` and offer in one
    AskUserQuestion round: "A review deck of the last decision (board, pick, knobs,
-   what rendered it — from `design-system/DECISIONS.md` and the board's PNGs via
+   what rendered it — from `.cc-artifacts/design-kit/design-system/DECISIONS.md` (older
+   projects: `design-system/`) and the board's PNGs via
    `dk.sh export <board> --png`)" when a `board` entry exists / "A deck from a
    brief" (then ask what it is for, the audience, and roughly how many minutes —
    the slide count follows from the minutes) / "Stop".
 2. Write or adopt the outline per this skill's `references/outline-format.md` under
-   `.design-kit/decks/<slug>.outline.md`, then `dk.sh slides <outline> [--theme F]`.
+   `.cc-artifacts/design-kit/decks/<slug>.outline.md`, then `dk.sh slides <outline> [--theme F]`.
    It builds, starts or reuses the server and prints `deck=` and `url=`. Fix any exit-2
    finding by editing the outline, not by passing `--allow-long`, unless the user asked
    for that density. **Check before presenting:** `dk.sh check <deck>` renders every slide
@@ -43,16 +44,16 @@ script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
 4. Exports only when `--pdf`/`--pptx` was passed or the user asks:
    - `--pdf`: `dk.sh export <deck> --pdf`; on exit 3 relay the install options it
      prints and stop.
-   - `--pptx` needs the `pptxgenjs` npm package in `.design-kit/.cache/`. When it
+   - `--pptx` needs the `pptxgenjs` npm package in `.cc-artifacts/design-kit/.cache/`. When it
      is not there yet, ask (AskUserQuestion): "Download pptxgenjs into
-     .design-kit/.cache (this project only) (Recommended)" / "Skip the PPTX";
+     .cc-artifacts/design-kit/.cache (this project only) (Recommended)" / "Skip the PPTX";
      on the first, `DESIGN_KIT_PPTX_INSTALL=1 dk.sh export <deck> --pptx`.
 5. Report: the outline path, the deck URL, export paths, the theme file used
    (or "built-in neutral"), and what the PPTX does not carry.
 
 ## What this makes
 
-One HTML file under `.design-kit/decks/` that opens anywhere, needs no network,
+One HTML file under `.cc-artifacts/design-kit/decks/` that opens anywhere, needs no network,
 presents from a browser (arrow keys, touch, `S` notes, `O` overview, `P` print),
 and exports to PDF (browser print) and to an editable PPTX (native text boxes,
 notes, pictures — never screenshots). The deck is built from an OUTLINE file by
@@ -75,7 +76,7 @@ memory gets wrong.
 | One number gets the `=>` big figure; a comparison gets a chart or a short list, never a pasted table | agent-graded — a table on a slide is a spreadsheet, not a slide |
 | The prose lives in `> notes:`; the slide shows the anchor, the notes carry what you would say | agent-graded — a slide the speaker reads aloud is a handout |
 | No decoration slides (section dividers with nothing to say, "Questions?", stock photo slides) | agent-graded |
-| Type and colour come from `design-system/` when it exists, else the neutral built-in set — never a per-deck palette | recorded — the builder reads the design system; nothing checks you did not override it |
+| Type and colour come from the design system (`.cc-artifacts/design-kit/design-system/`, else an older `design-system/`) when it exists, else the neutral built-in set — never a per-deck palette | recorded — the builder reads the design system; nothing checks you did not override it |
 | Contrast: the built-in tokens pass 4.5:1; a project theme is checked by `/design-kit:system`, not here | recorded — state it when a theme is applied |
 
 ## Flow
@@ -85,14 +86,14 @@ memory gets wrong.
    real numbers from real files — never invented figures; a figure you cannot
    source becomes a question to the user). A path to an existing `.md` → treat it
    as the outline, fix only what breaks the grammar. Write the outline to
-   `.design-kit/decks/<slug>.outline.md` so the user can edit it and rebuild.
+   `.cc-artifacts/design-kit/decks/<slug>.outline.md` so the user can edit it and rebuild.
 2. **Build.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/deck-build.py" <outline>`; on
    exit 2 fix the outline (split the long slide — do not reach for `--allow-long`
    to silence it). The stderr names the theme file used, if any.
 3. **Serve.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" slides <outline>` does the build
    and the serve in one call and prints `url=`; give the user that URL. The page reloads
    itself on every rebuild; the gallery at the base URL lists every deck with a badge
-   that turns amber when `design-system/tokens.json` moved after the build. `dk.sh
+   that turns amber when the design system's `tokens.json` moved after the build. `dk.sh
    share <deck> --lan` puts it on the network for a phone — say that a page leaves the
    machine before using it, and give the phone the whole printed URL: without its `?key=`
    it gets 403.
@@ -103,7 +104,7 @@ memory gets wrong.
    install, and pressing `P` in any browser is the same output) and `--pptx`
    (needs Node; the script refuses to download `pptxgenjs` until
    `DESIGN_KIT_PPTX_INSTALL=1` — ask the user first via AskUserQuestion, then rerun
-   with the variable; the package lands in `.design-kit/.cache/`, never global).
+   with the variable; the package lands in `.cc-artifacts/design-kit/.cache/`, never global).
    Report the paths, and for PPTX what is not carried: fragments, transitions,
    nesting beyond one level, theme colours other than the accent.
 

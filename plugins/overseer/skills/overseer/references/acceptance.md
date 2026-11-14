@@ -64,8 +64,9 @@ the loading state the charter promised must be seen, not inferred from the code)
    The same tree is never suite-tested twice (`rationale/session-retro-2026-11-05.md` § 1a). Red → back to the fix loop; acceptance
    never starts on a red suite. Then
    `git status --short --untracked-files=all`: every untracked path is in the milestone's
-   scope or explained (a compiled `a.out`; other plugins' scratch — `.claude/candor-last-*`,
-   `.claude/comment-discipline/`, `.claude/code-review/`, `.claude/task-runner/`, `.claude/taskmaster/`). Name them in the walk note or
+   scope or explained (a compiled `a.out`; other plugins' scratch — `.cc-artifacts/`, or from
+   older plugins `.claude/candor-last-*`, `.claude/comment-discipline/`, `.claude/code-review/`,
+   `.claude/task-runner/`, `.claude/taskmaster/`). Name them in the walk note or
    propose the ignore lines as a suggestion; "not mine" is an explanation only once written.
 2. **Serve the app from the BUILT assets.** Kill any dev server a worker left (`lsof -i`
    on the Vite port), delete the framework's hot file (`public/hot` in Laravel) — a walk

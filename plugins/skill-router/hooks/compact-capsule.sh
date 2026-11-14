@@ -24,7 +24,7 @@ cc_state_root() {
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -34,16 +34,23 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }
 # Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
-# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# cc_phase_file <root> <session_id> prints <root>/.cc-artifacts/cc-phase/<key>.json, that session's own phase sentinel; <key> is
 # <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# cc_phase_file_legacy: the same key under <root>/.claude/cc-phase/, where plugins wrote it before 2026-11-14; read it, never write it.
 # Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
 cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.cc-artifacts/cc-phase/%s.json\n' "$1" "$key"
+}
+cc_phase_file_legacy() {
   local key
   key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
   [ -n "$key" ] || return 1
@@ -66,6 +73,9 @@ cc_phase_file() {
 
   # Only this session's phase: another session's sentinel is not this conversation's state.
   own=$(cc_phase_file "$root" "$sid") || own=""
+  if [ -n "$own" ] && [ ! -f "$own" ]; then
+    old=$(cc_phase_file_legacy "$root" "$sid") && [ -f "$old" ] && own="$old"
+  fi
   if [ -n "$own" ] && [ -f "$own" ]; then
     phase=$(jq -r '.phase // empty' "$own" 2>/dev/null)
     owner=$(jq -r '.owner // empty' "$own" 2>/dev/null)
@@ -73,33 +83,38 @@ cc_phase_file() {
     [ -n "$phase" ] && add "arc phase \`$phase\`${owner:+ owned by $owner}${since:+ since $since}, declared by this session — ${own#"$root"/} (reminder hooks outside this phase stand down; the owner clears it)"
   fi
 
-  f="$root/.claude/task-runner/active-run.json"
+  # Run state sat in .claude/task-runner/ before 2026-11-14: read it until .cc-artifacts/task-runner/, its copy, exists.
+  trd="$root/.cc-artifacts/task-runner"
+  [ -d "$trd" ] || trd="$root/.claude/task-runner"
+  f="$trd/active-run.json"
   if [ -f "$f" ]; then
     slug=$(jq -r '.slug // empty' "$f" 2>/dev/null)
     branch=$(jq -r '.branch // empty' "$f" 2>/dev/null)
     idx=$(jq -r '.index_path // empty' "$f" 2>/dev/null)
-    add "registered task-runner run${slug:+ \`$slug\`}${branch:+ on branch $branch}${idx:+, cards at $idx} — .claude/task-runner/active-run.json (the completion gate still requires a recorded behavioral-gate pass before this run may stop clean)"
+    add "registered task-runner run${slug:+ \`$slug\`}${branch:+ on branch $branch}${idx:+, cards at $idx} — ${f#"$root"/} (the completion gate still requires a recorded behavioral-gate pass before this run may stop clean)"
   fi
 
-  f="$root/.claude/task-runner/scope.json"
-  [ -f "$f" ] && add "scope lock active — .claude/task-runner/scope.json (edits outside it are warned; the run owns the list)"
+  f="$trd/scope.json"
+  [ -f "$f" ] && add "scope lock active — ${f#"$root"/} (edits outside it are warned; the run owns the list)"
 
-  names=""
-  for f in "$root"/.claude/taskmaster/ledger-*.md; do
-    [ -f "$f" ] || continue
-    names="${names}${names:+, }${f##*/}"
-  done
-  [ -n "$names" ] && add "open taskmaster ambiguity ledger(s): $names — .claude/taskmaster/ (grill offers Resume / Start fresh; do not re-ask what a ledger already settled)"
-
-  names=""
-  for f in "$root"/.claude/taskmaster/goal-ledger-*.md; do
-    [ -f "$f" ] || continue
-    names="${names}${names:+, }${f##*/}"
-  done
-  [ -n "$names" ] && add "goal ledger(s) from a hands-off run: $names — .claude/taskmaster/ (every auto-take is audited there)"
+  # ledgers <glob>: names in .cc-artifacts/taskmaster/, else in .claude/taskmaster/ (written there before 2026-11-14); sets names and tmd.
+  ledgers() {
+    local f
+    for tmd in .cc-artifacts/taskmaster .claude/taskmaster; do
+      names=""
+      for f in "$root/$tmd"/$1; do
+        [ -f "$f" ] || continue
+        names="${names}${names:+, }${f##*/}"
+      done
+      [ -z "$names" ] || return 0
+    done
+    return 1
+  }
+  ledgers 'ledger-*.md' && add "open taskmaster ambiguity ledger(s): $names — $tmd/ (grill offers Resume / Start fresh; do not re-ask what a ledger already settled)"
+  ledgers 'goal-ledger-*.md' && add "goal ledger(s) from a hands-off run: $names — $tmd/ (every auto-take is audited there)"
 
   # A sentinel on disk but none under this session's key: the id changed across the compaction, or the file is another session's.
-  if [ -n "$sid" ] && [ -n "$(find "$root/.claude/cc-phase" -maxdepth 1 -name '*.json' 2>/dev/null | head -n 1)" ]; then
+  if [ -n "$sid" ] && [ -n "$(find "$root/.cc-artifacts/cc-phase" "$root/.claude/cc-phase" -maxdepth 1 -name '*.json' 2>/dev/null | head -n 1)" ]; then
     match=false; [ -n "$own" ] && [ -f "$own" ] && match=true
     dir=$(cc_plugin_state "$root" skill-router)
     mkdir -p "$dir" 2>/dev/null && { [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null; } && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null

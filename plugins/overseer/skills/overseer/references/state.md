@@ -1,13 +1,21 @@
 # Program state — files, statuses, resume
 
-Everything lives under `<project>/.claude/overseer/`. The directory carries its own
+Everything lives under `<project>/.cc-artifacts/overseer/`. The directory carries its own
 `.gitignore` holding `*`: state follows the working copy across branch switches (untracked
 files survive `git switch`) and never lands in a commit. A teammate who clones gets no
 program — that is the stated limitation; the charter and briefs are re-creatable, the
-evidence is machine-local by nature.
+evidence is machine-local by nature. Write every file here, never under `.claude/`: Claude
+Code refuses a Write there.
+
+A program opened before 2026-11-14 lives in `.claude/overseer/`. Until the new directory
+exists the SessionStart hook and the status line read it there; the first `program.sh` call
+copies the whole directory over once and leaves the original untouched (**gate**,
+`scripts/__tests__/program.test.sh`). From then on only `.cc-artifacts/overseer/` counts.
+A Read before that first call is not ledgered: `hooks/track-read.sh` writes only the new
+directory.
 
 ```
-.claude/overseer/
+.cc-artifacts/overseer/
   .gitignore              # "*"
   program.json            # the machine-read state (schema below) — written ONLY by program.sh
   charter.md              # raw goal, upgraded statement, users, must-haves, non-goals, product decisions, suggestions
@@ -114,7 +122,8 @@ program until `decisions.md` carries at least one ASSUMED row (**gate**).
    `queued` → the branch was deleted; set `parked` with reason "branch missing" and ask.
 3. `git branch --merged <base>` containing the branch and status not `done` → the user
    merged by hand; run acceptance anyway (merged is not proven) — never skip to `done`.
-4. Status `building` and a `taskmaster-docs/tasks/*/00-INDEX.md` that names the milestone
+4. Status `building` and a `.cc-artifacts/taskmaster/tasks/*/00-INDEX.md` (older
+   taskmaster: `taskmaster-docs/tasks/`) that names the milestone
    and postdates its registration → continue that run via `/task-runner:run <index>`;
    otherwise re-execute from the brief.
 5. Status `accepting` → acceptance re-runs from scratch. Evidence from a previous session

@@ -195,9 +195,12 @@ grep -q '^check: color.background #ffffff → #fffff0 (src/styles/globals.css:11
 cmp -s "$out/tokens.json" "$out2/tokens.json" || fail "--check wrote tokens.json"
 cp "$tmp/globals.bak" "$repo/src/styles/globals.css"
 
-dry="$(python3 "$ex" "$repo" --dry-run)"
+dry="$(cd "$tmp" && python3 "$ex" "$repo" --dry-run)"
 echo "$dry" | grep -q $'^color.background\tcolor\t#ffffff\tdark=#0a0a0a\t' || fail "dry-run row: $(echo "$dry" | head -3)"
-[ -d "$tmp/design-system" ] && fail "dry-run wrote files"
+[ -e "$tmp/.cc-artifacts" ] && fail "dry-run wrote files"
+( cd "$tmp" && python3 "$ex" "$repo" >/dev/null ) && [ -f "$tmp/.cc-artifacts/design-kit/design-system/tokens.json" ] && [ ! -e "$tmp/design-system" ] \
+  || fail "the default --out is not .cc-artifacts/design-kit/design-system"
+rm -rf "$tmp/.cc-artifacts"
 
 site="$tmp/site"; mkdir -p "$site/css"
 cat > "$site/index.html" <<'EOF'

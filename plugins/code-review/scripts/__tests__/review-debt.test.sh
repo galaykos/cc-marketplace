@@ -84,7 +84,7 @@ fires() { # label output needle...
 }
 base_of() { # transcript -> the base commit (the file's first word; the second is the branch)
   local b=""
-  read -r b _ < "$R/.claude/code-review/review-base-$(printf '%s' "$1" | cksum | cut -d' ' -f1)" 2>/dev/null
+  read -r b _ < "$R/.cc-artifacts/code-review/review-base-$(printf '%s' "$1" | cksum | cut -d' ' -f1)" 2>/dev/null
   printf '%s' "$b"
 }
 
@@ -164,9 +164,10 @@ silent "typed /code-review:review" "$(say "$R" "/code-review:review src/" "$TP1"
   && echo "PASS: typed /code-review:review moved the base" \
   || { echo "FAIL: typed /code-review:review did not move the base"; rc=1; }
 
-# ---- docs, lockfiles, taskmaster-docs, .claude, vendor: not code to review -----------
+# ---- docs, lockfiles, taskmaster-docs, .claude, .cc-artifacts, vendor: not code to review -----------
 commit "docs" docs/a.md docs/b.md docs/c.md docs/d.md docs/e.md docs/f.md docs/g.md docs/h.md \
-  composer.lock package-lock.json taskmaster-docs/spec/token.txt .claude/settings.json vendor/pkg/Auth.php
+  composer.lock package-lock.json taskmaster-docs/spec/token.txt .claude/settings.json vendor/pkg/Auth.php \
+  .cc-artifacts/taskmaster/specs/token.txt
 silent "docs-only change (8 .md + lockfiles + tooling dirs)" "$(prompt)"
 
 # ---- art, media and Unity assets are not code; `guard` is auth only as a word -----------
@@ -194,12 +195,21 @@ fires "guard as a word, a plural or a camelCase part is still auth" "$(prompt)" 
   "4 changed files have had no review" "touches auth: Guard.php, lib/JwtGuard.php, src/guard.ts, +1 more"
 
 # ---- under an active task-runner run: silent, and the run's diff is not charged later
-mkdir -p "$R/.claude/task-runner" && printf '{}\n' > "$R/.claude/task-runner/active-run.json"
+mkdir -p "$R/.cc-artifacts/task-runner" && printf '{}\n' > "$R/.cc-artifacts/task-runner/active-run.json"
 commit "run work" run/a.ts run/b.ts run/c.ts run/d.ts run/e.ts run/f.ts run/g.ts run/h.ts app/Http/Middleware/Tenant.php
 silent "active-run.json present" "$(prompt)"
-rm -f "$R/.claude/task-runner/active-run.json"
+rm -f "$R/.cc-artifacts/task-runner/active-run.json"
 commit "after the run" src/after.ts
 silent "first prompt after the run does not charge the run's 9 files" "$(prompt)"
+# A run task-runner registered under .claude/task-runner/ before 2026-11-14 counts until .cc-artifacts/task-runner/ exists.
+rm -rf "$R/.cc-artifacts/task-runner"; mkdir -p "$R/.claude/task-runner" && printf '{}\n' > "$R/.claude/task-runner/active-run.json"
+commit "old run work" old/a.ts old/b.ts old/c.ts old/d.ts old/e.ts old/f.ts old/g.ts old/h.ts app/Http/Middleware/OldTenant.php
+silent "a .claude/task-runner/active-run.json from before 2026-11-14, no new run dir" "$(prompt)"
+mkdir -p "$R/.cc-artifacts/task-runner"
+commit "next to a stale old run" old/i.ts old/j.ts old/k.ts old/l.ts old/m.ts old/n.ts old/o.ts old/p.ts app/Http/Middleware/NewTenant.php
+fires "once .cc-artifacts/task-runner/ exists, a stale .claude/ run file no longer silences" "$(prompt)" "NewTenant.php"
+skill code-review:review
+rm -rf "$R/.claude/task-runner" "$R/.cc-artifacts/task-runner"
 
 # ---- off switches ---------------------------------------------------------------------
 commit "impersonation" app/Http/Middleware/Impersonate.php
@@ -218,12 +228,12 @@ commit "dirs" app/Enums/Status.php app/Models/User.php
 silent "first prompt of a second context, cwd app/Enums" "$(say "$R/app/Enums" go "$TP2")"
 [ -n "$(base_of "$TP2")" ] && echo "PASS: subdirectory cwd — state landed at the repo root" \
   || { echo "FAIL: subdirectory cwd — no state at the repo root"; rc=1; }
-[ -e "$R/app/Enums/.claude" ] && { echo "FAIL: subdirectory cwd — a .claude/ appeared in app/Enums"; rc=1; } \
-  || echo "PASS: subdirectory cwd — no .claude/ in the subdirectory"
+[ -e "$R/app/Enums/.cc-artifacts" ] && { echo "FAIL: subdirectory cwd — a .cc-artifacts/ appeared in app/Enums"; rc=1; } \
+  || echo "PASS: subdirectory cwd — no .cc-artifacts/ in the subdirectory"
 commit "guard" app/Auth/TenantGuard.php
 fires "cwd app/Models sees the same context's base" "$(say "$R/app/Models" go "$TP2")" "TenantGuard.php"
 silent "cwd at the root, same HEAD: already judged" "$(say "$R" go "$TP2")"
-[ -e "$R/app/Models/.claude" ] && { echo "FAIL: a .claude/ appeared in app/Models"; rc=1; }
+[ -e "$R/app/Models/.cc-artifacts" ] && { echo "FAIL: a .cc-artifacts/ appeared in app/Models"; rc=1; }
 
 # ---- a base that left HEAD's history (amend) resets instead of diffing across ----------
 silent "first prompt of a third context" "$(say "$R" go "$TP3")"
@@ -370,7 +380,7 @@ fires "a C-quoted name and a moved gitlink count after a review; the reviewed de
 printf '%s' "$out" | grep -q 'Kept.php' && { echo "FAIL: a deletion the review saw was charged again: $out"; rc=1; }
 
 # ---- base_f and seen_f are renamed into place, so concurrent refuter launches never truncate them --
-sd="$R/.claude/code-review"; c12=$(printf '%s' "$TP12" | cksum | cut -d' ' -f1)
+sd="$R/.cc-artifacts/code-review"; c12=$(printf '%s' "$TP12" | cksum | cut -d' ' -f1)
 ino() { ls -i "$1" 2>/dev/null | awk '{ print $1 }'; }
 b0=$(ino "$sd/review-base-$c12"); s0=$(ino "$sd/review-seen-$c12")
 agent_bg code-review:code-reviewer "$TP12"
@@ -387,7 +397,7 @@ ls "$sd" | grep -qE '^review-(base|seen)-[0-9]+\.[0-9]+$' && { echo "FAIL: a tem
 # ---- outside git: silent, and no state written -----------------------------------------
 mkdir -p "$FX/plain"
 silent "outside a git repo" "$(say "$FX/plain" go "$TP1")"
-[ -e "$FX/plain/.claude" ] && { echo "FAIL: outside git — a .claude/ was created"; rc=1; } \
+[ -e "$FX/plain/.cc-artifacts" ] && { echo "FAIL: outside git — a .cc-artifacts/ was created"; rc=1; } \
   || echo "PASS: outside git — nothing written"
 
 # ---- fail-open ----------------------------------------------------------------------------

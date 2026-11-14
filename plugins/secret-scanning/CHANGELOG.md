@@ -3,6 +3,12 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.18.0 — 2026-11-14
+
+- **The bash-effects markers with no plugin data dir move to `.cc-artifacts/secret-scanning/`** (was `.claude/secret-scanning/`), through the shared plugin-state block in `hooks/scan.sh` and `hooks/unicode-scan.sh`. They start fresh: the first Bash call after the upgrade only sets the marker.
+- `hooks/cc-kit.ts`, the shared mod kit, reads `.cc-artifacts/cc-phase/` and `.cc-artifacts/task-runner/active-run.json` first, then the `.claude/` paths.
+- Standing: gate (`unicode-scan.test.sh` asserts the marker under `.cc-artifacts/secret-scanning/`, ignored by git).
+
 ## 0.17.1 — 2026-11-12
 
 - **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).

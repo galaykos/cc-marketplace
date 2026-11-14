@@ -6,6 +6,19 @@ set -uo pipefail
 
 PROG=worker-check
 usage() { printf '%s: %s\n' "$PROG" "$1" >&2; exit 3; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 since=""
 while [ $# -gt 0 ]; do
@@ -22,8 +35,8 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || usage "not inside a git wor
 common=$(cd "$root" && git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || common="$root/.git"
 main=$(dirname "$common")
 sent=""
-for d in "$root" "$main"; do [ -f "$d/.claude/task-runner/active-run.json" ] && { sent="$d/.claude/task-runner/active-run.json"; break; }; done
-[ -n "$sent" ] || usage "no registered run (.claude/task-runner/active-run.json); run register-run.sh first"
+for d in "$root" "$main"; do d=$(tr_state_dir "$d"); [ -f "$d/active-run.json" ] && { sent="$d/active-run.json"; break; }; done
+[ -n "$sent" ] || usage "no registered run (.cc-artifacts/task-runner/active-run.json); run register-run.sh first"
 
 branch=$(jq -r '.branch // empty' "$sent" 2>/dev/null)
 start=$(jq -r '.start_sha // empty' "$sent" 2>/dev/null)

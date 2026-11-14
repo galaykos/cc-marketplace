@@ -14,8 +14,11 @@
 # never duplicates, holding every scratch/cleaned pattern in the inventory — all
 # of them, not only those on disk, because a pattern that is not there yet is
 # exactly the one the next command creates, and an ignore rule for an absent
-# path costs nothing. `state` rows (brain/, design-system/, research/, …) are
-# printed as "left to you" and never written: a team may want them tracked.
+# path costs nothing. Its first line, .cc-artifacts/, covers everything plugins
+# write since 2026-11-14; the other patterns are what older versions wrote.
+# `state` rows (the destructive-guard allow-list, and the brain/, design-system/
+# and research/ dirs older versions wrote) are printed as "left to you" and never
+# written: a team may want them tracked, or own a directory of that name.
 # `plugin-data` rows are the legacy in-repo paths of hook state now kept under
 # ${CLAUDE_PLUGIN_DATA}: checked like any scratch row, and written after a
 # `# legacy` comment line inside the block so a directory an older version left
@@ -42,7 +45,7 @@ while [ $# -gt 0 ]; do
     --check) mode=check ;;
     --apply) mode=apply ;;
     --root) root="${2:-}"; shift ;;
-    -h|--help) sed -n '2,31p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,34p' "$0"; exit 0 ;;
     *) echo "scratch-ignore.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift

@@ -193,7 +193,7 @@ while IFS= read -r m; do err "$m"; done < <(pc_mod_kit plugins templates/mods/cc
 allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
 while IFS= read -r mdf; do
   pc_doc_location "$mdf" "$allow_md" >/dev/null \
-    || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
+    || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in .cc-artifacts/taskmaster/, not plugins/"
 done < <(find plugins -name '*.md')
 
 # README leaf-count honesty: every plugin.json is a leaf (no plugin may declare dependencies).
@@ -560,7 +560,7 @@ fi
 # A prompt/Stop hook that declared a SPECIFIC phase must read the sentinel, or it
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.
 phase_gap=$(pc_phase_guard plugins) || true
-[ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read its session's sentinel under .claude/cc-phase/ — declare the lane 'any' if it is a guard that must fire in every phase"
+[ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read its session's sentinel under .cc-artifacts/cc-phase/ — declare the lane 'any' if it is a guard that must fire in every phase"
 
 # A "defers X to <plugin>" description needs a yields_to edge in its own lane.tsv (pc_deference_edges' header).
 def_gap=$(pc_deference_edges plugins) || true
@@ -739,10 +739,10 @@ else
 fi
 
 # ---- No session tooling state inside a plugin --------------------------------
-# Nothing under a plugin's `.claude/` may be tracked: plugins ship to users, and the root .gitignore rule is anchored.
+# Nothing under a plugin's `.claude/` or `.cc-artifacts/` may be tracked: plugins ship to users, and the root .gitignore rules are anchored.
 while IFS= read -r f; do
   err "$f: session tooling state tracked inside a plugin — 'git rm -r --cached' it"
-done < <(git ls-files 'plugins/*' 2>/dev/null | grep '/\.claude/' || true)
+done < <(git ls-files 'plugins/*' 2>/dev/null | grep -E '/\.(claude|cc-artifacts)/' || true)
 
 # ---- One severity vocabulary on review surfaces --------------------------------
 # One severity scale (critical/high/medium/low) on review surfaces: divergent format definitions fail, words do not; spec-adversary is exempt.

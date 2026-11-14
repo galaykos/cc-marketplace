@@ -39,8 +39,9 @@ export TMPDIR="$FX/tmp"
 # active-run.json is shaped exactly as task-runner/commands/run.md step 1 writes it
 # for a taskmaster-index run: that file carrying an index_path IS the handoff.
 REPO="$FX/repo"
-SET="$REPO/taskmaster-docs/tasks/2026-08-31-demo"
-mkdir -p "$SET" "$REPO/.claude/task-runner" "$REPO/src"
+SET="$REPO/.cc-artifacts/taskmaster/tasks/2026-08-31-demo"
+RUN="$REPO/.cc-artifacts/task-runner/active-run.json"
+mkdir -p "$SET" "$REPO/.cc-artifacts/task-runner" "$REPO/src"
 git -C "$REPO" init -q   # a real project root, so case 11's subdirectory cwd resolves to it
 printf '# Index\n\n| Card | Status |\n' > "$SET/00-INDEX.md"
 cat > "$SET/01-alpha.md" <<'EOF'
@@ -57,7 +58,7 @@ cat > "$SET/02-beta.md" <<'EOF'
 EOF
 jq -nc --arg i "$SET/00-INDEX.md" \
   '{slug:"2026-08-31-demo",base:"deadbeef",branch:"master",index_path:$i}' \
-  > "$REPO/.claude/task-runner/active-run.json"
+  > "$RUN"
 
 fire() { # $1 transcript_path, $2 cwd, $3 session_id, $4 agent_id -> additionalContext (empty = silent)
   jq -nc --arg t "$1" --arg c "$2" --arg s "${3:-sess-shared}" --arg a "${4:-}" \
@@ -162,11 +163,11 @@ else bad "partial branch wrong (got: $out)"; fi
 mkdir -p "$FX/bare"
 if [ -z "$(fire "$FX/t/bare.jsonl" "$FX/bare")" ]; then pass "no active-run.json: silent"
 else bad "fired without a registered run"; fi
-jq -nc '{slug:"x",branch:"master"}' > "$REPO/.claude/task-runner/active-run.json"
+jq -nc '{slug:"x",branch:"master"}' > "$RUN"
 if [ -z "$(fire "$FX/t/noindex.jsonl" "$REPO")" ]; then pass "run without index_path: silent"
 else bad "fired on a non-index run"; fi
 jq -nc --arg i "$SET/00-INDEX.md" '{slug:"2026-08-31-demo",index_path:$i}' \
-  > "$REPO/.claude/task-runner/active-run.json"
+  > "$RUN"
 
 # --- 8. off switches ----------------------------------------------------------
 rm -f "$SET/.lint-records"/*.log
@@ -195,21 +196,21 @@ else bad "emitted a blocking decision: $env_out"; fi
 # --- 11. SUBDIRECTORY cwd (finding 2, rationale/2026-09-25-session-plugin-usage-review.md)
 # The payload cwd follows the model's `cd`. The registration sits at the repo root with a
 # RELATIVE index_path, and the edit is made from src/: the hook must still find both, and
-# must leave no .claude/ under src/.
+# must leave no .claude/ or .cc-artifacts/ under src/.
 rm -f "$SET/.lint-records"/*.log
-jq -nc '{slug:"2026-08-31-demo",index_path:"taskmaster-docs/tasks/2026-08-31-demo/00-INDEX.md"}' \
-  > "$REPO/.claude/task-runner/active-run.json"
+jq -nc '{slug:"2026-08-31-demo",index_path:".cc-artifacts/taskmaster/tasks/2026-08-31-demo/00-INDEX.md"}' \
+  > "$RUN"
 out=$(fire "$FX/t/subdir.jsonl" "$REPO/src")
 if printf '%s' "$out" | grep -qF "01-alpha.md"; then pass "subdirectory cwd: root registration + relative index_path found"
 else bad "subdirectory cwd: silent from src/ (got: $out)"; fi
-if [ ! -e "$REPO/src/.claude" ]; then pass "subdirectory cwd: no .claude/ under src/"
-else bad "subdirectory cwd: a .claude/ dir appeared under src/"; fi
+if [ ! -e "$REPO/src/.claude" ] && [ ! -e "$REPO/src/.cc-artifacts" ]; then pass "subdirectory cwd: no .claude/ or .cc-artifacts/ under src/"
+else bad "subdirectory cwd: a .claude/ or .cc-artifacts/ dir appeared under src/"; fi
 
 # --- 12. ONLY CARDS COUNT: an NN-*.md beside the cards with no <card> wrapper and no
 # **Verify:** line (probe results, notes) is not a card; a role-tagged card is.
 rm -f "$SET/.lint-records"/*.log
 jq -nc --arg i "$SET/00-INDEX.md" '{slug:"2026-08-31-demo",index_path:$i}' \
-  > "$REPO/.claude/task-runner/active-run.json"
+  > "$RUN"
 printf '# Probe results\n\n| probe | result |\n|---|---|\n| ping | ok |\n' > "$SET/13-probe-results.md"
 printf '# 04 — delta\n\n<card id="04">\n<goal>g</goal>\n</card>\n' > "$SET/04-delta.md"
 out=$(fire "$FX/t/notcard.jsonl" "$REPO")
@@ -219,14 +220,31 @@ else bad "card predicate wrong (got: $out)"; fi
 
 # --- 13. A card set in the wrong shape (no <card>, no **Verify:**) the index names, by
 # basename or by a table row's number, is still a card set that reached the run unlinted.
-WRONG="$REPO/taskmaster-docs/tasks/2026-10-15-wrong"; mkdir -p "$WRONG"
+WRONG="$REPO/.cc-artifacts/taskmaster/tasks/2026-10-15-wrong"; mkdir -p "$WRONG"
 printf '# Index\n\n| card | title | status |\n|---|---|---|\n| 01 | a | pending |\n\nThen [02-b.md](02-b.md).\n' > "$WRONG/00-INDEX.md"
 printf '# 01 — a\n\nDo a.\n' > "$WRONG/01-a.md"; printf '# 02 — b\n\nDo b.\n' > "$WRONG/02-b.md"
 printf '# notes\n' > "$WRONG/03-notes.md"
-jq -nc --arg i "$WRONG/00-INDEX.md" '{slug:"wrong",index_path:$i}' > "$REPO/.claude/task-runner/active-run.json"
+jq -nc --arg i "$WRONG/00-INDEX.md" '{slug:"wrong",index_path:$i}' > "$RUN"
 out=$(fire "$FX/t/wrong.jsonl" "$REPO")
 if printf '%s' "$out" | grep -qF '2 of 2' && ! printf '%s' "$out" | grep -qF '03-notes.md'; then
   pass "wrong-shape cards the index names are counted; an unnamed note is not"
 else bad "wrong-shape cards the index names (got: ${out:-<silent>})"; fi
+
+# --- 14. task-runner before 2026-11-14 registered the run under .claude/task-runner/: read
+# it only while .cc-artifacts/task-runner/ is absent; once that dir exists the new path alone counts.
+OLD="$REPO/.claude/task-runner/active-run.json"; mkdir -p "$REPO/.claude/task-runner"
+rm -rf "$REPO/.cc-artifacts/task-runner"; rm -f "$SET/.lint-records"/*.log
+jq -nc --arg i "$SET/00-INDEX.md" '{slug:"2026-08-31-demo",index_path:$i}' > "$OLD"
+out=$(fire "$FX/t/oldrun.jsonl" "$REPO")
+if printf '%s' "$out" | grep -qF '01-alpha.md'; then pass "old path: a run registered only under .claude/task-runner/ is read"
+else bad "old path: silent on a run registered under .claude/task-runner/ (got: ${out:-<silent>})"; fi
+mkdir -p "$REPO/.cc-artifacts/task-runner"; rm -f "$SET/.lint-records"/*.log
+out=$(fire "$FX/t/oldrun.jsonl" "$REPO")
+if [ -z "$out" ]; then pass "old path: ignored once .cc-artifacts/task-runner/ exists, so a run closed after the copy stays closed"
+else bad "old path: a closed run came back from the old copy (got: $out)"; fi
+jq -nc --arg i "$WRONG/00-INDEX.md" '{slug:"wrong",index_path:$i}' > "$RUN"
+out=$(fire "$FX/t/bothrun.jsonl" "$REPO")
+if printf '%s' "$out" | grep -qF '2026-10-15-wrong' && ! printf '%s' "$out" | grep -qF '01-alpha.md'; then pass "old path: the .cc-artifacts/ registration wins over the old one"
+else bad "old path: the new registration wins (got: ${out:-<silent>})"; fi
 
 exit "$rc"

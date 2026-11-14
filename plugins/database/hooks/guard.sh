@@ -1,6 +1,6 @@
 #!/bin/bash
 # PreToolUse on Write/Edit/MultiEdit and Bash heredoc/echo writes: asks (never denies) before a change adds DROP, TRUNCATE, a DELETE/UPDATE with no WHERE, a migration-DSL drop, an empty-filter deleteMany/remove or .drop(), or a lock hazard (CREATE INDEX without CONCURRENTLY, a rewriting ALTER, a DynamoDB Scan off a script path).
-# Misses: a rollback method (down/downgrade) dropping a table the migration creates (any other drop there asks), SQL keywords outside a .sql file, a migrations dir, a listed raw-query call or SQL-client line (a statement built in a variable, a call or client off the list such as jdbcTemplate.update( or mycli, a Ruby heredoc after execute(...)), renames, doc surfaces (.md .mdx .markdown .txt .rst, taskmaster-docs/), a drop off its list (`drop_table 'users'`, a runtime-built name), lowercase `truncate x`, SQL run by a client with no file written (command-guard's), scratch targets, a CREATE INDEX where config names SQLite, MySQL or MariaDB (Galera's TOI stall too), a filter built across lines (a WHERE on the next line still asks). On Bash: interpreter writes (python open(), php file_put_contents), cp/mv/install, `sed -i`/`perl -i` text, `{ …; } > f` groups, a path in a variable, a relative target after an in-command `cd`, a doc surface listed first in a multi-target `tee`, a here-string, printf format substitution, a quoted string or `\` continuation spanning lines, a second heredoc on one line. CC_DB_GUARD=off, else /config cc_db_guard; fails open.
+# Misses: a rollback method (down/downgrade) dropping a table the migration creates (any other drop there asks), SQL keywords outside a .sql file, a migrations dir, a listed raw-query call or SQL-client line (a statement built in a variable, a call or client off the list such as jdbcTemplate.update( or mycli, a Ruby heredoc after execute(...)), renames, doc surfaces (.md .mdx .markdown .txt .rst, .cc-artifacts/taskmaster/ and the older taskmaster-docs/), a drop off its list (`drop_table 'users'`, a runtime-built name), lowercase `truncate x`, SQL run by a client with no file written (command-guard's), scratch targets, a CREATE INDEX where config names SQLite, MySQL or MariaDB (Galera's TOI stall too), a filter built across lines (a WHERE on the next line still asks). On Bash: interpreter writes (python open(), php file_put_contents), cp/mv/install, `sed -i`/`perl -i` text, `{ …; } > f` groups, a path in a variable, a relative target after an in-command `cd`, a doc surface listed first in a multi-target `tee`, a here-string, printf format substitution, a quoted string or `\` continuation spanning lines, a second heredoc on one line. CC_DB_GUARD=off, else /config cc_db_guard; fails open.
 # Why, limits, history: rationale/derivations/plugin-database.md § plugins/database/hooks/guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -508,7 +508,7 @@ EOF_C
         *) abs="${cwd:+$cwd/}$file" ;;
       esac
       flc=$(printf '%s' "$abs" | tr '[:upper:]' '[:lower:]')
-      case "$flc" in *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) continue ;; esac
+      case "$flc" in *.md|*.mdx|*.markdown|*.txt|*.rst|*/.cc-artifacts/taskmaster/*|*/taskmaster-docs/*) continue ;; esac
       text=${ctext[$i]}; target=$abs
       judge_sql
       if { [ -n "$hit" ] || [ -n "$lockhit" ]; } && out_of_scope "$abs"; then hit=""; lockhit=""; fi
@@ -525,7 +525,7 @@ EOF_C
     # Doc surfaces execute nothing, and an ask per card quoting a migration stalls a headless run; .sql, code and migration paths still ask.
     flc=$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')
     case "$flc" in
-      *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) exit 0 ;;
+      *.md|*.mdx|*.markdown|*.txt|*.rst|*/.cc-artifacts/taskmaster/*|*/taskmaster-docs/*) exit 0 ;;
     esac
     target=$file
     judge_sql

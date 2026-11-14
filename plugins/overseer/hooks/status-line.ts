@@ -16,6 +16,25 @@ type Shown = { seen: string; line?: string }
 
 type Refreshes = { cached?: Shown; latest: number }
 
+// Programs opened before 2026-11-14 live in .claude/overseer/ until program.sh first copies them; then only the new dir counts.
+async function programFile(host: Host, root: string): Promise<{ path: string; mtimeMs: number } | null> {
+  const path = `${root}/.cc-artifacts/overseer/program.json`
+  const stat = await host.stat(path).catch(() => null)
+
+  if (stat) {
+    return { path, mtimeMs: stat.mtimeMs }
+  }
+
+  if (await host.stat(`${root}/.cc-artifacts/overseer`).catch(() => null)) {
+    return null
+  }
+
+  const legacy = `${root}/.claude/overseer/program.json`
+  const old = await host.stat(legacy).catch(() => null)
+
+  return old ? { path: legacy, mtimeMs: old.mtimeMs } : null
+}
+
 // null when the read failed, so nothing is cached and the next refresh reads again.
 async function shownAt(host: Host, path: string, seen: string): Promise<Shown | null> {
   if (seen === '') {
@@ -43,10 +62,9 @@ async function refresh($: EngineInterface, refreshes: Refreshes, option: boolean
 
   const host = hostOf($)
   const isOn = switchOn(await $.env.get('CC_OVERSEER_STATUS'), option)
-  const path = isOn ? `${await stateRoot(host)}/.claude/overseer/program.json` : ''
-  const stat = path === '' ? null : await host.stat(path).catch(() => null)
-  const seen = stat ? `${path}\t${stat.mtimeMs}` : ''
-  const shown = seen === refreshes.cached?.seen ? refreshes.cached : await shownAt(host, path, seen)
+  const found = isOn ? await programFile(host, await stateRoot(host)) : null
+  const seen = found ? `${found.path}\t${found.mtimeMs}` : ''
+  const shown = seen === refreshes.cached?.seen ? refreshes.cached : await shownAt(host, found?.path ?? '', seen)
 
   if (mine !== refreshes.latest) {
     return

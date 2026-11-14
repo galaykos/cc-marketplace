@@ -15,7 +15,7 @@ Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
 
 1. **Resolve the input.** A path to `.html`, `.md`, or a directory holding `index.html`
    is the source as-is. Typed with NO argument (`/design-kit:artifact` alone), read
-   `.design-kit/workshop.json` and offer (AskUserQuestion): "A bring-back page of the
+   `.cc-artifacts/design-kit/workshop.json` and offer (AskUserQuestion): "A bring-back page of the
    last pick (board, artboard, knobs, text edits, with a Copy-as-prompt control)" when a
    `board` entry exists / "Share the last deck as an artifact" when a `deck` entry exists /
    "A page of this session's output" when there is output to page / "A page from a brief".
@@ -23,9 +23,10 @@ Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
    content is the brief — go to Building one.
    Anything else is a brief: pick a pattern from this skill's `references/patterns.md`
    and write the page from `assets/page-shell.html` into
-   `.design-kit/artifacts/.src/<slug>/index.html` with real content from this session.
+   `.cc-artifacts/design-kit/artifacts/.src/<slug>/index.html` with real content from this session.
    `--name <slug>` names the artifact; otherwise the file's basename or a slug of the
-   brief's first words. If `design-system/DESIGN-SYSTEM.md` exists, apply its tokens.
+   brief's first words. If `.cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md` exists (older
+   projects: `design-system/`), apply its tokens.
 2. **Bundle + serve:** `dk.sh bundle <source> [--name <slug>] [--zip]`. It prints
    `network:`, `unresolved-link:` and `WARN:` lines, then `artifact=… vN` and `url=`.
    Read the findings back to the user in one short list; fix unresolved links before
@@ -55,7 +56,7 @@ Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`; run
 
 ## What an artifact is here
 
-One `.html` file under `.design-kit/artifacts/` that a browser renders with nothing
+One `.html` file under `.cc-artifacts/design-kit/artifacts/` that a browser renders with nothing
 beside it: every stylesheet, script, image and font inlined, no backend, no route but
 itself. It is served on this plugin's preview URL (gallery at `/`, live reload) and it
 stays on this machine until a share step is chosen. The bundler
@@ -91,7 +92,8 @@ especially images — so leave out interactivity nobody asked for.
 - **No external requests unless declared.** The bundler leaves `https://` references
   in place and lists them as `network:`. Say in the reply which hosts the page needs;
   a page with none works offline and on the LAN without surprises.
-- **Design system first.** If `design-system/DESIGN-SYSTEM.md` exists, its colours,
+- **Design system first.** If `.cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md` (older
+  projects: `design-system/`) exists, its colours,
   type and radius replace the shell's `:root` values before any content. The shell's
   look is a fallback, not the project's.
 - **Accessibility floor.** Headings in order, a visible focus ring on any control,
@@ -103,7 +105,7 @@ especially images — so leave out interactivity nobody asked for.
 1. Start from `assets/page-shell.html` (`<!-- SLOT: title -->`, `<!-- SLOT: body -->`).
    Pick a pattern from `references/patterns.md` — walkthrough, compare, dashboard,
    checklist, bring-back — or combine two, never five.
-2. Write the page to a scratch path (`.design-kit/artifacts/.src/<slug>/index.html`
+2. Write the page to a scratch path (`.cc-artifacts/design-kit/artifacts/.src/<slug>/index.html`
    with any local assets beside it).
 3. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" bundle <source> [--name slug]` bundles once,
    starts or reuses the preview and prints the bundler's `network:`, `unresolved-link:`
@@ -111,7 +113,7 @@ especially images — so leave out interactivity nobody asked for.
    on purpose, re-bundling after a fix; give the user that URL and the
    gallery base URL. The page reloads itself when re-bundled.
 4. Revising means re-bundling: the bundler keeps `v1`, `v2`… under
-   `.design-kit/artifacts/.versions/<slug>/` and appends to `<slug>.versions.json`.
+   `.cc-artifacts/design-kit/artifacts/.versions/<slug>/` and appends to `<slug>.versions.json`.
    Never edit the bundled file by hand; edit the source and re-run.
 
 A `.md` input renders through the shell with a small converter (headings, paragraphs,
@@ -139,7 +141,7 @@ hosted URL without a git remote, say what this plugin cannot do and name the zip
 
 - Making a page of prose that should have been three sentences.
 - A dashboard with a chart of numbers the session never pulled.
-- Editing `.design-kit/artifacts/<slug>.html` directly — the next bundle overwrites it.
+- Editing `.cc-artifacts/design-kit/artifacts/<slug>.html` directly — the next bundle overwrites it.
 - Publishing before the dry-run summary was read back and answered.
 - Calling the host's remote Artifact tool from this flow; this plugin's artifacts
   are local by design, and the two galleries do not know about each other.

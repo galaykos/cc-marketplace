@@ -7,7 +7,7 @@
 #   sweep-residual.sh --measure --id <id> [--dir DIR]
 #   sweep-residual.sh --allow   --id <id> --file PATH --reason "why"
 #
-# State: <repo root>/.claude/task-runner/sweep-<id>.json — the frozen file list, its git
+# State: <repo root>/.cc-artifacts/task-runner/sweep-<id>.json — the frozen file list, its git
 # tree hash, the original count, the allowlist, and every measurement taken. The root is
 # the git toplevel of --dir (else --dir itself).
 #
@@ -21,6 +21,19 @@ set -u
 PROG=${0##*/}
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 halt()  { printf '%s: %s\n' "$PROG" "$1" >&2; exit 5; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 mode="" id="" pattern="" dir="." file="" reason=""
 globs=""
@@ -46,14 +59,14 @@ command -v jq >/dev/null 2>&1 || halt "jq required"
 [ -d "$dir" ] || halt "no such directory: $dir"
 
 STATE_ROOT=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) || STATE_ROOT="$dir"
-STATE_DIR="$STATE_ROOT/.claude/task-runner"
+STATE_DIR=$(tr_state_dir "$STATE_ROOT")
 STATE="$STATE_DIR/sweep-$id.json"
 
 # Non-code carriers (a CI workflow, a fixture, a doc example, an i18n catalogue) are in scope: a code-shaped grep skips exactly those.
 default_find() {
   find "$dir" \
     \( -name node_modules -o -name vendor -o -name .git -o -name dist -o -name build \
-       -o -name .venv -o -name target -o -name __pycache__ -o -name .claude \) -prune \
+       -o -name .venv -o -name target -o -name __pycache__ -o -name .claude -o -name .cc-artifacts \) -prune \
     -o -type f -print 2>/dev/null
 }
 

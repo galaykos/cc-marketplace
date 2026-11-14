@@ -9,7 +9,7 @@
 # rows in the wild still carry it) / a payload whose cwd has been DELETED, which
 # must leave the directory gone.
 # Uses a scratch CLAUDE_PLUGIN_ROOT and scratch cwds — never the live rules.tsv
-# or any real .claude state.
+# or any real .cc-artifacts state.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ROUTE="$ROOT/plugins/skill-router/hooks/route.sh"
@@ -61,7 +61,7 @@ rc=0
 route() { # $1 cwd, $2 file — fresh session id per call so dedup never interferes
   printf '{"session_id":"s%s","cwd":"%s","tool_input":{"file_path":"%s"}}' "$RANDOM$RANDOM" "$1" "$2" \
     | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE"
-  rm -rf "$1/.claude"
+  rm -rf "$1/.cc-artifacts"
 }
 expect() { # $1 label, $2 output, $3 must-contain ('' = none), $4 must-not-contain ('' = skip)
   local label="$1" out="$2" yes="$3" no="$4" ok=1
@@ -162,7 +162,7 @@ out=$(route "$TMP/denyothercwd" notes.txt)
 expect "? required: a malformed regex on a present manifest still fires (grep exit >= 2)" "$out" 'reqbad-canary' ''
 
 # ---- deleted cwd: the hook must not rebuild the directory it was handed ----------
-# route.sh writes `$cwd/.claude/skill-router` state, and `mkdir -p` rebuilds every
+# route.sh writes `$cwd/.cc-artifacts/skill-router` state, and `mkdir -p` rebuilds every
 # missing parent. A session outlives the directory it started in, so a payload naming a
 # deleted project must exit silently and leave it deleted.
 mkdir -p "$TMP/gonecwd"
@@ -181,9 +181,9 @@ fi
 # as long as the file existed and nothing made it so.
 printf '{"session_id":"s%s","cwd":"%s","tool_input":{"file_path":"%s"}}' "$RANDOM$RANDOM" "$TMP/emptycwd" src/state.js \
   | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null
-if [ "$(cat "$TMP/emptycwd/.claude/skill-router/.gitignore" 2>/dev/null)" = "*" ]; then echo "PASS: state dir ignores itself"
-else echo "FAIL: state dir ignores itself — .claude/skill-router/.gitignore missing or not '*'"; rc=1; fi
-rm -rf "$TMP/emptycwd/.claude"
+if [ "$(cat "$TMP/emptycwd/.cc-artifacts/skill-router/.gitignore" 2>/dev/null)" = "*" ]; then echo "PASS: state dir ignores itself"
+else echo "FAIL: state dir ignores itself — .cc-artifacts/skill-router/.gitignore missing or not '*'"; rc=1; fi
+rm -rf "$TMP/emptycwd/.cc-artifacts"
 
 # ||-chain: workspace:* declared version is indecisive for the semver alt; the
 # installed node_modules version must decide the pair
@@ -221,7 +221,7 @@ out=$(route "$TMP/emptycwd" main.go)
 expect "CRLF markerless row fires (conf survives \\r strip)" "$out" 'crlfplain-canary' ''
 
 # ---- the dedup ledger, on the payload the host actually sends -------------------
-# `route()` above deliberately uses a fresh session id per call AND wipes .claude, so
+# `route()` above deliberately uses a fresh session id per call AND wipes .cc-artifacts, so
 # nothing in this harness ever exercised the `fired` ledger — the property at route.sh:118
 # that the same skill is not re-nudged on a later edit. That mattered: route.sh reads
 # `.transcript_path // .session_id`, transcript_path is an absolute PATH, and
@@ -240,10 +240,10 @@ first=$(sticky "$TMP/dedupcwd" App.vue)
 expect "transcript_path: first edit nudges" "$first" 'vue3-canary' ''
 second=$(sticky "$TMP/dedupcwd" App.vue)
 expect "transcript_path: the same skill is not re-nudged on a later edit" "$second" '' 'vue3-canary'
-if [ -n "$(find "$TMP/dedupcwd/.claude/skill-router" -name 'fired-*.json' -type f 2>/dev/null)" ]
+if [ -n "$(find "$TMP/dedupcwd/.cc-artifacts/skill-router" -name 'fired-*.json' -type f 2>/dev/null)" ]
 then echo "PASS: transcript_path: the fired ledger actually landed on disk"
 else echo "FAIL: transcript_path: the fired ledger actually landed on disk — none written"; rc=1; fi
-rm -rf "$TMP/dedupcwd/.claude"
+rm -rf "$TMP/dedupcwd/.cc-artifacts"
 
 # ---- delivery channel: nudges must arrive as ONE PostToolUse additionalContext
 # envelope. Plain stdout with exit 0 from a PostToolUse hook never reaches the
@@ -313,7 +313,7 @@ printf '%s' "$payload" | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null 2>&1 
 # `find` exits 1 on an absent dir and `pipefail` propagates it — without `|| true`
 # `set -e` kills the assignment before the FAIL below can print, on precisely the
 # broken-code path this section was written to diagnose.
-statefiles=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
+statefiles=$(find "$TMP/rtcwd/.cc-artifacts/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
 if [ "$statefiles" = "1" ]; then
   echo "PASS: round trip — route.sh wrote exactly one state file"
 else
@@ -337,7 +337,7 @@ export HOME="$TMP/fakehome"; mkdir -p "$HOME"
 printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s"}' "$tp" "$TMP/rtcwd" \
   | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/summary.sh" >/dev/null 2>&1 || true
 ledger=$(find "$HOME/.claude/skill-router" -name 'surfaced.jsonl' 2>/dev/null | head -1 || true)
-left=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
+left=$(find "$TMP/rtcwd/.cc-artifacts/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
 if [ -n "$ledger" ] && grep -q 'roundtrip-canary' "$ledger" 2>/dev/null && [ "$left" = "0" ]; then
   echo "PASS: round trip — summary.sh wrote the ledger row and removed the state file"
 else

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# receipt-fresh.sh --name <check> [--root <dir>] [--cmd <expected command>] — reads task-runner's .claude/task-runner/receipt.json; never runs task-runner.
+# receipt-fresh.sh --name <check> [--root <dir>] [--cmd <expected command>] — reads task-runner's .cc-artifacts/task-runner/receipt.json (else .claude/task-runner/'s); never runs task-runner.
 # Fresh (exit 0): same HEAD, exit 0, the expected command if given, its own log ending `exit 0`, an unchanged digest of tracked changes, untracked files and root .env* files.
 # Misses: skip-worktree/assume-unchanged files, other gitignored files, untracked files inside submodules, nested non-submodule repos, a receipt written by hand.
 set -uo pipefail
@@ -32,7 +32,7 @@ tree_digest() {
   tmp=$(mktemp "${TMPDIR:-/tmp}/receipt-index.XXXXXX") || return 1
   if ! cp -p "$idx" "$tmp" 2>/dev/null; then rm -f "$tmp"; return 1; fi
   GIT_INDEX_FILE=$tmp
-  if ! { git -C "$ROOT" ls-files -z --others --exclude-standard -- . ':(exclude).claude/' ':(exclude)taskmaster-docs/' &&
+  if ! { git -C "$ROOT" ls-files -z --others --exclude-standard -- . ':(exclude).claude/' ':(exclude).cc-artifacts/' ':(exclude)taskmaster-docs/' &&
     git -C "$ROOT" ls-files -z --others --exclude-standard -- .claude/skills .claude/agents .claude/commands .claude/hooks .claude/settings.json &&
     git -C "$ROOT" ls-files -z --others --ignored --exclude-standard -- '.env*'; } > "$tmp.paths"; then
     rm -f "$tmp" "$tmp.paths"; return 1
@@ -71,9 +71,12 @@ tree_digest() {
 command -v jq >/dev/null 2>&1 || stale "jq is not installed, so the receipt cannot be read"
 ROOT=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null) && [ -n "$ROOT" ] || stale "not inside a git repository"
 head=$(git -C "$ROOT" rev-parse --verify -q HEAD) || stale "the repository has no commit yet"
-rel=.claude/task-runner/receipt.json
+rel=.cc-artifacts/task-runner/receipt.json
+# task-runner before 2026-11-14 kept its receipt and logs under .claude/: read there while the new receipt is absent, and accept a log left there.
+[ -f "$ROOT/$rel" ] || [ ! -f "$ROOT/.claude/task-runner/receipt.json" ] || rel=.claude/task-runner/receipt.json
 receipt="$ROOT/$rel"
-log=".claude/task-runner/receipts/$name-${head:0:12}.txt"
+log=".cc-artifacts/task-runner/receipts/$name-${head:0:12}.txt"
+old_log=".claude/task-runner/receipts/$name-${head:0:12}.txt"
 field() { jq -r --arg n "$name" "$1" "$receipt" 2>/dev/null; }
 
 [ -f "$receipt" ] || stale "no receipt at $rel"
@@ -86,7 +89,9 @@ cmd=$(field '.checks[$n].cmd | gsub("[[:cntrl:]]"; " ")')
 [ "$has_want" = 0 ] || [ "$(field '.checks[$n].cmd')" = "$want" ] || stale "recorded command differs: $cmd"
 code=$(field '.checks[$n].exit | tojson')
 [ "$code" = 0 ] || stale "$name exited $code"
-[ "$(field '.checks[$n].log')" = "$log" ] || stale "the $name log is not the one task-runner writes ($log)"
+recorded=$(field '.checks[$n].log')
+[ "$recorded" = "$log" ] || [ "$recorded" = "$old_log" ] || stale "the $name log is not the one task-runner writes ($log)"
+log=$recorded
 [ -f "$ROOT/$log" ] || stale "the $name log file is missing ($log)"
 [ "$(tail -n 1 "$ROOT/$log")" = "exit 0" ] || stale "the $name log does not end with exit 0 ($log)"
 now=$(tree_digest) || stale "could not read the working tree"

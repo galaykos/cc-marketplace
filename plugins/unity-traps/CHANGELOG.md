@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.1 — 2026-11-14
+
+- **`hooks/meta-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no
+  `CLAUDE_PLUGIN_DATA`, the hook's per-project state now goes to `.cc-artifacts/unity-traps/`, not
+  `.claude/unity-traps/`: one folder a team can gitignore and leave out of a deploy, outside the
+  `.claude/` path Claude Code protects. The state is a cache, so nothing is carried over from
+  the old dir. Standing: gate for the path (`templates/blocks/plugin-state.md`, held byte-identical
+  by `pc_shared_blocks`).
+
 ## 0.6.0 — 2026-11-09
 
 - **The checker flags C# names your versions deprecated or removed.** `check_unity_project.py` reads the Unity version from `ProjectSettings/ProjectVersion.txt` and the Cinemachine version from `Packages/manifest.json`. For a git, local or embedded Cinemachine it reads the package's own `package.json` (in `Library/PackageCache` or `Packages/`), so a git Cinemachine gets no finding until Unity has filled `Library/PackageCache`. `packages-lock.json` is read only for a Cinemachine pulled in by another package. It reports only names in that version's window:

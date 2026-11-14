@@ -35,7 +35,7 @@ generic       → [task-runner:task-executor]
    tool (Meshy's, Blender's) runs inline whatever its tag: workers hold no MCP tools.
    Standing: agent-graded.
 3. **Arm scope.** Write the card's allowed files to
-   `<repo root>/.claude/task-runner/scope-<cardId>.json` as
+   `<repo root>/.cc-artifacts/task-runner/scope-<cardId>.json` as
    `{"allow":["path","dir/"],"task":"<cardId>"}` (no other shape is read), not the
    inline path's `scope.json`. The dispatch names it as armed.
 4. **Inject discipline + prime stack skills.** Read
@@ -72,7 +72,7 @@ generic       → [task-runner:task-executor]
    inside the subagent. On a green re-verify, run the **negative-control** before the
    card closes — the same gate the inline inner loop runs (`references/negative-control.md`,
    `task-execution/SKILL.md` inner-loop step 3): `negative-control.sh --verify "<the card's
-   exact verify>" --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>`,
+   exact verify>" --target <impl-file> --auto --record-dir .cc-artifacts/task-runner/nc --card <cardId>`,
    with `--target` set to the CARD's declared primary implementation file, even on a
    multi-file return (the copy carries the other files along).
    `discriminating` closes the card; `vacuous`/`invalid-control` counts as a failed

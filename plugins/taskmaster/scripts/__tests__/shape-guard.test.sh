@@ -11,7 +11,7 @@ S="$here/../phase-sentinel.sh"
 
 pass=0; fail=0
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
-R="$T/repo"; mkdir -p "$R/src" "$R/taskmaster-docs/specs" "$R/routes"; git -C "$R" init -q
+R="$T/repo"; mkdir -p "$R/src" "$R/.cc-artifacts/taskmaster/specs" "$R/taskmaster-docs/specs" "$R/routes"; git -C "$R" init -q
 R=$(cd "$R" && pwd)
 
 ok()  { printf 'PASS: %s\n' "$1"; pass=$((pass+1)); }
@@ -35,8 +35,8 @@ silent() {
   if [ -z "$out" ]; then ok "$name"; else bad "$name (got: $out)"; fi
 }
 sentinel() { # owner session — this session's own file, as phase-sentinel.sh lays it out
-  mkdir -p "$R/.claude/cc-phase"
-  printf '{"phase":"shape","owner":"%s","session_id":"%s"}\n' "$1" "$2" > "$R/.claude/cc-phase/$2.json"
+  mkdir -p "$R/.cc-artifacts/cc-phase"
+  printf '{"phase":"shape","owner":"%s","session_id":"%s"}\n' "$1" "$2" > "$R/.cc-artifacts/cc-phase/$2.json"
 }
 mkdir -p "$R/.claude"
 W() { jq -cn --arg p "$1" '{file_path:$p, content:"x"}'; }
@@ -45,10 +45,12 @@ silent "no sentinel: write passes" Write "$(W "$R/src/app.ts")"
 
 bash "$S" write shape --owner taskmaster:brainstorm --session sess-A --cwd "$R" 2>/dev/null
 denies "round trip: real writer's sentinel denies src write" Write "$(W "$R/src/app.ts")"
-silent "design doc under taskmaster-docs passes" Write "$(W "$R/taskmaster-docs/specs/2026-11-07-x-design.md")"
-denies "a .. path out of taskmaster-docs denies" Write "$(W "$R/taskmaster-docs/../src/app.ts")"
-silent "a ./ segment inside taskmaster-docs passes" Write "$(W "$R/taskmaster-docs/specs/./x.md")"
-silent "plugin state under .claude passes" Write "$(W "$R/.claude/approaches/deliberated.json")"
+silent "design doc under .cc-artifacts/taskmaster passes" Write "$(W "$R/.cc-artifacts/taskmaster/specs/2026-11-07-x-design.md")"
+silent "an older project's design doc under taskmaster-docs passes" Write "$(W "$R/taskmaster-docs/specs/2026-11-07-x-design.md")"
+denies "a .. path out of .cc-artifacts denies" Write "$(W "$R/.cc-artifacts/taskmaster/../../src/app.ts")"
+silent "a ./ segment inside .cc-artifacts passes" Write "$(W "$R/.cc-artifacts/taskmaster/specs/./x.md")"
+silent "another plugin's artifact under .cc-artifacts passes" Write "$(W "$R/.cc-artifacts/approaches/deliberated.json")"
+silent "a path under .claude passes" Write "$(W "$R/.claude/settings.local.json")"
 silent "outside the project root passes" Write "$(W "$T/elsewhere.txt")"
 denies "relative path resolved against cwd denies" Write "$(W "src/rel.ts")"
 silent "another session's sentinel is not ours" Write "$(W "$R/src/app.ts")" sess-B
@@ -76,11 +78,11 @@ printf '{"phase":"shape","owner":"taskmaster:brainstorm"}\n' > "$R/.claude/cc-ph
 silent "a legacy repo-wide sentinel naming no session guards no session" Write "$(W "$R/src/app.ts")" sess-B
 rm -f "$R/.claude/cc-phase.json"
 
-printf '{"phase":"build","owner":"taskmaster:brainstorm","session_id":"sess-A"}\n' > "$R/.claude/cc-phase/sess-A.json"
+printf '{"phase":"build","owner":"taskmaster:brainstorm","session_id":"sess-A"}\n' > "$R/.cc-artifacts/cc-phase/sess-A.json"
 silent "a later phase does not guard" Write "$(W "$R/src/app.ts")"
 
 sentinel taskmaster:brainstorm sess-A
-touch -d '3 hours ago' "$R/.claude/cc-phase/sess-A.json"
+touch -d '3 hours ago' "$R/.cc-artifacts/cc-phase/sess-A.json"
 silent "a sentinel past the 120-minute TTL is ignored" Write "$(W "$R/src/app.ts")"
 
 sentinel taskmaster:brainstorm sess-A
@@ -89,6 +91,15 @@ if [ -z "$out" ] && [ "$rc" = 0 ]; then ok "malformed payload fails open"; else 
 
 bash "$S" clear --session sess-A --cwd "$R" 2>/dev/null
 silent "cleared sentinel: write passes" Write "$(W "$R/src/app.ts")"
+
+# Plugins before 2026-11-14 wrote the sentinel under .claude/cc-phase/: honoured while the new path has none.
+mkdir -p "$R/.claude/cc-phase"
+printf '{"phase":"shape","owner":"taskmaster:brainstorm","session_id":"sess-O"}\n' > "$R/.claude/cc-phase/sess-O.json"
+denies "a shape sentinel only under .claude/cc-phase guards its session" Write "$(W "$R/src/app.ts")" sess-O
+printf '{"phase":"build","owner":"taskmaster:brainstorm","session_id":"sess-O"}\n' > "$R/.cc-artifacts/cc-phase/sess-O.json"
+silent "the new path's sentinel wins over the old one" Write "$(W "$R/src/app.ts")" sess-O
+bash "$S" clear --session sess-O --cwd "$R" 2>/dev/null
+silent "clear lifts a guard held by the old path's sentinel" Write "$(W "$R/src/app.ts")" sess-O
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]

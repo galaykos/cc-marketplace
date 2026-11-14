@@ -17,9 +17,9 @@ printf 'x\n' > a.txt; git add a.txt; GIT_COMMITTER_DATE='2020-01-01T00:00:00' gi
 git branch other
 git switch -q -c feature
 start=$(git rev-parse HEAD)
-mkdir -p .claude/task-runner
-printf '{"slug":"s","base":"%s","branch":"feature","start_sha":"%s"}\n' "$start" "$start" > .claude/task-runner/active-run.json
-touch -d '1 minute ago' .claude/task-runner/active-run.json
+mkdir -p .cc-artifacts/task-runner
+printf '{"slug":"s","base":"%s","branch":"feature","start_sha":"%s"}\n' "$start" "$start" > .cc-artifacts/task-runner/active-run.json
+touch -d '1 minute ago' .cc-artifacts/task-runner/active-run.json
 
 expect() { # name rc grep
   out=$(bash "$W" 2>&1); rc=$?
@@ -37,7 +37,7 @@ expect "a track branch is not stray" 0 ""
 git switch -q other; printf 'z\n' > o.txt; git add o.txt; git commit -qm "harness slip"; git switch -q feature
 expect "a commit on another branch after registration is stray" 1 "stray-commit: branch other"
 git branch -f other "$start"
-touch -d '1 minute ago' .claude/task-runner/active-run.json
+touch -d '1 minute ago' .cc-artifacts/task-runner/active-run.json
 
 { printf '#!/usr/bin/env python3\n'; for i in $(seq 1 30); do printf '# explain step %s\nx%s = %s\n' "$i" "$i" "$i"; done; } > heavy.py
 expect "untracked comment-heavy file is reported" 1 "comment-heavy: 30 of 63"
@@ -62,9 +62,17 @@ expect "docblock-heavy committed diff is reported" 1 "comment-heavy"
 
 out=$(bash "$W" --since deadbeef 2>&1); rc=$?
 [ "$rc" = 3 ] && ok "unresolvable --since is a usage error" || bad "unresolvable --since (rc=$rc)"
-rm .claude/task-runner/active-run.json
+rm .cc-artifacts/task-runner/active-run.json
 out=$(bash "$W" 2>&1); rc=$?
 [ "$rc" = 3 ] && ok "no registered run is a usage error" || bad "no run (rc=$rc)"
+
+# A run registered before 2026-11-14 sits in .claude/task-runner/: found through its one-time copy, the old file left as it was.
+rm -rf .cc-artifacts; mkdir -p .claude/task-runner
+printf '{"slug":"s","base":"%s","branch":"feature","start_sha":"%s"}\n' "$start" "$(git rev-parse HEAD)" > .claude/task-runner/active-run.json
+touch -d '1 minute ago' .claude/task-runner/active-run.json; before=$(cksum < .claude/task-runner/active-run.json)
+expect "a run under .claude/task-runner/ is found" 0 ""
+[ -f .cc-artifacts/task-runner/active-run.json ] && [ "$(cksum < .claude/task-runner/active-run.json)" = "$before" ] \
+  && ok "and read from .cc-artifacts/task-runner/, the old file unchanged" || bad "legacy copy"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]

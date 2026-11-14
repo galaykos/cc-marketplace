@@ -75,8 +75,8 @@ and 7 are the same either way.
 7. **Synthesize.** Write the report per `references/report-template.md`: direct answer
    first, per-section confidence, inline `[n]` citations, contradiction ledger, tiered
    source list, and open questions. Print it inline **and** write it to
-   `research/<slugged-topic>-<YYYY-MM-DD>.md` (create `research/`; use the scratchpad
-   dir if the project is read-only).
+   `.cc-artifacts/ultra-deep-research/<slugged-topic>-<YYYY-MM-DD>.md` (create the dir; use
+   the scratchpad dir if the project is read-only). Reports from before 2026-11-14 sit in `research/`.
 
 ## Local corpus, one authoritative source
 

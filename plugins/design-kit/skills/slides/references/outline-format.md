@@ -44,15 +44,16 @@ a slide exists only to decorate — the skill's rules, agent-graded.
 
 ## Theme
 
-With no `--theme`, the builder looks for `design-system/tokens.json` (DTCG
+With no `--theme`, the builder looks in `.cc-artifacts/design-kit/design-system/` (else an older
+project's `design-system/`) for `tokens.json` (DTCG
 `$value` leaves — `color.*background|surface`, `*text|foreground|ink`,
 `*primary|accent|brand`, `*muted`, `*border`, `font*family*`) and then
-`design-system/DESIGN-SYSTEM.md` (`primary #hex`, `surface #hex`, `Inter for
+`DESIGN-SYSTEM.md` (`primary #hex`, `surface #hex`, `Inter for
 body`, `JetBrains Mono for code` phrasing). Found values become `--dk-*`
 variables in the deck; everything else keeps the neutral built-in set. The
 stderr line names which file and which slots were used.
 
 ## Output
 
-`.design-kit/decks/YYYY-MM-DD-<slug>.html`, or `--out`. Slide `n` is `#/n`.
+`.cc-artifacts/design-kit/decks/YYYY-MM-DD-<slug>.html`, or `--out`. Slide `n` is `#/n`.
 Keys: ← → Space · `S` notes panel · `O` overview grid · `P` print · `Esc` leave overview.

@@ -76,11 +76,11 @@ a=$(fire "$TMP/views/login.blade.php" "$one")
 b=$(fire "$TMP/src/Hero.tsx" "$one")
 if [ -n "$a" ] && [ -z "$b" ]; then pass "one nudge per context, not per file"
 else fail "one nudge per context, not per file" "first='${a:0:30}' second='${b:0:30}'"; fi
-if [ -n "$(find "$one/.claude/ui-ux" -name 'palette-*' -type f 2>/dev/null)" ]
+if [ -n "$(find "$one/.cc-artifacts/ui-ux" -name 'palette-*' -type f 2>/dev/null)" ]
 then pass "the state file lands on disk (key hashed, not a raw path)"
 else fail "the state file lands on disk (key hashed, not a raw path)" "none under $one"; fi
-if [ "$(cat "$one/.claude/ui-ux/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
-else fail "the state dir ignores itself" ".claude/ui-ux/.gitignore missing or not '*'"; fi
+if [ "$(cat "$one/.cc-artifacts/ui-ux/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
+else fail "the state dir ignores itself" ".cc-artifacts/ui-ux/.gitignore missing or not '*'"; fi
 
 # ---- 7. FAIL-OPEN and off switches ------------------------------------------------------
 printf '' | bash "$HOOK" >/dev/null 2>&1 && pass "empty stdin exits 0" || fail "empty stdin exits 0" "non-zero"
@@ -100,9 +100,9 @@ a=$(fire "$TMP/views/login.blade.php" "$repo/app/Models")
 b=$(fire "$TMP/src/Hero.tsx" "$repo")
 if [ -n "$a" ] && [ -z "$b" ]; then pass "one nudge across a cd from app/Models to the root"
 else fail "one nudge across a cd from app/Models to the root" "first='${a:0:30}' second='${b:0:30}'"; fi
-if [ -n "$(find "$repo/.claude/ui-ux" -name 'palette-*' -type f 2>/dev/null)" ] && [ ! -e "$repo/app/Models/.claude" ]
+if [ -n "$(find "$repo/.cc-artifacts/ui-ux" -name 'palette-*' -type f 2>/dev/null)" ] && [ ! -e "$repo/app/Models/.cc-artifacts" ]
 then pass "state lands at the repo root, none under the subdirectory"
-else fail "state lands at the repo root, none under the subdirectory" "root=$(ls "$repo/.claude/ui-ux" 2>&1 | tr '\n' ' ') sub=$([ -e "$repo/app/Models/.claude" ] && echo present || echo absent)"; fi
+else fail "state lands at the repo root, none under the subdirectory" "root=$(ls "$repo/.cc-artifacts/ui-ux" 2>&1 | tr '\n' ' ') sub=$([ -e "$repo/app/Models/.cc-artifacts" ] && echo present || echo absent)"; fi
 
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'palette-default.test: all cases passed\n' || printf 'palette-default.test: FAILURES above\n'

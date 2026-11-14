@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0 — 2026-11-14
+
+- **Program state moved from `.claude/overseer/` to `.cc-artifacts/overseer/`.** Claude Code refuses a Write into `.claude/` as a sensitive path, and that is where the skill told the model to write the charter, briefs and dispatch files. `.cc-artifacts/` is the one folder a project gitignores for what plugins write during development. `program.sh`, `hooks/track-read.sh` (`.reads`), `hooks/announce.sh`, the status line, the skill, its references, the commands, `lane.tsv` and the four eval scaffolds name the new directory. The inventory step names the brain map instead of `brain/INDEX.md`, which moved too (brain 0.5.0).
+- **An open program from an earlier version keeps working.** While `.cc-artifacts/overseer/` does not exist, the SessionStart line and the status line read `.claude/overseer/`. The first `program.sh` call copies that whole directory over once and never touches the original; from then on only the new directory counts, so a closed program never brings the stale copy back. `close` rewrites evidence rows recorded before the copy to the archived files too. A Read made before that first call is not ledgered. Standing: gate — `scripts/__tests__/program.test.sh` (403 cases, 19 new: the copy, writes landing only in the copy, the original byte-for-byte unchanged, nothing announced from the old directory after close, archived paths) and `tests/status-line.test.ts` (16 tests, 2 new).
+- **Task indexes count from `.cc-artifacts/taskmaster/tasks/` and the older `taskmaster-docs/tasks/`** for the size-routing WARN, and the Resume step names both. `close` prunes other plugins' `.cc-artifacts/` scratch dirs from the archive as well as `.claude/` ones. Standing: gate (`program.test.sh`).
+- **The shared mod kit reads plugin state from `.cc-artifacts/` first.** `hooks/cc-kit.ts` `phaseFile`, `liveSentinel` and `activeRun` read `.cc-artifacts/cc-phase/<session>.json` and `.cc-artifacts/task-runner/active-run.json`, falling back to the `.claude/` paths and never writing there. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
+
 ## 0.11.2 — 2026-11-13
 
 Three bugs found by the 2026-11-13 necessity review (`rationale/overseer-necessity-review-2026-11-13.md`, marketplace repository), each reproduced first.

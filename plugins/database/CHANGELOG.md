@@ -3,6 +3,11 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.12.0 — 2026-11-14
+
+### Changed
+- **`.cc-artifacts/taskmaster/` is a doc surface.** taskmaster now writes its specs and cards there instead of `taskmaster-docs/`, so `hooks/guard.sh` exits early on a Write or Bash write under it, as it does under `taskmaster-docs/`, which stays a doc surface for older projects. Another plugin's folder under `.cc-artifacts/` is still judged. Standing: gate (`guard.test.sh`: a Write and a relative Bash heredoc under the new folder allowed, and a `.cc-artifacts/scratch/` neighbour still asking).
+
 ## 0.11.10 — 2026-11-08
 
 ### Changed

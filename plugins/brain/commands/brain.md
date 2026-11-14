@@ -5,9 +5,11 @@ argument-hint: "[area | index [--full|<area>]]"
 
 # /brain
 
-Read or build the **brain map** — a terse `brain/INDEX.md` table of contents (one line per
-area, injected at session start) plus per-area `brain/<area>.md` detail files (files, key
-classes, meaning) loaded on demand.
+Read or build the **brain map** — a terse `.cc-artifacts/brain/INDEX.md` table of contents (one
+line per area, injected at session start) plus per-area `.cc-artifacts/brain/<area>.md` detail
+files (files, key classes, meaning) loaded on demand. A map built before 2026-11-14 is in
+`brain/`: while `.cc-artifacts/brain/` does not exist, read it there; the next `/brain index`
+copies it over.
 
 Parse the first token of `$ARGUMENTS` and act:
 
@@ -17,7 +19,7 @@ Dispatch the **indexer** agent (this plugin's `agents/indexer.md`) with the mode
 the argument after `index`:
 
 - **no argument** → **incremental** (default): the indexer diffs what changed since the map's
-  `built:` hash and re-indexes only the affected areas. If no `brain/` exists yet, it bootstraps
+  `built:` hash and re-indexes only the affected areas. If no map exists yet, it bootstraps
   a full build instead.
 - **`--full`** (or `all`) → full rebuild: re-pick areas and rewrite everything. Use after adding
   a whole new subsystem — this is the only mode that discovers new areas.
@@ -33,25 +35,25 @@ reserved the other way: it is an area name, but the indexer never re-picks it fr
 
 Any other non-empty argument is an area name:
 
-- Print that area's **`brain/<area>.md` detail file** (files, key classes, meaning) — this is
+- Print that area's **`<area>.md` detail file** (files, key classes, meaning) — this is
   where the depth lives.
-- If no detail file exists but the area appears in `brain/INDEX.md`, print its one-line entry
+- If no detail file exists but the area appears in `INDEX.md`, print its one-line entry
   and note no detail file was built (suggest `/brain index <area>`).
 - If the area is unknown (no detail file and no `INDEX.md` line), print `no such area: <area>`
-  followed by the known area names (the `- <area>` lines in `brain/INDEX.md`).
-- `/brain decisions` takes exactly this path: it prints `brain/decisions.md`, the append-only
-  ledger of approach picks the indexer copies from `.claude/approaches/deliberated.json`
+  followed by the known area names (the `- <area>` lines in `INDEX.md`).
+- `/brain decisions` takes exactly this path: it prints `decisions.md`, the append-only
+  ledger of approach picks the indexer copies from `.cc-artifacts/approaches/deliberated.json`
   (approaches plugin) on every `/brain index`.
 
 ## empty — print the whole map
 
 No argument:
 
-- Print `brain/INDEX.md`.
+- Print `INDEX.md`.
 - If it does not exist, tell the user to run `/brain index` to initialize the map.
 
 ## Hard rule
 
-Read `brain/` and (via the indexer) the codebase only. **Never modify, move, or delete
-any file outside `brain/`.** This command surfaces and builds the map; it does not touch
+Read the map and (via the indexer) the codebase only. **Never modify, move, or delete
+any file outside `.cc-artifacts/brain/`.** This command surfaces and builds the map; it does not touch
 source, docs, or sibling plugins.

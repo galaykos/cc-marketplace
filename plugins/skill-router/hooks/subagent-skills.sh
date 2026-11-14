@@ -6,7 +6,7 @@
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -16,7 +16,7 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }
@@ -77,7 +77,7 @@ cc_option() {
     while IFS= read -r w; do
       [ -n "$w" ] || continue
       case "$w" in /*) case "$w" in "$root"/*) w="${w#"$root"/}" ;; *) continue ;; esac ;; esac
-      case "/$w" in */taskmaster-docs/*|*/.claude/*) continue ;; esac
+      case "/$w" in */taskmaster-docs/*|*/.claude/*|*/.cc-artifacts/*) continue ;; esac
       case "$w" in */*) ;; [A-Z]*.js) continue ;; esac # Node.js, Vue.js: a product, not a file
       flags="$flags src"
       case "${w##*/}" in

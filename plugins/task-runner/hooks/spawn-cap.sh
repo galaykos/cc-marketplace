@@ -43,6 +43,20 @@ cc_option() {
   return 0
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 {
   cap=$(cc_option CC_SPAWN_CAP 20)
   case "$cap" in off) exit 0 ;; ''|*[!0-9]*) cap=20 ;; esac
@@ -82,7 +96,7 @@ cc_option() {
   first="$cap"; run=""; plan=""
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   root=$(cc_state_root "$cwd") || root=""
-  sent="$root/.claude/task-runner/active-run.json"
+  sent=""; [ -z "$root" ] || sent="$(tr_state_dir "$root")/active-run.json"
   # The run is another branch's only when both names are known and differ; symbolic-ref, since a tag named like the branch makes --abbrev-ref print heads/<branch>.
   if [ -n "$root" ] && [ -r "$sent" ] && sb=$(jq -r '.branch // empty' "$sent" 2>/dev/null) &&
      { cb=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null); [ $? -ne 1 ] || cb=HEAD; cb=${cb#refs/heads/}; [ -z "$sb" ] || [ -z "$cb" ] || [ "$sb" = "$cb" ]; }; then

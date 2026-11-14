@@ -108,17 +108,22 @@ CLAUDE_CODE_SESSION_ID=s-torn check "a transcript holding only a torn line count
 check "an unknown argument is unknown, exit 0" "^Process cost: unknown — unknown argument --bogus" --bogus
 check "--since with no value is unknown, exit 0" "^Process cost: unknown — --since needs a value" --since
 
-REPO="$WS/repo"; mkdir -p "$REPO/sub/dir" "$REPO/.claude/task-runner"
+REPO="$WS/repo"; mkdir -p "$REPO/sub/dir" "$REPO/.cc-artifacts/task-runner"
 git -C "$REPO" init -q
 run_in() { IN="$REPO/sub/dir" check "$@"; }
-run_in "no run record and no --since is unknown, exit 0" "^Process cost: unknown — no run record under $REPO/.claude/task-runner/"
-printf '{"slug":"demo"}\n' > "$REPO/.claude/task-runner/closed-run.json"
-TZ=UTC touch -t 202601011000.00 "$REPO/.claude/task-runner/closed-run.json"
+run_in "no run record and no --since is unknown, exit 0" "^Process cost: unknown — no run record under $REPO/.cc-artifacts/task-runner/"
+printf '{"slug":"demo"}\n' > "$REPO/.cc-artifacts/task-runner/closed-run.json"
+TZ=UTC touch -t 202601011000.00 "$REPO/.cc-artifacts/task-runner/closed-run.json"
 run_in "a closed run counts from closed-run.json's mtime, from a subdirectory of the repo" "^$LINE 3 agents · 20k tokens"
-printf '{"slug":"demo"}\n' > "$REPO/.claude/task-runner/active-run.json"
-TZ=UTC touch -t 202601010900.00 "$REPO/.claude/task-runner/active-run.json"
+printf '{"slug":"demo"}\n' > "$REPO/.cc-artifacts/task-runner/active-run.json"
+TZ=UTC touch -t 202601010900.00 "$REPO/.cc-artifacts/task-runner/active-run.json"
 run_in "active-run.json wins over closed-run.json" "^Process cost since 2026-01-01 09:00: 4 agents · 96k tokens"
 run_in "--since wins over the run record" "^$LINE 3 agents · 20k tokens" --since "$S"
+# A run registered before 2026-11-14 sits in .claude/task-runner/: its one-time copy keeps the registration's mtime.
+REPO="$WS/old-repo"; mkdir -p "$REPO/sub/dir" "$REPO/.claude/task-runner"; git -C "$REPO" init -q
+printf '{"slug":"demo"}\n' > "$REPO/.claude/task-runner/active-run.json"
+TZ=UTC touch -t 202601010900.00 "$REPO/.claude/task-runner/active-run.json"
+run_in "a run under .claude/task-runner/ counts from its registration" "^Process cost since 2026-01-01 09:00: 4 agents · 96k tokens"
 
 grep -q 'scripts/run-cost\.sh' "$PLUGIN/commands/run.md" \
   && echo "PASS: /task-runner:run's completion report calls scripts/run-cost.sh" \

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-receipt.sh — `run` runs a check from the repo root and records it in .claude/task-runner/receipt.json; `check` says it still holds: same HEAD, exit 0, its own log ending `exit 0`, an unchanged digest of tracked changes, untracked files and root .env* files.
+# check-receipt.sh — `run` runs a check from the repo root and records it in .cc-artifacts/task-runner/receipt.json; `check` says it still holds: same HEAD, exit 0, its own log ending `exit 0`, an unchanged digest of tracked changes, untracked files and root .env* files.
 # Misses: skip-worktree/assume-unchanged files, other gitignored files, untracked files inside submodules, nested non-submodule repos, a receipt written by hand.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/check-receipt.sh
 set -uo pipefail
@@ -14,6 +14,19 @@ print_usage() {
 }
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 stale() { printf 'stale: %s\n' "$1"; exit 1; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 MODE=${1:-}
 case "$MODE" in
@@ -45,10 +58,11 @@ if ! ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || [ -z "$ROOT" ]; then
   [ "$MODE" = check ] && stale "not inside a git work tree"
   printf '%s: not inside a git work tree; nothing was run\n' "$PROG" >&2; exit 5
 fi
-RECEIPT_REL=.claude/task-runner/receipt.json
+TR=$(tr_state_dir "$ROOT")
+RECEIPT_REL=.cc-artifacts/task-runner/receipt.json
 RECEIPT="$ROOT/$RECEIPT_REL"
 HEAD=$(git -C "$ROOT" rev-parse -q --verify HEAD 2>/dev/null) || HEAD=""
-LOG_REL=".claude/task-runner/receipts/$NAME-${HEAD:0:12}.txt"
+LOG_REL=".cc-artifacts/task-runner/receipts/$NAME-${HEAD:0:12}.txt"
 
 # The working tree's digest, which every reader of the receipt recomputes byte for byte. Reads ROOT; never writes the repository's index.
 tree_digest() {
@@ -60,7 +74,7 @@ tree_digest() {
   tmp=$(mktemp "${TMPDIR:-/tmp}/receipt-index.XXXXXX") || return 1
   if ! cp -p "$idx" "$tmp" 2>/dev/null; then rm -f "$tmp"; return 1; fi
   GIT_INDEX_FILE=$tmp
-  if ! { git -C "$ROOT" ls-files -z --others --exclude-standard -- . ':(exclude).claude/' ':(exclude)taskmaster-docs/' &&
+  if ! { git -C "$ROOT" ls-files -z --others --exclude-standard -- . ':(exclude).claude/' ':(exclude).cc-artifacts/' ':(exclude)taskmaster-docs/' &&
     git -C "$ROOT" ls-files -z --others --exclude-standard -- .claude/skills .claude/agents .claude/commands .claude/hooks .claude/settings.json &&
     git -C "$ROOT" ls-files -z --others --ignored --exclude-standard -- '.env*'; } > "$tmp.paths"; then
     rm -f "$tmp" "$tmp.paths"; return 1
@@ -126,7 +140,8 @@ if [ "$MODE" = check ]; then
   code=$(field '.checks[$n].exit | tojson')
   [ "$code" = 0 ] || stale "$NAME failed at ${HEAD:0:7} (exit $code)"
   log=$(field '.checks[$n].log | strings')
-  [ "$log" = "$LOG_REL" ] || stale "the $NAME log is not the one this script writes (${log:-none recorded})"
+  # A receipt copied over from .claude/task-runner/ (before 2026-11-14) names its log there, which is left in place.
+  [ "$log" = "$LOG_REL" ] || [ "$log" = ".claude/task-runner/receipts/$NAME-${HEAD:0:12}.txt" ] || stale "the $NAME log is not the one this script writes (${log:-none recorded})"
   [ -f "$ROOT/$log" ] || stale "the $NAME log is missing ($log)"
   [ "$(tail -n 1 "$ROOT/$log")" = "exit 0" ] || stale "the $NAME log does not end with exit 0 ($log)"
   now=$(tree_digest) || stale "the working tree could not be read"
@@ -168,8 +183,8 @@ if [ "$SAME" = true ]; then
   FAILED=$(jq -r --arg n "$NAME" --arg c "$CMD" '.checks[$n] | select(type == "object" and .exit != 0 and .cmd != $c) | .cmd | tostring' "$RECEIPT" 2>/dev/null)
   [ -z "$FAILED" ] || skip "the receipt keeps the failed run of a different command at this commit ($FAILED); run that command again to replace it"
 fi
-mkdir -p "$ROOT/.claude/task-runner/receipts" 2>/dev/null || skip "cannot create .claude/task-runner/receipts"
-[ -e "$ROOT/.claude/task-runner/.gitignore" ] || printf '*\n' > "$ROOT/.claude/task-runner/.gitignore" 2>/dev/null
+mkdir -p "$TR/receipts" 2>/dev/null || skip "cannot create .cc-artifacts/task-runner/receipts"
+[ -e "$TR/.gitignore" ] || printf '*\n' > "$TR/.gitignore" 2>/dev/null
 {
   printf '$ %s\n' "$CMD"
   tail -n "$TAIL_LINES" "$OUT"

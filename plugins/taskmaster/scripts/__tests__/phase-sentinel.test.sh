@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixture tests for phase-sentinel.sh — the script writer of .claude/cc-phase/<session key>.json
+# Fixture tests for phase-sentinel.sh — the script writer of .cc-artifacts/cc-phase/<session key>.json
 # (AR 11 of the 2026-09-22 specialist panel: four prose writers, no script writer).
 #
 # THE LOAD-BEARING CASE IS THE TYPO. Everything else here is bookkeeping; the reason
@@ -35,14 +35,14 @@ run() { # run <cwd> <args...> -> sets RC, OUT (stderr+stdout)
 }
 
 P="$T/proj"; mkdir -p "$P"
-SENT="$P/.claude/cc-phase/S1.json"
+SENT="$P/.cc-artifacts/cc-phase/S1.json"
 
 # ---- 1. write: the file lands, with every key the readers use ----------------------
 run "$P" write build --owner task-runner:run --session S1
 [ "$RC" = 0 ] || bad "write build exits 0" "rc=$RC ($OUT)"
 [ "$RC" = 0 ] && ok "write build exits 0"
-if [ -f "$SENT" ]; then ok "write creates .claude/cc-phase/S1.json"; else bad "write creates the sentinel" "absent"; fi
-[ "$(cat "$P/.claude/cc-phase/.gitignore" 2>/dev/null)" = '*' ] && ok "the sentinel dir ignores itself in git" \
+if [ -f "$SENT" ]; then ok "write creates .cc-artifacts/cc-phase/S1.json"; else bad "write creates the sentinel" "absent"; fi
+[ "$(cat "$P/.cc-artifacts/cc-phase/.gitignore" 2>/dev/null)" = '*' ] && ok "the sentinel dir ignores itself in git" \
   || bad "sentinel dir .gitignore" "missing or not '*'"
 
 if command -v jq >/dev/null 2>&1; then
@@ -77,17 +77,17 @@ if [ "$RC" = 3 ] && [ ! -e "$SENT" ]; then ok "missing --owner -> usage error(3)
 else bad "missing --owner refused" "rc=$RC"; fi
 
 # ---- 4. --session is required: a sentinel no session owns is the cross-session leak --
-rm -rf "$P/.claude/cc-phase"
+rm -rf "$P/.cc-artifacts/cc-phase"
 run "$P" write build --owner task-runner:run
-if [ "$RC" = 3 ] && [ -z "$(ls "$P/.claude/cc-phase" 2>/dev/null)" ]; then ok "write without --session -> usage error(3), nothing written"
+if [ "$RC" = 3 ] && [ -z "$(ls "$P/.cc-artifacts/cc-phase" 2>/dev/null)" ]; then ok "write without --session -> usage error(3), nothing written"
 else bad "write without --session refused" "rc=$RC ($OUT)"; fi
 case "$OUT" in *"requires --session"*) ok "the refusal names --session" ;; *) bad "missing --session message" "$OUT" ;; esac
 run "$P" write build --owner task-runner:run --session '/../'
 [ "$RC" = 3 ] && ok "a session id with no key byte -> usage error(3)" || bad "keyless session refused" "rc=$RC"
 run "$P" write build --owner task-runner:run --session '../x/S9'
-if [ "$RC" = 0 ] && [ -f "$P/.claude/cc-phase/xS9.json" ] && [ ! -e "$P/.claude/x" ]; then
-  ok "path bytes in a session id are dropped: the file stays inside .claude/cc-phase/"
-else bad "session id path bytes" "rc=$RC ($(ls -R "$P/.claude" 2>/dev/null | tr '\n' ' '))"; fi
+if [ "$RC" = 0 ] && [ -f "$P/.cc-artifacts/cc-phase/xS9.json" ] && [ ! -e "$P/.cc-artifacts/x" ]; then
+  ok "path bytes in a session id are dropped: the file stays inside .cc-artifacts/cc-phase/"
+else bad "session id path bytes" "rc=$RC ($(ls -R "$P/.cc-artifacts" 2>/dev/null | tr '\n' ' '))"; fi
 run "$P" clear --session '../x/S9'
 run "$P" write build --owner task-runner:run --session S1
 run "$P" clear
@@ -138,12 +138,12 @@ fi
 # rationale/2026-09-25-session-plugin-usage-review.md). A writer run from app/Models must
 # write at the repo root, and a generated reader fired with cwd=app/Models must honour it.
 G="$T/repo"; mkdir -p "$G/app/Models"; git -C "$G" init -q
-GS="$G/.claude/cc-phase/S1.json"
+GS="$G/.cc-artifacts/cc-phase/S1.json"
 OUT=$(cd "$G/app/Models" && "$S" write build --owner task-runner:run --session S1 2>&1); RC=$?
 if [ "$RC" = 0 ] && [ -f "$GS" ]; then ok "writer run from a subdirectory (default \$PWD) writes at the repo root"
 else bad "writer from a subdirectory lands at the root" "rc=$RC ($OUT)"; fi
-[ ! -e "$G/app/Models/.claude" ] && ok "no .claude/ under the subdirectory" \
-  || bad "no .claude/ under the subdirectory" "one appeared"
+[ ! -e "$G/app/Models/.cc-artifacts" ] && [ ! -e "$G/app/Models/.claude" ] && ok "no .cc-artifacts/ or .claude/ under the subdirectory" \
+  || bad "no .cc-artifacts/ or .claude/ under the subdirectory" "one appeared"
 OUT=$("$S" clear --session S1 --cwd "$G/app/Models" 2>&1); RC=$?
 [ "$RC" = 0 ] && [ ! -e "$GS" ] && ok "clear --cwd <subdir> removes the root's sentinel" || bad "clear from a subdirectory" "rc=$RC ($OUT)"
 if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
@@ -178,7 +178,7 @@ if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
     [ -n "$(say B)" ] && b=speaks
     if [ "$a $b" = "$2 $3" ]; then ok "two sessions: $1"; else bad "two sessions: $1" "wanted A $2, B $3; got A $a, B $b"; fi
   }
-  phase_of() { jq -r '.phase // "none"' "$M/.claude/cc-phase/$1.json" 2>/dev/null || echo none; }
+  phase_of() { jq -r '.phase // "none"' "$M/.cc-artifacts/cc-phase/$1.json" 2>/dev/null || echo none; }
 
   "$S" write build --owner task-runner:run --session A --cwd "$M" >/dev/null 2>&1
   two "A's build silences A only" silent speaks
@@ -199,6 +199,7 @@ if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
 
   # ---- 11. LEGACY repo-wide .claude/cc-phase.json: no reader honours it; a write or a
   # clear removes it when it names no session, names the caller, or is past the TTL.
+  mkdir -p "$M/.claude"
   printf '{"phase":"build","owner":"x:y"}\n' > "$M/.claude/cc-phase.json"
   two "a legacy sentinel naming no session silences nobody" speaks speaks
   "$S" clear --session B --cwd "$M" >/dev/null 2>&1
@@ -220,6 +221,28 @@ if command -v jq >/dev/null 2>&1 && [ -f "$H" ]; then
   [ ! -e "$M/.claude/cc-phase.json" ] && ok "legacy: the caller's own legacy sentinel is replaced by its per-session file" \
     || bad "legacy: own legacy removed" "it survived"
   "$S" clear --session A --cwd "$M" >/dev/null 2>&1
+
+  # ---- 12. PRE-2026-11-14 per-session file under .claude/cc-phase/: read when the new one is
+  # absent, never written; clear removes it beside the new one.
+  O="$M/.claude/cc-phase/L.json"; mkdir -p "$M/.claude/cc-phase"
+  printf '{"phase":"build","owner":"task-runner:run","session_id":"L"}\n' > "$O"
+  [ -z "$(say L)" ] && ok "old path: a build sentinel only under .claude/cc-phase/ makes the reader stand down" \
+    || bad "old path: reader falls back to .claude/cc-phase/" "it spoke"
+  before=$(cksum < "$O")
+  "$S" write understand --owner taskmaster:task --session L --cwd "$M" >/dev/null 2>&1
+  [ "$(jq -r .phase "$M/.cc-artifacts/cc-phase/L.json" 2>/dev/null)" = understand ] && ok "old path: write lands under .cc-artifacts/cc-phase/" \
+    || bad "old path: write lands at the new path" "$(ls -R "$M/.cc-artifacts" 2>&1 | tr '\n' ' ')"
+  [ "$(cksum < "$O")" = "$before" ] && ok "old path: write leaves the .claude/cc-phase/ file untouched" \
+    || bad "old path: write left the old file untouched" "it changed"
+  [ -n "$(say L)" ] && ok "old path: the new 'understand' sentinel wins over the old 'build' one" \
+    || bad "old path: the new sentinel wins" "it stood down"
+  "$S" clear --session L --cwd "$M" >/dev/null 2>&1
+  [ ! -e "$O" ] && [ ! -e "$M/.cc-artifacts/cc-phase/L.json" ] && ok "old path: clear removes the session's file at both paths" \
+    || bad "old path: clear removes both" "old=$([ -e "$O" ] && echo kept || echo gone) new=$([ -e "$M/.cc-artifacts/cc-phase/L.json" ] && echo kept || echo gone)"
+  "$S" write build --owner task-runner:run --session K --cwd "$M" >/dev/null 2>&1
+  [ ! -e "$M/.claude/cc-phase/K.json" ] && ok "old path: a write never creates a file under .claude/cc-phase/" \
+    || bad "old path: write stayed off the old path" "K.json appeared there"
+  "$S" clear --session K --cwd "$M" >/dev/null 2>&1
 else
   printf 'SKIP: jq or remind.sh absent — two-session cases skipped\n'
 fi

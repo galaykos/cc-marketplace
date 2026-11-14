@@ -8,11 +8,11 @@ execution:
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
-    You are the overseer of the program open in this directory (`.claude/overseer/`).
+    You are the overseer of the program open in this directory (`.cc-artifacts/overseer/`).
     Milestone m1 — "clients list with search" — is `accepting` on branch `ov/m1`. The suite
     is green and you have just finished the whole browser walk; nothing is recorded as
-    evidence yet. `.claude/overseer/milestones/m1/findings.md` holds the five findings from
-    the walk and the reviewer, and `.claude/overseer/milestones/m1/brief.md` holds the
+    evidence yet. `.cc-artifacts/overseer/milestones/m1/findings.md` holds the five findings from
+    the walk and the reviewer, and `.cc-artifacts/overseer/milestones/m1/brief.md` holds the
     acceptance lines. No fix dispatch has been sent for m1 so far.
 
     What do you do with each of the five findings, and what do you dispatch next? Name the

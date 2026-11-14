@@ -4,8 +4,8 @@ argument-hint: [tasks-dir-or-slug]
 ---
 
 Run the coverage-check skill from this plugin on $ARGUMENTS (a
-`taskmaster-docs/tasks/<slug>/` directory or a slug; if empty, use the most
-recent `taskmaster-docs/tasks/*/00-INDEX.md`).
+`.cc-artifacts/taskmaster/tasks/<slug>/` directory or a slug; if empty, use the most
+recent `.cc-artifacts/taskmaster/tasks/*/00-INDEX.md`, or an older project's `taskmaster-docs/tasks/*/00-INDEX.md`).
 
 <!-- boost-preamble:start — byte-identical across the four full taskmaster commands (taskmaster.md is a thin alias, gated separately); scripts/validate.sh enforces parity and hook-token agreement -->
 **Run-status line (always):** print ONE status line as the first visible output of
@@ -34,7 +34,7 @@ GAP/ORPHAN/DRIFT WITHIN this command (derive-then-take), writing no execution
 marker; only task-cards stamps the `Goal: true` marker.
 
 1. Resolve the target: the `00-INDEX.md` and the spec it links under
-   `taskmaster-docs/specs/`.
+   `.cc-artifacts/taskmaster/specs/` (older projects: `taskmaster-docs/specs/`).
 2. Invoke the coverage-check skill — cross-check the spec's `## Success criteria`
    against every card's `<proof>` criteria in both directions (coverage
    and traceability), plus the drift check.

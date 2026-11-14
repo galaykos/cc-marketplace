@@ -40,7 +40,7 @@ produces confident nonsense.
 ## Double-run guard
 
 One deliberation per task; a second is re-litigation, and the manual commands do
-not bypass it. Check the MARKER, never memory — `.claude/approaches/deliberated.json` at the repo root
+not bypass it. Check the MARKER, never memory — `.cc-artifacts/approaches/deliberated.json` at the repo root
 (`{"task": "<short slug>", "by": "approach-deliberation", "at": "<ISO-8601>"}`):
 read it FIRST, skip if it names this task, write it on completion — through
 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/mark-deliberated.sh" check --task <slug>` (exit 0: already

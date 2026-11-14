@@ -165,7 +165,12 @@ function readFamilies(css) {
   return [...out.values()]
 }
 
-const LOG_PATH = '.craft-layer/run-log.md'
+// craft-layer before 2026-11-14 kept state in .craft-layer/ and run records in taskmaster-docs/craft/; read there only when the new path is absent.
+const newOrOld = (now, old) => (existsSync(resolve(process.cwd(), now)) || !existsSync(resolve(process.cwd(), old)) ? now : old)
+const statePath = (name) => newOrOld(`.cc-artifacts/craft-layer/${name}`, `.craft-layer/${name}`)
+const taskmasterCraft = (name) => newOrOld(`.cc-artifacts/taskmaster/craft/${name}`, `taskmaster-docs/craft/${name}`)
+
+const LOG_PATH = statePath('run-log.md')
 const COLUMNS = ['date', 'brief-slug', 'hue-family', 'type-strategy', 'spine', 'signature', 'draw']
 
 /** Last 5 rows; a malformed log is EMPTY, never fatal, and every dropped row is counted in a note. Cells map by position: add columns at the end only. */
@@ -222,26 +227,26 @@ const ARTIFACT_PATHS = {
   'offer contract': () => [
     process.env.CRAFT_CONTRACT,
     'craft/offer-contract.md',
-    'taskmaster-docs/craft/offer-contract.md',
-    '.craft-layer/offer-contract.md',
+    taskmasterCraft('offer-contract.md'),
+    statePath('offer-contract.md'),
   ],
   'divergence record': () => [
     process.env.CRAFT_DIVERGENCE_RECORD,
     'craft/divergence-record.md',
-    'taskmaster-docs/craft/divergence-record.md',
-    '.craft-layer/divergence-record.md',
+    taskmasterCraft('divergence-record.md'),
+    statePath('divergence-record.md'),
   ],
   'build task': () => [
     process.env.CRAFT_BUILD_TASK,
     'craft/build-task.md',
-    'taskmaster-docs/craft/build-task.md',
-    '.craft-layer/build-task.md',
+    taskmasterCraft('build-task.md'),
+    statePath('build-task.md'),
   ],
   'content source': () => [
     process.env.CRAFT_CONTENT_SOURCE,
     'craft/content-source.md',
-    'taskmaster-docs/craft/content-source.md',
-    '.craft-layer/content-source.md',
+    taskmasterCraft('content-source.md'),
+    statePath('content-source.md'),
   ],
 }
 
@@ -299,7 +304,7 @@ function readDraw() {
 }
 
 function readWaivers(notes) {
-  const p = resolve(process.cwd(), '.craft-layer/waivers.json')
+  const p = resolve(process.cwd(), statePath('waivers.json'))
   if (!existsSync(p)) return []
   try {
     const j = JSON.parse(readFileSync(p, 'utf8'))
@@ -603,7 +608,7 @@ function readVoice() {
 function voiceContract(voice) {
   if (!voice) {
     return record('voice-contract', 'SKIP',
-      'no build task resolved (tried craft/, taskmaster-docs/craft/, .craft-layer/, CRAFT_BUILD_TASK) — '
+      'no build task resolved (tried craft/, .cc-artifacts/taskmaster/craft/, .cc-artifacts/craft-layer/, their pre-2026-11-14 taskmaster-docs/craft/ and .craft-layer/, CRAFT_BUILD_TASK) — '
       + 'a build is never failed for not having saved a file. NEVER A PASS.')
   }
   if (voice.value === null) {
@@ -1201,7 +1206,7 @@ function spineRegister(corpus) {
   const spine = readSpineRegions()
   if (!spine) {
     return record('spine-register', 'SKIP',
-      "no build task carrying a 'Spine regions:' line (tried craft/, taskmaster-docs/craft/, .craft-layer/, "
+      "no build task carrying a 'Spine regions:' line (tried craft/, .cc-artifacts/taskmaster/craft/, .cc-artifacts/craft-layer/, their pre-2026-11-14 taskmaster-docs/craft/ and .craft-layer/, "
       + 'CRAFT_BUILD_TASK) — the slot->region mapping is this gate\'s only input, and without it the check '
       + 'degrades to a whole-page grep that fires on a correct objection section. NEVER A PASS.')
   }

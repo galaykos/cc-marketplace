@@ -67,8 +67,8 @@ printf '## No title slide\n- x\n' > notitle.md
 set +e; python3 "$here/deck-build.py" notitle.md --out nt.html 2>/dev/null; rc=$?; set -e
 [ "$rc" = 2 ] || { echo "FAIL: missing title should exit 2 (rc=$rc)"; exit 1; }
 
-mkdir -p design-system
-cat > design-system/DESIGN-SYSTEM.md <<'EOF'
+ds=.cc-artifacts/design-kit/design-system; mkdir -p "$ds"
+cat > "$ds/DESIGN-SYSTEM.md" <<'EOF'
 ## Design system
 - Colors: primary #1a4d8f, accent #f59e0b, surface #f8fafc
 - Typography: Inter for body, JetBrains Mono for code
@@ -77,9 +77,14 @@ python3 "$here/deck-build.py" outline.md --out themed.html 2>err.txt >/dev/null
 grep -q 'dk-accent:#1a4d8f' themed.html || { echo "FAIL: theme accent not applied"; grep dk- themed.html | head -3; exit 1; }
 grep -q 'dk-font:"Inter"' themed.html || { echo "FAIL: theme font not applied"; exit 1; }
 grep -q "DESIGN-SYSTEM.md" err.txt || { echo "FAIL: theme source not reported"; exit 1; }
-sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" design-system/DESIGN-SYSTEM.md)"
+sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" "$ds/DESIGN-SYSTEM.md")"
 grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " themed.html || { echo "FAIL: tokens stamp sha"; grep design-kit-tokens themed.html; exit 1; }
+# plugins before 2026-11-14 wrote design-system/ under the cwd: the theme is read there while the new folder holds none
+mkdir -p design-system; mv "$ds/DESIGN-SYSTEM.md" design-system/DESIGN-SYSTEM.md
+python3 "$here/deck-build.py" outline.md --out themed-old.html 2>err.txt >/dev/null
+grep -q 'dk-accent:#1a4d8f' themed-old.html && grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " themed-old.html \
+  || { echo "FAIL: no theme fallback to design-system/DESIGN-SYSTEM.md"; cat err.txt; exit 1; }
 
 python3 "$here/deck-build.py" outline.md >out.txt 2>/dev/null
-grep -qE '^deck-build: \.design-kit/decks/[0-9]{4}-[0-9]{2}-[0-9]{2}-quarterly-review\.html' out.txt || { echo "FAIL: default output path: $(cat out.txt)"; exit 1; }
+grep -qE '^deck-build: \.cc-artifacts/design-kit/decks/[0-9]{4}-[0-9]{2}-[0-9]{2}-quarterly-review\.html' out.txt || { echo "FAIL: default output path: $(cat out.txt)"; exit 1; }
 echo "PASS deck-build.test.sh"

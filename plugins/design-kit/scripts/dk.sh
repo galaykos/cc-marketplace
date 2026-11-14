@@ -26,31 +26,34 @@
 #                                           notes left on a preview page, one JSON line each (data)
 #   dk status                               the workshop flow as text
 #
-# STATE. Every verb appends one JSON line to .design-kit/usage.jsonl
+# STATE. $DK is .cc-artifacts/design-kit. Every verb appends one JSON line to $DK/usage.jsonl
 # ({ts, verb, outcome, artifact}) and updates only its own keys in
-# .design-kit/workshop.json ({brief, device, theme, system, board, scratch,
-# artifacts, deck}). `dk decision` reads .design-kit/decisions.jsonl, which the
+# $DK/workshop.json ({brief, device, theme, system, board, scratch,
+# artifacts, deck}). `dk decision` reads $DK/decisions.jsonl, which the
 # board writes through the server's loopback-only /_decision route, and prints
 # exactly the prose the board's "Copy edits as prompt" button produces; --consume
-# marks that row read; --record appends one human line to design-system/DECISIONS.md.
+# marks that row read; --record appends one human line to $DS/DECISIONS.md.
 #
-# WHERE .design-kit/ LIVES. At the project root (cc_state_root below: the git toplevel,
+# WHERE $DK LIVES. At the project root (cc_state_root below: the git toplevel,
 # else CLAUDE_PROJECT_DIR when the shell sits under it), not under the shell's cwd. It
 # was `./.design-kit` until 0.5.1, so a verb run after the model had cd'd into src/
 # built a second .design-kit/ there — its own board, decisions and usage log, invisible
 # to the unread-pick hook and to a `dk decision` run from the root (the cwd drift is
 # finding 2 of the marketplace's rationale/2026-09-25-session-plugin-usage-review.md).
-# At the root $DK stays the relative `.design-kit`, so every path printed there is what
-# it always was; from a subdirectory it is absolute. An explicit DESIGN_KIT_DIR is used
+# At the root $DK stays the relative `.cc-artifacts/design-kit`, so every path printed there
+# is root-relative; from a subdirectory it is absolute. An explicit DESIGN_KIT_DIR is used
 # exactly as given. Either way it is EXPORTED, so the scripts dk runs (deck-build,
 # board-build, artifact-bundle, deck-export, snapshot) write where dk reads; run on their
-# own they fall back to .design-kit at the git toplevel. design-system/ is NOT anchored:
-# `dk check`, `--record` and the extractor's default --out still read the shell's cwd.
+# own they fall back to .cc-artifacts/design-kit at the git toplevel. $DS, the design system
+# (.cc-artifacts/design-kit/design-system), is NOT anchored: `dk check`, `--record` and the
+# extractor's default --out read it under the shell's cwd. Before 0.17.0 these were
+# .design-kit/ and design-system/: the first verb copies the old state, boards, decks and
+# artifacts over once, and a design-system/ file is read while $DS lacks it; neither is written.
 #
 # WHAT IT DOES NOT DO. It asks no questions — every consent (write into the tree,
 # share, install pptxgenjs, push) stays in the command that calls it. It never
 # assembles a URL from a literal port: the URL is what preview.sh wrote to
-# .design-kit/.preview.url. Standing: scripts/__tests__/dk.test.sh drives every
+# $DK/.preview.url. Standing: scripts/__tests__/dk.test.sh drives every
 # verb against a temp project; the wrapped scripts keep their own harnesses.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/dk.sh
 set -euo pipefail
@@ -75,14 +78,16 @@ cc_state_root() {
 
 here="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cc_state_root "$PWD")" || ROOT="$PWD"
+OLD=""
 if [ -n "${DESIGN_KIT_DIR:-}" ]; then DK="$DESIGN_KIT_DIR"
-elif [ "$ROOT" = "$PWD" ]; then DK=".design-kit"
-else DK="$ROOT/.design-kit"; fi
+elif [ "$ROOT" = "$PWD" ]; then DK=".cc-artifacts/design-kit"; OLD=".design-kit"
+else DK="$ROOT/.cc-artifacts/design-kit"; OLD="$ROOT/.design-kit"; fi
 export DESIGN_KIT_DIR="$DK"
+DS=".cc-artifacts/design-kit/design-system"
 WS="$DK/workshop.json"; USAGE="$DK/usage.jsonl"; DEC="$DK/decisions.jsonl"
 verb="${1:-}"; [ $# -gt 0 ] && shift
 # help exits before ensure_ignored, so `dk --help` writes nothing
-case "$verb" in -h|--help|"") sed -n '2,54p' "$0"; exit 0 ;; esac
+case "$verb" in -h|--help|"") sed -n '2,57p' "$0"; exit 0 ;; esac
 
 # drift --print-hook writes nothing either: it prints the PostToolUse snippet for the user to paste, and installs nothing.
 if [ "$verb" = drift ] && [ "${1:-}" = "--print-hook" ]; then
@@ -104,17 +109,19 @@ PY
   exit 0
 fi
 
-# ensure_ignored — once per git repo, a managed .gitignore block for .design-kit/ and __design-kit__/ (never design-system/, the tracked record); DESIGN_KIT_IGNORE=off skips it.
+# ensure_ignored — once per git repo, a managed .gitignore block for $DK/ (the design system inside it too) and __design-kit__/; DESIGN_KIT_IGNORE=off skips it.
 ensure_ignored() {
   [ "${DESIGN_KIT_IGNORE:-on}" = "off" ] && return 0
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 0
-  local root rel; root="$(git rev-parse --show-toplevel)"
+  local root rel legacy=(); root="$(git rev-parse --show-toplevel)"
   # root-relative: $DK is absolute from a subdirectory, and .gitignore takes no absolute path
   rel="${DK#"$ROOT"/}"
   if git -C "$root" check-ignore -q "$rel/x" 2>/dev/null && git -C "$root" check-ignore -q "__design-kit__/x" 2>/dev/null; then return 0; fi
   # tracked on purpose (a repo that commits its evidence): say nothing, touch nothing
   [ -n "$(git -C "$root" ls-files -- "$rel" "__design-kit__" 2>/dev/null)" ] && return 0
-  python3 - "$root/.gitignore" "$rel/" "__design-kit__/" <<'PY'
+  # the block once named .design-kit/, which may hold a signed-in session under auth/: rewriting it must keep that folder ignored
+  if [ -n "$OLD" ] && [ -d "$OLD" ]; then legacy=(".design-kit/"); fi
+  python3 - "$root/.gitignore" "$rel/" "__design-kit__/" ${legacy[@]+"${legacy[@]}"} <<'PY'
 import sys, re
 p, *pats = sys.argv[1:]
 start, end = "# >>> design-kit scratch (managed by design-kit dk.sh) >>>", "# <<< design-kit scratch <<<"
@@ -130,6 +137,33 @@ PY
   echo "design-kit: added $rel/ and __design-kit__/ to .gitignore (managed block; DESIGN_KIT_IGNORE=off to skip)"
 }
 ensure_ignored
+# Plugins before 2026-11-14 kept $DK in .design-kit/: copy the state and pages a user returns to once (caches, shots, workspaces start fresh); never touch it.
+if [ -n "$OLD" ] && [ ! -d "$DK" ] && [ -d "$OLD" ]; then
+  mkdir -p "$DK"
+  for e in workshop.json decisions.jsonl notes.jsonl usage.jsonl boards decks artifacts; do
+    if [ -e "$OLD/$e" ]; then cp -Rp "$OLD/$e" "$DK/"; fi
+  done
+  # workshop.json names its pages by path; point them at the copies, so an export never writes into the old folder
+  if [ -f "$WS" ]; then python3 - "$WS" "$OLD" "$DK" <<'PY'
+import json, sys
+p, old, new = sys.argv[1:4]
+heads = [(old.rstrip("/") + "/", new.rstrip("/") + "/"), (".design-kit/", ".cc-artifacts/design-kit/")]
+def move(v):
+    if isinstance(v, dict): return {k: move(x) for k, x in v.items()}
+    if isinstance(v, list): return [move(x) for x in v]
+    if isinstance(v, str):
+        for a, b in heads:
+            if v.startswith(a): return b + v[len(a):]
+    return v
+try:
+    ws = json.load(open(p, encoding="utf-8"))
+except (OSError, ValueError):
+    sys.exit(0)
+with open(p, "w", encoding="utf-8") as fh:
+    json.dump(move(ws), fh, indent=1)
+PY
+  fi
+fi
 mkdir -p "$DK"
 
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
@@ -179,9 +213,11 @@ ensure_server() { # stdout: the URL only; preview.sh's own lines go to stderr
   echo "$u"
 }
 fail() { log fail "${2:-}"; echo "dk $verb: $1" >&2; exit "${3:-1}"; }
+# ds_file <name>: $DS/<name>, else the design-system/<name> plugins before 2026-11-14 wrote, while $DS lacks it.
+ds_file() { if [ ! -f "$DS/$1" ] && [ -f "design-system/$1" ]; then printf 'design-system/%s' "$1"; else printf '%s/%s' "$DS" "$1"; fi; }
 tokens_sha() { python3 -c 'import hashlib,sys
-try: print(hashlib.sha256(open("design-system/tokens.json","rb").read()).hexdigest()[:12])
-except OSError: print("")'; }
+try: print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest()[:12])
+except OSError: print("")' "$(ds_file tokens.json)"; }
 
 case "$verb" in
   serve)
@@ -190,7 +226,7 @@ case "$verb" in
     base="$(ensure_server $lan)"; echo "url=$(keyed "$base")"; log ok ;;
 
   system)
-    target="."; out="design-system"; args=(); rendered=""
+    target="."; out="$DS"; args=(); rendered=""
     while [ $# -gt 0 ]; do case "$1" in --out) out="$2"; shift ;; --source|--project-name) [ "$1 ${2:-}" = "--source rendered" ] && rendered=1; args+=("$1" "$2"); shift ;; *) target="$1" ;; esac; shift; done
     # A rendered dry-run would load the page twice; its exit code (3 no Playwright, 4 no page) passes through.
     [ -n "$rendered" ] || python3 "$here/system-extract.py" "$target" --out "$out" --dry-run ${args[@]+"${args[@]}"} || fail "dry-run failed" "" 1
@@ -207,7 +243,7 @@ case "$verb" in
       case "$rc" in 0|1) log ok "$1" ;; 4) log skip "$1" ;; *) log fail "$1" ;; esac
       exit "$rc"
     fi
-    if [ ! -f design-system/tokens.json ]; then echo "design-system: none — run /design-kit:system first"; log skip; exit 0; fi
+    if [ ! -f "$(ds_file tokens.json)" ]; then echo "design-system: none — run /design-kit:system first"; log skip; exit 0; fi
     set +e; out="$(python3 "$here/system-extract.py" . --dry-run --check 2>&1)"; rc=$?; set -e
     if echo "$out" | grep -q "unrecognized arguments: --check"; then echo "design-system: check unavailable in this build"; log skip; exit 0; fi
     if [ "$rc" = 0 ]; then echo "design-system: current"; log ok; exit 0; fi
@@ -320,9 +356,9 @@ print("zip:", z)' "$page" "$z"; log ok "$z" ;;
     log ok "$file" ;;
 
   decision)
-    python3 - "$DEC" "$WS" "$@" <<'PY'
-import json, os, re, sys, time
-dec, ws_path, *args = sys.argv[1:]
+    python3 - "$DEC" "$WS" "$DS" "$@" <<'PY'
+import json, os, re, shutil, sys, time
+dec, ws_path, ds, *args = sys.argv[1:]
 if args[:1] == ["--record"]:
     line = args[1] if len(args) > 1 else ""
     # A line written in the file's own `date — …` shape came out dated twice in a real
@@ -331,14 +367,18 @@ if args[:1] == ["--record"]:
     line = re.sub(r"^\s*\d{4}-\d{2}-\d{2}\s+[—–-]\s+", "", line)
     if not line:
         print("dk decision --record needs a line", file=sys.stderr); sys.exit(2)
-    os.makedirs("design-system", exist_ok=True)
-    p = os.path.join("design-system", "DECISIONS.md")
+    os.makedirs(ds, exist_ok=True)
+    p = os.path.join(ds, "DECISIONS.md")
+    old = os.path.join("design-system", "DECISIONS.md")
+    # plugins before 2026-11-14 appended to design-system/DECISIONS.md: carry it over once, never write it
+    if not os.path.exists(p) and os.path.isfile(old):
+        shutil.copy2(old, p)
     new = not os.path.exists(p)
     with open(p, "a", encoding="utf-8") as fh:
         if new:
             fh.write("# Design decisions\n\nOne line per pick a command acted on: date, board, artboard, knobs, components that rendered it, gap rows. Appended by `dk decision --record`.\n\n")
         fh.write("- " + time.strftime("%Y-%m-%d") + " — " + line.strip() + "\n")
-    print("recorded: design-system/DECISIONS.md"); sys.exit(0)
+    print("recorded: " + p); sys.exit(0)
 rows = []
 try:
     for ln in open(dec, encoding="utf-8"):

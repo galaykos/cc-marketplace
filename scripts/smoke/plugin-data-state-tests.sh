@@ -2,7 +2,7 @@
 # Drives a prompt, an edit and a stop through every registered hook in two identical scratch
 # repos — CLAUDE_PLUGIN_DATA unset (control) and set per plugin (treatment) — and checks that
 # moved hook state (the plugin-data rows of git-workflow's marketplace-scratch.tsv) leaves the
-# repo only when the variable is set. The control arm must create .claude/code-review/, or the
+# repo only when the variable is set. The control arm must create .cc-artifacts/code-review/, or the
 # treatment's absence check would pass on a run where no hook wrote anything. The test edit adds a
 # comment line because density.sh judges, and so writes state for, only an edit that adds prose.
 # Every hook runs under env -i with HOME, CLAUDE_CONFIG_DIR and TMPDIR inside the temp dir.
@@ -135,9 +135,9 @@ arm ctl ""
 arm trt "$T/data"
 
 S=""
-for n in $moved; do [ -d "$T/ctl/proj.app/.claude/$n" ] && S="$S $n"; done
+for n in $moved; do [ -d "$T/ctl/proj.app/.cc-artifacts/$n" ] && S="$S $n"; done
 S=${S# }
-echo "S (moved-state dirs the control arm created under .claude/): ${S:-<none>}"
+echo "S (moved-state dirs the control arm created under .cc-artifacts/): ${S:-<none>}"
 # Names these payloads cannot reach: design-kit's row is legacy, with no current writer.
 unreach="design-kit"
 missing=""
@@ -146,18 +146,20 @@ for n in $moved; do
   case " $S " in *" $n "*) ;; *) missing="$missing $n" ;; esac
 done
 if [ -z "$missing" ]; then
-  pass "control — unset CLAUDE_PLUGIN_DATA writes the legacy dirs"
+  pass "control — unset CLAUDE_PLUGIN_DATA writes the in-repo fallback dirs"
 else
-  fail "control — unset CLAUDE_PLUGIN_DATA writes the legacy dirs" \
-    "control repo lacks .claude/<name>/ for:$missing (S: ${S:-<empty>}) — the treatment check below would be vacuous for them"
+  fail "control — unset CLAUDE_PLUGIN_DATA writes the in-repo fallback dirs" \
+    "control repo lacks .cc-artifacts/<name>/ for:$missing (S: ${S:-<empty>}) — the treatment check below would be vacuous for them"
 fi
 
 bad=""
-for n in $moved; do [ -e "$T/trt/proj.app/.claude/$n" ] && bad="$bad .claude/$n/"; done
+for n in $moved; do
+  for d in .cc-artifacts .claude; do [ -e "$T/trt/proj.app/$d/$n" ] && bad="$bad $d/$n/"; done
+done
 if [ -z "$bad" ]; then
-  pass "no .claude/<plugin>/ dir for moved state with CLAUDE_PLUGIN_DATA set"
+  pass "no .cc-artifacts/ or .claude/ <plugin> dir for moved state with CLAUDE_PLUGIN_DATA set"
 else
-  fail "no .claude/<plugin>/ dir for moved state with CLAUDE_PLUGIN_DATA set" "treatment repo has:$bad"
+  fail "no .cc-artifacts/ or .claude/ <plugin> dir for moved state with CLAUDE_PLUGIN_DATA set" "treatment repo has:$bad"
 fi
 
 miss=""

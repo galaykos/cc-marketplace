@@ -132,11 +132,23 @@ got=$(printf '%s\n' "$out" | grep -E '^ +FAIL +stateless-collection +no-state-br
 if [ "$got" = "app/payouts/page.tsx:4 src/Orders.tsx:8 src/Payments.tsx:4 src/Refunds.tsx:3 src/Team.tsx:5 " ]; then ok; else
   bad "source half: the fetched list in Team.tsx, the effect-set lists in Orders.tsx and Payments.tsx (a .catch((error) => …) is no branch), Refunds.tsx (an unread isLoading is none) and the payouts page are found; the literal LINKS.map, Credits.tsx's if (error) and the page with loading.tsx are not" "got: $got"; fi
 
-mkdir -p "$proj/.craft-layer"
-printf '[{"check":"stateless-collection","value":"no-state-branch","reason":"the invoice list is always seeded by the import"},{"check":"focus-ring","value":"*"}]\n' > "$proj/.craft-layer/waivers.json"
+mkdir -p "$proj/.cc-artifacts/craft-layer"
+printf '[{"check":"stateless-collection","value":"no-state-branch","reason":"the invoice list is always seeded by the import"},{"check":"focus-ring","value":"*"}]\n' > "$proj/.cc-artifacts/craft-layer/waivers.json"
 out=$( cd "$proj" && BASE_URL= node "$LINT" 2>&1 )
 if printf '%s\n' "$out" | grep -qE '^ +WAIVED +stateless-collection' && printf '%s\n' "$out" | grep -q "waiver for 'focus-ring' has no reason"; then ok; else
   bad "a waiver with a reason waives; one without is ignored and said so" "$(printf '%s\n' "$out" | grep -E 'WAIVED|FAIL|note' | head -3)"; fi
+# Before 2026-11-14 waivers lived in .craft-layer/: read there only while the new file is absent, never written.
+mkdir -p "$proj/.craft-layer"; mv "$proj/.cc-artifacts/craft-layer/waivers.json" "$proj/.craft-layer/waivers.json"
+legacy_sum=$(cksum < "$proj/.craft-layer/waivers.json")
+out=$( cd "$proj" && BASE_URL= node "$LINT" 2>&1 )
+if printf '%s\n' "$out" | grep -qE '^ +WAIVED +stateless-collection' && [ "$(cksum < "$proj/.craft-layer/waivers.json")" = "$legacy_sum" ] \
+   && [ ! -e "$proj/.cc-artifacts/craft-layer/waivers.json" ]; then ok; else
+  bad "an old-only .craft-layer/waivers.json waives, and stays where it is" "$(printf '%s\n' "$out" | grep -E 'WAIVED|FAIL' | head -2)"; fi
+printf '[]\n' > "$proj/.cc-artifacts/craft-layer/waivers.json"
+out=$( cd "$proj" && BASE_URL= node "$LINT" 2>&1 )
+if printf '%s\n' "$out" | grep -qE '^ +FAIL +stateless-collection'; then ok; else
+  bad "a new waivers.json wins over the old one" "$(printf '%s\n' "$out" | grep -E 'WAIVED|FAIL' | head -2)"; fi
+rm -rf "$proj/.craft-layer" "$proj/.cc-artifacts"
 
 PW=""
 for nm in ${CRAFT_GATES_PLAYWRIGHT:-} $(ls -dt "$HOME"/.npm/_npx/*/node_modules 2>/dev/null); do

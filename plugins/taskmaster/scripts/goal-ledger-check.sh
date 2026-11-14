@@ -3,7 +3,7 @@
 # Misses: whether every auto-take was logged — it proves the ledger exists, has entries and is writable; entry completeness stays a prose obligation.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/goal-ledger-check.sh (marketplace repository)
 
-#   --slug <slug>         verify .claude/taskmaster/goal-ledger-<slug>.md exists,
+#   --slug <slug>         verify .cc-artifacts/taskmaster/goal-ledger-<slug>.md exists,
 #                         is non-empty, and contains at least one decision entry
 #                         (a "## " or "- " line beyond the header). Run it BEFORE
 #                         task-cards stamps `Goal: true` into 00-INDEX.md.
@@ -21,7 +21,7 @@ PROG=goal-ledger
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 violation() { printf '%s: %s\n' "$PROG" "$1" >&2; exit 2; }
 
-slug=""; init=0; base="${GOAL_LEDGER_DIR:-.claude/taskmaster}"
+slug=""; init=0; base="${GOAL_LEDGER_DIR:-.cc-artifacts/taskmaster}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --slug) [ $# -ge 2 ] || usage "--slug needs an argument"; slug="$2"; shift 2 ;;
@@ -34,12 +34,17 @@ done
 case "$slug" in *[!a-zA-Z0-9._-]*) usage "slug carries path characters: $slug" ;; esac
 
 ledger="$base/goal-ledger-$slug.md"
+# Plugins before 2026-11-14 kept the ledger in .claude/taskmaster/; read it while the new one is absent, and --init copies it over once.
+old=""; [ -n "${GOAL_LEDGER_DIR:-}" ] || old=".claude/taskmaster/goal-ledger-$slug.md"
 
 if [ "$init" = 1 ]; then
   mkdir -p "$base" 2>/dev/null || violation "init-failed: cannot create $base"
-  # The scratch dir ignores itself (a `*` .gitignore): a consumer repo's own .gitignore does not cover it.
+  # The ledgers ignore themselves, and only themselves: specs and cards share this dir and a consumer repo may track them.
   # `|| :` is load-bearing: under set -e a read-only state dir would end the check before it reports.
-  [ -e "$base/.gitignore" ] || printf '*\n' > "$base/.gitignore" 2>/dev/null || :
+  [ -e "$base/.gitignore" ] || printf '/goal-ledger-*.md\n/ledger-*.md\n' > "$base/.gitignore" 2>/dev/null || :
+  if [ ! -e "$ledger" ] && [ -n "$old" ] && [ -f "$old" ]; then
+    cp -p "$old" "$ledger" 2>/dev/null || violation "init-failed: cannot copy $old to $ledger"
+  fi
   [ -f "$ledger" ] || printf '# Goal ledger — %s\n\n' "$slug" > "$ledger" 2>/dev/null \
     || violation "init-failed: cannot create $ledger"
   # A failed probe append is the exact failure this precondition exists to catch.
@@ -50,6 +55,7 @@ if [ "$init" = 1 ]; then
   exit 0
 fi
 
+[ -f "$ledger" ] || [ -z "$old" ] || [ ! -f "$old" ] || ledger="$old"
 [ -f "$ledger" ] || violation "no-ledger: $ledger missing — goal mode may not stamp 'Goal: true' without its audit trail"
 [ -s "$ledger" ] || violation "empty-ledger: $ledger is empty — no auto-take was audited"
 grep -Eq '^(## |- )' "$ledger" \

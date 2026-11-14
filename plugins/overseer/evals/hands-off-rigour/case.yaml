@@ -8,10 +8,10 @@ execution:
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
-    An overseer program is open in this directory (`.claude/overseer/program.json`; it was
+    An overseer program is open in this directory (`.cc-artifacts/overseer/program.json`; it was
     started `--hands-off`). Milestone m2 is `briefed` — read its brief under
-    `.claude/overseer/milestones/m2/brief.md`. The program's capability scan
-    (`.claude/overseer/capabilities.tsv`) recorded taskmaster 0.42.2 and task-runner 0.32.0
+    `.cc-artifacts/overseer/milestones/m2/brief.md`. The program's capability scan
+    (`.cc-artifacts/overseer/capabilities.tsv`) recorded taskmaster 0.42.2 and task-runner 0.32.0
     as installed in this project; treat their commands as reachable.
 
     Which exact command do you hand this brief to, and what would each alternative buy or

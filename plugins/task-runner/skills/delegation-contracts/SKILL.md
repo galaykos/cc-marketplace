@@ -103,7 +103,7 @@ orchestrator did not know overlapped, and work is missed because
 nobody was assigned the file the orchestrator did not know existed.
 The scout costs one cheap dispatch and buys a correct partition.
 
-Repos with a committed `brain/INDEX.md` map: hand readers that path as an orientation prior — they verify touched areas themselves; stale map ⇒ trust code.
+Repos with a brain map (`.cc-artifacts/brain/INDEX.md`, older projects `brain/INDEX.md`): hand readers that path as an orientation prior — they verify touched areas themselves; stale map ⇒ trust code.
 
 ## Parallel writers
 

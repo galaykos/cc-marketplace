@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
 # Drives scratch-ignore.sh: --check names an unignored scratch dir (exit 1), --apply
-# writes one managed block that ignores it and leaves tracked/state paths alone,
-# keeps legacy plugin-data patterns and keeps home rows out, a second --apply does
-# not duplicate, an empty repo and a non-repo exit 0.
+# writes one managed block that opens with .cc-artifacts/, ignores it and the legacy
+# dirs older versions wrote, leaves tracked/state paths alone, keeps legacy plugin-data
+# patterns and keeps home rows out, a second --apply does not duplicate, an empty repo
+# and a non-repo exit 0.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"; s="$here/scratch-ignore.sh"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fail() { echo "FAIL: $*"; exit 1; }
 
-repo="$tmp/repo"; mkdir -p "$repo/brain" "$repo/.design-kit/decks"; cd "$repo"
+repo="$tmp/repo"; mkdir -p "$repo/brain" "$repo/.design-kit/decks" "$repo/.cc-artifacts/taskmaster/specs"; cd "$repo"
 git init -q; git config user.email t@t; git config user.name t
 echo "# map" > brain/INDEX.md; git add brain && git commit -q -m brain
 echo "<html>" > .design-kit/decks/a.html
+echo spec > .cc-artifacts/taskmaster/specs/a.md
 
 set +e; out="$(bash "$s" --check)"; rc=$?; set -e
 [ "$rc" -eq 1 ] || fail "--check should exit 1 with an unignored scratch dir (rc=$rc)"
 grep -q "NEEDS IGNORE" <<<"$out" || fail "no NEEDS IGNORE row: $out"
 grep -qE '^\.design-kit/ .*NEEDS IGNORE' <<<"$out" || fail ".design-kit/ not named: $out"
+grep -qE '^\.cc-artifacts/ .*NEEDS IGNORE' <<<"$out" || fail ".cc-artifacts/ not named: $out"
 grep -qE '^brain/ .*state.*left to you' <<<"$out" || fail "brain/ should be left to you: $out"
 grep -q '^~/' <<<"$out" && fail "home row reported by --check: $out"
 
@@ -25,9 +28,15 @@ bash "$s" --apply >/dev/null
 git check-ignore -q .design-kit/decks/a.html || fail ".design-kit not ignored after --apply"
 git check-ignore -q __design-kit__/x.html || fail "cleaned pattern should be in the block too"
 git check-ignore -q .claude/skill-router/x || fail "legacy plugin-data pattern not in the block"
+git check-ignore -q .cc-artifacts/taskmaster/specs/a.md || fail ".cc-artifacts/ not ignored after --apply"
+[ "$(sed -n '/cc-plugins-marketplace scratch (managed/{n;p;}' .gitignore)" = ".cc-artifacts/" ] || fail ".cc-artifacts/ is not the block's first pattern"
+for p in .claude/hindsight/x .claude/code-architecture/x .claude/security/x .claude/secret-scanning/x .craft-layer/x taskmaster-docs/x; do
+  git check-ignore -q "$p" || fail "legacy dir $p not in the block"
+done
 grep -q '^~/' .gitignore && fail "home row leaked into .gitignore"
 grep -q '^brain/$' .gitignore && fail "brain/ (state) must not be in the block"
 grep -q '^design-system/$' .gitignore && fail "design-system/ (state) must not be in the block"
+grep -q '^research/$' .gitignore && fail "research/ (state) must not be in the block"
 [ "$(grep -c 'cc-plugins-marketplace scratch (managed' .gitignore)" -eq 1 ] || fail "block header count"
 bash "$s" --check >/dev/null || fail "--check should pass after --apply"
 

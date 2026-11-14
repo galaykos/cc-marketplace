@@ -2,6 +2,13 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.20.0 — 2026-11-14
+
+- **`/code-architecture:work` writes its hand-written phase sentinel to `.cc-artifacts/cc-phase/<session>.json`** (was `.claude/cc-phase/`), and needs none when the writer it ran left one there or, from a taskmaster before 0.60.0, under `.claude/cc-phase/`.
+- **drift-review writes the reviewer's diff to `.cc-artifacts/code-architecture/rv/`** (was `.claude/code-architecture/rv/`). It reads task-runner's `start_sha` from `.cc-artifacts/task-runner/active-run.json` and an active card index from `.cc-artifacts/taskmaster/tasks/`, naming the older `.claude/task-runner/` and `taskmaster-docs/tasks/` for older projects.
+- The quick-fix eval graders count `.cc-artifacts/cc-phase/` and `.claude/cc-phase/` as non-project paths.
+- Standing: recorded (command, skill and grader text; no eval runs in CI).
+
 ## 0.19.4 — 2026-11-12
 
 - **`low-cognitive-load` says where it is reached from now.** skill-router 0.32.0 removed the row that suggested it after every source edit; the skill's reach line no longer claims that route. `coding-entry` still loads it before the first edit.

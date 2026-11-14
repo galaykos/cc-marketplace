@@ -50,11 +50,11 @@ read what is still on disk.
 4. **Apply (on approval)** — approved rules go to one of four homes: a repo-binding rule
    appends to CLAUDE.md; a rule about how *you* want to be worked with becomes a
    `feedback` entry in Claude Code's own memory at `~/.claude/projects/<slug>/memory/`;
-   a finding about the codebase becomes a note in `brain/<area>.md` when the brain
-   plugin's map exists; a mechanical correction becomes a proposed check in the linter,
+   a finding about the codebase becomes a note in `.cc-artifacts/brain/<area>.md` when the
+   brain plugin's map exists; a mechanical correction becomes a proposed check in the linter,
    pre-commit hooks or CI the repo already runs, printed for you to apply and never
    written. Ideas hand off to a `/new-skill` or `/new-plugin` project skill when the
-   project has one. Warnings land in `.claude/hindsight/anti-patterns.md`.
+   project has one. Warnings land in `.cc-artifacts/hindsight/anti-patterns.md`.
 5. **Mark (script)** — `select.sh --mark` flags every mined transcript in the ledger, so
    the next harvest does not offer it again.
 
@@ -92,11 +92,14 @@ error/rejection markers — it undercounts rather than crashes, and a session th
 was quiet and wrong ranks low.
 
 Reports are saved beside the ledger at `reports/YYYY-MM-DD.md`. The one file this
-plugin writes into the project is `<project>/.claude/hindsight/anti-patterns.md`, and
-only when you pick a warning at the apply gate (a brain note goes into the brain
-plugin's committed `brain/` map, again only on a pick). That file is **team-shared and
-must be committed** — a CLAUDE.md pointer references it. Do not ignore `.claude/`
-wholesale: other plugins keep team files there too.
+plugin writes into the project is `<project>/.cc-artifacts/hindsight/anti-patterns.md`,
+and only when you pick a warning at the apply gate (a brain note goes into the brain
+plugin's map in `.cc-artifacts/brain/`, again only on a pick). Before 2026-11-14 the file
+was `.claude/hindsight/anti-patterns.md`; the next pick copies that folder over once and
+never touches it. `.cc-artifacts/` is the folder a project gitignores for what plugins
+write during development, so the file stays on your machine. A team that wants it shared
+— a CLAUDE.md pointer references it — tracks it: ignore `.cc-artifacts/*` instead of
+`.cc-artifacts/`, then add `!.cc-artifacts/hindsight/`.
 
 ## Skill-use log
 
@@ -109,8 +112,9 @@ option; you lose nothing as an installer.
 ## Pairs with
 
 - **brain** — a harvest destination: a codebase finding approved at the apply gate
-  lands as a note in `brain/<area>.md` (or `brain/decisions.md`), only when
-  `brain/INDEX.md` exists. Agent-graded; no script checks the routing.
+  lands as a note in `.cc-artifacts/brain/<area>.md` (or its `decisions.md`), only when
+  the map exists; an older map in `brain/` is copied there first. Agent-graded; no script
+  checks the routing.
 - **stack-scan** (plugin-scout skill) — suggests hindsight per repo as an any-project
   core row.
 

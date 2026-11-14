@@ -26,10 +26,10 @@ a browser; where it has none, in a captured run.
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
-| `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.claude/overseer/.reads`; prints nothing |
+| `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.cc-artifacts/overseer/.reads`; prints nothing |
 | `hooks/status-line.ts` | hooks module (Claude Code ≥ 2.1.291) | pins the next open milestone as a status line under the prompt; see Mods |
 | `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept, and the evidence profile accept demands (`ui`, the default, or `headless`); read by `program.sh` |
-| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup, brief; size WARN; a milestone's fourth fix dispatch refused), `decision add --assumed`, `suggestion add`, `log`, `resume` (five plain lines on where the program stands), `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
+| `scripts/program.sh` | script | the state machine; the only writer of `.cc-artifacts/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup, brief; size WARN; a milestone's fourth fix dispatch refused), `decision add --assumed`, `suggestion add`, `log`, `resume` (five plain lines on where the program stands), `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
 | `evals/` | eval cases | two scaffolded cases for `claude plugin eval plugins/overseer --scaffold --ablation with-without`: the hands-off rigour pick and the green-suite acceptance refusal; the without-plugin arm is the control the score is measured against (CHANGELOG 0.4.0 carries the measured deltas and their caveats) |
 | `scripts/skill-path.sh` | script | the absolute `SKILL.md` path to pin in a prompt, resolved through the CLI's install path (cache fallback names its route) |
@@ -48,6 +48,17 @@ a browser; where it has none, in a captured run.
 
 Each step writes state, so the session can end anywhere and `/overseer:resume` picks up.
 
+## Where the state lives
+
+Everything a program writes is under `.cc-artifacts/overseer/` at the project's git toplevel,
+the one folder a project gitignores for what plugins write during development; the directory
+also ignores itself. A program opened before 2026-11-14 lives in `.claude/overseer/`: the
+SessionStart line and the status line read it there, and the first `program.sh` call copies
+the directory over once and never touches the original. From then on only the new directory
+counts and the old one is never read again. Standing: **gate** —
+`scripts/__tests__/program.test.sh` (the copy, writes landing only in the copy, the original
+byte-for-byte unchanged, archived paths) and `tests/status-line.test.ts`.
+
 ## Coming back to a program
 
 `program.sh resume` prints where the program stands in five plain lines of at most 100
@@ -60,7 +71,7 @@ Program: Build a CRM that manages clients — 1/3 milestones done
 Now: m2 Client import from CSV — being built, branch overseer/m2-import
 Next: check the workers or dispatch the brief for m2
 Last decision: Client lists use the shadcn data table already in the tree
-Open: 2 suggestions, 0 parked milestones — .claude/overseer/suggestions.md, program.json
+Open: 2 suggestions, 0 parked milestones — .cc-artifacts/overseer/suggestions.md, program.json
 ```
 
 - **Program**: the goal, cut at a word to fit, and how many milestones are done (and parked,
@@ -132,8 +143,9 @@ Since 0.6.0 the plugin also ships a hooks module, `hooks/status-line.ts`, listed
 `modules` in `hooks/hooks.json` beside the classic hooks (`announce.sh`, `track-read.sh`),
 which fire with or without it. It reads `program.json` and writes nothing.
 
-- **Status line.** While `.claude/overseer/program.json` (at the git toplevel of the
-  session's directory) names a next milestone, one line is pinned under the prompt:
+- **Status line.** While `.cc-artifacts/overseer/program.json` (at the git toplevel of the
+  session's directory; `.claude/overseer/program.json` while that directory does not exist)
+  names a next milestone, one line is pinned under the prompt:
   `overseer  milestone <k>/<n>  <id> <title> (<status>)` — the milestone `program.sh next`
   names (every dependency done; a parked one never counts as done), `k` its place in the
   roadmap, `n` the milestone count. It clears when no milestone is open, when the open ones

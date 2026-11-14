@@ -27,7 +27,8 @@ fi
 set +e; bash "$here/deck-export.sh" deck.html --pptx 2>err.txt; rc=$?; set -e
 if command -v node >/dev/null 2>&1; then
   [ "$rc" = 3 ] && grep -q "DESIGN_KIT_PPTX_INSTALL=1" err.txt || { echo "FAIL: pptx without consent should exit 3 naming the variable (rc=$rc)"; cat err.txt; exit 1; }
-  [ -d .design-kit/.cache/node_modules ] && { echo "FAIL: installed without consent"; exit 1; }
+  [ -d .cc-artifacts/design-kit/.cache/node_modules ] && { echo "FAIL: installed without consent"; exit 1; }
+  grep -q ".cc-artifacts/design-kit/.cache/node_modules" err.txt || { echo "FAIL: the consent message names another cache: $(cat err.txt)"; exit 1; }
   if [ "${DESIGN_KIT_TEST_NETWORK:-0}" = "1" ]; then
     DESIGN_KIT_PPTX_INSTALL=1 bash "$here/deck-export.sh" deck.html --pptx --out out.pptx >/dev/null 2>err.txt || { echo "FAIL: pptx export"; cat err.txt; exit 1; }
     n="$(python3 -c "import zipfile;print(len([x for x in zipfile.ZipFile('out.pptx').namelist() if x.startswith('ppt/slides/slide') and x.endswith('.xml')]))")"

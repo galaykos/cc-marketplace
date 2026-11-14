@@ -48,7 +48,7 @@ Invoke the shipped script (the authoritative logic) in background Bash with `tim
 ```
 
 `--isolate` is the isolation: the script makes a worktree of HEAD under the repo's
-gitignored `.claude/task-runner/iso/`, where a container mounting the repo sees it,
+gitignored `.cc-artifacts/task-runner/iso/`, where a container mounting the repo sees it,
 checks it exists and is not the live tree, and refuses with exit 3 otherwise. It links
 `vendor`/`node_modules`, builds `.env` from the tree's own `.env.example`, `.env.dist` or
 `.env.sample` (else an empty one, so a loader walking up never reaches the live `.env`), and
@@ -127,13 +127,13 @@ surfaced for the operator.
 ## Enforcement — the Stop hook, and the honest residual
 
 The completion protocol runs this gate and, on a pass, records it to
-`.claude/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). Candor's **Stop
+`.cc-artifacts/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). Candor's **Stop
 hook** (clause 4 of candor's `hooks/gate.sh`, so the gate has teeth only with candor
 installed) reads that record: for a run that registered itself
-(`.claude/task-runner/active-run.json`, written at run start per `run.md` step 1), it
+(`.cc-artifacts/task-runner/active-run.json`, written at run start per `run.md` step 1), it
 refuses a clean stop unless a gate pass is recorded for the current HEAD — a hard block
 unless `TASK_RUNNER_STOP_GATE=warn` is set. Per-card negative controls (layer 2
-above) are counted there too: with records in `.claude/task-runner/nc/`
+above) are counted there too: with records in `.cc-artifacts/task-runner/nc/`
 (`negative-control.sh --record-dir` writes `nc-pass-*` mechanically, documented skips
 `nc-skip-*`), fewer records than done cards refuses the clean stop.
 

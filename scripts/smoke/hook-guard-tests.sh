@@ -439,6 +439,7 @@ if [ -f "$TM" ] && [ -f "$AP" ]; then
   # last forever, because these directives are orthogonal concerns rather than
   # substitutes. The marker key carries the phase, so advancing the arc opens a
   # fresh claim namespace and the deferred voice gets its turn.
+  # Sentinels sit in the legacy .claude/cc-phase/ here on purpose: a plugin from before 2026-11-14 wrote them there.
   PJ2="$WORK/prec2"; mkdir -p "$PJ2/.claude/cc-phase"
   TT="$(mktemp -d "$WORK/tt.XXXXXX")"
   printf '{"phase":"decide","owner":"x","session_id":"prec-1","started_at":"z"}' > "$PJ2/.claude/cc-phase/prec-1.json"
@@ -551,8 +552,8 @@ TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 FT="$ROOT/plugins/approaches/hooks/consult-remind.sh"   # fresh-take's reminder until 2026-09-14
 if [ -f "$TM" ] && [ -f "$FT" ]; then
   PP='implement a stripe billing integration'
-  ph_dir() { PD="$WORK/phase-$1"; mkdir -p "$PD/.claude/cc-phase"; }
-  ph_write() { printf '%s' "$2" > "$PD/.claude/cc-phase/$1.json"; }   # $1 = the writing session's key
+  ph_dir() { PD="$WORK/phase-$1"; mkdir -p "$PD/.cc-artifacts/cc-phase"; }
+  ph_write() { printf '%s' "$2" > "$PD/.cc-artifacts/cc-phase/$1.json"; }   # $1 = the writing session's key
   ph_fire() { # $1 plugin dir, $2 hook, $3 prompt
     printf '{"prompt":"%s","session_id":"ph-A","cwd":"%s"}' "$3" "$PD" \
       | CLAUDE_PLUGIN_ROOT="$1" TMPDIR="$(mktemp -d "$WORK/tmp.XXXXXX")" "$BASH_BIN" "$2" 2>/dev/null
@@ -585,14 +586,14 @@ if [ -f "$TM" ] && [ -f "$FT" ]; then
   ph_write ph-A '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
   ph_write dead-B '{"phase":"build","owner":"x","session_id":"dead-B","started_at":"z"}'
   ph_write live-C '{"phase":"build","owner":"x","session_id":"live-C","started_at":"z"}'
-  touch -t 200001010000 "$PD/.claude/cc-phase/ph-A.json" "$PD/.claude/cc-phase/dead-B.json"
+  touch -t 200001010000 "$PD/.cc-artifacts/cc-phase/ph-A.json" "$PD/.cc-artifacts/cc-phase/dead-B.json"
   ph_expect "stale sentinel -> speaks" speak "$(ph_fire "$ROOT/plugins/taskmaster" "$TM" "$PP")"
-  if [ -f "$PD/.claude/cc-phase/ph-A.json" ] || [ -f "$PD/.claude/cc-phase/dead-B.json" ]; then
+  if [ -f "$PD/.cc-artifacts/cc-phase/ph-A.json" ] || [ -f "$PD/.cc-artifacts/cc-phase/dead-B.json" ]; then
     fail "phase: stale sentinels are unlinked, this session's and a dead one's" "an expired sentinel survived the read"
   else
     pass "phase: stale sentinels are unlinked, this session's and a dead one's"
   fi
-  [ -f "$PD/.claude/cc-phase/live-C.json" ] && pass "phase: another session's live sentinel survives the sweep" \
+  [ -f "$PD/.cc-artifacts/cc-phase/live-C.json" ] && pass "phase: another session's live sentinel survives the sweep" \
     || fail "phase: another session's live sentinel survives the sweep" "the read deleted a live sentinel"
 
   ph_dir anylane
@@ -615,9 +616,9 @@ if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -f "$ARC_PL/approaches/hooks/consult-r
   ARC_P='implement a rate limiter for our billing api, the docs integration is still failing, rm -rf node_modules'
   arc_speaks() { # $1 phase ("" = no sentinel) -> space-joined plugin names that spoke
     local ph="$1" d out spoke=""
-    d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude/cc-phase"
+    d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.cc-artifacts/cc-phase"
     [ -n "$ph" ] && printf '{"phase":"%s","owner":"x","session_id":"ARC","started_at":"z"}' "$ph" \
-      > "$d/.claude/cc-phase/ARC.json"
+      > "$d/.cc-artifacts/cc-phase/ARC.json"
     # approaches carries two reminder hooks since fresh-take merged in (2026-09-14):
     # its any-lane consult guard is listed under its own name so the ship-phase
     # assertion below still names a guard, not the plugin's decide-phase voice.

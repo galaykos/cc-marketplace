@@ -43,6 +43,20 @@ cc_option() {
   return 0
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 {
   [ "$(cc_option CC_REMIND on)" = "off" ] && exit 0
   [ "$(cc_option CC_DRIFT on)" = "off" ] && exit 0
@@ -58,12 +72,12 @@ cc_option() {
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
-  # Nothing in .claude/task-runner/ belongs in a commit: the first hook to see the directory makes it ignore itself.
-  tr_dir="$root/.claude/task-runner"
+  # Nothing in .cc-artifacts/task-runner/ belongs in a commit: the first hook to see the directory makes it ignore itself.
+  tr_dir=$(tr_state_dir "$root")
   if [ -d "$tr_dir" ] && [ ! -e "$tr_dir/.gitignore" ]; then printf '*\n' > "$tr_dir/.gitignore" 2>/dev/null; fi
 
   # A registered run, not a scope file, hands the turn to scope.sh: a leftover scope.json would mute both hooks.
-  [ -r "$root/.claude/task-runner/active-run.json" ] && exit 0
+  [ -r "$tr_dir/active-run.json" ] && exit 0
 
   tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
   [ -n "$tp" ] && [ -r "$tp" ] || exit 0            # no transcript → nothing to compare against
@@ -142,7 +156,7 @@ EOF
   # One question per user message, keyed on transcript and ask, hashed: a raw path in a filename names parents that never exist.
   ctx=$(printf '%s%s' "$tp" "$ask" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
-  dir="$root/.claude/task-runner"
+  dir="$tr_dir"
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
