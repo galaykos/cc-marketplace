@@ -2,6 +2,10 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.20.1 — 2026-11-14
+
+- coding-entry names taskmaster's card field as it is, `<skill>` stamps (was `Skills to apply`, the label cards dropped at taskmaster 0.45.0). The README no longer says taskmaster supplies this plugin's gates; it runs the plan-before-code check.
+
 ## 0.20.0 — 2026-11-14
 
 - **`/code-architecture:work` writes its hand-written phase sentinel to `.cc-artifacts/cc-phase/<session>.json`** (was `.claude/cc-phase/`), and needs none when the writer it ran left one there or, from a taskmaster before 0.60.0, under `.claude/cc-phase/`.

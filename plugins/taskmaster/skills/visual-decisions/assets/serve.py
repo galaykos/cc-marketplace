@@ -58,6 +58,9 @@ LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 PER_PURPOSE_FILES = ("theme.html", "walkthrough.html", "diagram.html", "api.html", "modules.html", "compose.html")
 # Per-purpose files are live destinations, not past passes of current.html: never offered as a restorable version.
 LEDGER_EXCLUDED = {"current.html", "index.html"} | set(PER_PURPOSE_FILES)
+# experience-walkthrough keeps a dated copy (YYYY-MM-DD-<slug>-walkthrough.html) beside the mockup passes; it is no pass of current.html either.
+# Misses: a mockup pass whose own topic slug ends in "-walkthrough" is dropped from the list with it.
+LEDGER_EXCLUDED_SUFFIXES = ("-walkthrough.html",)
 # Restore demands a header no cross-origin <form> can set, forcing a CORS preflight this server never answers; Host/Origin alone would pass another localhost port.
 RESTORE_HEADER = "X-Preview-Restore"
 MAX_RESTORE_BODY = 4096
@@ -654,6 +657,8 @@ def build_handler(state):
             low = name.lower()
             if "/" in name or name.startswith(".") or not low.endswith(".html") or low in LEDGER_EXCLUDED:
                 return None
+            if low.endswith(LEDGER_EXCLUDED_SUFFIXES):
+                return None
             try:
                 return (name, (state.docroot / name).stat().st_mtime)
             except OSError:
@@ -682,7 +687,7 @@ def build_handler(state):
         def handle_restore(self):
             """Copy a chosen ledger pass over current.html (rollback).
 
-            The ONLY route that writes. Four independent gates, because a
+            Overwrites a served page; POST /_feedback only appends a dot file. Four independent gates, because a
             localhost port is not a trust boundary: a loopback peer with a local
             Origin/Host (in LAN mode too, a valid key included), the
             preflight-forcing custom header, a bounded body, and a name that

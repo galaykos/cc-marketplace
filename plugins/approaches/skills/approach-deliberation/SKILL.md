@@ -54,7 +54,7 @@ this skill calls it.
 
 The taskmaster pipeline is active on the same task — a grill ledger is open, a
 brainstorm dialogue is running, or task cards are executing → step back, UNLESS
-taskmaster itself dispatched this: grill and brainstorm run the panel at their
+taskmaster itself dispatched this: grill and brainstorm run this deliberation at their
 design/spec step and a ledger is open at that moment, so reading the ledger as a
 stop signal there would cancel the round taskmaster just asked for.
 

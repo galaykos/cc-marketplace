@@ -60,7 +60,7 @@ or a recorded degradation.
 **Tier — the caller supplies it.** This skill never reads `00-INDEX.md`; the caller
 (`task-execution`, or `track-orchestration` on the tracks path) passes the **already
 resolved** `(model, effort)` in, so `auto` is resolved before it reaches here per
-`task-execution/SKILL.md`'s resolution rule. Dispatch the refuters **and** the
+task-execution's `references/boost-execution.md`. Dispatch the refuters **and** the
 completeness-critic with those values as `model:` and `effort:` parameters on either path;
 pass `effort:` to the Agent tool only if it lists that parameter (`verification-panels`
 `references/dispatch-tier.md`, which owns this rule). Absent a supplied tier, run native rather than guessing.

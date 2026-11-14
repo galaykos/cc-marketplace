@@ -42,8 +42,9 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    — never by hand-writing the JSON: the script is the one writer that checks the phase
    name against the vocabulary the reader uses, and a misspelled phase reads to every
    hook as no sentinel at all, silently. This is what makes the prompt channel take
-   turns: reminder hooks that own a later phase stand down while requirements are
-   still being shaped, instead of every installed one talking over one prompt. **Clear it when
+   turns: once the phase moves on, reminder hooks that own an earlier phase stand down
+   (a `build` sentinel silences this plugin's own `shape` reminder), instead of every
+   installed one talking over one prompt. **Clear it when
    this command finishes** — `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" clear --session "${CLAUDE_SESSION_ID}"`, which removes this session's sentinel only —
    on the hand-off to `/task-runner:run` (which writes its
    own `build` sentinel), and equally on an abandoned or interrupted run. A stale
@@ -96,8 +97,8 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    the spec. Skip it when the plugin is not installed.
 7. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `.cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
-   milestones when the run is large — cards sized S/M/L/XL against task-cards' anchor
-   rule (anything L+ is split).
+   milestones when the run is large — every card one sitting or smaller (task-cards
+   splits anything bigger).
 8. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
    the card list in execution order with parallel groups (and milestones) marked.
 9. Handoff — do not just print a command and stop:
@@ -125,6 +126,8 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
      which once left the review observer, candor's completion clause and the closing
      gate silently off.
    - On "Stop here" or "Apply, stop here", or when AskUserQuestion is unavailable
-     (headless), print that exact command as the next step.
+     (headless), print that exact command as the next step. The handoff never adds
+     `--tracks`: a caller who wants milestones run as concurrent tracks stops here and
+     runs `/task-runner:run --tracks` on the index.
    - Without task-runner installed, give the card paths and note each card is
      designed to run in a fresh session.

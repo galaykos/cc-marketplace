@@ -27,6 +27,13 @@ owned by the `ultra` skill's Goal mode, not here.
      never opines.
    In doing so, name what a better prompt would have specified — the constraints,
    scope boundaries, and success shape the raw ask left implicit.
+
+   **The reason is asked, not guessed.** When the prompt gives no reason and the scout
+   report does not settle one, do not derive the first facet. Ask it before anything
+   else, in plain text with no options to pick from — a list of reasons gets the nearest
+   one picked, not the true one — and wait for the answer before round 1. A reason the
+   prompt states is never re-asked. With no user (headless, Goal) derive it and mark its
+   ledger row ASSUMED. Standing: agent-graded.
 3. **Show it with the first ledger print.** Print the upgraded statement together
    with the first ambiguity-ledger table so the user sees, from round one, the
    statement the interrogation is actually working from. In an interactive run this

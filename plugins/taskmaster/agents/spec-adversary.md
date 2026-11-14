@@ -40,10 +40,10 @@ is your strongest finding.
    failure? What is the auth, input-validation, and exposure posture — and where do
    the requirements leave it open? Name the gap, not a fix philosophy.
 5. **Visual/experience coherence.** Applies only when the spec has a `## Visual
-   contract` section; otherwise say "not applicable". Does every binding visual or
-   creative decision have a card that will build it? Is any staged decision
-   self-contradicting, or unbuildable as its structural description states? A layout
-   the spec froze that no card implements is a silent drop — surface it.
+   contract` section; otherwise say "not applicable". Is any staged decision
+   self-contradicting, in conflict with another entry, or unbuildable as its structural
+   description states? Whether a card builds each entry is not yours to judge: no cards
+   exist yet, and coverage-check owns that check once they do.
 6. **Known bugs of what it builds.** Name every kind the spec builds from the catalog
    below (one spec usually builds several: a signup page is a form, a state-swapping
    action and async validation). Walk each kind's list: a bug the spec neither prevents

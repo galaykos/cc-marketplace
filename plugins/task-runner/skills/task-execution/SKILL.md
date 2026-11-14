@@ -26,6 +26,11 @@ clause are silently off. A repeat call for one index resumes it.
   bugs — record, do not touch. The diff should read as exactly that task, nothing else.
 - If the task is mis-specified (wrong file, impossible criterion), do not silently
   reinterpret it — halt, state the mismatch, fix the definition, then execute the corrected task.
+- A card's `<facts>` are a snapshot from the day it was written. Where one disagrees with the code
+  today (a moved path, a changed signature, a `<current>` quote that no longer matches, a convention
+  the tree dropped), the code is right: work from the code and name each stale fact in the report.
+  If the disagreement changes what `<must>`, `<must-not>` or a `<criterion>` asks for, that is the
+  mis-specified case above (recorded).
 
 ## The inner loop (bounded, Ralph-style)
 
@@ -167,6 +172,14 @@ A forecast ("too large", "infeasible") parks nothing. Preamble clause 10 binds y
 Evidence recorded per task is literal: the exact command as run, its exit code, and
 the last relevant output lines. Manual checks ("dialog renders centered") are recorded as
 manual, with what was observed; "Verified ✓" alone is not evidence.
+
+## Milestone close (serial path)
+
+An index with milestones runs milestone by milestone in index order (a parallel group never spans
+two), and the project's full check suite runs when a milestone's last card lands, before the next
+starts: a milestone is sold as shippable alone, and per-card checks miss what cards break in each
+other. Red → the bounded loop on the card that broke it, or halt. Side-by-side milestones are
+`--tracks`. Standing: recorded — `plan-overlap.sh --dir` levels the whole set, blind to milestones.
 
 ## Completion protocol
 

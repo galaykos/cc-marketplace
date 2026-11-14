@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.19.1 — 2026-11-14
+
+- **The picker no longer treats taskmaster and task-runner as an overlapping pair.** With task-runner installed, taskmaster was sorted last and labelled "overlaps installed task-runner", though task-runner is the stage that runs taskmaster's cards. The catalog carries taskmaster's new description.
+
 ## 0.19.0 — 2026-11-14
 
 - **`hooks/cc-kit.ts` reads the phase sentinel and task-runner's active run at `.cc-artifacts/`, then at `.claude/`**, the copy every mod shares (`liveSentinel`, `activeRun`, `phaseFile`). Nothing in stack-scan writes into a project, and its pins hook calls none of the three. Standing: gate for the copy (`validate.sh`'s `pc_mod_kit`: every `cc-kit.ts` byte-identical); stack-scan's own mod test (`tests/pins.test.ts`, 27 cases) does not exercise the changed functions.

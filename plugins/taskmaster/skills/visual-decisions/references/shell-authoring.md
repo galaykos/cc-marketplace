@@ -313,13 +313,13 @@ copies it over `current.html` server-side, and the reload reaches the open tab
 down the ordinary SSE lane — no separate refresh path. Reserved per-purpose
 files (`theme.html`, `walkthrough.html`, `diagram.html`, `api.html`, `modules.html`, `compose.html`) are live
 destinations, not history, so they are excluded from the list and rejected by
-restore; the ledger is passes of `current.html` only.
+restore, and so is a walkthrough's dated copy (`*-walkthrough.html`); the ledger is passes of `current.html` only.
 
 Nothing to author — the control appears as soon as the ledger holds ONE entry
 (`shell.html`: `if (!versions.length) return;`) and stays hidden on the static
 rungs and over `file://`, where the
-route does not exist. Restore is the server's only write PER REQUEST — startup
-also `mkdir`s the docroot — so it is gated on a
+route does not exist. Restore is the only request that overwrites a served page — `POST /_feedback`
+appends the unserved `.feedback.jsonl`, and startup `mkdir`s the docroot — so it is gated on a
 local `Origin`/`Host`, a `X-Preview-Restore` header no cross-origin form can
 set (another localhost PORT would otherwise pass the host check), a bounded
 body, and a name that must be a bare basename resolving inside the docroot.

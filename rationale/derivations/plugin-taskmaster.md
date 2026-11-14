@@ -117,6 +117,13 @@ comment-discipline/hooks/scan.sh applies to its deny, for the same reason:
 a message with no working one-shot repeats on every edit of the run.
 ```
 
+### 0.61.0 — the fourth record (2026-11-14)
+
+`card-paths-lint.sh` has called `cardlint_write card-paths` since it shipped (0.52.0), and this
+hook checked three records, so a set that skipped the newest lint drew no warning. It checks
+four now and names the fourth script in the warning. The harness holds a case with three
+records present and one absent (`rationale/taskmaster-consistency-review-2026-11-14.md`, A14).
+
 ## plugins/taskmaster/hooks/clarify-gate.sh
 
 ### Header
@@ -667,6 +674,21 @@ Residual: removes only artifacts carrying the __design-preview__ marker. A
 hand-renamed scratch file without the marker is invisible to this script —
 which is why the skill forbids renaming scratch artifacts.
 ```
+
+### 0.61.0 — the ledger quoted the marker (2026-11-14)
+
+`real-components.md` tells the model to record a real-component pick as a ledger row "with
+`src/__design-preview__/main.tsx` as the source", and grill persists the ledger under
+`.cc-artifacts/taskmaster/`. The content grep covered that folder, so from the first pick on
+every run printed `artifacts REMAIN` and exited 1, on a tree with no scratch file left.
+Reproduced in a scratch directory holding only such a ledger: exit 1 twice. The grep now skips
+`.cc-artifacts/` and `taskmaster-docs/`. Not skipped: an older ledger under `.claude/taskmaster/`,
+since `--exclude-dir` matches a folder name and `.claude` holds more than ledgers.
+
+`--verify` was read only as the first argument, so `preview-cleanup.sh <root> --verify` took
+`--verify` for nothing and ran the deleting mode. Arguments are now parsed in any order and an
+unknown option exits 2. Found by reading in `rationale/taskmaster-consistency-review-2026-11-14.md`
+(A1, A18); the harness gained a fixture for each.
 
 ## plugins/taskmaster/scripts/preview-feedback.sh
 

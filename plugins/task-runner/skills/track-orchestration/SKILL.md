@@ -54,7 +54,7 @@ Each track-worker is a leaf subagent. Its dispatch prompt carries:
   inside each track,
 - under ultra, the `model` and `effort` (Agent tool: only when it lists `effort`, CLI 2.1.292+) from the index
   marker — read BOTH, tier from `Ultra:` when present ELSE from `Goal:` (a lone `Goal:`
-  still escalates; `ultra-goal` stamps no `Ultra:` line; `Goal: true (boost=off)` sets
+  still escalates; an index from taskmaster before 0.61.0 may carry `Goal:` alone; `Goal: true (boost=off)` sets
   no tier and fires no red-team — autonomy only), resolved per
   task-execution/SKILL.md's rule and passed as `agent()` parameters, never as prompt prose.
   The same resolved tier is passed into the **code-redteam** pass this path fires at the

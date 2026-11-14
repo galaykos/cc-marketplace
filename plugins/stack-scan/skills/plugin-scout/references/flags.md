@@ -101,8 +101,7 @@ rule and the typed-token rule; this section does not restate them.
     with the everything-door: `want everything, no plan: /all-plugins:install`.
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
-    (ui-ux / craft-layer, taskmaster / task-runner,
-    web-dev / laravel) that are in the set. Named, not resolved — the picker was
+    (ui-ux / craft-layer, web-dev / laravel) that are in the set. Named, not resolved — the picker was
     the only place overlap was surfaced and it does not run here.
   - `Hooks added:` hook-bearing plugins grouped by event — every event key present
     in the file (Stop, UserPromptSubmit, PreToolUse, PostToolUse, SessionStart,

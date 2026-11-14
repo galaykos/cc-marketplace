@@ -15,7 +15,7 @@ refusal in the other (derivation: `rationale/2026-09-26-taskmaster-prose-derivat
 
 | Role class | Phases / agents | Dispatched at | Why |
 |---|---|---|---|
-| **Reasoning** (get the boost) | red-team (`spec-adversary`), coverage gap-judgment (the loop-until-dry sweep that rules a finding a gap/orphan/drift), card-verify, any synthesis / judge / refuter that rules a claim in or out | `model:<model>` + `effort:<effort>` | depth IS the deliverable — a missed hole or a false-confirm costs far more than the token premium |
+| **Reasoning** (get the boost) | red-team (`spec-adversary`), card-verify (§ Card-verify), any synthesis / judge / refuter that rules a claim in or out | `model:<model>` + `effort:<effort>` | depth IS the deliverable — a missed hole or a false-confirm costs far more than the token premium |
 | **Mechanical** (stay native) | recon / readers (`context-scout`, one dispatch per lens — § Fan-out sizing defines the lenses), `coverage-check`'s read-only matrix build (Read/Grep/Glob), file locators, grep-and-list, extraction passes | the agent's own frontmatter tier — **no override** | location and gathering; the top tier buys nothing a mid model does not already do. `context-scout` ships `model: inherit`, so native = the session model, never the `fable` premium |
 | **Breadth** (stay native) | `opinion-lens` | native (`sonnet`/low) — never overridden | four persona takes, low-effort by design; escalating multiplies cost for no depth |
 
@@ -26,9 +26,9 @@ an agent below its frontmatter; it only declines to *raise* it.
 
 `coverage-check` shows the split cleanly: it dispatches **only** a read-only matrix build
 (mechanical → native), and the gap-judgment it feeds runs in the **main thread** at the
-session tier. So "coverage gets the boost" lands on the loop-until-dry sweep's reasoning,
-never on the matrix builder — boosting a Read/Grep/Glob pass would buy nothing, the very
-anti-pattern this ladder exists to prevent.
+session tier, which no boost changes. So the boost puts no tier on coverage at all: what it
+buys there is that the check always runs. Boosting the Read/Grep/Glob matrix build would buy
+nothing, the very anti-pattern this ladder exists to prevent.
 
 The converse also holds, and it applies **unboosted** as well: for a Reasoning-class
 agent a `model:` pin is a **floor**, not a ceiling — dispatch it at
@@ -48,29 +48,31 @@ dispatch them; execution boosts architecture-reviewer separately via task-execut
 
 ## Fan-out sizing — counts are ceilings
 
-The recipe numbers (recon 3, red-team N=3, coverage cap 3) are **maxima for the
+The recipe numbers (recon 3, red-team N=3) are **maxima for the
 worst case**, not a quota to always fill. Pick the smallest N that covers the
 blast radius; the mandatory phases still always run — sizing tunes N, never drops
 a phase to zero.
 
 The **Red-team panel** column below is not owned here: panel width is
 `task-runner:verification-panels` § Panel width, and this table maps taskmaster's
-radius rows onto it. Recon lenses and the coverage loop ARE owned here — they are
-pipeline phases no other plugin runs.
+radius rows onto it. Recon lenses ARE owned here — a pipeline phase no other plugin
+runs. Coverage has no column: it dispatches one matrix builder and its own loop decides
+the stop (`coverage-check/SKILL.md`).
 
 A **recon lens** is one `context-scout` dispatch narrowed to part of its own
 six-section report (`taskmaster/agents/context-scout.md`) — not a separate agent,
 not a flag. N=1 (the unboosted default): one dispatch, all six sections. N=2:
-sections 1–2 (surface + patterns) | 3–4 (constraints + already-answered). N=3: add
-section 6 (visual surface, which carries the theme-token table and is the section
-one all-in-one scout most often drops). Section 5 is the question list, assembled
+sections 1–2 and 6 (surface, patterns, visual surface) | 3–4 (constraints +
+already-answered). N=3: section 6 gets a lens of its own (it carries the theme-token table
+and is the section one all-in-one scout most often drops). Section 6 is scanned at every N:
+brainstorm's staging and visual-decisions both key on it. Section 5 is the question list, assembled
 in the main thread from the others — never a scan of its own. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
-| Blast radius | Recon lenses | Red-team panel | Coverage loop |
-|---|---|---|---|
-| **Small** — ≤2 files, isolated, low risk | 1 (inline scout) | 2 adversaries | 1 pass |
-| **Medium** — the default shape | 2–3 | 3 adversaries | cap 2 rounds |
-| **Large** — schema / auth / security / cross-cutting | 3 | 3 adversaries | cap 3 rounds |
+| Blast radius | Recon lenses | Red-team panel |
+|---|---|---|
+| **Small** — ≤2 files, isolated, low risk | 1 (inline scout) | 2 adversaries |
+| **Medium** — the default shape | 2–3 | 3 adversaries |
+| **Large** — schema / auth / security / cross-cutting | 3 | 3 adversaries |
 
 How to read the radius: count the files the change plausibly touches and whether
 it crosses a trust or data boundary (auth, money, PII, migrations, a public API).
@@ -103,7 +105,7 @@ it is the user's standing preference and ours is a per-phase heuristic. Two rule
 two compatible:
 
 - **Size per workflow invocation, not per run.** Each fan-out phase is its own `Workflow`
-  call, so recon (≤3), spec-redteam (≤3) and a coverage round (≤3) never sum against one
+  call, so recon (≤3), spec-redteam (≤3) and coverage's one matrix builder never sum against one
   ceiling. The phase that actually collides is **card-verify** — "one fan-out pass per card"
   over a large index is a single wide stage. Batch it: verify cards in waves that respect
   the guideline rather than opening one agent per card in one call.
@@ -123,9 +125,32 @@ two compatible:
   execution verbatim; workers there tier the same way (executor reasoning-tier,
   its scouts native).
 
+## Card-verify — the builder check
+
+Boosted runs only, after the card lints pass and before the handoff. It tests the one claim
+no lint can read: that a card is self-contained for a fresh session.
+
+- One Reasoning-tier subagent per card, in waves per § Fan-out cost. Give it that card's file
+  path and nothing else: not the spec, the index, the other cards or this conversation.
+- Its brief: "You are the worker who will execute this card in a fresh session. Do not
+  execute it. Read it, check its `<facts>` against the code with Read, Grep and Glob, and list
+  every question you would have to ask before starting. Each question names the missing or
+  contradicted fact and the card element it belongs in. No question: answer `ready`."
+- Each question is a card defect. Answer it from the spec and write the answer into the card
+  (a `<file>`, `<current>`, `<interface>`, `<convention>` or `<criterion>`), then re-run the
+  four card lints on that card. A question the spec cannot answer goes back to grill as an
+  UNKNOWN row; under Goal it becomes ASSUMED and a goal-ledger line.
+- One pass. Re-dispatch only a card whose fix changed its `<must>` or `<proof>`.
+- No dispatch mechanism: read each card cold in the main thread, reported as an inline
+  heuristic pass.
+
+Standing: agent-graded, and unmeasured — no eval shows it finds defects the lints and
+coverage-check miss. task-runner's "card-verify re-run" is a different thing: the runner
+re-running a card's `<verify>` command.
+
 ## Per-stage bindings — grill
 
-Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE — a mechanical role, so no model override — with recon lenses sized to blast radius per that skill's `references/dispatch-tiers.md`, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native.
+Under a boost (`ULTRA-TASK ACTIVE` or `ULTRA-GOAL ACTIVE`, never `ULTRA-GOAL ACTIVE (boost=off)`; see the `ultra` skill), dispatch context-scout NATIVE — a mechanical role, so no model override — with recon lenses sized to blast radius per that skill's `references/dispatch-tiers.md`, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native.
 
 `opinion-lens stays native` is the load-bearing half: the personas are a blind
 panel, and giving them a stronger model than the run's own would make the panel's

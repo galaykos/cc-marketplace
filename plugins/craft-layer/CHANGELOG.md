@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.61.1 — 2026-11-14
+
+- `section-ledger.md` gives the ledger's path, `.cc-artifacts/taskmaster/craft/` (an older `taskmaster-docs/craft/`), the one `/craft-layer:audit` lists. It said "in that task's directory, beside the spec", a folder taskmaster does not create.
+
 ## 0.61.0 — 2026-11-14
 
 - **Project state moved from `.craft-layer/` to `.cc-artifacts/craft-layer/`**, the one folder a project gitignores for what plugins write during development: the run log, `waivers.json`, `preserve.json`, `layout-floors.json`, the audit's `shots/` and Playwright's `test-results/`. `divergence.mjs` and `finish-lint.mjs` read the run log and waivers at the new path, and at `.craft-layer/` only while the new file is absent; `gates.spec.ts` and `playwright.config.ts` write only the new path. `/craft-layer:craft` step 0 and `/craft-layer:audit` copy `run-log.md`, `waivers.json` and `preserve.json` across, file by file, before writing one, because the suite can create the new folder first; nothing writes or deletes `.craft-layer/`.

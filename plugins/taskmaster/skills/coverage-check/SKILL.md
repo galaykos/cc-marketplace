@@ -6,7 +6,7 @@ description: Use after task-cards splits a spec into cards. Verifies every spec 
 ## Where this sits
 
 Standing: the INVOCATION is `recorded` — nothing schedules or observes it (the card-lint
-observer reads the three card linters' records, never this skill's); the resolution hold
+observer reads the four per-card linters' records, never this skill's); the resolution hold
 below is `agent-graded`. Runs at the tail of `task-cards`, once `00-INDEX.md` and the
 cards are written, before the execution handoff. It verifies task-cards' own output with
 fresh eyes — hence the subagent — and checks documents against documents;

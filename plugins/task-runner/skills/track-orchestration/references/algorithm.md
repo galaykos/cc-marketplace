@@ -23,7 +23,7 @@ inherited cwd.
 0. **Announce the tier** (the index is readable from here; §0 runs before it is opened, so
    the banner cannot live there). Read BOTH markers — `Ultra:` when present, ELSE `Goal:`
    (a `Goal:` with `boost=off` is a standard run: no tier, no red-team, autonomy only) —
-   resolve per task-execution/SKILL.md, then print once:
+   resolve per task-execution's `references/boost-execution.md`, then print once:
    `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` or
    `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
 
@@ -56,7 +56,7 @@ Repeat until no eligible milestone remains:
    dispatch carries the contract in §Dispatch below. Set a per-dispatch timeout.
    **Tier is a PARAMETER of this call, not prose in the prompt:** under a marker pass
    `model:` (and `effort:`, valid on this `Workflow` path) as `agent()` options, using the
-   tier RESOLVED per task-execution/SKILL.md's rule — never the literal `auto`, which is
+   tier RESOLVED per task-execution's `references/boost-execution.md` — never the literal `auto`, which is
    not a model. Prompt item 5 below is an informational echo only; it sets nothing.
    **The WORKER is a parameter of the same call:** pass
    `agentType: 'task-runner:task-executor'`; omitted, generic workflow subagents run and the

@@ -1,6 +1,7 @@
 # Taskmaster consistency review — 2026-11-14
 
-Branch `review/taskmaster-consistency`. Report only: no plugin file was changed. The question:
+Branch `review/taskmaster-consistency`. Sections 1 to 5 are the report as first committed, when no
+plugin file had changed; section 6 records what was then fixed on the same branch. The question:
 where do `taskmaster` and the plugins around it (`task-runner`, `overseer`, `ui-ux`,
 `code-architecture`, `craft-layer`, `approaches`, `stack-scan`, `git-workflow`, `skill-router`)
 contradict themselves or each other, and what would outside evidence change.
@@ -156,3 +157,56 @@ fetched docs page, so grill's "up to 4 questions per round" is unverified by it.
   no CHANGELOG and no test file.
 - Nothing was run except `validate.sh`, taskmaster's harnesses and the A1 reproduction. Every
   "Effect" marked relayed is reasoning from the code, not an observed run.
+
+## 6. Amendment — what was applied on this branch
+
+The owner picked waves 1, 4 and 5, then answered seven choices for waves 2 and 3. Versions:
+taskmaster 0.61.0, task-runner 0.58.0, and a patch each for approaches, code-architecture,
+craft-layer, overseer, skill-router, stack-scan and ui-ux.
+
+| Choice | Answer | Lands in |
+| --- | --- | --- |
+| A8 card-verify | Define it as the builder check (R4), boosted runs only | `ultra/references/dispatch-tiers.md` § Card-verify |
+| A19 card sizes | A split test only; nothing recorded | task-cards, README, `task.md` |
+| D11 brainstorm | Slate by default, panel for rework, as approaches' own rule | `brainstorm.md`, `plugin.json`, approaches |
+| A25 specs | The whole folder is scratch; taskmaster ignores only its ledgers | grill |
+| A5, A6 Goal and range review | Document the substitution; the runner is unchanged | ultra skill |
+| A7 milestones | The runner runs the suite at each milestone close | task-execution |
+| D17 picker pair | Remove taskmaster / task-runner | stack-scan |
+
+**Fixed:** A1, A3–A15, A18–A26; D1–D13, D15–D19, D22–D26; R1, R2, R3, R4, R5. Four got a fixture
+that was run against the old code and failed, then passed on the fix: A1 and A18
+(`preview-cleanup.test.sh`, 3 of 8 cases red on the old script), A4 (`serve.test.sh`, where the
+old server answered 200 to restoring a walkthrough over `current.html`), A14
+(`card-lint-observability.test.sh`, 2 cases red on the old hook). Everything else is prose and
+has no test.
+
+**A16** was fixed on the README side only: the sentence now says a pick's hand-out is final.
+**A9** was fixed by stating that the boost puts no tier on coverage; the unbound loop caps were
+removed from the radius table rather than bound.
+
+**Left open:**
+
+| # | Why |
+| --- | --- |
+| A2 | Arming the clarify gate inside a slash-command run is a design change to an opt-in hook. |
+| A17 | The guard's URL after `--port` is a hook code change; low impact. |
+| A27 | `merged` is missing from `STATUSES`, and no card declares a primary file: runner code, with board tests to move. |
+| D14 | Three undocumented environment variables, two of them test seams. |
+| D20, D21 | Where a multi-screen ask is routed, and what the reminder says about `/work`: routing design across three plugins. |
+| D27 | taskmaster ships no eval, so every agent-graded rule here, the five additions included, is unmeasured. |
+| R6–R11 | Held; the evidence is weak or the change wants its own spec. |
+| A7 residual | `plan-overlap.sh --dir` still levels the whole card set. The milestone order is prose in task-execution, standing recorded. |
+
+**Gates on the fixed tree.** `validate.sh`, `generate.sh --check`, `context-budget.sh`,
+`chassis-template-tests.sh` and `mod-tests.sh` pass, and so do all 16 taskmaster harnesses. Ten
+checks fail on this machine with and without the change, in files the change does not touch:
+`official-validate.sh` on four mod plugins (TypeScript errors in their tests under CLI 2.1.325;
+the script pins 2.1.300), four harnesses that import `.ts` under Node 20
+(`board-core`, `floors-core`, `status-core`, `pattern-parity`), and two that read a perl locale
+warning as a failure (`candor/gate.test.sh`, `smoke/evidence-gate-hook-tests.sh`). Each was run on
+the stashed tree and failed the same way.
+
+**Not verified.** R5 rests on the host's tools reference, fetched once by a subagent and quoted
+verbatim; R1 to R4 rest on web sources the main thread did not open. No taskmaster run was made
+with the new text, so that a model follows any of the prose changes is untested.

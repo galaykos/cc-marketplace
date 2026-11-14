@@ -4,11 +4,11 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 # route-prompt offers WHICH tool; the reminder hooks nudge about WHAT to do — different jobs,
-# so no shared territory. The yield is not invented here: the charter this hook injects already
-# says "clarification outranks tool-fit" (hooks/route-prompt.sh, rule 3), so the row records a
-# deference the plugin already ships. That charter is now backed by rank as well as prose —
-# taskmaster:remind holds arcRank 25, ahead of every other arc voice — where until 2026-09-14
-# it held 90 and lost to all of them. prime.sh (SessionStart), route.sh (PostToolUse) and
+# so no shared territory. The yield is not invented here: the note this hook injects already
+# says to name a command "in one line after any open questions" (hooks/route-prompt.sh), so the row
+# records a deference the plugin already ships. That note is backed by rank as well as prose —
+# taskmaster:remind holds arcRank 25, behind only the two any-phase guards (debugging 10,
+# approaches' consult 20) — where until 2026-09-14 it held 90 and lost to every arc voice. prime.sh (SessionStart), route.sh (PostToolUse) and
 # summary.sh (SessionEnd) are outside the gated channel and carry no row this run.
 # subagent-skills (SubagentStart, plus a silent PreToolUse record on Agent calls) is outside it too and declares
 # a row anyway: it speaks inside plugin, general-purpose and claude subagents, where candor:preamble also speaks.

@@ -22,7 +22,9 @@ Then it writes a spec and task cards, each one runnable as a single prompt.
 |---------|--------------|
 | `/taskmaster:task <description>` | Run the full pipeline: interrogate → spec → task cards |
 | `/taskmaster <description>` | Shorthand alias for the same pipeline |
-| `/taskmaster:brainstorm <idea>` | Upstream of the pipeline: shape a fuzzy idea into an approved design doc (one question at a time, 2–3 explored approaches, sectional approval), then hand off to `/taskmaster:task` |
+| `/taskmaster:brainstorm <idea>` | Upstream of the pipeline: shape a fuzzy idea into an approved design doc (one question at a time, 2–3 explored approaches, sectional approval), then hand off to `/taskmaster:task`. It can also end with a recorded "not building" and its reason |
+| `/taskmaster:redteam [spec]` | Run the spec red-team on its own: a blind adversary attacks a frozen spec, and each hole is amended, accepted or dismissed |
+| `/taskmaster:coverage [cards]` | Run the coverage check on its own: every success criterion has a card, no card proves what the spec never asked |
 
 Run it with a one-paragraph task description:
 
@@ -53,19 +55,23 @@ Without arguments it asks for a description first. The pipeline then:
    variant, and failure exit navigable — and walks you through it with a task
    script; gaps found by clicking become ledger rows before the spec freezes
 5. Writes a spec to `.cc-artifacts/taskmaster/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
-   path and cross-screen contracts when one was built). Every taskmaster artifact lives under
+   path and cross-screen contracts when one was built), after settling the implementation
+   approach when two or more structurally different ones exist. Every taskmaster artifact lives under
    `.cc-artifacts/taskmaster/`, one folder to gitignore; specs, cards and ledgers a project made
    before 0.60.0 under `taskmaster-docs/` or `.claude/taskmaster/` are still read
-6. When code-architecture is installed, runs a plan check on the spec before
-   card-splitting
+6. Red-teams the spec when it is big enough to earn it (three or more success criteria, more
+   than one module, a security, auth, data or external surface, or an unconfirmed assumption):
+   a blind adversary reads only the spec and each hole is resolved before cards. Then, when
+   code-architecture is installed, runs a plan check on the spec before card-splitting
 7. Emits single-prompt task cards to `.cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md` — each card stamped with the stack skills it needs as `plugin:skill`
    (from the stack-scan inventory; `skills-stamp-lint.sh` warns when a same-named
-   project skill, such as Laravel Boost's, shadows a bare stamp), sized S/M/L/XL against task-cards' anchor rule, and
+   project skill, such as Laravel Boost's, shadows a bare stamp), each small enough for one sitting, and
    grouped into independently shippable milestones on big runs. On UI work the
    first UI card builds how an agent signs in and the seeded states the grill
    settled, and each UI card names the screen, widths and state the browser walk
-   at group close must see
+   at group close must see. The cards are then checked against the spec both ways
+   (coverage check) and linted
 8. When task-runner is installed, asks "Start execution now?" — in the same batch of
    questions as the coverage check's recommended fixes when it found gaps — one approval and
    it invokes `/task-runner:run` on the index itself, so the run registers for the
@@ -164,7 +170,7 @@ Every auto-take is auditable through three sinks:
 **`goal-lean`** — the same hands-off mode without the boost: a bare `goal-lean` as a
 command's first argument (no free-text token). Every auto-take rule and the ledger apply;
 the tier stays the session's, spec-redteam and coverage run by their own gates, and no
-code red-team runs at execution. The index marker is `Goal: true (boost=off)`, read by
+code red-team panel runs at execution. The index marker is `Goal: true (boost=off)`, read by
 task-runner ≥ 0.32.0 (older runners treat any `Goal:` as boosted). The overseer plugin
 picks between `goal` and `goal-lean` per milestone from its rigour profile.
 
@@ -231,8 +237,8 @@ retired 2026-09-26), or see the [marketplace README](../../README.md#choosing-in
 for the whole-pipeline set.
 
 A spec whose surface is a landing page or marketing site is craft-layer's input:
-`/craft-layer:craft` consumes the spec and its section-decisions never re-interrogates
-it (recorded; the router is the only nudge).
+`/craft-layer:craft` in guided mode reads it through its section-decisions skill, which never
+re-interrogates it; a one-shot craft run reads no spec (recorded; the router is the only nudge).
 
 Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [mattpocock/skills](https://github.com/mattpocock/skills). grill's contradicted-statement row, mid-round background lookup and third-party questionnaire (`references/questionnaire.md`), and task-cards' expand–migrate–contract sequencing and prefactor cards, adapt rules from mattpocock/skills v1.2.3 (MIT, © 2026 Matt Pocock), rewritten here rather than copied.
 
@@ -255,19 +261,23 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
 - **Commands**: `/taskmaster:task` (and its `/taskmaster:taskmaster` alias),
   `:brainstorm` (fuzzy idea → approved design doc, upstream of everything),
   `:coverage`, `:redteam`
-- **Hooks**, five: the clarify-first directive and the boost detector on
-  UserPromptSubmit; the artifact preview guard (ask) and the opt-in clarify gate
-  (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
+- **Hooks**, six: the clarify-first directive and the boost detector on
+  UserPromptSubmit; the artifact preview guard (ask), the opt-in clarify gate
+  (`CC_CLARIFY_GATE=block`, deny once) and the brainstorm write guard (deny while
+  `/taskmaster:brainstorm` is still shaping) on PreToolUse; the card-lint observer
   (warn) on PostToolUse
-- **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
-  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`, `preview.sh`,
+- **Scripts**: `card-shape-lint.sh`, `verify-teeth-lint.sh`, `skills-stamp-lint.sh`,
+  `card-paths-lint.sh`, `card-set-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
+  `phase-sentinel.sh`, `card-lint-record.sh`, `preview-cleanup.sh`, `preview.sh`,
   `preview-feedback.sh`, `preview-check.sh`, `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
   (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
   drives both its writers and its reader; `serve.test.sh` drives the preview server itself;
   `find-browser.sh` is the browser lookup both preview scripts source)
 - **Vendored**: `vendor/axe-core/` — axe-core 4.14.0, which the render checks run (see below)
 
-Every hook fails open and every one has an off switch. `CC_REMIND=off` silences the
+Every hook fails open, and every one but the brainstorm write guard has an off switch: that
+guard ends when brainstorm clears its phase (design approved, or the run stopped) and lapses by
+itself after 120 minutes. `CC_REMIND=off` silences the
 clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
 observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
 `TASKMASTER_BOOST=off`) the boost detector.
@@ -324,8 +334,8 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   (unread open rows), `wait [--timeout S]` (blocks until one exists, prints it, then marks it handed out
   with the time; exit 3 after 600 s), `reply --id ID --status addressed|dismissed [--text LINE]`, and
   `shot --id ID` (a PNG of the noted element outlined, from a local Chromium-family browser; exit 4 without
-  one). A row handed out more than 15 minutes ago and still open is unread again, so a waiter that died or
-  was never read loses nothing. `shot` loads the page from `http://127.0.0.1:<port>/` when `preview.sh`'s
+  one). A note handed out more than 15 minutes ago and still open is unread again, so a waiter that died or
+  was never read loses no note; a pick's hand-out is final, and a lost one is asked again. `shot` loads the page from `http://127.0.0.1:<port>/` when `preview.sh`'s
   server answers, else from disk; it runs Chrome with its sandbox on (off only as root or with
   `PREVIEW_BROWSER_NO_SANDBOX=1`) in a throwaway profile for at most 30 s, and reports a browser that fails
   (exit 1). Rows print as JSON lines with control, invisible and blank-rendering characters escaped.

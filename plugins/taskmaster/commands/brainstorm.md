@@ -63,7 +63,7 @@ inventory when installed) BEFORE asking anything. An idea conversation that
 ignores the existing codebase produces designs the codebase rejects on contact.
 Existing patterns, existing modules that half-do the idea, hard version
 constraints — all of it bounds the option space before the first question. Under
-`ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE (mechanical —
+a boost (`ULTRA-TASK ACTIVE` or `ULTRA-GOAL ACTIVE`; see the `ultra` skill), dispatch context-scout NATIVE (mechanical —
 no override), lenses sized per that skill's `references/dispatch-tiers.md`; opinion-lens native.
 
 ## Scope check first
@@ -76,6 +76,18 @@ do not brainstorm the platform — decompose:
 - Agree an order with the user (value and risk first).
 - Brainstorm ONLY the first piece through this command; each later piece gets
   its own design → grill → cards cycle when its turn comes.
+
+## When the answer is no
+
+A brainstorm may end without a design. When the purpose, the constraints or the scout report
+show the idea should not be built, or not yet — the codebase already solves it, the cost
+outweighs the stated outcome, a precondition is missing — say so with the reason instead of
+shaping further: a detailed design makes a weak idea easier to continue, not better. Ask via
+AskUserQuestion: "Stop here and record why (Recommended)" / "Keep shaping". On stop, write
+`.cc-artifacts/taskmaster/no-go/YYYY-MM-DD-<slug>.md` — `Status: not building` or `not now`,
+the reason, and what would change the answer — clear the phase sentinel, and offer no handoff.
+Headless: record and stop. Goal mode has no such exit: there it is the `ultra` skill's
+halt-with-evidence. Standing: agent-graded.
 
 ## One question at a time
 
@@ -131,13 +143,14 @@ one per surface. Fold picks into current.html per visual-decisions' references/s
 ## Explore alternatives before committing
 
 Never present the first workable idea as the design. When two or more genuinely different
-design shapes are viable, do not generate them from one voice — that anchors every
-"alternative" on a single draft. approaches plugin installed → run its blind panel on the
-design question per `approaches:approach-deliberation` `references/blind-panel.md`, which
-owns the persona roster and the dispatch contract; synthesize alternatives + recommendation
-from their takes, then WRITE the round's marker `<repo root>/.cc-artifacts/approaches/deliberated.json`:
-unwritten, the double-run guard is unarmed and the question is re-litigated downstream.
-The panel's own pick-approval is satisfied here by the design doc's approval gate below.
+design shapes are viable, generate them as structurally different candidates, never as
+variations on one draft. approaches plugin installed → follow `approaches:approach-deliberation`,
+which owns the mechanism choice: its inline slate by default, its blind panel
+(`references/blind-panel.md`, which owns the persona roster and the dispatch contract) only
+when the idea reworks existing code. Synthesize alternatives + recommendation, then WRITE the
+round's marker `<repo root>/.cc-artifacts/approaches/deliberated.json`: unwritten, the
+double-run guard is unarmed and the question is re-litigated downstream.
+Its pick-approval is satisfied here by the design doc's approval gate below.
 Absent → propose 2–3 yourself with their tradeoffs, recommendation first and argued. If only one approach exists, say so — "alternatives considered: none viable
 because X" is a legitimate answer; silence is not. YAGNI applies at design level: strike
 every capability the idea does not need this round; moved-to-later is a decision, not a loss.

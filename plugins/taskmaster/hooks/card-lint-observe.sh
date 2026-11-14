@@ -1,5 +1,5 @@
 #!/bin/bash
-# card-lint-observe.sh — PostToolUse, main thread only: once per transcript and card set, warns (never blocks) when a card of the registered taskmaster-index run (.cc-artifacts/task-runner/active-run.json at the project root, else the older .claude/task-runner/ one) has no card-shape, verify-teeth or skills-stamp lint record. Off: CC_CARDLINT=off or CC_REMIND=off (unset: /config options cc_cardlint / cc_remind). Fails open.
+# card-lint-observe.sh — PostToolUse, main thread only: once per transcript and card set, warns (never blocks) when a card of the registered taskmaster-index run (.cc-artifacts/task-runner/active-run.json at the project root, else the older .claude/task-runner/ one) has no card-shape, verify-teeth, skills-stamp or card-paths lint record. Off: CC_CARDLINT=off or CC_REMIND=off (unset: /config options cc_cardlint / cc_remind). Fails open.
 # Misses: a set run without /task-runner:run, a recorded `block` verdict, hand-written records, spec-ledger records (written, not graded), cards past 60; in a fanned-out run the first main-thread write may follow the first card.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/hooks/card-lint-observe.sh
 
@@ -87,6 +87,7 @@ cc_option() {
     cardlint_has card-shape "$card"   || gaps="card-shape"
     cardlint_has verify-teeth "$card" || gaps="${gaps:+$gaps+}verify-teeth"
     cardlint_has skills-stamp "$card" || gaps="${gaps:+$gaps+}skills-stamp"
+    cardlint_has card-paths "$card"   || gaps="${gaps:+$gaps+}card-paths"
     [ -n "$gaps" ] || continue
     miss_n=$((miss_n + 1))
     [ "$miss_n" -le 4 ] && named="${named:+$named; }$base ($gaps)"
@@ -103,8 +104,8 @@ cc_option() {
     -exec rmdir {} + 2>/dev/null
 
   [ "$miss_n" -gt 4 ] && named="$named; +$((miss_n - 4)) more"
-  msg=$(printf '[taskmaster] card-lint: %s of %s card(s) in %s reached this run with no recorded lint — %s. Per card, before executing it: %s/scripts/card-shape-lint.sh --card <card> (blocks a role-tagged card missing a section or an attribute), %s/scripts/verify-teeth-lint.sh --card <card> (blocks a toothless Verify line) and %s/scripts/skills-stamp-lint.sh --card <card> (blocks a framework card stamped "none"). Warning only, nothing is blocked.' \
-    "$miss_n" "$total" "$(basename "$set_dir")" "$named" "$tmroot" "$tmroot" "$tmroot")
+  msg=$(printf '[taskmaster] card-lint: %s of %s card(s) in %s reached this run with no recorded lint — %s. Per card, before executing it: %s/scripts/card-shape-lint.sh --card <card> (blocks a role-tagged card missing a section or an attribute), %s/scripts/verify-teeth-lint.sh --card <card> (blocks a toothless Verify line), %s/scripts/skills-stamp-lint.sh --card <card> (blocks a framework card stamped "none") and %s/scripts/card-paths-lint.sh --card <card> (blocks an unreplaced template token, a missing edit file or a verify path nothing creates). Warning only, nothing is blocked.' \
+    "$miss_n" "$total" "$(basename "$set_dir")" "$named" "$tmroot" "$tmroot" "$tmroot" "$tmroot")
   jq -cn --arg r "$msg" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$r}}'
 } 2>/dev/null

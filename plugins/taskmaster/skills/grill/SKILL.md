@@ -60,7 +60,7 @@ decision, a newcomer's silence is a gap.
 After reprinting the ledger each round, also write it — the raw + upgraded statement pair
 plus the table — to `.cc-artifacts/taskmaster/ledger-<slug>.md` (`<slug>` a kebab of the task), so
 an interrupted interrogation is not lost. With no `.gitignore` in that directory, write one holding
-`/ledger-*.md` and `/goal-ledger-*.md`: ledgers are scratch, the specs beside them are not. At grill start, an unfinished
+`/ledger-*.md` and `/goal-ledger-*.md`: taskmaster ignores only its own ledgers; ignoring the whole folder is the project's call. At grill start, an unfinished
 `ledger-*.md` there, or in `.claude/taskmaster/` (older projects), offers Resume / Start fresh; Resume reuses the
 stored statement (never re-derived), loads the table, continues from the first
 UNKNOWN row — no re-scout (a "lookup pending" row's one lookup excepted), no re-asking
@@ -89,7 +89,7 @@ Two more, every run, settled in round 1 (agent-graded; no lint sees the walk):
 - **Detail level** → always one question: *Guided* (cards fix goal, rules, interfaces, criteria;
   the worker picks the implementation) or *Exact* (cards prescribe edits and values). Recommend
   Exact for money, auth, stored data, migrations, public contracts, else Guided; no user → that
-  rule, ASSUMED. The spec header records `Detail: guided|exact` (**gate**: `spec-ledger-lint.sh`).
+  rule, ASSUMED. The spec header records `Detail: guided|exact` (`spec-ledger-lint.sh`: a bad value is a **gate**, a missing line a WARN).
 
 ## Question mechanics
 
@@ -189,6 +189,7 @@ each task card self-contained later.
 
 No `AskUserQuestion` (subagent, non-interactive): mark each open row ASSUMED with a named
 default, proceed, and print the numbered assumption list prominently for a later veto.
+A dialog closed by its idle timeout (`askUserQuestionTimeout`; the result says the user may be away) answered only what was selected: every other question in it is ASSUMED, Source `timeout`, never CLEAR (agent-graded).
 
 ## Anti-patterns
 

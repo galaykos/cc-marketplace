@@ -29,7 +29,9 @@ worker's own default procedure wherever they differ.
    `flock "$(git rev-parse --git-common-dir)/verify.lock"` (no `flock`, e.g. stock macOS:
    run unlocked, say so).
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
-   were not given) is **reported, not reinterpreted**.
+   were not given) is **reported, not reinterpreted**. A card fact the code has since
+   outgrown (a moved path, a changed signature, a stale quote) is not that case: follow the
+   code and name the stale fact in your report.
 7. Code shape: match the surrounding file's naming and idiom, not its comment
    density — the default is no comment, and a heavily commented neighbour is drift,
    not a specification. A comment is one line and states a fact the code cannot show

@@ -73,16 +73,16 @@ at both levels, and each known-bug criterion lands on the card building that kin
 - Split when: more than ~5 files touched, more than ~300 changed lines expected,
   or the title needs "and". Exception: purely mechanical sweeps (a rename across
   40 files) stay one card while the whole sweep lands green in one commit. When it cannot,
-  sequence it: an expand card adds the new form beside the old (Verify: its own test); one card
-  per batch (package, directory), each depending on it, moves callers (Verify: their named tests
+  sequence it: an expand card adds the new form beside the old (`<verify>`: its own test); one card
+  per batch (package, directory), each depending on it, moves callers (`<verify>`: their named tests
   plus a zero count of the old form in that batch); a contract card after every batch deletes the
-  old form (Verify: a zero count repo-wide plus the named tests). Batches obey the group and milestone
+  old form (`<verify>`: a zero count repo-wide plus the named tests). Batches obey the group and milestone
   rules below; recorded: no lint reads ordering intent.
 - Every card ends verifiable. "Part 1: types only" is valid ONLY if something checks it
   (compiles, tests pass); an unverifiable first half is one card pretending to be two.
-- Size every card S/M/L/XL against an anchor — the anchor is a card the same person
-  shipped in one sitting, which is M. Anything L+ is split or spiked before it enters
-  the index.
+- The split test is one sitting: hold the card against one the same person shipped in a
+  single sitting. Anything bigger is split or spiked before it enters the index. No size is
+  recorded; task-runner sizes cards itself when it batches.
 
 ## Context rules
 
@@ -128,7 +128,7 @@ at both levels, and each known-bug criterion lands on the card building that kin
 - Mark parallel groups — cards with no mutual dependency that touch disjoint
   files. Within a group, put the riskiest card first so failures surface early.
 - Cards coupled through shared work-in-progress state are ordering bugs: merge them or move
-  the shared piece into its own earlier card — a prefactor too, whose Verify names the tests
+  the shared piece into its own earlier card — a prefactor too, whose `<verify>` names the tests
   covering the moved code AND one assertion only the refactor makes true (a zero count at the
   old site, a test importing the new location), never a bare suite run (recorded). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
@@ -183,9 +183,11 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
    resolves nowhere in the user's project. Per card run `card-shape-lint.sh`,
    `verify-teeth-lint.sh`, `skills-stamp-lint.sh` and `card-paths-lint.sh`, each `--card <file>`; what each
    blocks is a gate row in `references/card-shape.md`.
+   A `verify-teeth: <reason>` block → Read `../verify-teeth/SKILL.md` for that reason's fix; it is in no skill listing.
    Plus `card-set-lint.sh --dir <cards dir>` once (cross-card order).
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
-3. **Suggest a project skill.** A `project-skill-suggester` skill available → it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill); absent → skip silently.
+3. **Boosted run only: card-verify**, the builder check — `../ultra/references/dispatch-tiers.md` § Card-verify.
+4. **Suggest a project skill.** The project or user has a `project-skill-suggester` skill (no plugin ships one) → it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill); absent → skip silently.
 
 ## Anti-patterns
 

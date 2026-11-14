@@ -99,7 +99,7 @@ line, `## Acceptance`, `## Scope`, a skill path that exists). A gated brief is r
 a dispatch, so the skills it lists satisfy the kind's groups at `accept` and the taskmaster
 route owes no reviewer of yours just to carry a pin (**gate**; that task-cards copied the
 skills into the cards is **agent-graded**). Amend the brief and you gate it again. Hand it over as
-`/taskmaster:task <brief>` (interactive; grill treats the acceptance lines as CLEAR rows and
+`/taskmaster:task <brief>` (interactive; the acceptance lines are the user's own statements, so grill records them CLEAR and
 asks only about what the brief left open), `/taskmaster:task ultra <brief>` when the profile
 is adversarial, or hands-off: `/taskmaster:task goal-lean <brief>` (lean/standard: autonomy
 without the boost, taskmaster ≥0.42.1 with task-runner ≥0.32.0) and `goal <brief>`
@@ -107,7 +107,8 @@ without the boost, taskmaster ≥0.42.1 with task-runner ≥0.32.0) and `goal <b
 token and the boost cost is a `decisions.md` row. Every milestone sized M
 or larger goes to taskmaster; only an S milestone may skip to the worker template below, and
 the skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
-the card index has two-plus parallel groups, hand execution to `/task-runner:run --tracks`.
+the card index has two-plus track-eligible milestones, hand execution to `/task-runner:run --tracks`
+yourself: taskmaster's own handoff never adds the flag, so stop it at "Stop here" first.
 
 ## Rigour — what scrutiny a milestone buys, decided from the brief, not from its size
 
@@ -115,7 +116,7 @@ The size letter says how much work a milestone is; it says nothing about how wro
 work can be. The boost buys the full code red-team over the shipped diff (three refuters, a
 completeness critic with browser probes, up to three rounds), coverage loop-until-dry and
 tier escalation. Nothing is free: the run's range review and teeth lens (`Verify: range`)
-and taskmaster's spec red-team (past three criteria or an ASSUMED row) are bought every time,
+and taskmaster's spec red-team (three or more criteria, more than one module, a security, auth, data or external surface, or an ASSUMED row) are bought every time,
 so rigour buys only what sits on top of them.
 
 Score four signals from the brief, one line each in the block; the profile is the sum,

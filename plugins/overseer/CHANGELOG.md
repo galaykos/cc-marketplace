@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.1 — 2026-11-14
+
+- `dispatch-prompts.md` sends two-plus track-eligible milestones to `/task-runner:run --tracks`, as the skill body says (it said parallel groups), and says to run it yourself, since taskmaster's handoff never adds the flag. It lists all four triggers of taskmaster's spec red-team. The capability map names `approaches` `opinions`, not the removed `size` command.
+
 ## 0.12.0 — 2026-11-14
 
 - **Program state moved from `.claude/overseer/` to `.cc-artifacts/overseer/`.** Claude Code refuses a Write into `.claude/` as a sensitive path, and that is where the skill told the model to write the charter, briefs and dispatch files. `.cc-artifacts/` is the one folder a project gitignores for what plugins write during development. `program.sh`, `hooks/track-read.sh` (`.reads`), `hooks/announce.sh`, the status line, the skill, its references, the commands, `lane.tsv` and the four eval scaffolds name the new directory. The inventory step names the brain map instead of `brain/INDEX.md`, which moved too (brain 0.5.0).

@@ -63,6 +63,7 @@ mkdir -p "$D/gallery" "$D/sub"
 printf '<!doctype html><title>live</title><p>LIVE</p>\n' > "$D/current.html"
 printf '<!doctype html><p>PASS-A</p>\n' > "$D/2026-01-01-a.html"
 printf '<!doctype html><p>theme</p>\n' > "$D/theme.html"
+printf '<!doctype html><p>WALK</p>\n' > "$D/2026-01-02-signup-walkthrough.html"
 printf '<!doctype html><p>GALLERY-ONE</p>\n' > "$D/gallery/2026-01-01-one.html"
 printf 'hello asset\n' > "$D/sub/asset.txt"
 mkdir -p "$D/.hidden" "$D/withindex"
@@ -106,6 +107,7 @@ names=[v["name"] for v in d["versions"]]
 assert d["current"]=="current.html", d
 assert names==["2026-01-01-a.html"], names' "$T/resp" 2>/dev/null \
   && ok || bad "versions body" "want only the ledger pass, got $(cat "$T/resp")"
+expect "a walkthrough's dated copy is still served" 200 "$base/2026-01-02-signup-walkthrough.html"
 
 # ---- /events: a change event arrives after a write ----------------------------
 sse "$base/events" "$T/sse1"
@@ -138,7 +140,7 @@ got="$(restore --data '{"name":"2026-01-01-a.html"}')"
 big="$(python3 -c 'print("{\"name\":\"" + "x"*5000 + ".html\"}")')"
 got="$(restore -H 'X-Preview-Restore: 1' --data "$big")"
 [ "$got" = 413 ] && ok || bad "restore over the size cap" "want 413, got $got"
-for name in theme.html current.html ../2026-01-01-a.html missing.html sub/asset.txt .private.html; do
+for name in theme.html current.html 2026-01-02-signup-walkthrough.html ../2026-01-01-a.html missing.html sub/asset.txt .private.html; do
   got="$(restore -H 'X-Preview-Restore: 1' --data "{\"name\":\"$name\"}")"
   [ "$got" = 400 ] && ok || bad "restore non-ledger $name" "want 400, got $got"
 done
