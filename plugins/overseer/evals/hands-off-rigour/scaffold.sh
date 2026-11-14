@@ -1,9 +1,9 @@
 #!/bin/bash
 # Scaffold for the hands-off-rigour case: a real open program, so the overseer skill's trigger
-# ("a program is open under .claude/overseer/") is genuine rather than asserted in the prompt.
-# Runs as the eval user in the case's sandbox cwd; writes only under ./.claude/overseer/.
+# ("a program is open under .cc-artifacts/overseer/") is genuine rather than asserted in the prompt.
+# Runs as the eval user in the case's sandbox cwd; writes only under ./.cc-artifacts/overseer/.
 set -e
-d=.claude/overseer; mkdir -p "$d/milestones/m1" "$d/milestones/m2"
+d=.cc-artifacts/overseer; mkdir -p "$d/milestones/m1" "$d/milestones/m2"
 cat > "$d/program.json" <<'JSON'
 {"goal":"Build a CRM that manages clients","slug":"crm","base_branch":"main","model":"opus","hands_off":true,
  "hands_off_reason":"overnight run, nobody at the keyboard",

@@ -1,7 +1,7 @@
 # Authoring a shell mockup
 
 How to fill `assets/shell.html` once it is copied to
-`taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html` (the dated ledger file —
+`.cc-artifacts/taskmaster/mockups/YYYY-MM-DD-<topic>.html` (the dated ledger file —
 each authored pass is then copied over `current.html`, the single file the
 user's preview tab watches; see the SKILL's Preview section). Read by
 `visual-decisions/SKILL.md` before the first authored pass; the shell itself
@@ -426,7 +426,7 @@ identical. Run the shipped checker over the mockup; exit 0 = pass, exit 1 names
 the first frame that differs:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/theme-axis-check.py" taskmaster-docs/mockups/<file>.html
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/theme-axis-check.py" .cc-artifacts/taskmaster/mockups/<file>.html
 ```
 
 It extracts each frame's `.vd-content` inner HTML and diffs every frame against
@@ -474,13 +474,13 @@ the winning variant as a FULL shell-wrapped document (a copy of the current
 mockup file reduced to the single winning frame, shell CSS/JS intact) so it
 renders styled and standalone when browsed through the preview server:
 
-- Path: `taskmaster-docs/mockups/gallery/YYYY-MM-DD-<slug>.html`, dated the
+- Path: `.cc-artifacts/taskmaster/mockups/gallery/YYYY-MM-DD-<slug>.html`, dated the
   day of the pick, `<slug>` a short kebab-case name for the decision.
 - Title: set `SLOT: title` to the `<slug>` (not the question) so the saved
   file is identifiable by its browser tab when the gallery is browsed.
 - Collision on that path: append `-2`, then `-3`, … — never overwrite a
   prior save; each accepted pick keeps its own file forever.
-- Append one line to `taskmaster-docs/mockups/gallery/INDEX.md` (create the
+- Append one line to `.cc-artifacts/taskmaster/mockups/gallery/INDEX.md` (create the
   file, with a one-line header, if it doesn't exist yet): date, slug,
   decision (one line), source spec path — so the gallery is browsable both
   as files (through the same preview server) and as an index table.

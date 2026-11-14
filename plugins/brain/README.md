@@ -1,9 +1,9 @@
 # brain
 
-A committed, Obsidian-style **codebase map** for a project. A terse `brain/INDEX.md` table
-of contents (one line per area) is injected at session start so a fresh Claude session is
-oriented immediately; per-area `brain/<area>.md` detail files (key files, classes,
-entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
+An Obsidian-style **codebase map** for a project, kept in `.cc-artifacts/brain/`. A terse
+`INDEX.md` table of contents (one line per area) is injected at session start so a fresh
+Claude session is oriented immediately; per-area `<area>.md` detail files (key files,
+classes, entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
 > **Status: map + decisions ledger (Phase 1a).** An anchored-notes + backlink layer (notes
 > you and Claude write against symbols, with staleness stamps) is planned as Phase 1b. This
@@ -13,12 +13,12 @@ entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 ## What it does
 
 - **Scans the code, in place.** The map is derived from reading your source. `brain`
-  **never modifies, moves, or deletes any file outside `brain/`** — not your source, not
-  docs, not other plugins.
+  **never modifies, moves, or deletes any file outside `.cc-artifacts/brain/`** — not your
+  source, not docs, not other plugins.
 - **Auto-orients every session.** A `SessionStart` hook injects the terse `INDEX.md` table
   of contents (bounded ~30 lines / ~2 KB, delimited as project data) so Claude sees every
   area immediately; per-area depth loads on demand with `/brain <area>`.
-- **Warns when stale.** `brain/INDEX.md` records the commit it was built against. If the
+- **Warns when stale.** `INDEX.md` records the commit it was built against. If the
   repo has moved past it, the injected map carries a one-line hint:
   `⚠ brain map is behind HEAD (built <hash>, <n> files changed) — offer /brain index to refresh.`
   — or, when drift is ≤5 files, the self-heal variant that tells Claude to run the
@@ -35,9 +35,9 @@ entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
 | Command | Does |
 |---------|------|
-| `/brain` | Print the whole map (`brain/INDEX.md`). If none exists, prompts you to initialize. |
+| `/brain` | Print the whole map (`INDEX.md`). If none exists, prompts you to initialize. |
 | `/brain <area>` | Print one area's detail. Unknown area → a not-found message listing known areas. |
-| `/brain decisions` | Print `brain/decisions.md` — the reserved area: one entry per approach pick, copied from `.claude/approaches/deliberated.json` by `/brain index`. |
+| `/brain decisions` | Print `decisions.md` — the reserved area: one entry per approach pick, copied from `.cc-artifacts/approaches/deliberated.json` by `/brain index`. |
 | `/brain index` | **Incremental refresh** — diffs what changed since the map was built and re-indexes only the affected areas. Bootstraps a full build on first run. |
 | `/brain index --full` | Force a full rebuild — re-picks areas; the only mode that discovers **new** subsystems. |
 | `/brain index <area>` | Rebuild just one named area, leaving the rest untouched. |
@@ -64,16 +64,16 @@ drift stays an explicit offer (a big reindex spends real tokens — your call). 
 hook itself never writes anything; the model performs the refresh visibly.
 
 Two cases demote the self-heal back to the offer. While a task-runner run is open
-(`.claude/task-runner/scope.json` exists) that run's scope-lock hook would flag a
-`brain/*.md` write as out-of-scope, so the two hooks must not issue opposite
-instructions on one edit. And when the `built:` hash is no longer reachable in the
+(`.cc-artifacts/task-runner/scope.json` exists, or `.claude/task-runner/scope.json` from a
+task-runner before 2026-11-14) that run's scope-lock hook would flag a map write as
+out-of-scope, so the two hooks must not issue opposite instructions on one edit. And when the `built:` hash is no longer reachable in the
 repo — rebased, squashed, a shallow clone, a hand-edited stamp — the drift cannot be
 counted, so the hint names no number rather than claiming `0 files changed`.
 
-Changes under `brain/` never count as drift: committing the map moves HEAD past its own
-stamp, and until 0.4.4 that alone triggered a refresh at every later session start. A
-HEAD whose only changes since the stamp are under `brain/` — or an empty or reverted
-commit — gets no hint. The harness `scripts/__tests__/inject-hook.test.sh` gates the hint
+Changes to the map never count as drift (`.cc-artifacts/brain/`, and the older `brain/`):
+committing the map moves HEAD past its own stamp, and until 0.4.4 that alone triggered a
+refresh at every later session start. A HEAD whose only changes since the stamp are in the
+map — or an empty or reverted commit — gets no hint. The harness `scripts/__tests__/inject-hook.test.sh` gates the hint
 branches.
 
 ## Pairs with
@@ -81,36 +81,48 @@ branches.
 `brain` is a sink for two ledgers and an orientation prior for three readers. It
 consumes nothing else and holds no opinion about the code.
 
-**Sources (written into `brain/`):**
+**Sources (written into the map):**
 
-- **approaches** — its double-run marker `.claude/approaches/deliberated.json`
-  (`{"task","by","at"}`, one object, overwritten per task, gitignored) is copied by the
-  indexer into `brain/decisions.md` on every `/brain index`: one entry per pick, keyed
+- **approaches** — its double-run marker `.cc-artifacts/approaches/deliberated.json`
+  (`{"task","by","at"}`, one object, overwritten per task; read from `.claude/approaches/`
+  while only an older approaches wrote it) is copied by the
+  indexer into `decisions.md` on every `/brain index`: one entry per pick, keyed
   by the marker's `at`, so a re-deliberation after a kill-trigger is a new entry and a
   repeat run is not. The marker carries no shape, reason, or kill-trigger — those three
   slots land as `_not in marker — fill in_` and are yours to complete. The
   `INDEX.md` line reads `decisions — N recorded shape choices; latest <date>`.
 - **hindsight** — `/hindsight:harvest`'s apply gate offers a finding that describes the
   codebase (where something lives, a trap in one module) as a note appended to the
-  matching `brain/<area>.md` under `## Notes`, or to `brain/decisions.md` for a settled
+  matching `<area>.md` under `## Notes`, or to `decisions.md` for a settled
   choice — on approval only. No `/brain index` is needed after a note; the indexer
   carries `## Notes` over verbatim when it rewrites an area.
 
-**Consumers (read `brain/INDEX.md`):** taskmaster's `context-scout` and task-runner's
+**Consumers (read `INDEX.md`):** taskmaster's `context-scout` and task-runner's
 `delegation-contracts` hand readers the map as an orientation prior and trust the code
 over a stale map; git-workflow's `branch-completion` offers `/brain index` at finish when
 the `built:` stamp is behind the merged result.
 
 **Standing.** The decisions area and the `## Notes` carry-over are written by the
 indexer agent — **agent-graded**: no script asserts the dedupe key, the entry shape, or
-that a rewrite preserved a note. The write boundary (`brain/` only) is the same
+that a rewrite preserved a note. The write boundary (`.cc-artifacts/brain/` only) is the same
 agent-graded rule the rest of this plugin already carries.
 
-## `brain/INDEX.md` is a derived artifact
+## Where the map lives, and who shares it
 
-It is committed (so the whole team and every Claude session share it), but it is
-**generated**, not hand-authored. On a merge conflict, do not hand-merge — discard the
-conflicted `INDEX.md` and regenerate it with `/brain index`.
+The map lives in `.cc-artifacts/brain/`, the folder a project gitignores with one line
+for what plugins write during development. Ignored, the map is local to each clone
+and each developer builds their own with `/brain index`. A team that wants one shared map
+tracks it: ignore `.cc-artifacts/*` instead of `.cc-artifacts/`, then add
+`!.cc-artifacts/brain/` (git cannot re-include a path under an ignored directory). The
+staleness hint reads the commit the map was built against, never the map's own commit,
+so it works the same either way.
+
+A map built before 2026-11-14 is in `brain/`. The hook reads it there until
+`.cc-artifacts/brain/` exists; the next `/brain index` copies it over once and leaves
+`brain/` untouched. brain never moves or deletes `brain/`.
+
+Tracked or not, `INDEX.md` is **generated**, not hand-authored. On a merge conflict, do not
+hand-merge — discard the conflicted `INDEX.md` and regenerate it with `/brain index`.
 
 ## Boundary with Claude Code's own memory
 
@@ -125,17 +137,18 @@ Code structure is exactly and only what `brain` stores. The split is clean:
 | | native memory | `brain` |
 |---|---|---|
 | Holds | who the user is, feedback, project goals, references | the codebase map — areas, files, key classes — plus recorded shape picks and per-area notes |
-| Lives | `~/.claude/`, machine-local, per user | `brain/` in the repo, committed, shared |
+| Lives | `~/.claude/`, machine-local, per user | `.cc-artifacts/brain/` in the project; shared only when the team tracks it |
 | Derived from | conversations | reading the source |
 | On conflict | edited or deleted by hand | discarded and regenerated |
 
-Use both. A teammate cloning the repo gets the map and none of your memories, which
-is the correct outcome in each direction.
+Use both. A teammate cloning the repo gets none of your memories, and the map only when
+the team tracks it.
 
 ## Trust
 
-`brain/` is committed repo content, at the same trust boundary as `CLAUDE.md` and skill
-files — anyone who can commit to it can already commit code Claude runs. The injected map
+A tracked map is repo content, at the same trust boundary as `CLAUDE.md` and skill
+files — anyone who can commit to it can already commit code Claude runs. An untracked one
+holds only what your own `/brain index` wrote. The injected map
 is delimited and labeled as project data.
 
 ## Disabling
@@ -153,16 +166,16 @@ To turn it off:
 
 - **Stop the auto-inject, keep the map:** disable or uninstall the `brain` plugin in your
   Claude Code plugin settings — the `SessionStart` hook only runs while the plugin is
-  enabled. This is per-developer and does **not** touch the shared `brain/` map.
-- **Never start it:** just don't run `/brain index`. With no `brain/INDEX.md`, the hook
+  enabled. This is per-developer and does **not** touch the map.
+- **Never start it:** just don't run `/brain index`. With no `INDEX.md`, the hook
   injects nothing.
 
-Avoid deleting a committed `brain/INDEX.md` merely to silence the hook — that removes the
+Avoid deleting a tracked `INDEX.md` merely to silence the hook — that removes the
 shared map for the whole team. Disable the plugin locally instead.
 
 ## Not in this release (planned / out of scope)
 
 Anchored notes and `/brain note` · per-symbol anchors and content-hash stamps · a backlink
-graph over existing `.md` (taskmaster-docs, ADRs, skills) · canvas · kanban ·
+graph over existing `.md` (taskmaster specs, ADRs, skills) · canvas · kanban ·
 graph visualization · automatic re-indexing · cross-project maps · semantic/embedding search.
 

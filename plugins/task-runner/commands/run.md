@@ -7,7 +7,7 @@ argument-hint: [tasks-dir-index-or-list] [--tracks[=N]] [--crew] [--sweep]
 Invoke the task-execution skill from this plugin and run the task list in
 $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
-`taskmaster-docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
+`.cc-artifacts/taskmaster/tasks/*/00-INDEX.md` (older projects: `taskmaster-docs/tasks/`); if none exists, ask for the list.
 
 **`--tracks[=N]`** — if `$ARGUMENTS` includes `--tracks`, establish the run branch first
 (`track-orchestration`'s run-branch precondition), then register the run on it with step 1's
@@ -93,7 +93,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    ends the turn ("starting card 01 now") binds nothing — the run reads live, is dead,
    and the user waits on a turn that already ended. Register the run first, in the
    same step: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/register-run.sh" --index <00-INDEX.md> --session "${CLAUDE_SESSION_ID}"`
-   (an inline list: `--slug <name>`). It writes `.claude/task-runner/active-run.json`
+   (an inline list: `--slug <name>`). It writes `.cc-artifacts/task-runner/active-run.json`
    (`slug`, `base`, `branch`, `start_sha`, `index_path`, `session_id`), which arms candor's Stop-hook
    completion clause on this branch only, for this session only; deletes the `gate-pass.json` and
    `bg/bg-<HEAD>.json` an earlier run left, which that clause would trust for HEAD;
@@ -103,7 +103,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    the same branch resumes the run rather than discarding its records (`--fresh` starts
    over); from another session, it moves `session_id` to that session. The task-execution skill's step 1 and `/task-runner:plan`'s "Run now" call the
    same script, so no route runs unregistered. Records older than the registration are
-   ignored by the clause. It also seeds `.claude/task-runner/env-notes.md` once, with "never
+   ignored by the clause. It also seeds `.cc-artifacts/task-runner/env-notes.md` once, with "never
    read `.env`"; the preamble has every worker read it, so write an environment fact there
    (a host binary's path, a container shim, a capped test command), never into each dispatch.
    **Review mode — ask once on a run of 8 or more cards whose index has no `Verify:` line.**
@@ -167,7 +167,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
      a foreground call ends by 10 minutes, a background one by 30 unless told more (CLI
      2.1.285+; from 2.1.288 in `-p`, SDK, CI and cloud only), and neither stop leaves a verdict.
      `--isolate` builds, verifies and removes its own worktree of HEAD, under the repo's
-     gitignored `.claude/task-runner/iso/`, and never touches
+     gitignored `.cc-artifacts/task-runner/iso/`, and never touches
      the live `.env`; do NOT hand-build a checkout (`git worktree add`, `cd /tmp/…`,
      `cp .env…`, `key:generate`) — that improvisation destroyed a live `.env` once. Without
      `--isolate` the gate refuses to run in a registered run's live tree. The gate resolves a
@@ -182,7 +182,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
      `--runner-for php 'docker exec -w "/app/$BG_TREE_REL" app timeout 1700 vendor/bin/pest::No tests found'`.
      The replacement must still print that language's test count, or a sibling runner's
      (`skills/behavioral-gate/references/runners.md`), or the verdict is `unverifiable-suite`. Under
-     `--isolate` the verdict record lands in the live repo's `.claude/task-runner/bg`, which
+     `--isolate` the verdict record lands in the live repo's `.cc-artifacts/task-runner/bg`, which
      the Stop hook reads; `--record-dir` overrides it. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
      it ran. A green suite alone does NOT close the run.
@@ -193,7 +193,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
      for the HEAD the gate ran on, then record the gate pass below as for a green gate.
      candor's Stop gate accepts that verdict only with that record for that HEAD. Code
      whose runner exists but has no tests is not this case: write the tests.
-   On BOTH green (or the recorded no-runner exit), record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON
+   On BOTH green (or the recorded no-runner exit), record the pass to `.cc-artifacts/task-runner/gate-pass.json` as ONE JSON
    object — `{"head":"<git rev-parse HEAD>"}` for a plain run; for a taskmaster-index
    run the SAME single object also carries
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
@@ -201,7 +201,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    write that would clobber `head`) — and only THEN, with every card done or parked
    and the counts recorded, rename `active-run.json` to `closed-run.json` (`mv`, which
    keeps its time) **and clear this session's phase sentinel** (delete
-   `.claude/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root; another session's is not yours), then print the
+   `.cc-artifacts/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root, and its `.claude/cc-phase/` twin if an older
+   taskmaster wrote one; another session's is not yours), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, the follow-up backlog, and every recorded reduction by id and reason —
    `bg-<HEAD12>` when the no-runner exit was taken — and, beside the result, the one line

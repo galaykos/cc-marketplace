@@ -548,8 +548,9 @@ async function domPass() {
 }
 
 function readWaivers() {
-  const p = resolve(process.cwd(), '.craft-layer/waivers.json')
-  if (!existsSync(p)) return []
+  // craft-layer before 2026-11-14 kept waivers in .craft-layer/; read there only when the new file is absent.
+  const p = ['.cc-artifacts/craft-layer/waivers.json', '.craft-layer/waivers.json'].map((f) => resolve(process.cwd(), f)).find((f) => existsSync(f))
+  if (!p) return []
   try {
     const j = JSON.parse(readFileSync(p, 'utf8'))
     if (!Array.isArray(j)) throw new Error('not an array')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """artifact-bundle.py — make ONE self-contained HTML artifact, versioned.
 
-Usage: artifact-bundle.py <page.html | page.md | dir> [--name slug] [--out-dir .design-kit/artifacts] [--shell page-shell.html] [--zip] [--json]. Inlines every local stylesheet, script, image, media and CSS url() target as text or a data URI; reports http(s) refs as `network:` and relative links as `unresolved-link:`; refuses non-UTF-8 input; stamps a design-kit-artifact meta; writes <slug>.html, keeps every prior version under .versions/<slug>/; warns over 16 MiB. A .md input goes through a small stdlib converter (no nested lists, reference links, footnotes, setext headings or task lists; raw HTML passes through).
+Usage: artifact-bundle.py <page.html | page.md | dir> [--name slug] [--out-dir .cc-artifacts/design-kit/artifacts] [--shell page-shell.html] [--zip] [--json]. Inlines every local stylesheet, script, image, media and CSS url() target as text or a data URI; reports http(s) refs as `network:` and relative links as `unresolved-link:`; refuses non-UTF-8 input; stamps a design-kit-artifact meta; writes <slug>.html, keeps every prior version under .versions/<slug>/; warns over 16 MiB. A .md input goes through a small stdlib converter (no nested lists, reference links, footnotes, setext headings or task lists; raw HTML passes through).
 Misses: assets a script loads at runtime (scripts never run, so they are not reported); srcset (reported, not rewritten); a local ref outside the input's tree is left as-is with a warning, never inlined.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/artifact-bundle.py
 """
@@ -44,7 +44,7 @@ def fail(msg, code=2):
 
 
 def dk_dir():
-    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit at the git root (the cwd outside git)."""
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .cc-artifacts/design-kit at the git root (the cwd outside git)."""
     import subprocess
     if os.environ.get("DESIGN_KIT_DIR"):
         return os.environ["DESIGN_KIT_DIR"]
@@ -53,7 +53,7 @@ def dk_dir():
         up = r.stdout.strip() if r.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
         up = ""
-    return os.path.join(up, ".design-kit")
+    return os.path.join(up, ".cc-artifacts", "design-kit")
 
 
 def read_utf8(path):

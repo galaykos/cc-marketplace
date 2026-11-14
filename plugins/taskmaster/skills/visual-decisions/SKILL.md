@@ -60,7 +60,7 @@ callouts, worked A/B examples: `references/ascii-patterns.md`.
 ## HTML mockups from the shell
 
 Never hand-write mockup HTML. Copy `assets/shell.html` (relative to this skill's
-directory) to `taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html` and fill its
+directory) to `.cc-artifacts/taskmaster/mockups/YYYY-MM-DD-<topic>.html` and fill its
 SLOTs. Frame/slot markup, per-variant `data-state` blocks, the max-3-variants
 rule, the realistic-data discipline, curated starter patterns
 (`references/starters/`), and motion-pass conventions all live in
@@ -103,11 +103,11 @@ screens. A clickable prototype, zero JavaScript, works over `file://`.
 Always serve — every decision lands in the same tab. One server, one canonical file:
 
 1. Before every pass run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh"` (serves
-   `taskmaster-docs/mockups` on `${PREVIEW_PORT:-8123}`; `--port N` for another). It starts serve.py in the
+   `.cc-artifacts/taskmaster/mockups` on `${PREVIEW_PORT:-8123}`; `--port N` for another). It starts serve.py in the
    background only when this docroot's server is not running (stopped idle, or a session ended) and prints
    the URL either way. Exit 4 = port busy: rerun with `--port <next>`. Exit 3, or serve.py failing → the
-   fallback chain in background Bash with `timeout: 7200000` (a rung stops at its timeout; restart it when nothing answers): `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups` →
-   no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` → `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`. <!-- removed-ok --> <!-- php -S is the PHP binary's server, not the retired php plugin -->
+   fallback chain in background Bash with `timeout: 7200000` (a rung stops at its timeout; restart it when nothing answers): `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d .cc-artifacts/taskmaster/mockups` →
+   no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t .cc-artifacts/taskmaster/mockups` → `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} .cc-artifacts/taskmaster/mockups`. <!-- removed-ok --> <!-- php -S is the PHP binary's server, not the retired php plugin -->
 2. Write each pass to a dated file (ledger trail), copy to `current.html` — the
    user's tab at the printed URL plus `current.html` sees every pass in place.
 3. Check the pass before presenting it: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-check.sh"` loads
@@ -158,11 +158,11 @@ side-by-side `.vd-code` frames in `api.html` (differing keys in `<mark>`) — se
   at most two passes; decision aid, not design sprint.
 - Record the pick as a CLEAR ledger row (source: the mockup file path); quote it in the spec.
 - On an ACCEPTED pick (not ASCII-only, not abandoned), save the winning
-  variant to `taskmaster-docs/mockups/gallery/YYYY-MM-DD-<slug>.html`
+  variant to `.cc-artifacts/taskmaster/mockups/gallery/YYYY-MM-DD-<slug>.html`
   (collision appends `-2`, `-3` — never overwrite) and append one line —
   date, slug, decision, source spec — to `gallery/INDEX.md`, creating it if
   missing. Format details: `references/shell-authoring.md`.
-- Gallery re-offer (opt-in): once THIS decision's fresh variants exist, offer at most ONE matching gallery entry as labeled reference, never a rival, never the option set.
+- Gallery re-offer (opt-in): once THIS decision's fresh variants exist, offer at most ONE matching gallery entry (older projects: also `taskmaster-docs/mockups/gallery/`) as labeled reference, never a rival, never the option set.
 
 ## Anti-patterns
 

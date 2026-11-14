@@ -21,7 +21,9 @@
 # (decisions.md moves with it), and init may follow; a gated brief (--kind brief: Verify: range, sections, a pin) satisfies accept's dispatch and pin gates and silences the
 # no-reviewer WARN; a milestone's fourth fix dispatch (follow-up or *fix* worker) is refused unless --over-cap records why; hands-off
 # without a budget WARNs; capability-scan flags a CI trigger that misses the base branch, never emits
-# `unknown` as an installed name, and lists every plugin kinds.tsv names. The harness never touches the live repo (mktemp only).
+# `unknown` as an installed name, and lists every plugin kinds.tsv names; a program still under .claude/overseer/
+# (before 2026-11-14) is announced from there, copied once by program.sh's first call, written only in
+# .cc-artifacts/overseer/ and archived with its paths rewritten, the original untouched. The harness never touches the live repo (mktemp only).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 PS="$here/../program.sh"; SCAN="$here/../capability-scan.sh"; HOOK="$here/../../hooks/announce.sh"
@@ -30,7 +32,7 @@ command -v jq >/dev/null 2>&1 || { echo "FAIL: jq required"; exit 1; }
 WS=$(mktemp -d); FAKEHOME=$(mktemp -d); trap 'rm -rf "$WS" "$FAKEHOME"' EXIT
 git -C "$WS" init -q -b main 2>/dev/null || git -C "$WS" init -q
 export OVERSEER_ROOT="$WS"
-SD="$WS/.claude/overseer"
+SD="$WS/.cc-artifacts/overseer"
 # the session-root gate reads CLAUDE_CODE_SESSION_ID + ~/.claude/projects; the harness's project is a
 # temp dir, so a real session id would (correctly) refuse every init — unset it, test the gate explicitly below
 unset CLAUDE_CODE_SESSION_ID
@@ -147,7 +149,7 @@ mkfile "$WS/shot.png"; mkfile "$WS/unread.png"
 payload() { printf '{"session_id":"%s","transcript_path":"%s/t.jsonl","cwd":"%s","hook_event_name":"PostToolUse","tool_name":"Read","tool_input":{"file_path":"%s"}}' "$1" "$WS" "$2" "$3"; }
 out=$(payload s1 "$WS" "$WS/shot.png" | bash "$TR"); [ -z "$out" ] && ok || bad "track-read prints nothing: $out"
 grep -qE "^[0-9]+	s1	$(cd "$WS" && pwd -P)/shot\.png$" "$SD/.reads" && ok || bad "track-read ledgers epoch, session, physical path: $(cat "$SD/.reads" 2>/dev/null)"
-payload s1 "$FAKEHOME" "$WS/shot.png" | bash "$TR"; [ ! -f "$FAKEHOME/.claude/overseer/.reads" ] && ok || bad "no program open → no ledger"
+payload s1 "$FAKEHOME" "$WS/shot.png" | bash "$TR"; [ ! -e "$FAKEHOME/.cc-artifacts" ] && [ ! -e "$FAKEHOME/.claude/overseer" ] && ok || bad "no program open → no ledger"
 payload s1 "$WS" "rel-nope.png" | bash "$TR"; grep -q "rel-nope" "$SD/.reads" && bad "a missing file is not ledgered" || ok
 expect 0 "evidence add passes a file this session Read" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind browser-happy --note "looked" --file "$WS/shot.png"
 grep -q "read gate inactive" "$WS/err" && bad "no WARN when the session has rows" || ok
@@ -287,7 +289,7 @@ n=$(jq '[.milestones[]|select(.id=="m2")|.evidence[]]|length' "$SD/program.json"
 W2=$(mktemp -d); git -C "$W2" init -q -b main 2>/dev/null || git -C "$W2" init -q
 git -C "$W2" -c user.name=t -c user.email=t@t commit -q --allow-empty -m i && git -C "$W2" checkout -q --detach
 OVERSEER_ROOT="$W2" "$PS" init --goal g --slug g >/dev/null 2>&1
-[ "$(jq -r .base_branch "$W2/.claude/overseer/program.json")" = "main" ] && ok || bad "detached HEAD base defaults to main"
+[ "$(jq -r .base_branch "$W2/.cc-artifacts/overseer/program.json")" = "main" ] && ok || bad "detached HEAD base defaults to main"
 rm -rf "$W2"
 
 # ---- dispatch check ----------------------------------------------------------------------------
@@ -313,7 +315,7 @@ grep -q "MODEL: opu is above" "$WS/err" && ok || bad "the refusal names the mode
 # tier auto: a seat may inherit the session model — a separate program, initialised with --model auto
 W5=$(mktemp -d); git -C "$W5" init -q -b main 2>/dev/null || git -C "$W5" init -q
 OVERSEER_ROOT="$W5" "$PS" init --goal g --slug g --model auto >/dev/null 2>&1
-[ "$(jq -r .model "$W5/.claude/overseer/program.json")" = "auto" ] && ok || bad "init stores --model auto"
+[ "$(jq -r .model "$W5/.cc-artifacts/overseer/program.json")" = "auto" ] && ok || bad "init stores --model auto"
 expect 2 "tier auto still refuses MODEL: inherit on a worker" -- env OVERSEER_ROOT="$W5" "$PS" dispatch check "$WS/p2-inherit.md"
 grep -q "for a worker seat" "$WS/err" && ok || bad "refusal says the seat, not only the tier: $(cat "$WS/err")"
 { cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nYou WRITE NO FILES.\nRETURN (max 40 lines): a document\nMODEL: inherit\n' "$WS"; } > "$WS/p5-inherit.md"
@@ -359,30 +361,34 @@ grep -q "kind board" "$WS/err" && grep -q "not installed" "$WS/err" && ok || bad
 grep -q "m4 has no rigour profile" "$WS/err" && ok || bad "an unset rigour WARNs on every gated dispatch: $(grep rigour "$WS/err")"
 # size routes the pipeline: an M milestone with no taskmaster index registered after it that names it WARNs on a direct worker; S does not
 grep -q "size M: m4 is briefed to taskmaster" "$WS/err" && ok || bad "direct worker on an M milestone WARNs about the skipped pipeline: $(grep size "$WS/err")"
-mkdir -p "$SD/milestones/m4"; printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other"; printf '# m40 other\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other/00-INDEX.md"
+mkdir -p "$SD/milestones/m4"; printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-m40-other"; printf '# m40 other\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-m40-other/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "size M" "$WS/err" && ok || bad "a newer index for ANOTHER milestone (m40) must not cover m4"
-mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-landing"; printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+mkdir -p "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing"; printf '# m4 landing — task index\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "size M" "$WS/err" && bad "index registered after m4 whose heading names m4 still WARNs" || ok
 grep -q "marker" "$WS/err" && bad "an index without a marker on an unset-rigour milestone draws a marker WARN" || ok
+mkdir -p "$WS/taskmaster-docs/tasks"; mv "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing" "$WS/taskmaster-docs/tasks/"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "size M" "$WS/err" && bad "an index taskmaster wrote under taskmaster-docs/tasks/ before 2026-11-14 still counts" || ok
+mv "$WS/taskmaster-docs/tasks/2026-09-12-landing" "$WS/.cc-artifacts/taskmaster/tasks/"; rm -r "$WS/taskmaster-docs"
 touch "$SD/milestones/m4/brief.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "size M" "$WS/err" && bad "amending the brief after the index must not revive the pipeline-skipped WARN" || ok
 # rigour vs the index marker: a boosted index on a lean/standard milestone WARNs; an unboosted one on adversarial WARNs
 "$PS" milestone set --id m4 --rigour standard --reason "one novel signal" >/dev/null
-printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 # this program is hands-off (init Third above): the WARN names the residual, not a wrong token
 grep -q "brief /taskmaster:task goal-lean" "$WS/err" && ok || bad "boosted index on a standard hands-off milestone points at goal-lean: $(grep -i rigour "$WS/err")"
-printf '# m4 landing — task index\n\nGoal: true (boost=off) — requires task-runner >=0.32.0\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+printf '# m4 landing — task index\n\nGoal: true (boost=off) — requires task-runner >=0.32.0\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "marker" "$WS/err" && bad "a Goal: boost=off index on a standard milestone must not WARN" || ok
 grep -q "briefed to taskmaster" "$WS/err" && bad "a Goal: boost=off index still proves the pipeline ran" || ok
-printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing/00-INDEX.md"
 W6=$(mktemp -d); git -C "$W6" init -q -b main 2>/dev/null || git -C "$W6" init -q
 OVERSEER_ROOT="$W6" "$PS" init --goal g --slug g >/dev/null 2>&1; OVERSEER_ROOT="$W6" "$PS" milestone add --id m1 --title t --branch b --rigour standard >/dev/null
-mkdir -p "$W6/taskmaster-docs/tasks/2026-09-12-m1-x"; printf '# m1 x\nUltra: true (model=auto, effort=xhigh)\n' > "$W6/taskmaster-docs/tasks/2026-09-12-m1-x/00-INDEX.md"
+mkdir -p "$W6/.cc-artifacts/taskmaster/tasks/2026-09-12-m1-x"; printf '# m1 x\nUltra: true (model=auto, effort=xhigh)\n' > "$W6/.cc-artifacts/taskmaster/tasks/2026-09-12-m1-x/00-INDEX.md"
 env HOME="$FAKEHOME" OVERSEER_ROOT="$W6" "$PS" dispatch check "$WS/p2.md" --milestone m1 2> "$WS/err" >/dev/null
 grep -q "code red-team was bought where the profile says not to" "$WS/err" && ok || bad "boosted index on a standard interactive milestone WARNs: $(grep -i rigour "$WS/err")"
 rm -rf "$W6"
@@ -391,13 +397,13 @@ grep -q "no rigour profile" "$WS/err" && bad "a set rigour still draws the unset
 "$PS" milestone set --id m4 --rigour adversarial --reason "money maths" >/dev/null
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "marker" "$WS/err" && bad "boosted index on an adversarial milestone must not WARN" || ok
-printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+printf '# m4 landing — task index\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "carries no Ultra: marker" "$WS/err" && ok || bad "unboosted index on an adversarial milestone WARNs: $(grep -i marker "$WS/err")"
-printf '# m4 landing — task index\n\nGoal: true (boost=off)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+printf '# m4 landing — task index\n\nGoal: true (boost=off)\n' > "$WS/.cc-artifacts/taskmaster/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "never goal-lean" "$WS/err" && ok || bad "a Goal: boost=off index on an adversarial milestone WARNs: $(grep -i marker "$WS/err")"
-rm -rf "$SD/../../taskmaster-docs"
+rm -rf "$WS/.cc-artifacts/taskmaster"
 "$PS" milestone add --id m5 --title Small --branch ov/m5 --size S >/dev/null 2>&1
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m5 2> "$WS/err" >/dev/null
 grep -q "size S" "$WS/err" && bad "an S milestone WARNs on a direct worker" || ok
@@ -491,34 +497,34 @@ P2() { env OVERSEER_ROOT="$W2" "$PS" "$@"; }
 P2 init --goal g2 --slug g2 >/dev/null
 expect 0 "add a (board)" -- env OVERSEER_ROOT="$W2" "$PS" milestone add --id m1 --title A --branch ov/a --kind board
 expect 0 "add b" -- env OVERSEER_ROOT="$W2" "$PS" milestone add --id m2 --title B --branch ov/b
-[ "$(jq -r '.milestones[0].history[0].status' "$W2/.claude/overseer/program.json")" = queued ] && ok || bad "history starts at queued"
+[ "$(jq -r '.milestones[0].history[0].status' "$W2/.cc-artifacts/overseer/program.json")" = queued ] && ok || bad "history starts at queued"
 P2 milestone set --id m1 --status building >/dev/null; P2 milestone set --id m2 --status building >/dev/null
-jq -e '.milestones[0].history|length==2 and .[1].status=="building"' "$W2/.claude/overseer/program.json" >/dev/null && ok || bad "history records set"
+jq -e '.milestones[0].history|length==2 and .[1].status=="building"' "$W2/.cc-artifacts/overseer/program.json" >/dev/null && ok || bad "history records set"
 expect 0 "suggestion add" -- env OVERSEER_ROOT="$W2" "$PS" suggestion add --text "pagination on the index" --from m1
-grep -q "pagination on the index" "$W2/.claude/overseer/suggestions.md" && ok || bad "suggestion row written"
+grep -q "pagination on the index" "$W2/.cc-artifacts/overseer/suggestions.md" && ok || bad "suggestion row written"
 expect 0 "log" -- env OVERSEER_ROOT="$W2" "$PS" log
 grep -q "status → building" "$WS/out" && grep -q "suggestion" "$WS/out" && head -1 "$WS/out" | grep -q "^at" && ok || bad "log lists status changes and suggestions in order: $(head -3 "$WS/out")"
 P2 decision add --text "keep vanilla css" --rationale "one screen" >/dev/null
 expect 0 "log again" -- env OVERSEER_ROOT="$W2" "$PS" log
 grep -qE "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:]+Z	-	decision keep vanilla css$" "$WS/out" && grep -qE "^20[0-9]{2}-[^	]+	m1	suggestion pagination on the index$" "$WS/out" && ok || bad "log parses decision and suggestion rows into at/milestone/event: $(grep -E 'decision|suggestion' "$WS/out")"
 # force both done through the state file (accept needs nine evidence files; the divergence gate is what is under test)
-jq '(.milestones[]) |= (.status="done" | .history = [{status:"queued",at:"2026-01-01T00:00:00Z"},{status:"building",at:"2026-01-01T00:05:00Z"},{status:"done",at:"2026-01-01T01:00:00Z"}])' "$W2/.claude/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.claude/overseer/program.json"
+jq '(.milestones[]) |= (.status="done" | .history = [{status:"queued",at:"2026-01-01T00:00:00Z"},{status:"building",at:"2026-01-01T00:05:00Z"},{status:"done",at:"2026-01-01T01:00:00Z"}])' "$W2/.cc-artifacts/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.cc-artifacts/overseer/program.json"
 expect 0 "status shows wall time" -- env OVERSEER_ROOT="$W2" "$PS" status
 grep -q "55 min" "$WS/out" && ok || bad "wall column (want 55 min): $(sed -n 4,6p "$WS/out")"
 expect 2 "close refuses divergent done branches" -- env OVERSEER_ROOT="$W2" "$PS" close
 grep -q "ov/a<->ov/b" "$WS/err" && grep -q "integration" "$WS/err" && ok || bad "refusal names the pair and the integration route: $(head -2 "$WS/err")"
-printf 'phase\tinstalled\tmissing\nbuild\tlaravel,ui-ux,testing\t-\nreview\tcode-review\t-\n' > "$W2/.claude/overseer/capabilities.tsv"
-mkdir -p "$W2/.claude/overseer/milestones/m1/dispatch/.claude/candor"; printf 'READ: /x/.claude/plugins/cache/mkt/ui-ux/1.0.0/skills/a11y-audit/SKILL.md\nAGENT: code-review:code-reviewer\n' > "$W2/.claude/overseer/milestones/m1/dispatch/1.md"; printf 'x' > "$W2/.claude/overseer/milestones/m1/dispatch/.claude/candor/last"
+printf 'phase\tinstalled\tmissing\nbuild\tlaravel,ui-ux,testing\t-\nreview\tcode-review\t-\n' > "$W2/.cc-artifacts/overseer/capabilities.tsv"
+mkdir -p "$W2/.cc-artifacts/overseer/milestones/m1/dispatch/.claude/candor" "$W2/.cc-artifacts/overseer/milestones/m1/dispatch/.cc-artifacts/candor"; printf 'READ: /x/.claude/plugins/cache/mkt/ui-ux/1.0.0/skills/a11y-audit/SKILL.md\nAGENT: code-review:code-reviewer\n' > "$W2/.cc-artifacts/overseer/milestones/m1/dispatch/1.md"; printf 'x' > "$W2/.cc-artifacts/overseer/milestones/m1/dispatch/.claude/candor/last"; printf 'x' > "$W2/.cc-artifacts/overseer/milestones/m1/dispatch/.cc-artifacts/candor/last"
 expect 0 "close --divergent-ok passes and records" -- env OVERSEER_ROOT="$W2" "$PS" close --divergent-ok "user merges after review"
-grep -q "closed with divergent done branches" "$W2"/.claude/overseer/archive/g2-*/decisions.md && ok || bad "divergent-ok decision row, archived with the program"
+grep -q "closed with divergent done branches" "$W2"/.cc-artifacts/overseer/archive/g2-*/decisions.md && ok || bad "divergent-ok decision row, archived with the program"
 grep -q "installed per the scan: 4" "$WS/out" && grep -q "pinned in a dispatch: 2" "$WS/out" && grep -q "never pinned: laravel testing" "$WS/out" && ok || bad "plugins-used line counts AGENT lines too: $(grep 'plugins' "$WS/out")"
-[ ! -d "$W2"/.claude/overseer/archive/g2-*/milestones/m1/dispatch/.claude ] && ok || bad "foreign hook scratch dirs pruned from the archive"
+[ ! -d "$W2"/.cc-artifacts/overseer/archive/g2-*/milestones/m1/dispatch/.claude ] && [ ! -d "$W2"/.cc-artifacts/overseer/archive/g2-*/milestones/m1/dispatch/.cc-artifacts ] && ok || bad "foreign hook scratch dirs (.cc-artifacts/ and the older .claude/) pruned from the archive"
 grep -q "deferred suggestions (1)" "$WS/out" && grep -qx "  m1: pagination on the index" "$WS/out" && ok || bad "suggestions printed at close without a trailing pipe: $(grep -A1 'deferred' "$WS/out")"
-ls "$W2"/.claude/overseer/archive/g2-*/suggestions.md >/dev/null 2>&1 && ok || bad "suggestions.md archived"
+ls "$W2"/.cc-artifacts/overseer/archive/g2-*/suggestions.md >/dev/null 2>&1 && ok || bad "suggestions.md archived"
 # integration kind lifts the gate
 P2 init --goal g3 --slug g3 >/dev/null
 P2 milestone add --id m1 --title A --branch ov/a >/dev/null; P2 milestone add --id m2 --title B --branch ov/b >/dev/null; P2 milestone add --id m3 --title I --branch main --kind integration >/dev/null
-jq '(.milestones[]) |= (.status="done")' "$W2/.claude/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.claude/overseer/program.json"
+jq '(.milestones[]) |= (.status="done")' "$W2/.cc-artifacts/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.cc-artifacts/overseer/program.json"
 expect 0 "close passes with a done integration milestone" -- env OVERSEER_ROOT="$W2" "$PS" close
 rm -rf "$W2"
 
@@ -527,7 +533,7 @@ W8="$(mktemp -d)/my proj"; mkdir -p "$W8/.claude/skills/stacky"; printf 'x' > "$
 git -C "$W8" init -q -b main 2>/dev/null || git -C "$W8" init -q
 env OVERSEER_ROOT="$W8" "$PS" init --goal g --slug g >/dev/null 2>&1
 env OVERSEER_ROOT="$W8" "$PS" milestone add --id m1 --title t --branch ov/m1 --rigour standard >/dev/null 2>&1; env OVERSEER_ROOT="$W8" "$PS" milestone set --id m1 --status building >/dev/null 2>&1
-S8="$W8/.claude/overseer/milestones/m1/dispatch"; mkdir -p "$S8"
+S8="$W8/.cc-artifacts/overseer/milestones/m1/dispatch"; mkdir -p "$S8"
 { cat "$PRE"; printf 'TOUCH ONLY: %s/a.php\nREAD FIRST: %s/.claude/skills/stacky/SKILL.md\nREAD FIRST: %s\nVERIFY: make test\nMODEL: opus\n' "$W8" "$W8" "$TESTSK"; } > "$S8/1.md"
 expect 0 "dispatch check pins a project skill under a path with a space" -- env OVERSEER_ROOT="$W8" HOME="$FAKEHOME" "$PS" dispatch check "$S8/1.md" --kind worker --milestone m1
 grep -q "no gated dispatch for m1 pins" "$WS/err" && bad "spaced root: kind groups read from the gated file: $(cat "$WS/err")" || ok
@@ -545,7 +551,7 @@ rm -rf "$(dirname "$W8")"
 # of them ended parked. accept now reads the required set from the milestone kind's profile.
 W9=$(mktemp -d); git -C "$W9" init -q -b main 2>/dev/null || git -C "$W9" init -q
 mkdir -p "$W9/.claude/skills/proj"; printf 'x' > "$W9/.claude/skills/proj/SKILL.md"
-PROJSK="$W9/.claude/skills/proj/SKILL.md"; S9="$W9/.claude/overseer"
+PROJSK="$W9/.claude/skills/proj/SKILL.md"; S9="$W9/.cc-artifacts/overseer"
 # the home whose plugin cache holds the testing skill fixture: an uninstalled group is a WARN,
 # so the library case below can only prove its REFUSAL with testing installed and unpinned
 H9="${TESTSK%%/.claude/plugins/*}"
@@ -612,7 +618,7 @@ rm -rf "$W9"
 # .gated, and uses it for both the `actual:` minutes and the cost line. How the transcript is counted is task-runner's
 # scripts/__tests__/run-cost.test.sh, on the same block; here only which start accept passes.
 W10=$(mktemp -d); git -C "$W10" init -q -b main 2>/dev/null || git -C "$W10" init -q
-mkdir -p "$W10/.claude/skills/proj"; printf 'x' > "$W10/.claude/skills/proj/SKILL.md"; S10="$W10/.claude/overseer"
+mkdir -p "$W10/.claude/skills/proj"; printf 'x' > "$W10/.claude/skills/proj/SKILL.md"; S10="$W10/.cc-artifacts/overseer"
 H10="$W10/home"; T10="$H10/.claude/projects/-p"; mkdir -p "$T10/s10/subagents"
 P10() { env OVERSEER_ROOT="$W10" HOME="$H10" TZ=UTC "$PS" "$@"; }
 A10() { env CLAUDE_CODE_SESSION_ID=s10 OVERSEER_ROOT="$W10" HOME="$H10" TZ=UTC "$PS" accept --id "$1"; }
@@ -674,7 +680,7 @@ grep -qE '^sized S · actual: 1 gated dispatches \(1 worker/follow-up\) · .* ·
 rm -rf "$W10"
 
 # ---- resume: five plain lines from the state files, each case beside a control ------------------------
-W11=$(mktemp -d); S11="$W11/.claude/overseer"
+W11=$(mktemp -d); S11="$W11/.cc-artifacts/overseer"
 P11() { env OVERSEER_ROOT="$W11" "$PS" "$@"; }
 R11() { env OVERSEER_ROOT="$W11" "$PS" resume > "$WS/out" 2> "$WS/err"; echo $? > "$WS/code"; }
 L() { sed -n "$1p" "$WS/out"; }
@@ -716,10 +722,10 @@ P11 decision add --text "older pick" --rationale r >/dev/null; P11 decision add 
 P11 suggestion add --text "a" >/dev/null; P11 suggestion add --text "b" >/dev/null; R11; five "decisions and suggestions"
 [ "$(L 4)" = "Last decision: newest pick" ] && ok || bad "line 4 is the newest decision row: $(L 4)"
 grep -q "older pick" "$WS/out" && bad "control: an older decision row was printed" || ok
-[ "$(L 5)" = "Open: 2 suggestions, 0 parked milestones — .claude/overseer/suggestions.md, program.json" ] && ok || bad "line 5 counts and places: $(L 5)"
+[ "$(L 5)" = "Open: 2 suggestions, 0 parked milestones — .cc-artifacts/overseer/suggestions.md, program.json" ] && ok || bad "line 5 counts and places: $(L 5)"
 mv "$S11/decisions.md" "$S11/decisions.bak"; mv "$S11/suggestions.md" "$S11/suggestions.bak"; R11; five "no decisions.md, no suggestions.md"
-[ "$(L 4)" = "Last decision: none, .claude/overseer/decisions.md is missing" ] && ok || bad "a missing decisions.md is named: $(L 4)"
-[ "$(L 5)" = "Open: no suggestions file yet, 0 parked milestones — .claude/overseer/program.json" ] && ok || bad "a missing suggestions.md is named: $(L 5)"
+[ "$(L 4)" = "Last decision: none, .cc-artifacts/overseer/decisions.md is missing" ] && ok || bad "a missing decisions.md is named: $(L 4)"
+[ "$(L 5)" = "Open: no suggestions file yet, 0 parked milestones — .cc-artifacts/overseer/program.json" ] && ok || bad "a missing suggestions.md is named: $(L 5)"
 mv "$S11/decisions.bak" "$S11/decisions.md"; mv "$S11/suggestions.bak" "$S11/suggestions.md"
 
 # parked, a milestone that cannot start, and all closed
@@ -746,7 +752,7 @@ jq --arg g "$uni" '.goal = $g' "$S11/program.json" > "$S11/pj" && mv "$S11/pj" "
 cp "$S11/program.json" "$WS/good11.json"
 for junk in '{"milestones": [' '{"goal":"g","milestones":[1]}'; do
   printf '%s' "$junk" > "$S11/program.json"; R11; five "corrupt program.json ($junk)"
-  [ "$(L 1)" = "Program: unreadable, .claude/overseer/program.json is not valid JSON with a milestones list" ] && L 4 | grep -q "^Last decision: word" \
+  [ "$(L 1)" = "Program: unreadable, .cc-artifacts/overseer/program.json is not valid JSON with a milestones list" ] && L 4 | grep -q "^Last decision: word" \
     && grep -q "^Open: 2 suggestions, parked milestones unknown" "$WS/out" && ok || bad "corrupt state is named line by line ($junk): $(cat "$WS/out")"
   grep -qi "jq: error" "$WS/out" "$WS/err" && bad "a jq error reached the reader ($junk)" || ok
 done
@@ -766,30 +772,30 @@ P12() { env OVERSEER_ROOT="$W12" HOME="$H12" "$PS" "$@"; }
 P12 init --goal "unity game" --slug u >/dev/null 2>&1
 P12 milestone add --id m1 --title t --branch ov/m1 --kind library --size S --rigour lean >/dev/null 2>&1
 P12 milestone set --id m1 --status building >/dev/null 2>&1
-mkdir -p "$W12/.claude/overseer/milestones/m1/dispatch"; wprompt "$W12/.claude/overseer/milestones/m1/dispatch/1.md" "$TS12"
-P12 dispatch check "$W12/.claude/overseer/milestones/m1/dispatch/1.md" --kind worker --milestone m1 >/dev/null 2>&1
+mkdir -p "$W12/.cc-artifacts/overseer/milestones/m1/dispatch"; wprompt "$W12/.cc-artifacts/overseer/milestones/m1/dispatch/1.md" "$TS12"
+P12 dispatch check "$W12/.cc-artifacts/overseer/milestones/m1/dispatch/1.md" --kind worker --milestone m1 >/dev/null 2>&1
 sleep 1; mkfile "$W12/suite.txt"; mkfile "$W12/run.txt"
 P12 evidence add --id m1 --kind tests --note n --file "$W12/suite.txt" >/dev/null 2>&1
 P12 evidence add --id m1 --kind run-log --note n --file "$W12/run.txt" >/dev/null 2>&1
 printf '{"require":{"laravel/framework":"^12.0"}}' > "$W12/composer.json"
 expect 2 "control: a laravel tree with no scan owes the stack group (laravel is in the cache)" -- P12 accept --id m1
 grep -q "stack" "$WS/err" && ok || bad "control refusal names the stack group: $(head -1 "$WS/err")"
-printf 'phase\tinstalled\tmissing\tfallback\ntests\ttesting\t-\t-\n' > "$W12/.claude/overseer/capabilities.tsv"
+printf 'phase\tinstalled\tmissing\tfallback\ntests\ttesting\t-\t-\n' > "$W12/.cc-artifacts/overseer/capabilities.tsv"
 expect 0 "accept passes when the scan shows laravel/web-dev are not installed for this project" -- P12 accept --id m1
-printf 'phase\tinstalled\tmissing\tfallback\nbackend\tlaravel\t-\t-\ntests\ttesting\t-\t-\n' > "$W12/.claude/overseer/capabilities.tsv"
+printf 'phase\tinstalled\tmissing\tfallback\nbackend\tlaravel\t-\t-\ntests\ttesting\t-\t-\n' > "$W12/.cc-artifacts/overseer/capabilities.tsv"
 rm -f "$W12/composer.json"
 P12 milestone add --id m3 --title t3 --branch ov/m3 --kind library --size S --rigour lean >/dev/null 2>&1
 P12 milestone set --id m3 --status building >/dev/null 2>&1
-mkdir -p "$W12/.claude/overseer/milestones/m3/dispatch"; wprompt "$W12/.claude/overseer/milestones/m3/dispatch/1.md" "$TS12"
-P12 dispatch check "$W12/.claude/overseer/milestones/m3/dispatch/1.md" --kind worker --milestone m3 >/dev/null 2>&1
+mkdir -p "$W12/.cc-artifacts/overseer/milestones/m3/dispatch"; wprompt "$W12/.cc-artifacts/overseer/milestones/m3/dispatch/1.md" "$TS12"
+P12 dispatch check "$W12/.cc-artifacts/overseer/milestones/m3/dispatch/1.md" --kind worker --milestone m3 >/dev/null 2>&1
 sleep 1; P12 evidence add --id m3 --kind tests --note n --file "$W12/suite.txt" >/dev/null 2>&1
 P12 evidence add --id m3 --kind run-log --note n --file "$W12/run.txt" >/dev/null 2>&1
 expect 0 "laravel installed for this project (user scope) is still not owed by a tree with no laravel/framework" -- P12 accept --id m3
 printf '{"require":{"laravel/framework":"^12.0"}}' > "$W12/composer.json"
 P12 milestone add --id m2 --title t2 --branch ov/m2 --kind library --size S --rigour lean >/dev/null 2>&1
 P12 milestone set --id m2 --status building >/dev/null 2>&1
-mkdir -p "$W12/.claude/overseer/milestones/m2/dispatch"; wprompt "$W12/.claude/overseer/milestones/m2/dispatch/1.md" "$TS12"
-P12 dispatch check "$W12/.claude/overseer/milestones/m2/dispatch/1.md" --kind worker --milestone m2 >/dev/null 2>&1
+mkdir -p "$W12/.cc-artifacts/overseer/milestones/m2/dispatch"; wprompt "$W12/.cc-artifacts/overseer/milestones/m2/dispatch/1.md" "$TS12"
+P12 dispatch check "$W12/.cc-artifacts/overseer/milestones/m2/dispatch/1.md" --kind worker --milestone m2 >/dev/null 2>&1
 sleep 1; P12 evidence add --id m2 --kind tests --note n --file "$W12/suite.txt" >/dev/null 2>&1
 P12 evidence add --id m2 --kind run-log --note n --file "$W12/run.txt" >/dev/null 2>&1
 expect 2 "a laravel tree whose scan lists laravel keeps the stack group owed" -- P12 accept --id m2
@@ -800,13 +806,13 @@ W13=$(mktemp -d); H13=$(mktemp -d); git -C "$W13" init -q -b main 2>/dev/null ||
 P13() { env OVERSEER_ROOT="$W13" HOME="$H13" "$PS" "$@"; }
 expect 2 "init refuses a zero token budget" -- P13 init --goal g --slug b --budget-tokens 0
 expect 0 "init with a token budget" -- P13 init --goal g --slug b --budget-tokens 1000
-[ "$(jq -r .budget_tokens "$W13/.claude/overseer/program.json")" = 1000 ] && ok || bad "init records budget_tokens"
+[ "$(jq -r .budget_tokens "$W13/.cc-artifacts/overseer/program.json")" = 1000 ] && ok || bad "init records budget_tokens"
 P13 status | grep -q "token budget: 1000 per session" && ok || bad "status prints the budget"
 P13 milestone add --id m1 --title t --branch ov/m1 --kind library --size S --rigour lean >/dev/null 2>&1
 P13 milestone set --id m1 --status building >/dev/null 2>&1
-mkdir -p "$W13/.claude/overseer/milestones/m1/dispatch" "$H13/.claude/projects/p"
+mkdir -p "$W13/.cc-artifacts/overseer/milestones/m1/dispatch" "$H13/.claude/projects/p"
 mkdir -p "$W13/sk"; printf 'x\n' > "$W13/sk/SKILL.md"
-D13="$W13/.claude/overseer/milestones/m1/dispatch/1.md"; wprompt "$D13" "$W13/sk/SKILL.md"
+D13="$W13/.cc-artifacts/overseer/milestones/m1/dispatch/1.md"; wprompt "$D13" "$W13/sk/SKILL.md"
 sleep 1
 rec13() { printf '{"timestamp":"%s","message":{"id":"%s","model":"m","usage":{"input_tokens":%s,"output_tokens":0}}}\n' "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" "$1" "$2" >> "$H13/.claude/projects/p/sess-b.jsonl"; }
 rec13 a 400
@@ -824,7 +830,7 @@ rm -rf "$W13" "$H13"
 # ---- convergence: a gated brief carries the pins on the taskmaster route; a milestone buys three fix dispatches ----
 W14=$(mktemp -d); H14=$(mktemp -d); git -C "$W14" init -q -b main 2>/dev/null || git -C "$W14" init -q
 P14() { env OVERSEER_ROOT="$W14" HOME="$H14" "$PS" "$@"; }
-S14="$W14/.claude/overseer"
+S14="$W14/.cc-artifacts/overseer"
 expect 0 "hands-off init without a budget still starts" -- P14 init --goal g --slug c --hands-off --reason "headless"
 grep -q "hands-off with no token budget" "$WS/err" && ok || bad "hands-off with no budget WARNs"
 P14 decision add --assumed --text a --alternative b --rationale r >/dev/null 2>&1
@@ -871,6 +877,45 @@ expect 0 "a worker that is not a fix is outside the cap" -- P14 dispatch check "
 expect 0 "--over-cap passes the fourth" -- P14 dispatch check "$S14/milestones/m2/dispatch/4-followup.md" --kind followup --over-cap "user asked"
 grep -q "over the cap of 3 on m2: 4-followup.md | - | user asked" "$S14/decisions.md" && ok || bad "--over-cap writes a decision row"
 rm -rf "$W14" "$H14"
+
+# ---- a program opened before 2026-11-14 under .claude/overseer/: read there, copied once, the original untouched ----
+W15=$(mktemp -d); git -C "$W15" init -q -b main 2>/dev/null || git -C "$W15" init -q
+P15() { env OVERSEER_ROOT="$W15" "$PS" "$@"; }
+OLD15="$W15/.claude/overseer"; NEW15="$W15/.cc-artifacts/overseer"
+P15 init --goal "Old CRM" --slug old >/dev/null 2>&1; P15 milestone add --id m1 --title Skeleton --branch ov/m1 >/dev/null
+mkdir -p "$NEW15/milestones/m1/evidence"; printf 'x' > "$NEW15/milestones/m1/evidence/shot.png"
+P15 evidence add --id m1 --kind review --note "in dir" --file "$NEW15/milestones/m1/evidence/shot.png" >/dev/null
+mkdir -p "$W15/.claude"; mv "$NEW15" "$OLD15"; rmdir "$W15/.cc-artifacts"; printf '1\ts0\t/x\n' > "$OLD15/.reads"
+jq '(.milestones[].evidence[].file) |= sub("/\\.cc-artifacts/overseer/"; "/.claude/overseer/")' "$OLD15/program.json" > "$W15/pj" && mv "$W15/pj" "$OLD15/program.json"
+snap15() { (cd "$OLD15" && find . -type f -exec cksum {} + | sort); }
+before15=$(snap15)
+hook_out=$(printf '{"cwd":"%s"}' "$W15" | "$HOOK")
+printf '%s' "$hook_out" | grep -q 'program "Old CRM" open' && ok || bad "announce reads a program still only in .claude/overseer/: $hook_out"
+mkfile "$W15/r.txt"; payload s15 "$W15" "$W15/r.txt" | bash "$TR"
+[ ! -e "$W15/.cc-artifacts" ] && [ "$(snap15)" = "$before15" ] && ok || bad "track-read writes nowhere while the program is only in .claude/overseer/"
+expect 0 "status reads a program opened under .claude/overseer/" -- P15 status
+grep -q "program: Old CRM" "$WS/out" && grep -qE "^m1	queued	" "$WS/out" && ok || bad "the old program's board: $(head -4 "$WS/out")"
+[ -s "$NEW15/program.json" ] && [ -f "$NEW15/decisions.md" ] && [ -f "$NEW15/.gitignore" ] && [ -f "$NEW15/.reads" ] && [ -f "$NEW15/milestones/m1/evidence/shot.png" ] \
+  && ok || bad "the first call copies the whole old dir: $(cd "$NEW15" 2>/dev/null && find . | sort | tr '\n' ' ')"
+expect 0 "a write after the copy" -- P15 milestone set --id m1 --status building
+[ "$(jq -r '.milestones[0].status' "$NEW15/program.json")" = building ] && [ "$(jq -r '.milestones[0].status' "$OLD15/program.json")" = queued ] && ok || bad "the write lands in .cc-artifacts/overseer/, not .claude/overseer/"
+P15 decision add --text "kept the old table" --rationale r >/dev/null
+grep -q "kept the old table" "$NEW15/decisions.md" && ! grep -q "kept the old table" "$OLD15/decisions.md" && ok || bad "decisions append to the copy only"
+payload s15 "$W15" "$W15/r.txt" | bash "$TR"; grep -q "	s15	" "$NEW15/.reads" && ok || bad "track-read ledgers into the copy once it exists"
+[ "$(snap15)" = "$before15" ] && ok || bad ".claude/overseer/ is byte-for-byte untouched after reads, writes and a ledgered Read"
+jq '.goal = "stale"' "$OLD15/program.json" > "$W15/pj" && mv "$W15/pj" "$OLD15/program.json"
+P15 status > "$WS/out" 2>&1; grep -q "program: Old CRM" "$WS/out" && ok || bad "copied once, never refreshed from .claude/overseer/: $(head -1 "$WS/out")"
+printf '{"cwd":"%s"}' "$W15" | "$HOOK" | grep -q 'program "Old CRM" open' && ok || bad "once the copy exists announce reads only it"
+[ "$(P15 resume | tail -1)" = "Open: no suggestions file yet, 0 parked milestones — .cc-artifacts/overseer/program.json" ] && ok || bad "resume names the new dir: $(P15 resume | tail -1)"
+P15 milestone set --id m1 --status parked --reason "test" >/dev/null
+expect 0 "close a copied program" -- P15 close
+arch15=$(ls "$NEW15"/archive/old-*/program.json)
+jq -r '.milestones[].evidence[].file' "$arch15" | grep -q "/archive/old-[^/]*/milestones/m1/evidence/shot.png$" && ok || bad "a row recorded before the copy is rewritten into the archive: $(jq -c '[.milestones[].evidence[].file]' "$arch15")"
+jq -r '.milestones[].evidence[].file' "$arch15" | while read -r f; do [ -f "$f" ] || exit 1; done && ok || bad "every archived evidence file of a copied program exists"
+[ -z "$(printf '{"cwd":"%s"}' "$W15" | "$HOOK")" ] && ok || bad "after close, the open program left in .claude/overseer/ is never announced"
+W16=$(mktemp -d); env OVERSEER_ROOT="$W16" "$PS" resume >/dev/null 2>&1
+[ ! -e "$W16/.cc-artifacts" ] && ok || bad "control: resume with no program anywhere creates nothing"
+rm -rf "$W15" "$W16"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# program.sh — the overseer's state machine, the ONLY writer of .claude/overseer/program.json (an O_EXCL lock file serialises two invocations).
+# program.sh — the overseer's state machine, the ONLY writer of .cc-artifacts/overseer/program.json (an O_EXCL lock file serialises two invocations).
 # Gates: accept refuses `done` without the kind's evidence profile, files that exist, evidence newer than the last gated dispatch, a gated dispatch, existing skill pins and, on a hands-off program, an ASSUMED decision row. Misses: that the evidence is true — a screenshot of the wrong page still passes; the acceptance reference says why that residual stays.
 # Why, limits, history: rationale/derivations/plugin-overseer.md § plugins/overseer/scripts/program.sh (marketplace repository)
 
@@ -82,7 +82,12 @@ root="${OVERSEER_ROOT:-}"
 if [ -z "$root" ]; then
   root=$(git rev-parse --show-toplevel 2>/dev/null) || root="$PWD"
 fi
-dir="$root/.claude/overseer"
+dir="$root/.cc-artifacts/overseer"
+# Programs opened before 2026-11-14 live in .claude/overseer/: the first call copies them here once and never touches the original.
+if [ ! -e "$dir" ] && [ -d "$root/.claude/overseer" ]; then
+  mkdir -p "$root/.cc-artifacts" && mkdir "$dir" 2>/dev/null && { cp -Rp "$root/.claude/overseer/." "$dir/" \
+    || { echo "program.sh: copying $root/.claude/overseer to $dir failed — remove $dir and re-run; the original is untouched" >&2; exit 5; }; }
+fi
 state="$dir/program.json"
 
 usage() { sed -n '3,/^set -u$/p' "$0" | sed '$d' >&2; exit 3; }
@@ -308,7 +313,7 @@ case "$cmd" in
 
   resume)
     [ $# -eq 0 ] || usage
-    rel=".claude/overseer"
+    rel=".cc-artifacts/overseer"
     [ -e "$state" ] || { echo "No overseer program here (no $rel/program.json) — /overseer:start opens one"; exit 0; }
     in=(-n); jq -e 'type=="object" and (.milestones|type=="array") and all(.milestones[]; type=="object")' "$state" >/dev/null 2>&1 && in=("$state")
     sug=missing
@@ -740,13 +745,14 @@ case "$cmd" in
         # The index must name this milestone and be newer than its registration, not its brief (amending a brief mid-milestone is normal); the newest wins.
         idx=""; idre="(^|[^a-z0-9])$ms([^a-z0-9]|$)"
         reg=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.history[0].at // ""' "$state")
+        # taskmaster before 2026-11-14 wrote its indexes under taskmaster-docs/tasks/: those still count.
         while IFS= read -r i; do
           [ ! "$(date -u -r "$i" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" \< "$reg" ] || continue
           if printf '%s\n' "$i" | grep -qE "$idre" || head -5 "$i" | grep -qE "$idre"; then
             if [ -z "$idx" ] || [ "$i" -nt "$idx" ]; then idx="$i"; fi; fi
-        done < <(find "$root/taskmaster-docs/tasks" -name 00-INDEX.md 2>/dev/null)
+        done < <(find "$root/.cc-artifacts/taskmaster/tasks" "$root/taskmaster-docs/tasks" -name 00-INDEX.md 2>/dev/null)
         [ "$msize" = S ] || [ -n "$idx" ] || warn="$warn
-  size $msize: $ms is briefed to taskmaster (/taskmaster:task <brief>), and no card index under taskmaster-docs/tasks/ registered after $ms names it — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
+  size $msize: $ms is briefed to taskmaster (/taskmaster:task <brief>), and no card index under .cc-artifacts/taskmaster/tasks/ registered after $ms names it — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
         # Ultra:/Goal: is taskmaster's Extreme Boost (code red-team included); the rigour profile says whether it is worth buying. `Goal: true (boost=off)` is goal-lean (taskmaster ≥0.42.1).
         if [ -n "$idx" ]; then
           # head -40, not -12: task-cards/SKILL.md lets an upgraded-statement blockquote sit above the markers
@@ -805,13 +811,16 @@ case "$cmd" in
     arch="$dir/archive/$slug-$at"
     mkdir -p "$arch"
     mv "$state" "$arch/program.json"
-    # Other plugins' hooks leave .claude/ scratch dirs under dispatch/; they are not overseer's record.
-    find "$dir/milestones" -type d -name .claude -prune -exec rm -rf {} + 2>/dev/null
+    # Other plugins' hooks leave .cc-artifacts/ (before 2026-11-14 .claude/) scratch dirs under dispatch/; they are not overseer's record.
+    find "$dir/milestones" -type d \( -name .cc-artifacts -o -name .claude \) -prune -exec rm -rf {} + 2>/dev/null
     [ -d "$dir/milestones" ] && mv "$dir/milestones" "$arch/milestones"
     # Evidence rows hold absolute paths under $dir/milestones: rewritten to where each file now lives (the harness checks).
     phys=$(cd "$dir" && pwd -P)   # evidence add stores the physical path; $dir may be the logical one (macOS /var vs /private/var)
-    jq --arg a "$dir/milestones/" --arg b "$phys/milestones/" --arg to "$(cd "$arch" && pwd -P)/milestones/" \
-      '(.milestones[].evidence[].file) |= (if startswith($a) then $to + .[($a|length):] elif startswith($b) then $to + .[($b|length):] else . end)' \
+    # A program copied from .claude/overseer/ keeps the rows recorded before the copy pointing there; their files were copied too.
+    legacy=$(cd "$root/.claude/overseer" 2>/dev/null && pwd -P) || legacy=""
+    jq --arg a "$dir/milestones/" --arg b "$phys/milestones/" --arg c "${legacy:+$legacy/milestones/}" --arg to "$(cd "$arch" && pwd -P)/milestones/" \
+      '(.milestones[].evidence[].file) |= (if startswith($a) then $to + .[($a|length):] elif startswith($b) then $to + .[($b|length):]
+        elif $c != "" and startswith($c) then $to + .[($c|length):] else . end)' \
       "$arch/program.json" > "$arch/program.json.tmp" && mv "$arch/program.json.tmp" "$arch/program.json"
     # Moved, not copied: a decisions.md left behind let the next hands-off program pass its ASSUMED gate on this one's rows.
     for f in charter.md discovery.md capabilities.tsv decisions.md suggestions.md; do [ -f "$dir/$f" ] && mv "$dir/$f" "$arch/$f"; done

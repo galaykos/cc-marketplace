@@ -70,10 +70,10 @@ for i in $(seq 1 20); do out=$(fire cap-g Task); [ -n "$out" ] && asked="$asked 
 # INSIDE A REGISTERED RUN (2026-10-14): the first threshold is max(cap, cards x 3) and the
 # hook notifies instead of asking. An ask at #20 left an authorized run idle for 67 minutes.
 unset CLAUDE_PROJECT_DIR
-RUN="$T/proj"; mkdir -p "$RUN/.claude/task-runner" "$RUN/docs/tasks/demo" "$RUN/src/deep"
+RUN="$T/proj"; mkdir -p "$RUN/.cc-artifacts/task-runner" "$RUN/docs/tasks/demo" "$RUN/src/deep"
 git init -q -b main "$RUN" 2>/dev/null && git -C "$RUN" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
 { printf '# Index\n\n| card | title | status |\n|---|---|---|\n'; for c in 01 02 03 04 05 06 07 08 09 10; do printf '| %s | t | pending |\n' "$c"; done; } > "$RUN/docs/tasks/demo/00-INDEX.md"
-printf '{"slug":"demo","branch":"main","index_path":"docs/tasks/demo/00-INDEX.md"}' > "$RUN/.claude/task-runner/active-run.json"
+printf '{"slug":"demo","branch":"main","index_path":"docs/tasks/demo/00-INDEX.md"}' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 fire_at() { # session cwd
   jq -cn --arg s "$1" --arg c "$2" '{session_id:$s,tool_name:"Agent",cwd:$c,tool_input:{}}' | "$BASH_BIN" "$HOOK" 2>/dev/null
 }
@@ -98,13 +98,13 @@ for i in $(seq 1 20); do out=$(fire_at run-b "$RUN"); [ -n "$out" ] && said="$sa
 [ "$said" = ' 20:systemMessage' ] && ok "a 2-card run keeps the cap of 20, as a notice" || bad "a 2-card run keeps the cap of 20, as a notice" "got '$said'"
 
 # A run with no card index notifies at the cap and says so.
-printf '{"slug":"inline","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+printf '{"slug":"inline","branch":"main"}' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do fire_at run-c "$RUN"; done | tail -1)
 case "$out" in *'"systemMessage"'*'no card index'*) ok "an inline run notifies at the cap and says it has no plan" ;;
   *) bad "an inline run notifies at the cap and says it has no plan" "got: ${out:-<silent>}" ;; esac
 
 # A sentinel a run left on another branch is not this branch's run: it asks.
-printf '{"slug":"old","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+printf '{"slug":"old","branch":"main"}' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 git -C "$RUN" checkout -q -b other
 out=$(for i in $(seq 1 20); do fire_at run-e "$RUN"; done | tail -1)
 case "$out" in *'"permissionDecision":"ask"'*) ok "a run registered on another branch still asks at 20" ;;
@@ -113,7 +113,7 @@ git -C "$RUN" checkout -q main
 
 # A tag named like the run's branch, made after registration: --abbrev-ref printed `heads/main`,
 # so the run read as another branch's and dispatch #20 asked (2026-10-15).
-printf '{"slug":"tagged","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+printf '{"slug":"tagged","branch":"main"}' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 git -C "$RUN" tag main
 out=$(for i in $(seq 1 20); do fire_at run-t "$RUN"; done | tail -1)
 case "$out" in *'"systemMessage"'*'registered run tagged'*) ok "a tag named like the run's branch: still the run, it notifies at 20" ;;
@@ -123,13 +123,13 @@ git -C "$RUN" tag -d main >/dev/null
 # symbolic-ref failing with an exit other than 1 is not a detached head: the branch is unknown, the run counts.
 SHIM="$T/shim"; mkdir -p "$SHIM"
 printf '#!/bin/sh\nfor a in "$@"; do [ "$a" = symbolic-ref ] && exit 128; done\nexec %s "$@"\n' "$(command -v git)" > "$SHIM/git"; chmod +x "$SHIM/git"
-printf '{"slug":"gitfail","branch":"main"}' > "$RUN/.claude/task-runner/active-run.json"
+printf '{"slug":"gitfail","branch":"main"}' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do PATH="$SHIM:$PATH" fire_at run-x "$RUN"; done | tail -1)
 case "$out" in *'"systemMessage"'*'registered run gitfail'*) ok "symbolic-ref exiting 128: still the run, it notifies at 20" ;;
   *) bad "symbolic-ref exiting 128: still the run, it notifies at 20" "got: ${out:-<silent>}" ;; esac
 
 # A sentinel naming no branch is this branch's run, as candor's completion clause reads it.
-printf '{"slug":"nobranch"}' > "$RUN/.claude/task-runner/active-run.json"
+printf '{"slug":"nobranch"}' > "$RUN/.cc-artifacts/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do fire_at run-f "$RUN"; done | tail -1)
 case "$out" in *'"systemMessage"'*'registered run nobranch'*) ok "a sentinel naming no branch is the current run: it notifies at 20" ;;
   *) bad "a sentinel naming no branch is the current run: it notifies at 20" "got: ${out:-<silent>}" ;; esac
@@ -138,7 +138,7 @@ case "$out" in *'"systemMessage"'*'registered run nobranch'*) ok "a sentinel nam
 # names main, so on run/tm the hook asked at #20. Registered again on the run branch, as
 # /task-runner:run --tracks now orders it, the 8-card plan applies.
 RR="$(cd "$(dirname "$0")/../.." && pwd)/scripts/register-run.sh"
-rm -f "$RUN/.claude/task-runner/active-run.json"
+rm -f "$RUN/.cc-artifacts/task-runner/active-run.json"
 { printf '| card | title | status |\n|---|---|---|\n'; for c in 01 02 03 04 05 06 07 08; do printf '| %s | t | pending |\n' "$c"; done; } > "$RUN/docs/tasks/demo/00-INDEX.md"
 (cd "$RUN" && HOME="$T/nohome" bash "$RR" --index docs/tasks/demo/00-INDEX.md >/dev/null 2>&1)
 git -C "$RUN" checkout -q -b run/tm
@@ -151,10 +151,18 @@ for i in $(seq 1 24); do out=$(fire_at run-h "$RUN"); [ -n "$out" ] && said="$sa
 [ "$said" = ' 24:systemMessage' ] && ok "registered again on run/tm: the 8-card plan notifies at 24" \
   || bad "registered again on run/tm: the 8-card plan notifies at 24" "got '$said'"
 git -C "$RUN" checkout -q main
-rm -rf "$RUN/.claude/cc-phase"
+rm -rf "$RUN/.cc-artifacts/cc-phase"
+
+# A run registered before 2026-11-14 sits in .claude/task-runner/: read from its one-time copy, it still notifies.
+OLDP="$T/oldproj"; mkdir -p "$OLDP/.claude/task-runner"
+git init -q -b main "$OLDP" 2>/dev/null && git -C "$OLDP" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+printf '{"slug":"legacy","branch":"main"}' > "$OLDP/.claude/task-runner/active-run.json"
+out=$(for i in $(seq 1 20); do fire_at run-l "$OLDP"; done | tail -1)
+case "$out" in *'"systemMessage"'*'registered run legacy'*) ok "a run under .claude/task-runner/ is still the run: it notifies at 20" ;;
+  *) bad "a run under .claude/task-runner/ is still the run: it notifies at 20" "got: ${out:-<silent>}" ;; esac
 
 # Outside a run, the same cwd still asks.
-rm -f "$RUN/.claude/task-runner/active-run.json"
+rm -f "$RUN/.cc-artifacts/task-runner/active-run.json"
 out=$(for i in $(seq 1 20); do fire_at run-d "$RUN"; done | tail -1)
 case "$out" in *'"permissionDecision":"ask"'*) ok "with no registered run it still asks at 20" ;;
   *) bad "with no registered run it still asks at 20" "got: ${out:-<silent>}" ;; esac

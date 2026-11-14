@@ -22,12 +22,12 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 pass=0; fail=0
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
 
-CWD="$WS/repo"; mkdir -p "$CWD/.claude/task-runner"
+CWD="$WS/repo"; mkdir -p "$CWD/.cc-artifacts/task-runner"
 git init -q "$CWD" 2>/dev/null
-SCOPE="$CWD/.claude/task-runner/scope.json"
+SCOPE="$CWD/.cc-artifacts/task-runner/scope.json"
 # A REGISTERED run (0.41.0): scope files are read only while active-run.json exists, and
 # only when not older than it. Back-dated so every scope file written below is newer.
-ACTIVE="$CWD/.claude/task-runner/active-run.json"
+ACTIVE="$CWD/.cc-artifacts/task-runner/active-run.json"
 printf '{"slug":"t"}' > "$ACTIVE"; touch -t 202601010000 "$ACTIVE"
 
 stdin_for() { # <file_path> -> canned PostToolUse stdin
@@ -95,7 +95,7 @@ printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$SCOPE"
 
 # 4) editing scope.json itself is never in scope but always ignored
 run_case "edit to scope.json itself -> silent" \
-  "$(stdin_for "$CWD/.claude/task-runner/scope.json")" 0 silent
+  "$(stdin_for "$CWD/.cc-artifacts/task-runner/scope.json")" 0 silent
 
 # 5) fail-open: no scope file declared -> no-op even for a wild edit
 rm -f "$SCOPE"
@@ -137,10 +137,10 @@ else
 fi
 
 # 10) state hygiene (0.34.4): the run's state dir ignores itself once any hook sees it.
-if [ "$(cat "$CWD/.claude/task-runner/.gitignore" 2>/dev/null)" = "*" ]; then
-  printf 'PASS: .claude/task-runner/ ignores itself\n'; pass=$((pass+1))
+if [ "$(cat "$CWD/.cc-artifacts/task-runner/.gitignore" 2>/dev/null)" = "*" ]; then
+  printf 'PASS: .cc-artifacts/task-runner/ ignores itself\n'; pass=$((pass+1))
 else
-  printf 'FAIL: .claude/task-runner/.gitignore missing or not "*"\n'; fail=$((fail+1))
+  printf 'FAIL: .cc-artifacts/task-runner/.gitignore missing or not "*"\n'; fail=$((fail+1))
 fi
 
 # 11) PER-CARD SCOPE FILES (SW 8 of the 2026-09-22 panel). routing.md writes one
@@ -149,8 +149,8 @@ fi
 #     mechanical tripwire at all. These cases fail against that logic: with NO
 #     scope.json present, the old hook was silent on every path.
 rm -f "$SCOPE"
-printf '{"allow":["src/card-a.js"],"task":"card 01"}' > "$CWD/.claude/task-runner/scope-01.json"
-printf '{"allow":["src/card-b.js"],"task":"card 02"}' > "$CWD/.claude/task-runner/scope-02.json"
+printf '{"allow":["src/card-a.js"],"task":"card 01"}' > "$CWD/.cc-artifacts/task-runner/scope-01.json"
+printf '{"allow":["src/card-b.js"],"task":"card 02"}' > "$CWD/.cc-artifacts/task-runner/scope-02.json"
 
 run_case "per-card scope only: out-of-union edit -> envelope naming both cards" \
   "$(stdin_for "$CWD/src/stray.js")" 0 envelope "src/stray.js" "card 01, card 02"
@@ -159,7 +159,7 @@ run_case "per-card scope only: card 01's file -> silent" \
 run_case "per-card scope only: card 02's file -> silent (union, not first-file-wins)" \
   "$(stdin_for "$CWD/src/card-b.js")" 0 silent
 run_case "edit to a scope-<cardId>.json itself -> silent" \
-  "$(stdin_for "$CWD/.claude/task-runner/scope-01.json")" 0 silent
+  "$(stdin_for "$CWD/.cc-artifacts/task-runner/scope-01.json")" 0 silent
 
 # 12) inline scope.json joins the SAME union rather than replacing it.
 printf '{"allow":["src/inline.js"],"task":"inline"}' > "$SCOPE"
@@ -172,7 +172,7 @@ run_case "inline + per-card: stray still warns" \
 
 # 13) one malformed member disarms the whole call (stated in the header): a partial
 #     union would warn about a path the file it could not parse had allowed.
-printf 'not json' > "$CWD/.claude/task-runner/scope-03.json"
+printf 'not json' > "$CWD/.cc-artifacts/task-runner/scope-03.json"
 run_case "one malformed scope file -> whole call not enforced, stdout silent" \
   "$(stdin_for "$CWD/src/stray.js")" 0 silent
 set +e
@@ -181,13 +181,13 @@ case "$err" in *"scope-03.json is malformed"*)
   printf 'PASS: malformed member named on stderr\n'; pass=$((pass+1)) ;;
   *) printf 'FAIL: malformed member not named on stderr: <%s>\n' "$err"; fail=$((fail+1)) ;;
 esac
-rm -f "$CWD/.claude/task-runner/scope-03.json" "$CWD/.claude/task-runner/scope-01.json" \
-      "$CWD/.claude/task-runner/scope-02.json"
+rm -f "$CWD/.cc-artifacts/task-runner/scope-03.json" "$CWD/.cc-artifacts/task-runner/scope-01.json" \
+      "$CWD/.cc-artifacts/task-runner/scope-02.json"
 
 # 13b) VALID JSON, WRONG SHAPE. Orchestrators wrote {card, allowed}; `.allow // []` read
 #      it as an empty list and every edit of the run warned. Now it disarms like a
 #      malformed file and names the expected shape.
-printf '{"card":"04","allowed":["src/card-d.js"]}' > "$CWD/.claude/task-runner/scope-04.json"
+printf '{"card":"04","allowed":["src/card-d.js"]}' > "$CWD/.cc-artifacts/task-runner/scope-04.json"
 run_case "scope file with no allow array -> whole call not enforced, stdout silent" \
   "$(stdin_for "$CWD/src/card-d.js")" 0 silent
 set +e
@@ -196,7 +196,7 @@ case "$err" in *'scope-04.json has no "allow" array (expected {"allow":["path","
   printf 'PASS: wrong-shape member named on stderr with the expected shape\n'; pass=$((pass+1)) ;;
   *) printf 'FAIL: wrong-shape member not named on stderr: <%s>\n' "$err"; fail=$((fail+1)) ;;
 esac
-rm -f "$CWD/.claude/task-runner/scope-04.json"
+rm -f "$CWD/.cc-artifacts/task-runner/scope-04.json"
 
 # 13c) an Edit/Write OUTSIDE the project root (a /tmp probe, the user's memory dir) is no
 #      card's file; it was told to "revert this edit". An in-root stray still warns.
@@ -228,7 +228,7 @@ run_case "same scope.json once a run is registered -> warns again" \
 
 # 15) a scope file OLDER than active-run.json belongs to an earlier registration: its
 #     allow list and its task name both drop out of the union.
-OLD="$CWD/.claude/task-runner/scope-99.json"
+OLD="$CWD/.cc-artifacts/task-runner/scope-99.json"
 printf '{"allow":["src/old.js"],"task":"card 99"}' > "$OLD"; touch -t 202501010000 "$OLD"
 ctx=$(ctx_of "$(stdin_for "$CWD/src/old.js")")
 case "$ctx" in *"src/old.js"*"card 07"*)
@@ -239,7 +239,7 @@ rm -f "$OLD"
 
 # 16) BASH WRITES. PostToolUse, so a target counts only if it exists after the call.
 mkdir -p "$CWD/other" "$CWD/src"
-echo x > "$CWD/other/out.js"; echo x > "$CWD/src/allowed.js"; echo '{}' > "$CWD/.claude/task-runner/gate-pass.json"
+echo x > "$CWD/other/out.js"; echo x > "$CWD/src/allowed.js"; echo '{}' > "$CWD/.cc-artifacts/task-runner/gate-pass.json"
 run_case "Bash heredoc write outside scope -> envelope" \
   "$(stdin_bash "cat > other/out.js <<'EOF'
 const big = 1 > 0 ? 'a' : 'b';
@@ -250,8 +250,8 @@ run_case "Bash with no write targets -> silent" \
   "$(stdin_bash "ls -la && git status --short | head -5")" 0 silent
 run_case "Bash target that does not exist after the call -> silent" \
   "$(stdin_bash "echo x > other/never-written.js")" 0 silent
-run_case "Bash write to the run's own state (.claude/task-runner/) -> silent" \
-  "$(stdin_bash "echo '{\"head\":\"x\"}' > .claude/task-runner/gate-pass.json")" 0 silent
+run_case "Bash write to the run's own state (.cc-artifacts/task-runner/) -> silent" \
+  "$(stdin_bash "echo '{\"head\":\"x\"}' > .cc-artifacts/task-runner/gate-pass.json")" 0 silent
 ctx=$(ctx_of "$(stdin_bash "echo x | tee src/allowed.js other/out.js")")
 case "$ctx" in *"other/out.js was edited"*)
   printf 'PASS: Bash tee to two paths -> the out-of-scope one warns\n'; pass=$((pass+1)) ;;
@@ -271,27 +271,27 @@ run_case "subdirectory cwd -> Bash relative target named repo-relative" \
   "$(stdin_bash "echo x > Local.php" "$SUB")" 0 envelope "app/Models/Local.php"
 run_case "subdirectory cwd -> Bash ../ target normalized, in scope -> silent" \
   "$(stdin_bash "echo x > ../../src/allowed.js" "$SUB")" 0 silent
-if [ -e "$SUB/.claude" ] || [ -e "$CWD/app/.claude" ]; then
-  printf 'FAIL: a .claude/ dir appeared under the subdirectory\n'; fail=$((fail+1))
+if [ -e "$SUB/.claude" ] || [ -e "$CWD/app/.claude" ] || [ -e "$SUB/.cc-artifacts" ] || [ -e "$CWD/app/.cc-artifacts" ]; then
+  printf 'FAIL: a .claude/ or .cc-artifacts/ dir appeared under the subdirectory\n'; fail=$((fail+1))
 else
-  printf 'PASS: no .claude/ dir created under the subdirectory\n'; pass=$((pass+1))
+  printf 'PASS: no .claude/ or .cc-artifacts/ dir created under the subdirectory\n'; pass=$((pass+1))
 fi
-rm -f "$CWD/.claude/task-runner/gate-pass.json"
+rm -f "$CWD/.cc-artifacts/task-runner/gate-pass.json"
 
 # 18) INTERPRETER WRITES (0.47.0, bash-write-effects). A file git reports changed since this
 #     hook's previous call in the run, after an interpreter, cp, mv, install or patch run, is
 #     judged as an Edit of it would be. One repo per shape group: a reused repo carries the
 #     marker. All red against 0.46.3 except the silent ones, which pin what must not change.
 mkrun() { # <dir> -> a git repo with a registered run allowing src/allowed.js and lib/
-  mkdir -p "$1/.claude/task-runner" "$1/src" "$1/lib" "$1/other"; git init -q "$1"
-  printf '{"slug":"t"}' > "$1/.claude/task-runner/active-run.json"; touch -t 202601010000 "$1/.claude/task-runner/active-run.json"
-  printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$1/.claude/task-runner/scope.json"
+  mkdir -p "$1/.cc-artifacts/task-runner" "$1/src" "$1/lib" "$1/other"; git init -q "$1"
+  printf '{"slug":"t"}' > "$1/.cc-artifacts/task-runner/active-run.json"; touch -t 202601010000 "$1/.cc-artifacts/task-runner/active-run.json"
+  printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$1/.cc-artifacts/task-runner/scope.json"
 }
 runb() { (cd "$1" && bash -c "$2") >/dev/null 2>&1; ctx_of "$(stdin_bash "$2" "$1")"; } # <repo> <command>: run it, then the hook
 edit_ctx() { ctx_of "$(jq -cn --arg cwd "$1" --arg f "$2" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}')"; }
 check() { if [ "$2" = 1 ]; then printf 'PASS: %s\n' "$1"; pass=$((pass+1)); else printf 'FAIL: %s\n' "$1"; fail=$((fail+1)); fi; }
 if command -v python3 >/dev/null 2>&1; then
-  R="$WS/fx-effects"; mkrun "$R"; MK="$R/.claude/task-runner/bash-effects.mark"
+  R="$WS/fx-effects"; mkrun "$R"; MK="$R/.cc-artifacts/task-runner/bash-effects.mark"
   ctx=$(runb "$R" "python3 - <<'PY'
 open('other/first.js', 'w').write('x\n')
 PY")
@@ -324,10 +324,10 @@ PY")
 open('other/late.js', 'w').write('x\n')
 PY")
   check "effects: a marker older than active-run.json (an earlier run's) reads nothing (ctx=<$ctx>)" \
-    "$([ -z "$ctx" ] && [ "$MK" -nt "$R/.claude/task-runner/active-run.json" ] && echo 1)"
+    "$([ -z "$ctx" ] && [ "$MK" -nt "$R/.cc-artifacts/task-runner/active-run.json" ] && echo 1)"
   N="$WS/fx-norun"; mkdir -p "$N"; git init -q "$N"
   runb "$N" "python3 -c 'print(1)'" >/dev/null
-  check "effects: no registered run -> no state written into the repo" "$([ ! -e "$N/.claude" ] && echo 1)"
+  check "effects: no registered run -> no state written into the repo" "$([ ! -e "$N/.claude" ] && [ ! -e "$N/.cc-artifacts" ] && echo 1)"
 
   # Two workers of one session in one tree: worker B's python run writes other/stray.js and worker A's hook call ends
   # first. A is told the file changed and may not be its own, never to revert it; B, its window spent, is silent.
@@ -388,8 +388,8 @@ fi
 #     config under .claude/, another task's index dir and app files still warn. The silent ones are red on 0.50.0.
 B="$WS/fx-bookkeeping"; mkrun "$B"; BI="taskmaster-docs/tasks/t"
 mkdir -p "$B/$BI/.lint-records" "$B/.claude/code-review/rv" "$B/.claude/overseer/dispatch" "$B/app"
-printf '{"slug":"t","index_path":"%s/00-INDEX.md"}' "$BI" > "$B/.claude/task-runner/active-run.json"
-touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+printf '{"slug":"t","index_path":"%s/00-INDEX.md"}' "$BI" > "$B/.cc-artifacts/task-runner/active-run.json"
+touch -t 202601010000 "$B/.cc-artifacts/task-runner/active-run.json"
 silent_edit() { local c; c=$(edit_ctx "$B" "$B/$1"); check "bookkeeping: Edit $1 -> silent (ctx=<$c>)" "$([ -z "$c" ] && echo 1)"; }
 warns_edit() { local c; c=$(edit_ctx "$B" "$B/$1"); check "bookkeeping: Edit $1 -> still warns (ctx=<$c>)" \
   "$(case "$c" in *"$1 was edited but is NOT among the files card 07 declared"*) echo 1 ;; esac)"; }
@@ -410,18 +410,53 @@ check "bookkeeping: Bash redirect to the index dir's .lint-records/ -> silent (c
 ctx=$(runb "$B" "echo x > app/Y.php")
 check "bookkeeping: Bash redirect to an app file -> still warns (ctx=<$ctx>)" \
   "$(case "$ctx" in *"app/Y.php was edited"*) echo 1 ;; esac)"
-printf '{"slug":"t","index_path":"%s/%s/00-INDEX.md"}' "$B" "$BI" > "$B/.claude/task-runner/active-run.json"
-touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+printf '{"slug":"t","index_path":"%s/%s/00-INDEX.md"}' "$B" "$BI" > "$B/.cc-artifacts/task-runner/active-run.json"
+touch -t 202601010000 "$B/.cc-artifacts/task-runner/active-run.json"
 silent_edit "$BI/PLAN.md"
 warns_edit app/Http/Controllers/X.php
-printf '{"slug":"t","index_path":"00-INDEX.md"}' > "$B/.claude/task-runner/active-run.json"
-touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+printf '{"slug":"t","index_path":"00-INDEX.md"}' > "$B/.cc-artifacts/task-runner/active-run.json"
+touch -t 202601010000 "$B/.cc-artifacts/task-runner/active-run.json"
 warns_edit app/Http/Controllers/X.php
 warns_edit "$BI/PLAN.md"
-printf '{"slug":"t"}' > "$B/.claude/task-runner/active-run.json"
-touch -t 202601010000 "$B/.claude/task-runner/active-run.json"
+printf '{"slug":"t"}' > "$B/.cc-artifacts/task-runner/active-run.json"
+touch -t 202601010000 "$B/.cc-artifacts/task-runner/active-run.json"
 warns_edit "$BI/00-INDEX.md"
 silent_edit .claude/overseer/findings.md
+
+# 20) .cc-artifacts/ (2026-11-14): plugin scratch and taskmaster's ledgers moved out of .claude/<dir>/ stay silent; the
+#     rest of .cc-artifacts/taskmaster/ came from taskmaster-docs/, which was always checked outside the run's index dir.
+B="$WS/fx-artifacts"; mkrun "$B"; BI=".cc-artifacts/taskmaster/tasks/t"
+mkdir -p "$B/$BI/.lint-records" "$B/.cc-artifacts/code-review/rv" "$B/app"
+printf '{"slug":"t","index_path":"%s/00-INDEX.md"}' "$BI" > "$B/.cc-artifacts/task-runner/active-run.json"
+touch -t 202601010000 "$B/.cc-artifacts/task-runner/active-run.json"
+for p in "$BI/00-INDEX.md" "$BI/PLAN.md" "$BI/.lint-records/03-add-endpoint.md.log" .cc-artifacts/code-review/rv/03.patch \
+         .cc-artifacts/overseer/findings.md .cc-artifacts/taskmaster/ledger-t.md .cc-artifacts/taskmaster/goal-ledger-t.md; do silent_edit "$p"; done
+for p in app/Http/Controllers/X.php .cc-artifacts/taskmaster/tasks/other/00-INDEX.md .cc-artifacts/taskmaster/PLAN.md \
+         .cc-artifacts/taskmaster/specs/x.md; do warns_edit "$p"; done
+ctx=$(runb "$B" "git diff > .cc-artifacts/code-review/rv/03.patch")
+check "artifacts: Bash redirect to .cc-artifacts/code-review/rv/ -> silent (ctx=<$ctx>)" "$([ -z "$ctx" ] && echo 1)"
+
+# 21) A run registered before 2026-11-14 lives in .claude/task-runner/: the hook copies it to .cc-artifacts/task-runner/
+#     once (mtimes kept, iso/ left out), reads the copy, and leaves the old dir as it was.
+L="$WS/fx-legacy"; mkdir -p "$L/.claude/task-runner/iso/bg.1/tree" "$L/src" "$L/other"; git init -q "$L"
+printf '{"slug":"t"}' > "$L/.claude/task-runner/active-run.json"; touch -t 202601010000 "$L/.claude/task-runner/active-run.json"
+printf '{"allow":["src/allowed.js"],"task":"card 07"}' > "$L/.claude/task-runner/scope.json"
+find "$L/.claude" -type d -exec touch -t 202601010000 {} +; touch -t 202601010100 "$L/.claude/task-runner/scope.json" "$WS/ref-legacy"
+before=$(cd "$L/.claude" && find . | sort)
+ctx=$(edit_ctx "$L" "$L/other/file.js")
+check "legacy run: an Edit outside the old dir's scope still warns (ctx=<$ctx>)" \
+  "$(case "$ctx" in *"other/file.js was edited but is NOT among the files card 07 declared"*) echo 1 ;; esac)"
+check "legacy run: active-run.json and scope.json are copied with their mtimes, iso/ is not, and the copy ignores itself" \
+  "$([ "$L/.cc-artifacts/task-runner/active-run.json" -ot "$L/.cc-artifacts/task-runner/scope.json" ] \
+    && [ ! "$L/.cc-artifacts/task-runner/active-run.json" -nt "$L/.claude/task-runner/active-run.json" ] \
+    && [ ! "$L/.cc-artifacts/task-runner/active-run.json" -ot "$L/.claude/task-runner/active-run.json" ] \
+    && [ ! -e "$L/.cc-artifacts/task-runner/iso" ] && [ "$(cat "$L/.cc-artifacts/task-runner/.gitignore" 2>/dev/null)" = '*' ] && echo 1)"
+check "legacy run: the old dir is left as it was" \
+  "$([ "$(cd "$L/.claude" && find . | sort)" = "$before" ] && [ -z "$(find "$L/.claude" -newer "$WS/ref-legacy")" ] && echo 1)"
+printf '{"allow":["other/"],"task":"card 08"}' > "$L/.claude/task-runner/scope-08.json"
+ctx=$(edit_ctx "$L" "$L/other/file.js")
+check "legacy run: once copied, a scope file written to the old dir is not read (ctx=<$ctx>)" \
+  "$(case "$ctx" in *"other/file.js was edited"*) echo 1 ;; esac)"
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

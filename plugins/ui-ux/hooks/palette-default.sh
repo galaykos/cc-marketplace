@@ -1,5 +1,5 @@
 #!/bin/bash
-# palette-default.sh — PostToolUse on Edit|Write|MultiEdit: once per transcript and project, names the indigo/violet/purple default accent a written UI file carries as a Tailwind class or a default swatch hex; advisory, always exits 0. Off: CC_REMIND=off (every nudge) or CC_PALETTE=off (unset: /config options cc_remind / cc_palette). State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state), else <root>/.claude/ui-ux/.
+# palette-default.sh — PostToolUse on Edit|Write|MultiEdit: once per transcript and project, names the indigo/violet/purple default accent a written UI file carries as a Tailwind class or a default swatch hex; advisory, always exits 0. Off: CC_REMIND=off (every nudge) or CC_PALETTE=off (unset: /config options cc_remind / cc_palette). State: per project under CLAUDE_PLUGIN_DATA (cc_plugin_state), else <root>/.cc-artifacts/ui-ux/.
 # Misses: a composition (three equal cards, a ribbon on the middle one, a centred hero); a class built at runtime (`bg-${tone}-500`) or passed as a prop (`color="indigo"`); an in-band hex that is no default swatch. The file is already written: it informs the next edit.
 # Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/palette-default.sh
 
@@ -24,7 +24,7 @@ cc_state_root() {
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -34,7 +34,7 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }

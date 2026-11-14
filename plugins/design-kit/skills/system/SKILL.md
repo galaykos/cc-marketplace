@@ -1,7 +1,7 @@
 ---
 name: system
-description: Use when a project needs its design system written down from what actually exists. Extracts tokens, typefaces and a component inventory from the repo, a live URL, or a folder of brand assets. Writes them to design-system/ (DTCG tokens.json, DESIGN-SYSTEM.md, a UI-kit page). Or when a design, artifact or deck must start from the project's real palette, not a remembered one.
-argument-hint: "[repo | https://url | brand-dir] [--out design-system]"
+description: Use when a project needs its design system written down from what actually exists. Extracts tokens, typefaces and a component inventory from the repo, a live URL, or a folder of brand assets. Writes them to .cc-artifacts/design-kit/design-system/ (DTCG tokens.json, DESIGN-SYSTEM.md, a UI-kit page). Or when a design, artifact or deck must start from the project's real palette, not a remembered one.
+argument-hint: "[repo | https://url | brand-dir] [--out DIR]"
 ---
 
 ## Entry: /design-kit:system
@@ -15,7 +15,8 @@ permission rule; it records the workshop state the other skills read).
 
 1. Resolve the target from `$ARGUMENTS`: a URL, a directory, or nothing (= the
    current repo). Do not guess a URL from the project name. `--out` overrides the
-   output directory; default `design-system/` at the project root.
+   output directory; default `.cc-artifacts/design-kit/design-system/` at the project root
+   (older projects: `design-system/`, still read until a run writes the new one).
 2. Dry-run first on a repo you have not seen:
    `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> --dry-run`
    and read the table. If two sources disagree on one token (two `primary`
@@ -25,11 +26,11 @@ permission rule; it records the workshop state the other skills read).
    prints the summary line (tokens, components, sources), every `note:` line — the
    URL-mode "without running JavaScript" caveat is part of the answer, not noise —
    and `url=…/previews/kit.html`. Give the user that URL; the gallery at the base
-   URL lists it too. If `.design-kit/` is not in `.gitignore`, say so once; do not
+   URL lists it too. If `.cc-artifacts/` is not in `.gitignore`, say so once; do not
    edit `.gitignore` unasked.
 4. Offer, with AskUserQuestion, exactly two options: "Append the `## Design system`
    block to CLAUDE.md so every artifact, design and deck starts from it" /
-   "Leave CLAUDE.md alone — the block stays in design-system/DESIGN-SYSTEM.md
+   "Leave CLAUDE.md alone — the block stays in .cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md
    (Recommended)". Append only on the first; if CLAUDE.md already has a
    `## Design system` heading, replace that section rather than adding a second.
 5. Close with the `## Not found` list from `DESIGN-SYSTEM.md` in one line each, so
@@ -44,7 +45,7 @@ proves the inventory, not the look of a component — that is `/design-kit:in-co
 
 A design system here is a **record of what the source already has**, not a proposal.
 The script `scripts/system-extract.py` reads the source and writes three files under
-`design-system/`; this skill is the judgment around it — what to run it on, how to
+`.cc-artifacts/design-kit/design-system/`; this skill is the judgment around it — what to run it on, how to
 read what comes back, and what never to add by hand.
 
 **Recording values is this skill; GENERATING them is `/ui-ux:theme`.** When the `## Not
@@ -80,7 +81,7 @@ build on it as if it were true. Therefore:
 ## Running it
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source repo|url|brand|rendered] [--out design-system] [--dry-run]
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source repo|url|brand|rendered] [--out DIR] [--dry-run]
 ```
 
 - **repo** (default for a directory with `package.json`, `composer.json`, `src/` or a
@@ -106,7 +107,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> [--source rep
   lines carrying a hex code or a "Typeface: X" phrase.
 
 `--dry-run` prints the token table and touches nothing. Use it first on an unfamiliar
-repo; the full run writes `design-system/tokens.json`, `DESIGN-SYSTEM.md`, `kit.html`.
+repo; the full run writes `tokens.json`, `DESIGN-SYSTEM.md`, `kit.html` into `.cc-artifacts/design-kit/design-system/`.
 
 ## Reading what came back
 
@@ -130,7 +131,7 @@ Claude Code's built-in artifact design skill "looks for an existing design syste
 your project before choosing its own", in the plain form `DESIGN-SYSTEM.md`'s
 `## Design system` block uses, and ranks it: **prompt > your design system > its own
 defaults**. Entry step 4 offers to append that block to `CLAUDE.md`; the default is to
-leave `CLAUDE.md` alone and point at `design-system/DESIGN-SYSTEM.md` instead. Either
+leave `CLAUDE.md` alone and point at `.cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md` instead. Either
 way, `/design-kit:design`, `/design-kit:slides` and `/design-kit:artifact` read the
 block first (agent-graded — nothing proves a sibling skill read it).
 
@@ -142,8 +143,8 @@ consumer must tolerate are in `references/tokens-format.md`.
 ## Re-running
 
 The output is deterministic: the same source gives byte-identical files (gate — the
-harness runs twice and compares). So `git diff design-system/` after a re-run is a
-real change in the source, and a clean diff means nothing moved. Re-run after any
+harness runs twice and compares). So a `check:` line from `dk.sh check` is a real change
+in the source, and `design-system: current` means nothing moved. Re-run after any
 edit to a stylesheet, Tailwind config or component directory; this skill does not
 watch for it.
 

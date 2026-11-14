@@ -18,8 +18,8 @@ unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA
 export TMPDIR="$WS/tmp"; mkdir -p "$TMPDIR"
 PREAMBLE="$ROOT/plugins/candor/hooks/preamble.sh"
 CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"
-MARKER="$CWD/.claude/candor/last"
-CLAIMED="$CWD/.claude/candor/blocked"
+MARKER="$CWD/.cc-artifacts/candor/last"
+CLAIMED="$CWD/.cc-artifacts/candor/blocked"
 
 printf 'a\nb\nc\nd\ne\n' > "$CWD/src/real.ts"           # 5 lines
 printf 'x\ny\n'          > "$CWD/deep/nested/deep.ts"   # 2 lines
@@ -77,8 +77,8 @@ check "resolving citation passes"                     "" "$T" 0 "__NONE__"
 T="$WS/c3.jsonl"; { user "where"; asst "See src/real.ts:900 for the guard."; } > "$T"
 check "citation past EOF blocks"                      "" "$T" 2 "$CITE_SUB"
 
-if [ "$(cat "$CWD/.claude/candor/.gitignore" 2>/dev/null)" = "*" ]; then pass=$((pass+1)); printf 'PASS  state dir ignores itself\n'
-else fail=$((fail+1)); printf 'FAIL  state dir ignores itself (.claude/candor/.gitignore missing or not "*")\n'; fi
+if [ "$(cat "$CWD/.cc-artifacts/candor/.gitignore" 2>/dev/null)" = "*" ]; then pass=$((pass+1)); printf 'PASS  state dir ignores itself\n'
+else fail=$((fail+1)); printf 'FAIL  state dir ignores itself (.cc-artifacts/candor/.gitignore missing or not "*")\n'; fi
 
 FAKEHOME="$WS/home"; mkdir -p "$FAKEHOME/.claude"; printf '{\n  "model": "x"\n}\n' > "$FAKEHOME/.claude/settings.json"
 T="$WS/c3b.jsonl"; { user "where is my model set"; asst "Your model is set in ~/.claude/settings.json:2."; } > "$T"
@@ -217,8 +217,8 @@ sub_payload() { # agent-transcript  last-msg  [stop_hook_active]
 }
 { user "main thread prompt"; } > "$WS/parent.jsonl"
 A="$WS/agent.jsonl"; { user "find the bug"; asst "placeholder"; } > "$A"
-SUB_MARKER="$CWD/.claude/candor/last-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
-SUB_CLAIMED="$CWD/.claude/candor/blocked-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
+SUB_MARKER="$CWD/.cc-artifacts/candor/last-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
+SUB_CLAIMED="$CWD/.cc-artifacts/candor/blocked-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
 sub_check() { # desc  last-msg  exp_rc  exp_sub
   local desc="$1" msg="$2" exp_rc="$3" exp_sub="$4" err rc ok=1
   rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
@@ -300,9 +300,9 @@ if command -v git >/dev/null 2>&1; then
   git -C "$CWD" init -q && git -C "$CWD" config user.email t@t.t && git -C "$CWD" config user.name t
   git -C "$CWD" add -A >/dev/null 2>&1 && git -C "$CWD" commit -qm init
   # One session, so one transcript path across its turns: the nudge is keyed on it.
-  T="$WS/c4.jsonl"; SENT="$CWD/.claude/task-runner/active-run.json"
-  NUDGE="$CWD/.claude/task-runner/gate-nudge-$(printf '%s' "$T" | cksum | cut -d' ' -f1)"
-  mkdir -p "$CWD/.claude/task-runner"; printf '{"slug":"t"}' > "$SENT"
+  T="$WS/c4.jsonl"; SENT="$CWD/.cc-artifacts/task-runner/active-run.json"
+  NUDGE="$CWD/.cc-artifacts/candor/gate-nudge-$(printf '%s' "$T" | cksum | cut -d' ' -f1)"
+  mkdir -p "$CWD/.cc-artifacts/task-runner"; printf '{"slug":"t"}' > "$SENT"
   touch -t 200001010000 "$SENT"                   # registration precedes every stop below
   RUN_SUB='has no recorded pass of behavioral-gate.sh'
 
@@ -356,7 +356,7 @@ if command -v git >/dev/null 2>&1; then
     && git add -A && git commit -qm init ) >/dev/null 2>&1
 
   lock_payload() { jq -cn --arg cwd "$LW" '{transcript_path:"/nonexistent",cwd:$cwd,stop_hook_active:false}'; }
-  clear_lock_state() { rm -rf "$LW/.claude/candor"; }
+  clear_lock_state() { rm -rf "$LW/.cc-artifacts/candor"; }
 
   ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","b":"^2.0.0"}}\n' > package.json )
   clear_lock_state
@@ -395,9 +395,9 @@ if command -v git >/dev/null 2>&1; then
   ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","d":"^4.0.0"}}\n' > package.json )
   clear_lock_state
   gate "" "$(jq -cn --arg cwd "$LW/sub/dir" '{transcript_path:"/nonexistent",cwd:$cwd,stop_hook_active:false}')"
-  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not' && [ ! -e "$LW/sub/dir/.claude" ] && [ -f "$LW/.claude/candor/last" ]; then
+  if [ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not' && [ ! -e "$LW/sub/dir/.cc-artifacts" ] && [ -f "$LW/.cc-artifacts/candor/last" ]; then
     pass=$((pass+1)); printf 'PASS  clause 5: a stop from a subdirectory reads the manifest at the repo root, state at the root\n'
-  else fail=$((fail+1)); printf 'FAIL  clause 5 from a subdirectory (rc=%s subdir-state=%s stderr=%s)\n' "$rc" "$([ -e "$LW/sub/dir/.claude" ] && echo y || echo n)" "$err"; fi
+  else fail=$((fail+1)); printf 'FAIL  clause 5 from a subdirectory (rc=%s subdir-state=%s stderr=%s)\n' "$rc" "$([ -e "$LW/sub/dir/.cc-artifacts" ] && echo y || echo n)" "$err"; fi
 
   ( cd "$LW" && git checkout -q -- . )
 else
@@ -411,8 +411,8 @@ if command -v git >/dev/null 2>&1; then
   git -C "$RR" add -A >/dev/null 2>&1 && git -C "$RR" commit -qm init
   SUBD="$RR/src/deep"
   RHEAD=$(git -C "$RR" rev-parse HEAD); H12=${RHEAD:0:12}
-  TRD="$RR/.claude/task-runner"; RSENT="$TRD/active-run.json"
-  nudged() { ls "$TRD"/gate-nudge* >/dev/null 2>&1; } # keyed per transcript, and these cases vary it
+  TRD="$RR/.cc-artifacts/task-runner"; RSENT="$TRD/active-run.json"
+  nudged() { ls "$RR/.cc-artifacts/candor"/gate-nudge* >/dev/null 2>&1; } # keyed per transcript, and these cases vary it
   SID="sess-0-5-0"
   IDIR="$TMPDIR/cc-candor-inflight-$(printf '%s' "$SID" | cksum | cut -d' ' -f1)"
   rec_of() { printf '%s/%s' "$IDIR" "$(printf '%s' "$1" | cksum | cut -d' ' -f1)"; }
@@ -439,7 +439,7 @@ if command -v git >/dev/null 2>&1; then
     if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"
     else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi
   }
-  clear_rr() { rm -rf "$RR/.claude/candor" "$TRD"/gate-nudge*; }
+  clear_rr() { rm -rf "$RR/.cc-artifacts/candor"; }
 
   CLEAN="$WS/rclean.jsonl"; { user "run the cards"; asst "Waiting on the workers."; } > "$CLEAN"
   { user "run the cards"; } > "$WS/rparent.jsonl"
@@ -451,12 +451,12 @@ if command -v git >/dev/null 2>&1; then
   T="$WS/rsub2.jsonl"; { user "where"; asst "The guard is at src/ghost.ts:3."; } > "$T"
   clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$T")"
   verdict_is "state root: a block from a subdirectory writes its marker at the repo root, none in the subdir" \
-    "$([ "$rc" = 2 ] && [ -f "$RR/.claude/candor/last" ] && [ ! -e "$SUBD/.claude" ]; echo $?)"
+    "$([ "$rc" = 2 ] && [ -f "$RR/.cc-artifacts/candor/last" ] && [ ! -e "$SUBD/.cc-artifacts" ]; echo $?)"
 
   mkdir -p "$TRD"; printf '{"slug":"t"}' > "$RSENT"; touch -t 200001010000 "$RSENT"
   clear_rr; run_hook "$HOOK" "$(stop_json "$SUBD" "$CLEAN")"
   verdict_is "state root: a subdirectory cwd reads the run registered at the repo root" \
-    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && nudged && [ ! -e "$SUBD/.claude" ]; echo $?)"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && nudged && [ ! -e "$SUBD/.cc-artifacts" ]; echo $?)"
 
   # 0.12.2, retro 2026-11-05 issue 14: a turn that answered a pause request or only asked a question is not sent back for the run;
   #   it names what the run owes and writes no nudge. A work prompt, a question asking for work, and "stop" inside a bug report still block.
@@ -613,10 +613,10 @@ if command -v git >/dev/null 2>&1; then
   echo b >> "$RQ/src/a.ts"; git -C "$RQ" commit -qam card
   QHEAD=$(git -C "$RQ" rev-parse HEAD); Q12=${QHEAD:0:12}
   QBR=$(git -C "$RQ" rev-parse --abbrev-ref HEAD)
-  QTR="$RQ/.claude/task-runner"; QRV="$QTR/rv"; QSENT="$QTR/active-run.json"; QCLOSED="$QTR/closed-run.json"
+  QTR="$RQ/.cc-artifacts/task-runner"; QRV="$QTR/rv"; QSENT="$QTR/active-run.json"; QCLOSED="$QTR/closed-run.json"
   mkdir -p "$QRV"
   qsent() { printf '{"slug":"q","branch":"%s"%s}' "$QBR" "$1" > "$QSENT"; touch -t 200001010000 "$QSENT"; }
-  qrun() { rm -rf "$RQ/.claude/candor" "$QTR"/gate-nudge*; gate "" "$(jq -cn --arg cwd "$RQ" --arg tp "$1" \
+  qrun() { rm -rf "$RQ/.cc-artifacts/candor"; gate "" "$(jq -cn --arg cwd "$RQ" --arg tp "$1" \
     '{hook_event_name:"Stop",session_id:"q",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"; }
   qis() { if [ "$2" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$1"; else fail=$((fail+1)); printf 'FAIL  %s (rc=%s stderr=%s)\n' "$1" "$rc" "$err"; fi; }
   QT="$WS/qclean.jsonl"; { user "run the cards"; asst "All cards done, gate recorded."; } > "$QT"
@@ -770,9 +770,9 @@ if command -v git >/dev/null 2>&1; then
   printf 'export function parse(input) {\n' > "$QP/src/parse.ts"; printf 'remember the milk\n' > "$WS/qhome/notes/todo.md"
   printf 'module.exports = function util() {};\n' > "$QP/node_modules/pkgq/dist/util.js"
   QUOTE_SUB='quotes text that is not in that file'
-  QCLAIMED="$QP/.claude/candor/blocked"; QKEY=$(printf '%s' "$WS/quote.jsonl" | cksum | cut -d' ' -f1)
+  QCLAIMED="$QP/.cc-artifacts/candor/blocked"; QKEY=$(printf '%s' "$WS/quote.jsonl" | cksum | cut -d' ' -f1)
   qpay() { jq -cn --arg tp "$1" --arg cwd "$QP" --argjson a "${2:-false}" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:$a}'; }
-  qrun() { { user "review the change"; asst "$2"; } > "$WS/quote.jsonl"; rm -rf "$QP/.claude/candor"; gate "$1" "$(qpay "$WS/quote.jsonl")"; }
+  qrun() { { user "review the change"; asst "$2"; } > "$WS/quote.jsonl"; rm -rf "$QP/.cc-artifacts/candor"; gate "$1" "$(qpay "$WS/quote.jsonl")"; }
   qcheck() { # desc  env  message  exp_rc  exp_sub|__NONE__
     local ok=1
     qrun "$2" "$3"
@@ -860,7 +860,7 @@ if command -v git >/dev/null 2>&1; then
   tres_read() { printf '%s' "$1" | jq -Rsc '{type:"user",message:{content:[{type:"tool_result",tool_use_id:"t2",content:[{type:"text",text:.}]}]}}'; }
   qtool() { # desc  tool-result-line  message  exp_rc
     { user "review the PR"; tools Bash; printf '%s\n' "$2"; asst "$3"; } > "$WS/quote.jsonl"
-    rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
+    rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
     verdict_is "$1" "$([ "$rc" = "$4" ] && { [ "$4" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB" || { [ "$4" = 0 ] && [ -z "$err" ]; }; }; echo $?)"
   }
   PRDIFF=$'diff --git a/src/svc.ts b/src/svc.ts\n@@ -5 +5 @@\n-  const total = items.reduce((a, b) => a + b, 0);\n+  return a && b && featureFlagEnabledForTheTenant();'
@@ -932,7 +932,7 @@ return a && b && featureFlagEnabledForTheTenant();
   READS=$(seq 1 4000 | awk '{ printf "%d\tconst filler_%d = compute(%d);\n", $1, $1, $1 }')
   { user "/code-review:review feature"; tools Bash; tres_text "$PRDIFF"
     for i in 1 2 3 4 5 6 7 8 9 10; do tools Read; tres_text "$READS"; done; } > "$WS/bigtail.jsonl"
-  qbig() { cp "$WS/bigtail.jsonl" "$WS/quote.jsonl"; asst "$2" >> "$WS/quote.jsonl"; rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
+  qbig() { cp "$WS/bigtail.jsonl" "$WS/quote.jsonl"; asst "$2" >> "$WS/quote.jsonl"; rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qpay "$WS/quote.jsonl")"
     verdict_is "$1 ($(wc -c < "$WS/quote.jsonl") bytes)" "$([ "$rc" = "$3" ]; echo $?)"; }
   qbig "quote: a PR diff read before 1.4 MB of later output still counts, the quote passes" \
     'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`' 0
@@ -946,10 +946,10 @@ return a && b && featureFlagEnabledForTheTenant();
   { user "review the change"; asst 'src/svc.ts:5 — quote: `const total = items.map(String);`'; } > "$WS/quote.jsonl"
   gate "" "$(qpay "$WS/quote.jsonl" true)"
   verdict_is "quote: its own continuation passes and clears the record" "$([ "$rc" = 0 ] && [ ! -e "$QCLAIMED" ]; echo $?)"
-  rm -rf "$QP/.claude/candor"; gate "" "$(qpay "$WS/quote.jsonl" true)"
+  rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qpay "$WS/quote.jsonl" true)"
   verdict_is "quote: another hook's continuation still blocks" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB"; echo $?)"
   { user "review the change"; asst 'src/ghost.ts:3 — quote: `nothing like this lives anywhere`'; } > "$WS/quote.jsonl"
-  rm -rf "$QP/.claude/candor"; mkdir -p "$QP/.claude/candor"; printf '%s citation\n' "$QKEY" > "$QCLAIMED"
+  rm -rf "$QP/.cc-artifacts/candor"; mkdir -p "$QP/.cc-artifacts/candor"; printf '%s citation\n' "$QKEY" > "$QCLAIMED"
   gate "" "$(qpay "$WS/quote.jsonl" true)"
   verdict_is "quote: on the citation clause's continuation, a file found nowhere is not judged" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
 
@@ -957,16 +957,16 @@ return a && b && featureFlagEnabledForTheTenant();
     '{hook_event_name:"SubagentStop",transcript_path:$tp,agent_transcript_path:$atp,agent_id:"q6agent",agent_type:"code-review:code-reviewer",last_assistant_message:$m,cwd:$cwd,stop_hook_active:$a}'; }
   { user "main thread prompt"; } > "$WS/qparent.jsonl"
   { user "review"; asst "placeholder"; } > "$WS/agent.jsonl"
-  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.map(Number);`')"
+  rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.map(Number);`')"
   verdict_is "quote: a subagent's wrong quote blocks and asks for the COMPLETE report" \
     "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "This report quotes code" && printf '%s' "$err" | grep -qF 're-send your COMPLETE report'; echo $?)"
-  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.reduce((a, b) => a + b, 0);`')"
+  rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `const total = items.reduce((a, b) => a + b, 0);`')"
   verdict_is "quote: a subagent's right quote passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   { user "review"; tools Bash; tres_text "$PRDIFF"; asst "placeholder"; } > "$WS/agent.jsonl"
-  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
+  rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
   verdict_is "quote: a subagent's quote found in its own transcript's tool output passes" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
   { user "review"; asst "placeholder"; } > "$WS/agent.jsonl"; { user "main thread prompt"; tools Bash; tres_text "$PRDIFF"; } > "$WS/qparent.jsonl"
-  rm -rf "$QP/.claude/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
+  rm -rf "$QP/.cc-artifacts/candor"; gate "" "$(qsub 'src/svc.ts:5 — high — x — y — quote: `return a && b && featureFlagEnabledForTheTenant();`')"
   verdict_is "quote: the parent's tool output does not excuse a subagent's quote" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$QUOTE_SUB"; echo $?)"
   { user "main thread prompt"; } > "$WS/qparent.jsonl"
 
@@ -974,7 +974,7 @@ return a && b && featureFlagEnabledForTheTenant();
   LOOPMSG=$'src/ghost_zz.ts:3 — high — a — b\nsrc/svc.ts:2 — high — x — y — quote: `if (items.length === 0) return cachedTotalForEmptyCart;`'
   loop_seq() { # <payload builder: sub|stop> <message> -> c, q or . per stop, five stops
     local i a s=""
-    rm -rf "$QP/.claude/candor"
+    rm -rf "$QP/.cc-artifacts/candor"
     for i in 1 2 3 4 5; do
       a=false; [ "$i" -gt 1 ] && a=true
       if [ "$1" = sub ]; then gate "" "$(qsub "$2" "$a")"
@@ -1068,7 +1068,7 @@ check "clause 7: a project kept under a Test/ folder still arms" "$UPATH" "$T" 2
 
 # 0.12.5 (S5): two sessions in one repo; paired payloads differ only in transcript_path and session_id. 9 of these 10 fail on 0.12.4.
 ISO="$WS/iso"; mkdir -p "$ISO/src"; printf 'a\n' > "$ISO/src/real.ts"
-ISD="$ISO/.claude/candor"; ITR="$ISO/.claude/task-runner"
+ISD="$ISO/.cc-artifacts/candor"; ITR="$ISO/.cc-artifacts/task-runner"
 TA="$WS/isoA.jsonl"; TB="$WS/isoB.jsonl"
 KA=$(printf '%s' "$TA" | cksum | cut -d' ' -f1); KB=$(printf '%s' "$TB" | cksum | cut -d' ' -f1)
 ipay() { jq -cn --arg tp "$1" --arg sid "$2" --arg cwd "$ISO" --argjson a "${3:-false}" \
@@ -1108,33 +1108,33 @@ if command -v git >/dev/null 2>&1; then
   gate "" "$(ipay "$TA" sA)"
   iso_is "sessions: B's run block does not spend A's one block at this HEAD" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'has no recorded pass of behavioral-gate.sh'; echo $?)"
   iso_is "sessions: each session's nudge is on disk under its own key" \
-    "$([ "$(cat "$ITR/gate-nudge-$KA" 2>/dev/null)" = "$IHEAD" ] && [ "$(cat "$ITR/gate-nudge-$KB" 2>/dev/null)" = "$IHEAD" ] && [ ! -e "$ITR/gate-nudge" ]; echo $?)"
+    "$([ "$(cat "$ISD/gate-nudge-$KA" 2>/dev/null)" = "$IHEAD" ] && [ "$(cat "$ISD/gate-nudge-$KB" 2>/dev/null)" = "$IHEAD" ] && [ ! -e "$ISD/gate-nudge" ]; echo $?)"
   gate "" "$(ipay "$TA" sA)"
   iso_is "sessions: A's second stop at the HEAD is bounded by A's own nudge" "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF 'has no recorded pass of behavioral-gate.sh'; echo $?)"
-  touch -t 200001010000 "$ITR/gate-nudge-$KA" "$ITR/gate-nudge-$KB"; touch -t 200101010000 "$ITR/active-run.json"
-  rm -rf "$ISD"; gate "" "$(ipay "$TA" sA)"
+  touch -t 200001010000 "$ISD/gate-nudge-$KA" "$ISD/gate-nudge-$KB"; touch -t 200101010000 "$ITR/active-run.json"
+  rm -f "$ISD"/last* "$ISD"/blocked*; gate "" "$(ipay "$TA" sA)"
   iso_is "sessions: a nudge older than the registration is swept when another context blocks" \
-    "$([ "$rc" = 2 ] && [ ! -e "$ITR/gate-nudge-$KB" ] && [ -e "$ITR/gate-nudge-$KA" ]; echo $?)"
+    "$([ "$rc" = 2 ] && [ ! -e "$ISD/gate-nudge-$KB" ] && [ -e "$ISD/gate-nudge-$KA" ]; echo $?)"
 
   # Run ownership (task-runner 0.56.0 records session_id): only the registering session is held. The four non-owner cases are red on 0.12.6.
   OWN_SUB='has no recorded pass of behavioral-gate.sh'
   osent() { printf '{"slug":"iso"%s}' "$1" > "$ITR/$2"; touch -t 200001010000 "$ITR/$2"; }
   opass() { printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$1" > "$ITR/gate-pass.json"; }
-  rm -rf "$ISD"; rm -f "$ITR"/gate-nudge*; osent ',"session_id":"sA"' active-run.json
+  rm -rf "$ISD"; osent ',"session_id":"sA"' active-run.json
   gate "" "$(ipay "$TB" sB)"
   iso_is "owner: another session's stop passes silently, with no delete line and no nudge" \
-    "$([ "$rc" = 0 ] && [ -z "$err" ] && [ -z "$out" ] && ! ls "$ITR"/gate-nudge* >/dev/null 2>&1; echo $?)"
+    "$([ "$rc" = 0 ] && [ -z "$err" ] && [ -z "$out" ] && ! ls "$ISD"/gate-nudge* >/dev/null 2>&1; echo $?)"
   gate "" "$(ipay "$TA" sA)"
   iso_is "owner: the registering session is still held once at this HEAD" \
-    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$OWN_SUB" && [ "$(cat "$ITR/gate-nudge-$KA" 2>/dev/null)" = "$IHEAD" ]; echo $?)"
-  rm -f "$ITR"/gate-nudge*
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$OWN_SUB" && [ "$(cat "$ISD/gate-nudge-$KA" 2>/dev/null)" = "$IHEAD" ]; echo $?)"
+  rm -f "$ISD"/gate-nudge*
   gate "" "$(jq -cn --arg tp "$TB" --arg cwd "$ISO" '{hook_event_name:"Stop",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"
   iso_is "owner neighbour: a payload with no session_id cannot be told apart, so it is held" "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$OWN_SUB"; echo $?)"
-  rm -f "$ITR"/gate-nudge*; osent '' active-run.json
+  rm -f "$ISD"/gate-nudge*; osent '' active-run.json
   gate "" "$(ipay "$TB" sB)"
   iso_is "owner neighbour: a run naming no session (before 0.56.0) holds any session, delete line included" \
-    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'left over: delete .claude/task-runner/active-run.json'; echo $?)"
-  rm -f "$ITR"/gate-nudge* "$ITR/active-run.json"; osent ',"session_id":"sA"' closed-run.json; opass "$IHEAD"
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'left over: delete .cc-artifacts/task-runner/active-run.json'; echo $?)"
+  rm -f "$ISD"/gate-nudge* "$ITR/active-run.json"; osent ',"session_id":"sA"' closed-run.json; opass "$IHEAD"
   gate "" "$(ipay "$TB" sB)"
   iso_is "owner: another session's clean stop does not retire the owner's closed-run.json" \
     "$([ "$rc" = 0 ] && [ -z "$err" ] && [ -f "$ITR/closed-run.json" ]; echo $?)"
@@ -1147,7 +1147,7 @@ if command -v git >/dev/null 2>&1; then
   printf '{"slug":"iso","branch":"elsewhere","session_id":"sA"}' > "$ITR/active-run.json"
   gate "" "$(ipay "$TB" sB)"
   iso_is "owner: on another branch, another session is not told to delete the owner's run" \
-    "$([ "$rc" = 0 ] && ! printf '%s' "$err" | grep -qF 'delete .claude/task-runner'; echo $?)"
+    "$([ "$rc" = 0 ] && ! printf '%s' "$err" | grep -qF 'delete .cc-artifacts/task-runner'; echo $?)"
   gate "" "$(ipay "$TA" sA)"
   iso_is "owner: the owner on another branch still reads the not-checked-here line" "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF 'so it is not checked here'; echo $?)"
   rm -f "$ITR/active-run.json"
@@ -1155,9 +1155,36 @@ else
   printf 'SKIP  session-isolation nudge cases (git not available)\n'
 fi
 
+# 0.13.0: a run task-runner registered under .claude/task-runner/ before 2026-11-14 is read there while .cc-artifacts/task-runner/
+#   does not exist; the nudge lands in .cc-artifacts/candor/ and the old dir is left byte-identical. Once the new dir exists it is the
+#   run's only home, so a stale old sentinel stops counting.
+if command -v git >/dev/null 2>&1; then
+  LG="$WS/legacy"; mkdir -p "$LG/.claude/task-runner"
+  git -C "$LG" init -q && git -C "$LG" config user.email t@t.t && git -C "$LG" config user.name t && git -C "$LG" commit -q --allow-empty -m init
+  printf '{"slug":"old","session_id":"sL"}' > "$LG/.claude/task-runner/active-run.json"; touch -t 200001010000 "$LG/.claude/task-runner/active-run.json"
+  TL="$WS/legacy.jsonl"; { user "run the cards"; asst "Next card is 04."; } > "$TL"
+  KL=$(printf '%s' "$TL" | cksum | cut -d' ' -f1)
+  lold() { (cd "$LG/.claude" && find . | sort && find . -type f | sort | xargs cksum); }
+  before=$(lold)
+  gate "" "$(jq -cn --arg tp "$TL" --arg cwd "$LG" '{hook_event_name:"Stop",session_id:"sL",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"
+  iso_is "legacy run: a run only under .claude/task-runner/ is read and named there" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'has no recorded pass of behavioral-gate.sh' && printf '%s' "$err" | grep -qF 'delete .claude/task-runner/active-run.json'; echo $?)"
+  iso_is "legacy run: the nudge lands in .cc-artifacts/candor/, the old dir is untouched and no new run dir is made" \
+    "$([ -f "$LG/.cc-artifacts/candor/gate-nudge-$KL" ] && [ "$(lold)" = "$before" ] && [ ! -e "$LG/.cc-artifacts/task-runner" ]; echo $?)"
+  mkdir -p "$LG/.cc-artifacts/task-runner"; cp -p "$LG/.claude/task-runner/active-run.json" "$LG/.cc-artifacts/task-runner/"; rm -rf "$LG/.cc-artifacts/candor"
+  gate "" "$(jq -cn --arg tp "$TL" --arg cwd "$LG" '{hook_event_name:"Stop",session_id:"sL",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"
+  iso_is "legacy run: once copied, the run is read and named under .cc-artifacts/task-runner/" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF 'delete .cc-artifacts/task-runner/active-run.json'; echo $?)"
+  rm -f "$LG/.cc-artifacts/task-runner/active-run.json"; rm -rf "$LG/.cc-artifacts/candor"
+  gate "" "$(jq -cn --arg tp "$TL" --arg cwd "$LG" '{hook_event_name:"Stop",session_id:"sL",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}')"
+  iso_is "legacy run: with .cc-artifacts/task-runner/ present, a stale old sentinel is not a live run" "$([ "$rc" = 0 ] && [ -z "$err" ]; echo $?)"
+else
+  printf 'SKIP  legacy run cases (git not available)\n'
+fi
+
 # 0.12.5: the marker lock. Session A holds .lock having read `last`/`blocked` before B; A writes its rewrite once B waits on the
 #   lock (a sleep shim flags it) or once B's write landed without waiting. Red on b80faf31 either way, no timing race.
-LK="$WS/lk"; mkdir -p "$LK" "$WS/lockbin"; LKS="$LK/.claude/candor"; LKF="$LKS/.lock"; LFLAG="$WS/lockwait"
+LK="$WS/lk"; mkdir -p "$LK" "$WS/lockbin"; LKS="$LK/.cc-artifacts/candor"; LKF="$LKS/.lock"; LFLAG="$WS/lockwait"
 printf '#!/bin/sh\n: > "$LOCK_WAIT_FLAG"\nexec %s "$@"\n' "$(command -v sleep)" > "$WS/lockbin/sleep"; chmod +x "$WS/lockbin/sleep"
 LENV="PATH=$WS/lockbin:$BASE_PATH LOCK_WAIT_FLAG=$LFLAG"
 lpay() { jq -cn --arg tp "$TB" --arg cwd "$LK" --argjson a "${1:-false}" '{hook_event_name:"Stop",session_id:"sB",transcript_path:$tp,cwd:$cwd,stop_hook_active:$a}'; }
@@ -1204,7 +1231,7 @@ for i in 1 2 3 4; do { user "where is the bug"; asst "The bug is at src/ghost.ts
 for i in 1 2 3 4; do jq -cn --arg tp "$WS/lk$i.jsonl" --arg cwd "$LKP" '{hook_event_name:"Stop",session_id:"s",transcript_path:$tp,cwd:$cwd,stop_hook_active:false}' \
   | bash "$HOOK" >/dev/null 2>&1 & done; wait
 iso_is "lock: four sessions stopping at once each keep their line in last and blocked" \
-  "$([ "$(wc -l < "$LKP/.claude/candor/last" 2>/dev/null)" -eq 4 ] && [ "$(wc -l < "$LKP/.claude/candor/blocked" 2>/dev/null)" -eq 4 ]; echo $?)"
+  "$([ "$(wc -l < "$LKP/.cc-artifacts/candor/last" 2>/dev/null)" -eq 4 ] && [ "$(wc -l < "$LKP/.cc-artifacts/candor/blocked" 2>/dev/null)" -eq 4 ]; echo $?)"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

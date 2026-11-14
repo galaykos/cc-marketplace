@@ -13,9 +13,9 @@ cat > spec.json <<'JSON'
  {"title":"Split view","tradeoff":"Context without leaving the list; needs width","device":"tablet","body":"<div class=\"dk-sidebar\"><nav><a href=\"#\" aria-current=\"page\">Inbox</a><a href=\"#\">Paid</a></nav><div class=\"dk-pad\"><h2>Northwind Traders</h2><p>Invoice 8841 · €1,240.00</p></div></div>"}
 ]}
 JSON
-out="$(python3 "$here/board-build.py" spec.json --docroot .design-kit 2>/dev/null)"
+out="$(python3 "$here/board-build.py" spec.json --docroot .cc-artifacts/design-kit 2>/dev/null)"
 [ -f "$out" ] || { echo "FAIL: no output file: $out"; exit 1; }
-case "$out" in .design-kit/boards/*-invoice-inbox.html) ;; *) echo "FAIL: unexpected path $out"; exit 1 ;; esac
+case "$out" in .cc-artifacts/design-kit/boards/*-invoice-inbox.html) ;; *) echo "FAIL: unexpected path $out"; exit 1 ;; esac
 n="$(grep -c 'class="dk-board"' "$out")"; [ "$n" = 3 ] || { echo "FAIL: expected 3 artboards, got $n"; exit 1; }
 grep -q 'id="dk-knobs"' "$out" || { echo "FAIL: knob panel missing"; exit 1; }
 [ "$(grep -o 'data-act="pick">Pick' "$out" | wc -l | tr -d " ")" = 3 ] || { echo "FAIL: pick buttons"; exit 1; }
@@ -29,17 +29,25 @@ grep -q '{{' "$out" && { echo "FAIL: unfilled slot"; exit 1; }
 grep -q -- '--dk-accent-2:hsl(calc(var(--dk-accent-h) + 170)' "$out" && grep -q '\.dk-cells{' "$out" && grep -q '\.dk-note{' "$out" || { echo "FAIL: play primitives (dk-cells, dk-note, --dk-accent-2) missing from the shell"; exit 1; }
 grep -q '\.dk-frame{position:relative' "$out" || { echo "FAIL: .dk-frame must be positioned or a dk-dialog (absolute, inset:0) escapes its artboard onto the canvas (seen 2026-09-26)"; exit 1; }
 
-mkdir -p design-system
-cat > design-system/tokens.json <<'JSON'
+mkdir -p .cc-artifacts/design-kit/design-system
+cat > .cc-artifacts/design-kit/design-system/tokens.json <<'JSON'
 {"color":{"accent":{"$type":"color","$value":"#2f7d4f"}},"radius":{"md":{"$type":"dimension","$value":"6px"}},"space":{"base":{"$value":"10px"}},"font":{"family":{"body":{"$value":"Georgia, serif"}}}}
 JSON
 out2="$(python3 "$here/board-build.py" spec.json --out b2.html 2>err.txt)"
 grep -q -- '--dk-accent-h:145' b2.html || { echo "FAIL: accent hue from tokens (expected 145)"; grep -o -- '--dk-accent-h:[0-9]*' b2.html; exit 1; }
 grep -q -- '--dk-radius:6px' b2.html && grep -q -- '--dk-space:10px' b2.html && grep -q 'Georgia' b2.html || { echo "FAIL: tokens not applied"; cat err.txt; exit 1; }
-sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" design-system/tokens.json)"
+sha="$(python3 -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest()[:12])" .cc-artifacts/design-kit/design-system/tokens.json)"
 grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " b2.html || { echo "FAIL: board tokens stamp"; grep design-kit-tokens b2.html; exit 1; }
 grep -q '<meta name="design-kit-tokens" content="none ' "$out" || { echo "FAIL: untokened board should stamp none"; grep design-kit-tokens "$out"; exit 1; }
 grep -q 'no colour mapped' err.txt && { echo "FAIL: a hex accent drew the no-colour warning"; cat err.txt; exit 1; }
+# plugins before 2026-11-14 wrote design-system/ under the cwd: read it while the new tokens.json is absent, never over it
+mkdir -p design-system; printf '{"color":{"accent":{"$type":"color","$value":"#7d2f4f"}}}\n' > design-system/tokens.json
+python3 "$here/board-build.py" spec.json --out b2n.html >/dev/null 2>&1
+grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " b2n.html || { echo "FAIL: design-system/tokens.json was read over the new one"; exit 1; }
+mv -f .cc-artifacts/design-kit/design-system/tokens.json design-system/tokens.json
+python3 "$here/board-build.py" spec.json --out b2o.html >/dev/null 2>&1
+grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " b2o.html || { echo "FAIL: no fallback to design-system/tokens.json"; grep design-kit-tokens b2o.html; exit 1; }
+rm -rf design-system
 
 # A Tailwind v4 @theme in oklch, through system-extract.py, is the board's own sibling's
 # output; until 0.10.0 the hex-only reader drew it in the default blue (hue 222) with no word.

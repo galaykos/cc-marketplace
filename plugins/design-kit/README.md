@@ -2,7 +2,7 @@
 
 The Claude Desktop design picker, as five local plugin skills whose files you own. They
 are **Slides, Design, Design in codebase, Design System, Artifacts**. Every surface is
-a plain HTML file under `.design-kit/` in your project. This plugin's own preview server
+a plain HTML file under `.cc-artifacts/design-kit/` in your project. This plugin's own preview server
 serves it on one localhost URL, and scripts you can read export it. Nothing leaves the
 machine unless a skill names the path and you say yes.
 
@@ -13,7 +13,7 @@ machine unless a skill names the path and you say yes.
 | Slides | `/design-kit:slides` | a self-contained HTML deck with speaker notes; PDF and PPTX by script |
 | Design | `/design-kit:design` | an artboard canvas of 2–4 directions with editable text, adjustment knobs, PNG/PDF export, and a "copy edits as prompt" bring-back |
 | Design in codebase | `/design-kit:in-codebase` | the design rendered with the project's OWN components on its dev server, cleaned up after the pick; intake of a Claude Design handoff bundle with a token-drift table |
-| Design System | `/design-kit:system` | `design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
+| Design System | `/design-kit:system` | `.cc-artifacts/design-kit/design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
 | Artifacts | `/design-kit:artifact` | one self-contained, versioned HTML page in a local gallery; LAN, pages-branch or zip sharing on explicit consent |
 | — (not in the picker) | `/design-kit:motion` | a static design — Figma frame, dashboard, card set, screenshot — rebuilt exactly and animated from empty to loaded with a story per visual, as a looping page plus an MP4 and two GIFs; or the same choreography on a site's bento and feature sections |
 | — (not in the picker) | `/design-kit:film` | a product demo, launch film or explainer made from a brief: facts traced, UI captured, sound first, a blind review each round, one MP4 per format with a music-only track and a ledger |
@@ -34,11 +34,11 @@ claude plugin install design-kit@cc-plugins-marketplace
 
 Needs `python3` (stdlib only) for every script. PDF and PNG export need a Chrome,
 Chromium or Edge binary on a common path, or Playwright's chromium; PPTX export
-needs Node and installs `pptxgenjs` into `.design-kit/.cache/` after asking.
+needs Node and installs `pptxgenjs` into `.cc-artifacts/design-kit/.cache/` after asking.
 
 ## The preview server
 
-`scripts/serve.py` (launched by `scripts/preview.sh`) serves `.design-kit/` on
+`scripts/serve.py` (launched by `scripts/preview.sh`) serves `.cc-artifacts/design-kit/` on
 `http://127.0.0.1:8124/`: a gallery of every deck, board, preview and artifact at `/`,
 live reload over Server-Sent Events injected into each page, `/_index.json` for
 scripts. When the server goes away under an open page, the page shows a small
@@ -51,7 +51,7 @@ is the only way a page leaves the machine through the server, and every skill sa
 so before using it. A LAN server asks every device but this machine's loopback for a
 key: the URL it prints carries `?key=…`, the first visit trades it for an `HttpOnly`,
 `SameSite=Strict` cookie and drops it from the address bar, and a request with neither
-gets 403. The key lives in `.design-kit/.preview.key` (mode 0600, never served). A
+gets 403. The key lives in `.cc-artifacts/design-kit/.preview.key` (mode 0600, never served). A
 restart keeps it, so a phone's link keeps working; `dk serve --stop` deletes it, so the
 next LAN start prints a new URL. Picks stay loopback-only: `/_decision` refuses a phone
 even with the key. A LAN server ends itself after 60 minutes
@@ -69,7 +69,7 @@ name stops the launcher with exit 6 and is left alone).
 The server never returns a dot-prefixed file or
 folder (`.checks/` and `.notes/` among them), `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
 `usage.jsonl`, `*.versions.json`) or a directory listing; every other file under
-`.design-kit/` is readable by whoever can reach the port (on the LAN, whoever holds the
+`.cc-artifacts/design-kit/` is readable by whoever can reach the port (on the LAN, whoever holds the
 keyed URL), signed-in screenshots included. The key does not make the LAN private: the
 server speaks plain HTTP, so the key crosses your network in the clear, and it sits in a
 URL, so it lands in the phone's history and anywhere you paste it. Port 8123 belongs to
@@ -104,24 +104,37 @@ handoff-drift table
 which `dk system` only ever runs as the first half of a full extraction). Those draw a
 second prompt, or a second rule — `Bash(python3 */design-kit/scripts/*)` — and saying
 "one permission rule" full stop was wrong.
-`dk` keeps `.design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
+`dk` keeps `.cc-artifacts/design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
 scratch, artifacts, deck) so a skill with no argument offers the natural next step, and
-appends one line per verb to `.design-kit/usage.jsonl` — the record the Measured section
+appends one line per verb to `.cc-artifacts/design-kit/usage.jsonl` — the record the Measured section
 reads. `dk status` prints the flow; the gallery shows it as a strip, and stamps each page
-green or amber ("tokens moved since build") against the current `design-system/tokens.json`.
-`.design-kit/` lives at the project root (the git toplevel), whichever directory the shell
+green or amber ("tokens moved since build") against the design system's current `tokens.json`.
+`.cc-artifacts/design-kit/` lives at the project root (the git toplevel), whichever directory the shell
 has `cd`'d into; until 0.6.0 a verb run from `src/` built a second one there, with its own
 board and decisions. `DESIGN_KIT_DIR` moves it and is used exactly as given.
-`design-system/` is not anchored: `dk check` with no page and `dk decision --record` read
-the shell's directory.
+The design system, `.cc-artifacts/design-kit/design-system/`, is not anchored: `dk check` with no
+page and `dk decision --record` read it under the shell's directory.
+
+Before 0.17.0 these lived in `.design-kit/` and `design-system/`. In a project that still has
+only those, the first `dk` verb copies `workshop.json`, `decisions.jsonl`, `notes.jsonl`,
+`usage.jsonl`, `boards/`, `decks/` and `artifacts/` into the new folder once, and repoints the
+paths `workshop.json` holds; caches, server state, screenshots and the motion and film
+workspaces start fresh (a skill resuming one of those copies it over first). Every reader of
+the design system takes a `design-system/` file while the new folder lacks it, `dk decision
+--record` carries `DECISIONS.md` over before it appends, and the hook reads the old pick until
+the new folder exists. Nothing writes to, moves or deletes the old folders; delete them once you
+have what you need. A preview server started before the update keeps its port until it idles
+out (4 hours) or `bash <plugin>/scripts/preview.sh --docroot .design-kit --stop` ends it.
+Standing: `dk.test.sh`, `unread-pick.test.sh` and the builders' harnesses drive an old-only
+project — **gate**.
 
 The board talks back. "Pick this", a knob move or a text edit posts to the server's one
 write route, `/_decision`: loopback only, header-gated, append-only into
-`.design-kit/decisions.jsonl`; a phone on the LAN is not recorded. `dk decision --latest
+`.cc-artifacts/design-kit/decisions.jsonl`; a phone on the LAN is not recorded. `dk decision --latest
 --consume` prints exactly the prose the "Copy edits as prompt" button gives, and
 `/design-kit:in-codebase` with no arguments renders that pick. A UserPromptSubmit hook
 says one line when a pick is waiting and nothing otherwise (`CC_DESIGN_KIT_PICK=off`).
-Every pick a skill acts on lands as one line in tracked `design-system/DECISIONS.md`.
+Every pick a skill acts on lands as one line in `.cc-artifacts/design-kit/design-system/DECISIONS.md`.
 
 Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and three
 reject paths and both badge states, `unread-pick.test.sh` the hook — **gate**. That the
@@ -137,12 +150,12 @@ drops the draft, while turning the widget off keeps it. Alt+N typed in a text fi
 field's (macOS Option+N types ñ), never the widget's. The panel lists this page's notes with
 their status and reply. On a board, Pick works as before;
 notes are extra. The script is `scripts/note.js`, served at `/_note.js` from the plugin, never
-from `.design-kit/`; it runs only on a loopback address, so a headless browser, `?static=1`, a
+from `.cc-artifacts/design-kit/`; it runs only on a loopback address, so a headless browser, `?static=1`, a
 file, another server and a phone on the LAN see nothing. It moves nothing on the page: it
 lives in a shadow root on a fixed, zero-size host.
 
 A note posts to `POST /_note` (the same guards as `/_decision`, with an
-`X-Design-Kit-Note` header) and lands as one line of `.design-kit/notes.jsonl`:
+`X-Design-Kit-Note` header) and lands as one line of `.cc-artifacts/design-kit/notes.jsonl`:
 `{id, ts, page, kind: "note", anchor: {selector, tag, text, rect} | null, text,
 context: {viewport, theme, console}, status: "open", reply: ""}`, every field clamped
 (text 2000 characters, selector 512, the last five console errors, 300 characters each,
@@ -160,12 +173,12 @@ background it brings the session back when you click Send, with no chat message;
 timeout. `dk notes --reply ID --status addressed|dismissed [--text "…"]` rewrites that row,
 and the page shows it on the next load. `dk notes --shot ID` (nothing else on the line)
 loads the page headless with the element outlined (`?_outline=<selector>`, honoured from
-loopback only) and saves a PNG under `.design-kit/.notes/`, in a throwaway browser profile,
+loopback only) and saves a PNG under `.cc-artifacts/design-kit/.notes/`, in a throwaway browser profile,
 with Chrome's sandbox on (off only as root or with `DESIGN_KIT_BROWSER_NO_SANDBOX=1`) and
 30 s to finish; with no Chromium-family browser, or a browser that fails, it says so and
 exits 4. The UserPromptSubmit hook adds a count of unread notes and the command to its one
 line, never note text, a selector or a page path; it names a pick's board only when the name
-is plain ASCII of at most 64 characters naming a file in `.design-kit/boards/`, and the
+is plain ASCII of at most 64 characters naming a file in `.cc-artifacts/design-kit/boards/`, and the
 artboard only from 1 to 99.
 
 Standing: the route, its rejects and clamps, `/_notes`, `/_note.js`, the injected hook,
@@ -180,7 +193,7 @@ acts on a note, and replies to each, is **agent-graded**. Missed: a page carryin
 third-party script can post a note from the same origin; note text is what someone typed
 and is not verified, so it is data, not instructions; a selector built on `nth-of-type`
 goes stale when the page's structure changes; no screenshot without a browser; notes stay
-in `.design-kit/` and do not travel with an exported, zipped or published page; elements
+in `.cc-artifacts/design-kit/` and do not travel with an exported, zipped or published page; elements
 inside iframes and canvas contents cannot be picked.
 
 ### Render checks: `dk check <page>`
@@ -191,9 +204,9 @@ it. Every line is one JSON object, escaped as `dk notes` escapes rows, since fin
 page text: a finding `{check, width, widths, selector, text, detail}` (a board adds
 `artboards`), a note `{note, at, text}` (`change`, `not checked`, `skipped`, `dropped`,
 `capped`, `shot`), then `{"summary": {...}}` naming the PNGs saved under
-`.design-kit/.checks/shots/<page>/`. Exit 0 no finding, 1 findings, 2 bad arguments, 4 not
+`.cc-artifacts/design-kit/.checks/shots/<page>/`. Exit 0 no finding, 1 findings, 2 bad arguments, 4 not
 checked (no browser, no server, a failed browser, `.checks` not a folder, or a page whose
-check never ran). `<page>` is a path under `.design-kit/`, as typed or relative to it, or
+check never ran). `<page>` is a path under `.cc-artifacts/design-kit/`, as typed or relative to it, or
 its preview URL. With no page, `dk check` is still the one-line design-system check.
 
 `scripts/render-check.py` drives the browser over its DevTools pipe (python3 stdlib, as
@@ -257,17 +270,17 @@ A clean check is not proof the page is fine.
 ### `/design-kit:slides` — a deck you own
 
 `/design-kit:slides <brief | outline.md> [--theme <tokens>] [--pdf] [--pptx]` writes an
-outline (`.design-kit/decks/<slug>.outline.md`; grammar in the skill's
+outline (`.cc-artifacts/design-kit/decks/<slug>.outline.md`; grammar in the skill's
 `references/outline-format.md`) and builds it into one self-contained HTML deck with
 `scripts/deck-build.py`: keyboard/touch navigation, `S` speaker notes, `O` overview,
-`P` print, `#/n` per slide, theme tokens from `design-system/` when present. It opens
+`P` print, `#/n` per slide, theme tokens from the design system when present. It opens
 on the preview URL and reloads on every rebuild.
 
 Exports on request: `scripts/deck-export.sh <deck> --pdf` prints one 1280×720 page per
 slide with a Chromium-family browser found on the machine (exit 3 names what to
 install; pressing `P` in any browser is the same output); `--pptx` writes native text
 boxes, notes and pictures with pptxgenjs, which the script downloads into
-`.design-kit/.cache/` only after the skill asked you (`DESIGN_KIT_PPTX_INSTALL=1`).
+`.cc-artifacts/design-kit/.cache/` only after the skill asked you (`DESIGN_KIT_PPTX_INSTALL=1`).
 
 What has teeth: the builder FAILS a slide over 6 visible lines, an outline without a
 title or slides, and any external `src`/`href` — **gate**. Headline-states-a-claim,
@@ -279,7 +292,7 @@ PowerPoint is the host `pptx` skill's job.
 ### `/design-kit:design` — directions as artboards on one local canvas
 
 `/design-kit:design <brief> [--screens 2-4] [--device phone|tablet|desktop] [--theme tokens.json]`
-drafts 2–4 UI directions as artboards on one canvas, `.design-kit/boards/<date>-<slug>.html`,
+drafts 2–4 UI directions as artboards on one canvas, `.cc-artifacts/design-kit/boards/<date>-<slug>.html`,
 served at the plugin's preview URL. Directions differ on structure (navigation, hierarchy, density,
 first screen), not colour — the knobs do colour. On the board: edit any text in place, move
 spacing/radius/hue/type/density/scheme knobs globally or per artboard (persisted in that browser's
@@ -295,7 +308,7 @@ are **agent-graded**. Nothing here measures contrast — **recorded**.
 Limits: the artboard HTML is a decision aid, never a starting point for implementation (the pick
 goes to `/design-kit:in-codebase` or the project's UI build command); knobs restyle the shell's
 primitives only; the hue knob rotates the accent and its 170° partner `--dk-accent-2` together
-and cannot express a near-neutral brand accent (use `design-system/tokens.json`); no font loads
+and cannot express a near-neutral brand accent (use the design system's `tokens.json`); no font loads
 through the offline gate, so a display face is named in a note and decided in the token file;
 localStorage means edits do not travel to another browser.
 Claude Code's own `/design` publishes artboards to claude.ai and needs a signed-in session; this
@@ -318,7 +331,7 @@ paths; cleanup restores the stylesheet and `routes/web.php` byte for byte.
 
 A Claude Design handoff bundle (a folder of exported .html plus a README) goes through
 `handoff-drift.py` first: every colour and font in the export against the repo's tokens
-(`--*` custom properties incl. Tailwind v4 `@theme`, `tailwind.config.*`, `design-system/tokens.json`),
+(`--*` custom properties incl. Tailwind v4 `@theme`, `tailwind.config.*`, the design system's `tokens.json`),
 one row per value — `match`, `near (Δ)`, `no token` — and each `no token` row is a question, never a
 literal in the tree. The export is a reference; its HTML and class names never land in the project.
 
@@ -364,7 +377,7 @@ a Laravel + separate Vite SPA repo resolves to Laravel unless `--stack` override
 format is undocumented by Anthropic, so detection is lenient and says which files it read; nothing
 here proves the page rendered — the browser does. Spacing/radius/shadow drift is read by eye.
 
-Since 0.2.0, `--create <slug> --brief "<line>"` reads `design-system/components.json` when
+Since 0.2.0, `--create <slug> --brief "<line>"` reads the design system's `components.json` when
 `/design-kit:system` has written it: the scratch page opens with the app's stylesheet, every
 component imported (alias-aware), its prop signature as a comment, and a strip rendering each
 union variant with the brief as content. Required props get type-shaped values; one the strip
@@ -376,7 +389,7 @@ dev server's overlay, not a script — **agent-graded**; the filled shape is **g
 ### `/design-kit:system` — the design system as a record, not a proposal
 
 `/design-kit:system [repo | https://url | brand-dir]` runs `scripts/system-extract.py`
-and writes `design-system/`: `tokens.json` (DTCG-shaped: `$type`, `$value`, `{alias}`,
+and writes `.cc-artifacts/design-kit/design-system/`: `tokens.json` (DTCG-shaped: `$type`, `$value`, `{alias}`,
 dark values under `$extensions.design-kit.modes`, every token with a `path:line` source),
 `DESIGN-SYSTEM.md` (the plain `## Design system` block Claude Code's artifact skill reads,
 a component inventory with props and variants, and a `## Not found` list), and `kit.html`
@@ -434,7 +447,7 @@ reads. Determinism, `--check` and the stamps are **gate** (harness-driven).
 
 `/design-kit:artifact [file.html | file.md | dir | brief] [--name slug] [--zip]` — every
 stylesheet, script, image and font inlined by `scripts/artifact-bundle.py` — written to
-`.design-kit/artifacts/<slug>.html`, versioned (`.versions/<slug>/vN.html` +
+`.cc-artifacts/design-kit/artifacts/<slug>.html`, versioned (`.versions/<slug>/vN.html` +
 `<slug>.versions.json`), and served on the plugin's preview URL with live reload. A `.md`
 source renders through the page shell (ATX headings, one-level lists, pipe tables, fenced
 code, links; no nested lists, footnotes or reference links). A brief means the model
@@ -454,7 +467,7 @@ fetches assets from JavaScript keeps those references unreported), `srcset` rewr
 ### `/design-kit:film` — a product film from a brief
 
 `/design-kit:film [brief.md | product URL] [--run-to-end]` makes a demo, launch film, explainer or
-beat-synced reel in `.design-kit/film/<slug>/`, rendered by HyperFrames (default), Remotion, or a
+beat-synced reel in `.cc-artifacts/design-kit/film/<slug>/`, rendered by HyperFrames (default), Remotion, or a
 hand-rolled `seek(t)` page. The skill is an order: brief (every blank decided and logged in
 `brief.txt`) → `film.py doctor` → facts into `facts.json` → the UI captured at 2x, logo as SVG, fonts
 copied → a 3-second draft MP4 → sound first (`film.py music` writes the beat grid, or
@@ -484,7 +497,7 @@ supplied, with pipeline facts from [yihui-dev/awesome-opus5-5-videos](https://gi
 ### `/design-kit:motion` — a static design, alive
 
 `/design-kit:motion [figma-url | image] [--website] [--no-export]` rebuilds the design as a
-fixed-size stage in `.design-kit/motion/<slug>/index.html` — every moving layer exported from
+fixed-size stage in `.cc-artifacts/design-kit/motion/<slug>/index.html` — every moving layer exported from
 Figma's REST API at 3x and placed by the rules in `references/figma-export.md`, the background
 kept byte-for-byte — then animates it: the empty state first, a staggered rise-and-resolve intro,
 a story per visual (a list receiving an item, a chart being read, a prompt being typed), a
@@ -520,17 +533,17 @@ it replaced than from a diff:
 dk snapshot --routes /,/pricing --device both        # one PNG per route per device
 # …change the UI…
 dk snapshot --routes /,/pricing --device both
-dk review --base .design-kit/shots/<the first set>   # or a git ref whose shots were committed
+dk review --base .cc-artifacts/design-kit/shots/<the first set>   # or a git ref whose shots were committed
 ```
 
 `snapshot` loads each route in the same Chromium-family browser `board-export.sh` finds
 (it asks that script, so one install hint serves both) and writes
 `<out>/<device>/<route-slug>.png` — `<out>` defaults to
-`.design-kit/shots/<git short sha, else a UTC timestamp>/`, desktop is 1440x900, mobile
+`.cc-artifacts/design-kit/shots/<git short sha, else a UTC timestamp>/`, desktop is 1440x900, mobile
 390x844, and `--base-url` defaults to the dev URL `dk scratch --detect` reports. A second
 shoot at the same commit writes `<sha>-2` rather than over the set you are about to
 compare against. `review` pairs the newest set (or `--current`) against `--base`, writes
-`.design-kit/reviews/<pair>.html` with **before | after | a pixel-diff heatmap** per
+`.cc-artifacts/design-kit/reviews/<pair>.html` with **before | after | a pixel-diff heatmap** per
 route, serves it on the same preview URL as everything else, and prints one table row per
 route with the changed-pixel percentage. The heatmap and the percentage need `python3`
 with Pillow; without it the page shows the pair alone and every row reads
@@ -549,7 +562,7 @@ antialiasing counts as changed pixels.
 ### Behind a login
 
 ```bash
-dk snapshot --routes /dashboard --device both --storage-state .design-kit/auth/walk.json
+dk snapshot --routes /dashboard --device both --storage-state .cc-artifacts/design-kit/auth/walk.json
 ```
 
 The file is a Playwright `storageState` JSON: cookies, plus localStorage per origin. Sign in
@@ -560,7 +573,7 @@ account.** Then save the state from that same Playwright MCP browser in one
 
 ```js
 async (page) => {
-  const file = '/ABSOLUTE/PATH/TO/REPO/.design-kit/auth/walk.json';
+  const file = '/ABSOLUTE/PATH/TO/REPO/.cc-artifacts/design-kit/auth/walk.json';
   const { origin, localStorage } = await page.evaluate(() => ({ origin: location.origin,
     localStorage: Object.entries(window.localStorage).map(([name, value]) => ({ name, value })) }));
   const state = { cookies: await page.context().cookies(page.url()), origins: [{ origin, localStorage }] };
@@ -582,7 +595,7 @@ an isolated context.
 
 **The file holds a live session token.** Inside a git work tree `snapshot` refuses it with
 exit 1 unless git ignores it, and a tracked file never counts as ignored. Keep it under
-`.design-kit/`, which `dk` keeps ignored, or outside the repo. Delete it when the walk user goes.
+`.cc-artifacts/design-kit/`, which `dk` keeps ignored, or outside the repo. Delete it when the walk user goes.
 
 What it carries: cookies and localStorage. It does not carry sessionStorage, IndexedDB or an HTTP
 auth header. The browser's `--screenshot` CLI cannot take a cookie, so this path drives the same
@@ -617,15 +630,15 @@ marketplace on 2026-09-14. This one starts from zero and says now what would ret
 
 **How it is measured.** `bash scripts/dk-usage.sh --projects <dir>...` (in this plugin)
 prints one row per surface per project — created, revisited, picked, rendered, exported,
-shared, followed-by-commit — from `.design-kit/usage.jsonl` (one line per `dk` verb),
-`.design-kit/decisions.jsonl` (one line per board pick), file mtimes, and `git log` over
+shared, followed-by-commit — from `.cc-artifacts/design-kit/usage.jsonl` (one line per `dk` verb),
+`.cc-artifacts/design-kit/decisions.jsonl` (one line per board pick), file mtimes, and `git log` over
 the seven days after each decision, restricted to the component paths the decision names.
 `followed-by-commit` reads `n/a`, never 0, when no decision names a path. The router side:
 skill-router carries a `**/dir/**` row per surface, so `turn-cost.sh --skills` at the
 marketplace root can count offers; without those rows it read zero by construction.
 
 **The kill trigger, as a number.** Thirty days after 0.2.0, with at least three projects
-that have a `.design-kit/` directory: `followed-by-commit = 0` across all of them AND
+that have a design-kit folder (`.cc-artifacts/design-kit/`, or an older `.design-kit/`): `followed-by-commit = 0` across all of them AND
 `shared = 0` → retire the plugin on the same evidence that retired its predecessor. The
 script prints the verdict inputs; the decision is a human's. A non-zero count proves a
 surface fired, not that it helped — the only column that means "a design decision changed
@@ -641,26 +654,29 @@ the thirty-day reading and the retirement call — **recorded**, a human reads t
 ## What gets ignored, and what is yours
 
 The first `dk` verb inside a git repo appends one managed block to `.gitignore` with
-`.design-kit/` and `__design-kit__/` — previews, exports, decisions and scratch never
-reach a commit by accident. It never adds a path that already has tracked files, and
-`DESIGN_KIT_IGNORE=off` skips it. `design-system/` is deliberately not in the block: it
-is the tracked record. Standing: `dk.test.sh` drives first run, idempotence, the
-tracked-path refusal and the off switch — **gate**. A marketplace-wide sweep across
+`.cc-artifacts/design-kit/` and `__design-kit__/` — previews, exports, decisions, the design
+system and scratch never reach a commit by accident. In a project that still has `.design-kit/`
+the block keeps naming it, since it may hold a signed-in session under `auth/`. It never adds a
+path that already has tracked files, and `DESIGN_KIT_IGNORE=off` skips it. To keep the design
+system in git, `git add -f .cc-artifacts/design-kit/design-system/` once; a tracked file stays
+tracked. Standing:
+`dk.test.sh` drives first run, idempotence, the tracked-path refusal, the kept legacy line and
+the off switch — **gate**. A marketplace-wide sweep across
 every plugin's scratch paths lives in git-workflow (`scratch-ignore.sh`, run by
 `/git-workflow:finish`).
 
 ## Disabling
 
-Uninstall the plugin. `DESIGN_KIT_PORT` moves the server. `.design-kit/` is safe to
-delete at any time; `design-system/` is yours and is not.
+Uninstall the plugin. `DESIGN_KIT_PORT` moves the server. `.cc-artifacts/design-kit/` is safe to
+delete at any time except its `design-system/`, which is yours.
 
 ## Not in this release
 
 Notes from another device or on a published or zipped page (notes are loopback-only and
-stay in `.design-kit/`), a version picker in the browser, Figma import or
+stay in `.cc-artifacts/design-kit/`), a version picker in the browser, Figma import or
 export beyond `/design-kit:motion`'s read-only REST calls, image generation, a component registry, and any hosted publishing beyond a git
 pages branch you push yourself.
 
-No Figma bridge does not mean no route out: `design-system/tokens.json` is DTCG-shaped,
+No Figma bridge does not mean no route out: the design system's `tokens.json` is DTCG-shaped,
 and the paragraph under `/design-kit:system` names the value forms a Tokens Studio or
 Style Dictionary consumer has to convert to use it.

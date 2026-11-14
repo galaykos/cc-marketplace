@@ -120,17 +120,17 @@ o=$(spawn "$L" laravel:backend-engineer)
 [ "$(skills "$o")" = "laravel-best-practices sql-best-practices" ] && ok || bad "sql gate: migration named, expected [laravel sql]; got [$(skills "$o")]"
 o=$(spawn "$L" web-dev:frontend-reviewer)
 [ "$(skills "$o")" = "inertia-best-practices" ] && ok || bad "vite gate: another agent type's record leaked; got [$(skills "$o")]"
-TP="$WS/t-1d3.jsonl"; mkdir -p "$L/.claude/skill-router"
-printf '%s\tweb-dev:frontend-reviewer\tsrc vite \n' "$(( $(date +%s) - 600 ))" > "$L/.claude/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv"
+TP="$WS/t-1d3.jsonl"; mkdir -p "$L/.cc-artifacts/skill-router"
+printf '%s\tweb-dev:frontend-reviewer\tsrc vite \n' "$(( $(date +%s) - 600 ))" > "$L/.cc-artifacts/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv"
 o=$(spawn "$L" web-dev:frontend-reviewer)
 [ "$(skills "$o")" = "inertia-best-practices" ] && ok || bad "vite gate: a record older than the TTL counted; got [$(skills "$o")]"
-rm -rf "$L/.claude"
+rm -rf "$L/.claude" "$L/.cc-artifacts"
 TP="$WS/t-1d4.jsonl"
 o=$(spawn "$L" database:database-engineer)
 [ "$(skills "$o")" = "sql-best-practices" ] && ok || bad "all-surface agent: database-engineer lost sql with no record; got [$(skills "$o")]"
 
 # 1e. general-purpose and claude dispatches naming a repo file get the primed skills as Read paths, surface skills gated the same way;
-#     one naming no repo file (research, a product name, a taskmaster-docs brief, a path outside the root) gets nothing.
+#     one naming no repo file (research, a product name, a taskmaster-docs or .cc-artifacts brief, a path outside the root) gets nothing.
 TP="$WS/t-1e.jsonl"
 out=$(dispatch "$L" general-purpose 'Build the invoice export: app/Http/Controllers/InvoiceExportController.php and resources/js/pages/invoices.tsx')
 [ -z "$out" ] && ok || bad "PreToolUse: printed output: ${out:0:160}"
@@ -142,6 +142,7 @@ TP="$WS/t-1e2.jsonl"; dispatch "$L" claude 'Add database/migrations/2026_02_01_0
 o=$(spawn "$L" claude)
 [ "$(skills "$o")" = "sql-best-practices laravel-best-practices inertia-best-practices tailwind-best-practices" ] && ok || bad "claude agent + migration: expected [sql laravel inertia tailwind]; got [$(skills "$o")]"
 for p in 'Research how Node.js streams handle backpressure and report back' 'Summarise taskmaster-docs/retro/notes.py for me' \
+         'Summarise .cc-artifacts/taskmaster/retro/notes.py for me' \
          "Read $WS/elsewhere/tool.py and reply" 'Reply with PONG'; do
   TP=$(mktemp "$WS/t-gp-XXXXXX"); dispatch "$L" general-purpose "$p" >/dev/null
   o=$(spawn "$L" general-purpose)
@@ -150,10 +151,10 @@ done
 TP="$WS/t-1e3.jsonl"; dispatch "$L" general-purpose 'Fix app/Models/Order.php' CC_SUBAGENT_SKILLS=off >/dev/null
 o=$(spawn "$L" general-purpose)
 [ -z "$o" ] && ok || bad "PreToolUse under CC_SUBAGENT_SKILLS=off recorded a dispatch; got [$(skills "$o")]"
-rm -rf "$L/.claude"
+rm -rf "$L/.claude" "$L/.cc-artifacts"
 TP="$WS/t-1e4.jsonl"; dispatch "$L" Explore 'Find app/Models/Order.php' >/dev/null
-[ ! -e "$L/.claude" ] && ok || bad "PreToolUse: a built-in agent type's dispatch wrote state"
-rm -rf "$L/.claude"
+[ ! -e "$L/.claude" ] && [ ! -e "$L/.cc-artifacts" ] && ok || bad "PreToolUse: a built-in agent type's dispatch wrote state"
+rm -rf "$L/.claude" "$L/.cc-artifacts"
 unset TP
 
 # 1f. the hooks.json matchers reach the dispatches above: SubagentStart matches plugin agents, general-purpose and claude, not
@@ -178,7 +179,7 @@ o=$(spawn "$N" web-dev:frontend-reviewer)
 mv "$MKT/laravel" "$WS/laravel-away"
 TP="$WS/t-3.jsonl"; dispatch "$L" web-dev:frontend-reviewer 'Review vite.config.ts' >/dev/null
 o=$(spawn "$L" web-dev:frontend-reviewer)
-unset TP; rm -rf "$L/.claude"
+unset TP; rm -rf "$L/.claude" "$L/.cc-artifacts"
 [ "$(skills "$o")" = "vite-best-practices" ] && ok || bad "laravel plugin absent: expected [vite] alone; got [$(skills "$o")]"
 mv "$WS/laravel-away" "$MKT/laravel"
 
@@ -213,7 +214,7 @@ silent "empty payload"                     "$(printf '{}' | CLAUDE_PLUGIN_ROOT="
 root_out=$(spawn "$L" web-dev:frontend-reviewer)
 sub_out=$(spawn "$L/app/Enums" web-dev:frontend-reviewer)
 [ -n "$root_out" ] && [ "$sub_out" = "$root_out" ] && ok || bad "subdir cwd: output differs from the root's: [$(skills "$sub_out")] vs [$(skills "$root_out")]"
-[ ! -e "$L/.claude" ] && [ ! -e "$L/app/Enums/.claude" ] && ok || bad "subdir cwd: the hook wrote a .claude/ dir"
+[ ! -e "$L/.claude" ] && [ ! -e "$L/app/Enums/.claude" ] && [ ! -e "$L/.cc-artifacts" ] && [ ! -e "$L/app/Enums/.cc-artifacts" ] && ok || bad "subdir cwd: the hook wrote a state dir"
 
 # 7. envelope shape and the byte cap: exactly one line, one SubagentStart envelope, the
 #    context ≤ 700 chars — including a layout deep enough that four paths overflow it
@@ -241,7 +242,7 @@ prime() { jq -cn --arg c "$1" '{hook_event_name:"SessionStart",source:"compact",
 p_root=$(prime "$L"); p_sub=$(prime "$L/app/Enums")
 case "$p_root" in *laravel-best-practices*inertia-best-practices*) ok ;; *) bad "prime root: laravel+inertia not primed: $p_root" ;; esac
 [ "$p_sub" = "$p_root" ] && ok || bad "prime subdir cwd: differs from the root's — root [$p_root] sub [$p_sub]"
-[ ! -e "$L/app/Enums/.claude" ] && ok || bad "prime subdir cwd: stray .claude/"
+[ ! -e "$L/app/Enums/.claude" ] && [ ! -e "$L/app/Enums/.cc-artifacts" ] && ok || bad "prime subdir cwd: stray state dir"
 
 # 9. prime.sh names each skill as plugin:skill (a bare name loaded a project's own .claude/skills copy of the same name), and adds
 #    ONE line naming every primed skill the project shadows; a repo shadowing nothing gets no second line.
@@ -255,16 +256,16 @@ p_sh=$(prime "$L")
 printf '%s\n' "$p_sh" | sed -n 2p | grep -qF 'Load laravel-best-practices, inertia-best-practices by the plugin:skill name above: a bare name loads the project copy in .claude/skills instead.' \
   && ok || bad "prime shadow: collision line wrong: $(printf '%s\n' "$p_sh" | sed -n 2p)"
 printf '%s\n' "$p_sh" | grep -qF 'pest-testing' && bad "prime shadow: named a project skill no row primes" || ok
-rm -rf "$L/.claude"
+rm -rf "$L/.claude" "$L/.cc-artifacts"
 
 # 10. SessionEnd removes the dispatch record with the context's other state
 TP="$WS/t-10.jsonl"; dispatch "$L" general-purpose 'Fix app/Models/Order.php' >/dev/null
-df="$L/.claude/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv"
+df="$L/.cc-artifacts/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv"
 [ -s "$df" ] && ok || bad "dispatch record not written at $df"
 jq -cn --arg c "$L" --arg tp "$TP" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | CLAUDE_PLUGIN_ROOT="$PR_ROOT" HOME="$WS/home" bash "$SR/hooks/summary.sh" >/dev/null 2>&1
 [ ! -e "$df" ] && ok || bad "SessionEnd left the dispatch record"
-unset TP; rm -rf "$L/.claude"
+unset TP; rm -rf "$L/.claude" "$L/.cc-artifacts"
 
 # 11. a dispatch of a type this hook does not handle exits after one jq read: no git call, no record; a handled type still records
 SH="$WS/shim"; mkdir -p "$SH"
@@ -273,10 +274,10 @@ TP="$WS/t-11.jsonl"
 dispatch "$L" Explore 'Find app/Models/Order.php' PATH="$SH:$PATH" SHIM_LOG="$WS/shim.log" >/dev/null
 [ "$(grep -cx jq "$WS/shim.log")" = 1 ] && [ "$(grep -cx git "$WS/shim.log")" = 0 ] && ok \
   || bad "unhandled dispatch: expected 1 jq and 0 git calls; got [$(sort "$WS/shim.log" | uniq -c | tr -s ' \n' ' ')]"
-[ ! -e "$L/.claude" ] && ok || bad "unhandled dispatch: wrote state"
+[ ! -e "$L/.claude" ] && [ ! -e "$L/.cc-artifacts" ] && ok || bad "unhandled dispatch: wrote state"
 dispatch "$L" general-purpose 'Fix app/Models/Order.php' PATH="$SH:$PATH" SHIM_LOG="$WS/shim.log" >/dev/null
-[ -s "$L/.claude/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv" ] && ok || bad "handled dispatch: no record after the early type read"
-unset TP; rm -rf "$L/.claude"
+[ -s "$L/.cc-artifacts/skill-router/dispatch-$(printf '%s' "$TP" | cksum | cut -d' ' -f1).tsv" ] && ok || bad "handled dispatch: no record after the early type read"
+unset TP; rm -rf "$L/.claude" "$L/.cc-artifacts"
 
 [ -e "$WS/nonzero" ] && bad "a hook exited non-zero: $(tr '\n' ' ' < "$WS/nonzero")" || ok
 

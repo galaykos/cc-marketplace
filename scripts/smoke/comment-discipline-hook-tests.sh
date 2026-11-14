@@ -17,7 +17,7 @@ BASH_BIN="$(command -v bash)"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-unset CLAUDE_PLUGIN_DATA   # the cases read hook state under <root>/.claude
+unset CLAUDE_PLUGIN_DATA   # the cases read hook state under <root>/.cc-artifacts
 rc=0
 pass() { printf 'PASS  %s\n' "$1"; }
 fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; rc=1; }
@@ -408,7 +408,7 @@ counter++;'
 # deny is unbounded — it fires on attempt 1, 2, 3, forever, and the model can never
 # satisfy or exhaust it. These two cases pin the withhold. Without them the plugin's
 # central safety claim ("can never wedge a session") is unasserted prose.
-UNWRITABLE="$(mktemp -d)"; mkdir -p "$UNWRITABLE/.claude"; chmod 555 "$UNWRITABLE/.claude"
+UNWRITABLE="$(mktemp -d)"; mkdir -p "$UNWRITABLE/.cc-artifacts"; chmod 555 "$UNWRITABLE/.cc-artifacts"
 wedge_out=""
 for _ in 1 2 3; do
   wedge_out="$wedge_out$(envelope Write /tmp/proj/w.js '// increment the counter
@@ -418,7 +418,7 @@ d["cwd"]=sys.argv[1]; print(json.dumps(d))' "$UNWRITABLE" | "$BASH_BIN" "$HOOK" 
 done
 if [ -z "$wedge_out" ]; then pass "unwritable marker dir withholds the deny (no wedge)"
 else fail "unwritable marker dir withholds the deny (no wedge)" "denied anyway: $wedge_out"; fi
-chmod 755 "$UNWRITABLE/.claude"; rm -rf "$UNWRITABLE"
+chmod 755 "$UNWRITABLE/.cc-artifacts"; rm -rf "$UNWRITABLE"
 
 # No cwd at all: the marker path would resolve under / — unwritable on a sealed
 # root, and wrong everywhere else. Withhold rather than deny unbounded.
@@ -487,11 +487,11 @@ else fail "third edit of the same file is bounded (no wedge)" "fired a third tim
 # One noclobber FILE per try since 0.31.1 (a mkdir directory 0.19.1-0.31.0): a
 # read-modify-write counter let two parallel subagents both read 0 and both write 1,
 # and uutils mkdir(1) exits 0 when it loses the race.
-if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*.d[0-9]' -type f 2>/dev/null)" ]
+if [ -n "$(find "$TP_DIR/.cc-artifacts/comment-discipline" -name 'blocked-*.d[0-9]' -type f 2>/dev/null)" ]
 then pass "transcript_path present: the marker actually landed on disk"
 else fail "transcript_path present: the marker actually landed on disk" "no marker under $TP_DIR"; fi
-if [ "$(cat "$TP_DIR/.claude/comment-discipline/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
-else fail "the state dir ignores itself" ".claude/comment-discipline/.gitignore missing or not '*'"; fi
+if [ "$(cat "$TP_DIR/.cc-artifacts/comment-discipline/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
+else fail "the state dir ignores itself" ".cc-artifacts/comment-discipline/.gitignore missing or not '*'"; fi
 # ---- the legacy marker, the <=0.19.0 shape -----------------------------------
 # `[ -e "$marker" ] && tries=1` is the only thing stopping a mid-session UPGRADE from
 # handing an already-denied file a fresh pair of denies: the old hook wrote a zero-byte
@@ -502,7 +502,7 @@ LEG_DIR="$(mktemp -d)"
 TP_CWD="$LEG_DIR"
 tp /tmp/proj/leg.js '// increment the counter
 counter++;' >/dev/null
-leg_d1="$(find "$LEG_DIR/.claude/comment-discipline" -name 'blocked-*.d1' -type f 2>/dev/null | head -1)"
+leg_d1="$(find "$LEG_DIR/.cc-artifacts/comment-discipline" -name 'blocked-*.d1' -type f 2>/dev/null | head -1)"
 if [ -n "$leg_d1" ]; then
   rm -f "$leg_d1"; : > "${leg_d1%.d1}"      # collapse .d1 back to the pre-0.19.1 shape
   leg1="$(tp /tmp/proj/leg.js '// increment the counter
@@ -530,7 +530,7 @@ LEG_DIR="$(mktemp -d)"
 TP_CWD="$LEG_DIR"
 tp /tmp/proj/legdir.js '// increment the counter
 counter++;' >/dev/null
-leg_d1="$(find "$LEG_DIR/.claude/comment-discipline" -name 'blocked-*.d1' -type f 2>/dev/null | head -1)"
+leg_d1="$(find "$LEG_DIR/.cc-artifacts/comment-discipline" -name 'blocked-*.d1' -type f 2>/dev/null | head -1)"
 if [ -n "$leg_d1" ]; then
   rm -f "$leg_d1"; mkdir "$leg_d1"          # the 0.31.0 shape of the same spent try
   leg1="$(tp /tmp/proj/legdir.js '// increment the counter
@@ -1644,8 +1644,8 @@ export const c = 3;
     *) fail "effects: a banner a python run appended to a committed file draws the warning" "got: $o" ;; esac
 
   d=$(effrepo c nomark); o=$(pyrun "$d" ec1 "$NOISE_PY")
-  [ -z "$o" ] && [ -f "$d/.claude/comment-discipline/bash-effects-scan.mark" ] && pass "effects: the first call in a repo is silent and leaves the marker" \
-    || fail "effects: the first call in a repo is silent and leaves the marker" "out=[$o] marker=$(ls "$d/.claude/comment-discipline" 2>&1)"
+  [ -z "$o" ] && [ -f "$d/.cc-artifacts/comment-discipline/bash-effects-scan.mark" ] && pass "effects: the first call in a repo is silent and leaves the marker" \
+    || fail "effects: the first call in a repo is silent and leaves the marker" "out=[$o] marker=$(ls "$d/.cc-artifacts/comment-discipline" 2>&1)"
   o=$(pyrun "$d" ec2 'print(1)')
   [ -z "$o" ] && pass "effects: a python run that wrote nothing is silent" || fail "effects: a python run that wrote nothing is silent" "got: $o"
 

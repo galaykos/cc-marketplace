@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1 — 2026-11-14
+
+- **`hooks/godot-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no
+  `CLAUDE_PLUGIN_DATA`, the hook's per-project state now goes to `.cc-artifacts/godot/`, not
+  `.claude/godot/`: one folder a team can gitignore and leave out of a deploy, outside the
+  `.claude/` path Claude Code protects. The state is a cache, so nothing is carried over from
+  the old dir. Standing: gate for the path (`templates/blocks/plugin-state.md`, held byte-identical
+  by `pc_shared_blocks`).
+
 ## 0.2.0 — 2026-11-09
 
 - **The project checker now runs on its own after an edit.** A new PostToolUse hook, `hooks/godot-check.sh`, runs `check_godot_project.py --json` after a Write or Edit of a `.tscn`, `.tres` or `.gd`, on the project that holds the file (the nearest `project.godot` above it). It adds a short note with the new findings: errors anywhere in the project, warnings in the edited file, the edited file's first, at most 5 per edit, and each finding once per session or subagent. It never blocks, and it stays silent outside a Godot project and on a clean scene. It took 0.5 s on a 6,001-file project. Turn it off with `CC_GODOT_CHECK=off` or the new `cc_godot_check` option under `/config`.

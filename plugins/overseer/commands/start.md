@@ -25,7 +25,7 @@ budget draws a WARN from `init`: relay it, and suggest a budget once. Then:
    a program: a roadmap, a branch and an acceptance walk per slice would stretch it. For
    such an ask, say in one line why it reads as one spec, then ask via AskUserQuestion
    "Hand it to /taskmaster:task (Recommended)" / "Run it as a program anyway". On the first,
-   write nothing under `.claude/overseer/` and invoke `/taskmaster:task <ask>` (Skill tool;
+   write nothing under `.cc-artifacts/overseer/` and invoke `/taskmaster:task <ask>` (Skill tool;
    taskmaster not installed: say so and offer only the program). Headless or `--hands-off`:
    do not start; print `/taskmaster:task goal-lean <ask>` and
    `/overseer:start <ask> --program` as the two ways on, and stop. When unsure, it is a

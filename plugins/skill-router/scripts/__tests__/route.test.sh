@@ -46,10 +46,10 @@ bashw() { # cwd command transcript [env...] — runs the command, then the hook
 # Bare names, the plugin prefix dropped: case 19 pins the qualified spelling itself.
 skills()  { jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null | grep -oE 'Load the `[^`]+`' | sed 's/^Load the `//; s/`$//; s/^[a-z0-9._-]*://' | sort -u; }
 ctxof()   { printf '%s' "$1" | cksum | cut -d' ' -f1; }
-statef()  { printf '%s/.claude/skill-router/fired-%s.json' "$1" "$(ctxof "$2")"; }
+statef()  { printf '%s/.cc-artifacts/skill-router/fired-%s.json' "$1" "$(ctxof "$2")"; }
 has_skill() { skills <<<"$1" | grep -qxF "$2"; }
 # Every call in a git repo leaves the effects marker; nothing else may land, and the state dir must stay invisible to git.
-nostate() { ! ls "$1"/.claude/skill-router/fired-*.json >/dev/null 2>&1 && [ -z "$(git -C "$1" status --porcelain --untracked-files=all -- .claude 2>/dev/null)" ]; }
+nostate() { ! ls "$1"/.cc-artifacts/skill-router/fired-*.json >/dev/null 2>&1 && [ -z "$(git -C "$1" status --porcelain --untracked-files=all -- .claude .cc-artifacts 2>/dev/null)" ]; }
 
 CTRL='app/Http/Controllers/UserController.php'
 HEREDOC="cat > $CTRL <<'PHP'
@@ -81,7 +81,7 @@ for cmd in 'git status' 'ls app > /dev/null 2>&1' 'echo hi 2>&1' 'grep -rn foo a
   out=$(bashw "$B" "$cmd" "$WS/t-b.jsonl")
   [ -z "$out" ] && ok || bad "no target [$cmd]: expected silence, got: ${out:0:120}"
 done
-nostate "$B" && ok || bad "no target: state written at $B/.claude"
+nostate "$B" && ok || bad "no target: state written at $B/.cc-artifacts"
 
 # 3. a target missing afterwards, or outside the root → silent, no state
 for cmd in 'echo x > app/Gone.php && rm app/Gone.php' \
@@ -92,7 +92,7 @@ for cmd in 'echo x > app/Gone.php && rm app/Gone.php' \
   [ -z "$out" ] && ok || bad "missing/outside [$cmd]: expected silence, got: ${out:0:120}"
 done
 [ -f "$WS/outside-rel.php" ] && [ -f "$WS/outside-abs.php" ] && ok || bad "fixture: outside-root files were not written, so the outside cases proved nothing"
-nostate "$B" && ok || bad "missing/outside: state written at $B/.claude"
+nostate "$B" && ok || bad "missing/outside: state written at $B/.cc-artifacts"
 
 # 4. payload cwd = a subdirectory: state at the repo root, nothing in the subdirectory,
 #    `**/app/**` still matches a relative target, and the `?package.json` marker is read
@@ -107,11 +107,11 @@ PHP" "$TC")
 has_skill "$out" laravel-best-practices && ok || bad "subdir: laravel-best-practices not routed; got: ${out:0:200}"
 has_skill "$out" nextjs-best-practices && ok || bad "subdir: **/app/** + root package.json did not route nextjs-best-practices; got: ${out:0:200}"
 [ -f "$(statef "$C" "$TC")" ] && ok || bad "subdir: no state file at the repo root"
-[ ! -e "$C/app/Enums/.claude" ] && ok || bad "subdir: stray .claude/ created in app/Enums"
+[ ! -e "$C/app/Enums/.claude" ] && [ ! -e "$C/app/Enums/.cc-artifacts" ] && ok || bad "subdir: stray state dir created in app/Enums"
 mkdir -p "$C/database/migrations"; : > "$C/database/migrations/2026_01_01_create_orders.php"
 out=$(edit "$C/app/Models" "$C/database/migrations/2026_01_01_create_orders.php" "$TC")
 has_skill "$out" sql-best-practices && ok || bad "subdir edit: sql-best-practices not routed; got: ${out:0:200}"
-[ ! -e "$C/app/Models/.claude" ] && ok || bad "subdir edit: stray .claude/ created in app/Models"
+[ ! -e "$C/app/Models/.claude" ] && [ ! -e "$C/app/Models/.cc-artifacts" ] && ok || bad "subdir edit: stray state dir created in app/Models"
 jq -e '(.fired | index("laravel-best-practices")) and (.fired | index("sql-best-practices"))' "$(statef "$C" "$TC")" >/dev/null 2>&1 \
   && ok || bad "subdir: one context from two directories did not land in ONE root state file"
 
@@ -181,7 +181,7 @@ out=$(bashw "$G" "$seven; echo a > t8.txt; printf 'select 1;\\n' > ninth.sql" "$
 # 8. CC_REMIND=off silences the Bash path too
 H="$WS/h"; mkrepo "$H"
 out=$(bashw "$H" "printf 'select 1;\\n' > q.sql" "$WS/t-h.jsonl" CC_REMIND=off)
-[ -z "$out" ] && [ ! -e "$H/.claude" ] && ok || bad "CC_REMIND=off: Bash write still routed: ${out:0:120}"
+[ -z "$out" ] && [ ! -e "$H/.claude" ] && [ ! -e "$H/.cc-artifacts" ] && ok || bad "CC_REMIND=off: Bash write still routed: ${out:0:120}"
 
 # Each case from here uses its own transcript unless it tests the one-shot, so an earlier case's fired skill cannot mask it.
 bashc() { # cwd command transcript [env...] — the hook only; the command is NOT run
@@ -340,7 +340,7 @@ for cmd in 'npm view shadcn version' 'npx shadcn@latest init' 'npx jsrepo@latest
   out=$(bashc "$S2" "$cmd" "$(fresh)")
   [ -z "$out" ] && ok || bad "command row [$cmd]: expected silence, got: ${out:0:160}"
 done
-nostate "$S2" && ok || bad "command row: a non-matching command wrote state at $S2/.claude"
+nostate "$S2" && ok || bad "command row: a non-matching command wrote state at $S2/.cc-artifacts"
 out=$(bashc "$S2" 'npx shadcn@latest add button' "$(fresh)" CC_REMIND=off)
 [ -z "$out" ] && nostate "$S2" && ok || bad "CC_REMIND=off: the command row still routed: ${out:0:120}"
 printf 'npx shadcn@latest add button\n' > "$S2/NOTES.txt"
@@ -363,7 +363,7 @@ EOF
   out=$(bashc "$S3" "$cmd" "$TS3")
   [ -z "$out" ] && ok || bad "command row: quoted or heredoc text routed [${cmd%%$'\n'*}]: ${out:0:160}"
 done
-nostate "$S3" && ok || bad "command row: a mention spent the one-shot (state written at $S3/.claude)"
+nostate "$S3" && ok || bad "command row: a mention spent the one-shot (state written at $S3/.cc-artifacts)"
 out=$(bashc "$S3" 'npx shadcn@latest add "@magicui/marquee"' "$TS3")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: a quoted install argument did not route after the mentions; got: ${out:0:160}"
 has_skill "$out" aceternity-best-practices && bad "quoted magicui install is a stated miss, yet aceternity-best-practices routed" || ok
@@ -410,12 +410,13 @@ done
 
 # 18. doc and style files queue nothing; a harness frame does not flush the digest, a human prompt does
 D="$WS/d"; mkrepo "$D"; TD="$WS/t-d.jsonl"
-mkdir -p "$D/docs" "$D/resources/css" "$D/taskmaster-docs/mockups"
+mkdir -p "$D/docs" "$D/resources/css" "$D/taskmaster-docs/mockups" "$D/.cc-artifacts/taskmaster/mockups"
 printf 'Rotate the api token before the release.\n' > "$D/docs/runbook.md"
 printf '.badge { color: var(--token-fg); }\n' > "$D/resources/css/badge.css"
 printf '<form><input type="password" name="password"></form>\n' > "$D/taskmaster-docs/mockups/login.html"
+cp "$D/taskmaster-docs/mockups/login.html" "$D/.cc-artifacts/taskmaster/mockups/login.html"
 printf 'Rotate the secret quarterly.\n' > "$D/docs/notes.txt"
-for f in docs/runbook.md resources/css/badge.css taskmaster-docs/mockups/login.html docs/notes.txt; do
+for f in docs/runbook.md resources/css/badge.css taskmaster-docs/mockups/login.html .cc-artifacts/taskmaster/mockups/login.html docs/notes.txt; do
   edit "$D" "$D/$f" "$TD" >/dev/null
   pend "$(statef "$D" "$TD")" security-review && bad "doc/style file: $f queued security-review" || ok
 done
@@ -456,11 +457,12 @@ sl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"SessionEnd",session_i
   | hook "$SR/hooks/summary.sh" HOME="$WS/home19")
 grep -qF 'security:security-review (1 file)' <<<"$sl" && ok || bad "qualified: SessionEnd line does not name security:security-review; got: ${sl:0:200}"
 
-# 20. no rubric for a file nobody reviews: gitignored scratch, anything under taskmaster-docs/ or .claude/, and a target outside
-#     the project root stay silent and queue nothing; the same file shape tracked in the repo still routes
+# 20. no rubric for a file nobody reviews: gitignored scratch, anything under taskmaster-docs/, .claude/ or .cc-artifacts/ (bar its
+#     design-kit/, which design-kit's rows route), and a target outside the project root stay silent and queue nothing; the same
+#     file shape tracked in the repo still routes
 X="$WS/x"; mkrepo "$X"; printf 'scratch/\n' > "$X/.gitignore"
-mkdir -p "$X/scratch" "$X/taskmaster-docs/retro" "$X/.claude/skills/probe" "$WS/outside-x"
-for f in scratch/probe.py taskmaster-docs/retro/quant.py .claude/skills/probe/run.ts; do
+mkdir -p "$X/scratch" "$X/taskmaster-docs/retro" "$X/.claude/skills/probe" "$X/.cc-artifacts/taskmaster/retro" "$X/.cc-artifacts/task-runner" "$WS/outside-x"
+for f in scratch/probe.py taskmaster-docs/retro/quant.py .claude/skills/probe/run.ts .cc-artifacts/taskmaster/retro/quant.py .cc-artifacts/task-runner/probe.py; do
   printf 'import os\ntoken = os.environ["TOKEN"]\n' > "$X/$f"
   t=$(fresh); out=$(edit "$X" "$X/$f" "$t")
   [ -z "$out" ] && ok || bad "excluded target [$f]: expected silence, got: ${out:0:160}"
@@ -476,6 +478,12 @@ out=$(bashw "$X" "printf 'select 1;\\n' > scratch/q.sql" "$(fresh)")
 printf 'select 1;\n' > "$X/q.sql"
 out=$(edit "$X" "$X/q.sql" "$(fresh)")
 has_skill "$out" sql-best-practices && ok || bad "tracked .sql beside the excluded ones did not route; got: ${out:0:200}"
+mkdir -p "$X/.cc-artifacts/design-kit/decks" "$X/.design-kit/decks"
+for f in .cc-artifacts/design-kit/decks/pitch.html .design-kit/decks/pitch.html; do
+  printf '<section>x</section>\n' > "$X/$f"
+  out=$(edit "$X" "$X/$f" "$(fresh)")
+  has_skill "$out" slides && ok || bad "design-kit deck [$f] did not route slides; got: ${out:0:200}"
+done
 
 # 21. a skill this context already loaded is not nudged: its "Base directory for this skill" line, a Read of its SKILL.md, or a
 #     qualified Skill call in the transcript. The PROJECT's copy of the same bare name loaded, read or called bare does not count.
@@ -529,7 +537,7 @@ scans=$(grep -cF -- "$TY" "$WS/grep.log" 2>/dev/null)
 #     Edit of it would; the first call in a repo only sets the marker; a run that wrote nothing, and a file an Edit changed between
 #     two Bash calls, stay silent.
 if command -v python3 >/dev/null 2>&1; then
-  K="$WS/fx"; mkrepo "$K"; MK="$K/.claude/skill-router/bash-effects.mark"
+  K="$WS/fx"; mkrepo "$K"; MK="$K/.cc-artifacts/skill-router/bash-effects.mark"
   out=$(bashw "$K" "python3 - <<'PY'
 open('app/Models/First.php', 'w').write('<?php\n')
 PY" "$(fresh)")
@@ -589,9 +597,9 @@ if command -v python3 >/dev/null 2>&1; then
   git -C "$K" config status.showUntrackedFiles no; printf '<?php\n' > "$K/app/Models/Hidden.php"
   out=$(bashx "$K" "python3 gen.py" "$(fresh)" sess-2 PostToolUse)
   [ -z "$out" ] && ok || bad "effects: a repo with status.showUntrackedFiles=no was read; got: ${out:0:200}"
-  K3="$WS/fx3"; mkrepo "$K3"; mkdir -p "$K3/.claude/skill-router"
+  K3="$WS/fx3"; mkrepo "$K3"; mkdir -p "$K3/.cc-artifacts/skill-router"
   bashx "$K3" "ls" "$(fresh)" sess PostToolUse >/dev/null
-  [ -f "$K3/.claude/skill-router/.gitignore" ] && [ -z "$(git -C "$K3" status --porcelain --untracked-files=all -- .claude)" ] \
+  [ -f "$K3/.cc-artifacts/skill-router/.gitignore" ] && [ -z "$(git -C "$K3" status --porcelain --untracked-files=all -- .cc-artifacts)" ] \
     && ok || bad "effects: a state dir that existed without a .gitignore left the marker visible to git"
   head -c 1000000 /dev/zero | tr '\0' 'A' | { printf "echo '"; cat; printf "' | base64 -d | wc -c"; } > "$WS/long-cmd"
   t0=$(date +%s)

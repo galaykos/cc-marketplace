@@ -24,15 +24,17 @@ command -v git >/dev/null 2>&1 || { echo "SKIP: git not available"; exit 0; }
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 
-REPO="$WS/repo"; mkdir -p "$REPO/.claude/task-runner"
+REPO="$WS/repo"; mkdir -p "$REPO/.cc-artifacts/task-runner"
 git -C "$REPO" init -q
 git -C "$REPO" config user.email t@t.t; git -C "$REPO" config user.name t
 echo hi > "$REPO/f.txt"; git -C "$REPO" add -A; git -C "$REPO" commit -qm init
 HEAD="$(git -C "$REPO" rev-parse HEAD)"
 
-SENT="$REPO/.claude/task-runner/active-run.json"
-GP="$REPO/.claude/task-runner/gate-pass.json"
-NUDGE="$REPO/.claude/task-runner/gate-nudge"
+SENT="$REPO/.cc-artifacts/task-runner/active-run.json"
+GP="$REPO/.cc-artifacts/task-runner/gate-pass.json"
+# candor keeps its one-block-per-HEAD marker in its own state dir, in the repo when CLAUDE_PLUGIN_DATA is unset.
+unset CLAUDE_PLUGIN_DATA
+NUDGE="$REPO/.cc-artifacts/candor/gate-nudge"
 
 # check <desc> <env> <json> <exp_rc> <exp_substr|__NONE__>
 # The hook blocks at most ONCE per HEAD, so each case starts from a cleared nudge marker
@@ -164,7 +166,7 @@ check "cards_total=0 (block) -> complete allow, silent" "TASK_RUNNER_STOP_GATE=b
 
 # 16) run REGISTERED as an index run (sentinel carries index_path) but gate-pass has no
 #     counts -> malformed warn, never a silent legacy allow
-printf '{"slug":"demo-run","base":"HEAD","index_path":"taskmaster-docs/tasks/x/00-INDEX.md"}' > "$SENT"
+printf '{"slug":"demo-run","base":"HEAD","index_path":".cc-artifacts/taskmaster/tasks/x/00-INDEX.md"}' > "$SENT"
 printf '{"head":"%s"}' "$HEAD" > "$GP"
 check "index-registered run, counts absent (default) -> exit 2" "" "$J" 2 "malformed"
 check "index-registered run, counts absent (warn) -> print-only exit 0" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "malformed"
@@ -221,7 +223,7 @@ check "block still fires after a warn-mode stop" "" "$J" 2 "no recorded pass of 
 
 # ---- per-card negative-control coverage (opt-in by nc/ dir presence) ----
 NC="$ROOT/plugins/task-runner/scripts/negative-control.sh"
-NCDIR="$REPO/.claude/task-runner/nc"
+NCDIR="$REPO/.cc-artifacts/task-runner/nc"
 printf '{"slug":"t","branch":"%s","index_path":"x/00-INDEX.md"}' "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" > "$SENT"
 printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$HEAD" > "$GP"
 
@@ -265,7 +267,7 @@ fi
 # records here are written by a HOOK observing the dispatch (rv-observe.sh), not by
 # the model — a model-authored pass record would have been written with the same
 # conviction as the cards_done:8 that run already wrote.
-RVDIR="$REPO/.claude/task-runner/rv"
+RVDIR="$REPO/.cc-artifacts/task-runner/rv"
 OBS="$ROOT/plugins/task-runner/hooks/rv-observe.sh"
 RS="$ROOT/plugins/task-runner/scripts/review-skip.sh"
 rm -rf "$NCDIR"                                   # isolate: this section tests rv/ only
@@ -350,8 +352,8 @@ mv "$SENT.bak" "$SENT"
 # itself. Without the second, "the gate passed" is a sentence a run can type having
 # never run the gate.
 RS2="$ROOT/plugins/task-runner/scripts/reduction-record.sh"
-BGDIR="$REPO/.claude/task-runner/bg"; RTDIR="$REPO/.claude/task-runner/rt"
-REDDIR="$REPO/.claude/task-runner/reductions"
+BGDIR="$REPO/.cc-artifacts/task-runner/bg"; RTDIR="$REPO/.cc-artifacts/task-runner/rt"
+REDDIR="$REPO/.cc-artifacts/task-runner/reductions"
 rm -rf "$RVDIR" "$REDDIR"; mkdir -p "$BGDIR"
 printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$HEAD" > "$GP"
 
@@ -422,7 +424,7 @@ K="$WS/k"; mkdir -p "$K"
 git -C "$K" init -q; git -C "$K" config user.email t@t.t; git -C "$K" config user.name t
 echo a > "$K/a.txt"; git -C "$K" add -A; git -C "$K" commit -qm start; KSTART="$(git -C "$K" rev-parse HEAD)"
 echo b >> "$K/a.txt"; git -C "$K" commit -qam card; KHEAD="$(git -C "$K" rev-parse HEAD)"
-KTR="$K/.claude/task-runner"; mkdir -p "$KTR/nc" "$KTR/rv" "$KTR/bg"
+KTR="$K/.cc-artifacts/task-runner"; mkdir -p "$KTR/nc" "$KTR/rv" "$KTR/bg"
 printf '{"slug":"k-run","start_sha":"%s"}' "$KSTART" > "$KTR/active-run.json"; touch -t 200001010000 "$KTR/active-run.json"
 printf '{"head":"%s","cards_total":2,"cards_done":2,"cards_parked":0}' "$KHEAD" > "$KTR/gate-pass.json"
 KJ='{"cwd":"'"$K"'","stop_hook_active":false}'

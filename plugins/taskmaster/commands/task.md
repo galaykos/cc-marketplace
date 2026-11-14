@@ -78,7 +78,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    spec-write sequence (approach decision → spec → lint); this step summarizes it,
    never run a stage twice. Decide the approach first when structurally different
    implementations exist (slate or panel per grill Stopping §1; skip for mechanical
-   tasks). Then write `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with
+   tasks). Then write `.cc-artifacts/taskmaster/specs/YYYY-MM-DD-<slug>.md`: a header with
    the raw + upgraded statement pair (under the `**Raw prompt:**` /
    `**Upgraded statement:**` labels), goal, decisions with sources, accepted
    assumptions, the approach with rejected alternatives and kill-trigger,
@@ -95,7 +95,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    change plan, unit ownership, interfaces — and fold any corrections back into
    the spec. Skip it when the plugin is not installed.
 7. Invoke the task-cards skill to split the spec into single-prompt task cards
-   under `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
+   under `.cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
    milestones when the run is large — cards sized S/M/L/XL against task-cards' anchor
    rule (anything L+ is split).
 8. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
@@ -118,7 +118,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
      AskUserQuestion: "Cards are
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
      here — I'll run it later". On "Run now", immediately invoke the command itself —
-     `/task-runner:run taskmaster-docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md` (Skill tool,
+     `/task-runner:run .cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/00-INDEX.md` (Skill tool,
      `task-runner:run`); the command is the handoff. Since task-runner 0.47.0 every
      task-runner entry point registers the run (`active-run.json`, the `build` sentinel)
      through `scripts/register-run.sh`, so the skill route no longer skips registration,

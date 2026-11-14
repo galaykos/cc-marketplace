@@ -11,12 +11,12 @@ After the card's verify passes and before the status flips, run:
 
 ```
 "${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh" --verify "<the card's exact verify>" \
-  --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>
+  --target <impl-file> --auto --record-dir .cc-artifacts/task-runner/nc --card <cardId>
 ```
 
 **`--record-dir` and `--card` are not optional.** They are what writes
 `nc-pass-<cardId>.json`, and the completion gate refuses a clean stop when done cards
-outnumber the records in `.claude/task-runner/nc/` — so a control that RAN without them
+outnumber the records in `.cc-artifacts/task-runner/nc/` — so a control that RAN without them
 counts as a control that never ran, and the run blocks having done nothing wrong. A
 documented skip (`--skip "<reason>"`, same flags) writes `nc-skip-<cardId>.json` and counts
 the same. Pass the record dir as an ABSOLUTE path whenever the control runs against a copy

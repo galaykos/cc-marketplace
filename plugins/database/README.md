@@ -78,7 +78,8 @@ there, is not judged, the rule security's `write-scan` uses (standing: **gate**,
 keeps only the temp-dir rule.
 Two things it deliberately does not reach: a **rename** of a column or table
 (that rule is `sql-best-practices` § Migrations, agent-graded), and documentation —
-`.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything under `taskmaster-docs/`
+`.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything under `.cc-artifacts/taskmaster/` (an older
+project's `taskmaster-docs/` too)
 exit early, because a card that quotes a migration executes nothing and, with no
 interactive prompt to answer — `claude -p`, a headless agent, a `dontAsk` session — an
 `ask` is **auto-denied**, not held open: one quoted migration would fail the turn.

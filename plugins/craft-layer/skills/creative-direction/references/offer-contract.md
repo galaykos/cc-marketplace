@@ -143,7 +143,7 @@ This only works if the record still EXISTS at audit time. The creative-director 
 and writes no files, so the craft flow must persist it — alongside the pinned contract, never in
 the shipped tree — and inject it into the audit. **Fixed names, so a later session can find them
 without being told:** in a `craft/` directory under the run's working area (the taskmaster docs
-area when the project has one, otherwise the session scratch area), as
+area, `.cc-artifacts/taskmaster/`, when the project has one, otherwise the session scratch area), as
 `craft/offer-contract.md`, `craft/divergence-record.md`, `craft/content-source.md`,
 `craft/build-task.md`, `craft/section-ledger.md`, and `craft/reference-board.md`. The last two
 are conditional — a ledger on a `guided` run, a board at the `ultra-craft` boost — but every
@@ -357,7 +357,7 @@ divergence gate parses every `Key: value` line of the record it reads.
 ### The tiebreak, when the glob returns more than one
 
 `**/craft/offer-contract.md` can match several files at once: a session-scratch copy and a
-taskmaster-docs copy, an abandoned run's leftovers, a sibling project vendored into the
+taskmaster docs copy, an abandoned run's leftovers, a sibling project vendored into the
 tree. One rule resolves it, with two consumers — the audit's glob and `divergence.mjs`'s
 `craft-stamp` assertion — and it never ends in a silent pick:
 
@@ -415,7 +415,7 @@ slot coverage. `/craft-layer:audit` reads THIS file (injected as a Read path) an
 - the three BUYER slots — plain-what, audience, problem — are checked against the REGISTER
   corpus, scoped by the build task's `Spine regions:` mapping. This one is SCRIPTED, not
   agent-graded: `divergence.mjs`'s `spine-register` assertion, exit 1 on a hit, waivable in
-  `.craft-layer/waivers.json`. No `Spine regions:` line, or no mapped anchor in the tree →
+  `.cc-artifacts/craft-layer/waivers.json`. No `Spine regions:` line, or no mapped anchor in the tree →
   `not checked`, never a pass. Method disclosure inside `how it works` and `objection` is
   legal and is not checked there (`register-corpus.md`);
 - a proof region EXISTS (slotted per Part 4) rather than being absent;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# preview-guard.sh — PreToolUse on Artifact: asks before an .html/.htm artifact is published remotely, every time for a mockup (a preview basename, a path under taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other. Off: CC_PREVIEW_GUARD=off (unset: /config option cc_preview_guard). Fails open: no jq, no ask; always exits 0.
+# preview-guard.sh — PreToolUse on Artifact: asks before an .html/.htm artifact is published remotely, every time for a mockup (a preview basename, a path under .cc-artifacts/taskmaster/mockups or an older project's taskmaster-docs/mockups, or such a docroot at or above cwd), once per session for any other. Off: CC_PREVIEW_GUARD=off (unset: /config option cc_preview_guard). Fails open: no jq, no ask; always exits 0.
 # Misses: a session's later plain-.html publishes after its first ask, a denied one's retry included. Asks anyway: every plain .html with no session_id; a mockup twice with ui-ux and taskmaster both installed (a plain page once: one shared marker).
 # Why, limits, history: rationale/derivations/plugin-ui-ux.md § plugins/ui-ux/hooks/preview-guard.sh
 
@@ -47,6 +47,8 @@ command -v jq >/dev/null 2>&1 || exit 0
   docroot=""
   d="$cwd"
   while [ -n "$d" ] && [ "$d" != "/" ]; do
+    if [ -d "$d/.cc-artifacts/taskmaster/mockups" ]; then docroot="$d/.cc-artifacts/taskmaster/mockups"; break; fi
+    # Plugins before 2026-11-14 kept mockups in taskmaster-docs/mockups; it still marks a mockup docroot.
     if [ -d "$d/taskmaster-docs/mockups" ]; then docroot="$d/taskmaster-docs/mockups"; break; fi
     d=$(dirname "$d")
   done
@@ -57,7 +59,7 @@ command -v jq >/dev/null 2>&1 || exit 0
     current.html | theme.html | walkthrough.html | diagram.html | api.html | modules.html | compose.html) strong=basename ;;
   esac
   case "$path" in
-    */taskmaster-docs/mockups/*) strong=path ;;
+    */.cc-artifacts/taskmaster/mockups/* | */taskmaster-docs/mockups/*) strong=path ;;
   esac
   [ -n "$strong" ] || { [ -n "$docroot" ] && strong=docroot; }
 

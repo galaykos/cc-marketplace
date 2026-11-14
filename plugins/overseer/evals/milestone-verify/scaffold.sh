@@ -1,9 +1,9 @@
 #!/bin/bash
 # Scaffold for the milestone-verify case: an open interactive program whose m3 is a content-heavy game
 # milestone (many cards, a new system, no surface), modelled on the rogue-chess run in
-# rationale/session-retro-2026-11-05.md § 1. Writes only under ./.claude/overseer/.
+# rationale/session-retro-2026-11-05.md § 1. Writes only under ./.cc-artifacts/overseer/.
 set -e
-d=.claude/overseer; mkdir -p "$d/milestones/m3"
+d=.cc-artifacts/overseer; mkdir -p "$d/milestones/m3"
 cat > "$d/program.json" <<'JSON'
 {"goal":"Finish the roguelike chess game","slug":"chess","base_branch":"master","model":"opus","hands_off":false,
  "milestones":[

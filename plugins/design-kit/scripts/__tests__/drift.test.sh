@@ -17,11 +17,11 @@ drift="$here/handoff-drift.py"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 fail() { echo "FAIL: $*"; exit 1; }
 
-repo="$tmp/repo"; mkdir -p "$repo/src/components" "$repo/design-system"
+repo="$tmp/repo"; mkdir -p "$repo/src/components" "$repo/.cc-artifacts/design-kit/design-system"
 cat > "$repo/src/index.css" <<'EOF'
 :root { --primary: #1d4ed8; --surface: #ffffff; --ink: #0b1a3a; }
 EOF
-cat > "$repo/design-system/tokens.json" <<'EOF'
+cat > "$repo/.cc-artifacts/design-kit/design-system/tokens.json" <<'EOF'
 { "color": { "primary": { "$type": "color", "$value": "#1d4ed8" },
              "surface": { "$type": "color", "$value": "#ffffff" } } }
 EOF
@@ -86,7 +86,7 @@ $out"
 
 # --staged / --diff select files through git, and an EMPTY selection scans nothing.
 proj="$tmp/proj"; mkdir -p "$proj"
-cp -R "$repo/src" "$repo/design-system" "$proj/"
+cp -R "$repo/src" "$repo/.cc-artifacts" "$proj/"
 ( cd "$proj" && git init -q . && git add -A && git -c user.email=t@t -c user.name=t commit -qm init ) \
   || fail "could not build the git fixture"
 run_dk() { ( cd "$proj" && bash "$dk" "$@" ) }
@@ -106,7 +106,7 @@ grep -q 'Dirty.tsx' <<<"$out" && fail "--staged scanned an unstaged file:
 $out"
 
 # Every verb logs one usage line; drift is not exempt.
-python3 - "$proj/.design-kit/usage.jsonl" <<'PY' || exit 1
+python3 - "$proj/.cc-artifacts/design-kit/usage.jsonl" <<'PY' || exit 1
 import json, sys
 rows = [json.loads(l) for l in open(sys.argv[1])]
 assert [r for r in rows if r["verb"] == "drift"], rows

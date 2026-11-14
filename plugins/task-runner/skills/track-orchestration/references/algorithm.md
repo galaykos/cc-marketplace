@@ -14,7 +14,7 @@ inherited cwd.
 ## 0. Setup
 
 1. Verify the run-branch precondition; establish the run branch.
-2. Write a liveness marker `.claude/task-runner/tracks-run-<id>.lock` (a unique id).
+2. Write a liveness marker `.cc-artifacts/task-runner/tracks-run-<id>.lock` (a unique id).
 3. Detect orphans: for each `<run-branch>-track-*` entry in `git worktree list` with no
    live lock, offer cleanup (headless: skip, log). Never list foreign worktrees.
 
@@ -47,9 +47,9 @@ Repeat until no eligible milestone remains:
           && git commit -q -m 'chore: ignore task-runner track worktrees'; }
    git branch <run-branch>-track-<slug> <run-branch>
    git worktree add .claude/worktrees/<run-branch>-track-<slug> <run-branch>-track-<slug>
-   mkdir -p <wt>/.claude/task-runner
-   cp .claude/task-runner/.gitignore .claude/task-runner/env-notes.md <wt>/.claude/task-runner/
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/track-ports.sh" claim --id <slug> >> <wt>/.claude/task-runner/env-notes.md
+   mkdir -p <wt>/.cc-artifacts/task-runner
+   cp .cc-artifacts/task-runner/.gitignore .cc-artifacts/task-runner/env-notes.md <wt>/.cc-artifacts/task-runner/
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/track-ports.sh" claim --id <slug> >> <wt>/.cc-artifacts/task-runner/env-notes.md
    ```
 3. **Dispatch** the wave as ONE `Workflow` `agent()` batch (this blocks until all
    return — that is why scheduling is wave-granular, not rolling). Each track-worker
@@ -105,8 +105,8 @@ The prompt to each track-worker contains, in order:
    `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree), and
    `--root` with the worktree's absolute path.
 
-   **`<abs-main-repo-nc>` is the MAIN repo's `.claude/task-runner/nc`, absolute — never the
-   worktree's**: `.claude/` is gitignored, so a worktree-local record merges nowhere and the
+   **`<abs-main-repo-nc>` is the MAIN repo's `.cc-artifacts/task-runner/nc`, absolute — never the
+   worktree's**: that dir is gitignored, so a worktree-local record merges nowhere and the
    gate refuses the stop (SKILL.md § Coverage records on this path).
 
 ## Merge (per track, on the orchestrator)

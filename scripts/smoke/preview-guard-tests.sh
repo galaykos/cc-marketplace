@@ -29,8 +29,8 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not present"; exit 0; }
 [ -f "$T" ] || { echo "FAIL: missing $T" >&2; exit 1; }
 [ -f "$U" ] || { echo "FAIL: missing $U" >&2; exit 1; }
 
-# A clean cwd with NO taskmaster-docs/mockups docroot anywhere above it, so a
-# plain .html stays WEAK (a mockups docroot would promote it to STRONG).
+# A clean cwd with NO .cc-artifacts/taskmaster/mockups (or older taskmaster-docs/mockups)
+# docroot anywhere above it, so a plain .html stays WEAK (a mockups docroot would promote it to STRONG).
 WORK=$(mktemp -d) || exit 1
 trap 'rm -rf "$WORK"' EXIT INT TERM HUP
 mkdir -p "$WORK/scratchpad"
@@ -92,6 +92,19 @@ for G in "$T" "$U"; do
   # NONE — not .html (a markdown report is not a mockup): silent.
   out=$(run "$G" "$WORK/report.md" "$WORK")
   [ -z "$out" ] || note "$G NONE: expected silence, got output"
+
+  # STRONG by path or docroot: the mockups dir, and the taskmaster-docs one plugins wrote before 2026-11-14.
+  # Each case carries a session whose weak ask is already spent, so only the strong tier can answer.
+  run "$G" "$WORK/scratchpad/spend.html" "$WORK" "tier-$gh" >/dev/null
+  out=$(run "$G" "$WORK/elsewhere/.cc-artifacts/taskmaster/mockups/a.html" "$WORK" "tier-$gh")
+  printf '%s' "$out" | grep -q 'mockup or theme preview' || note "$G STRONG path: a page under .cc-artifacts/taskmaster/mockups must ask as a mockup"
+  out=$(run "$G" "$WORK/elsewhere/taskmaster-docs/mockups/a.html" "$WORK" "tier-$gh")
+  printf '%s' "$out" | grep -q 'mockup or theme preview' || note "$G STRONG path: a page under an older taskmaster-docs/mockups must ask as a mockup"
+  for dr in .cc-artifacts/taskmaster/mockups taskmaster-docs/mockups; do
+    P="$WORK/proj-$gh-${dr%%/*}"; mkdir -p "$P/$dr" "$P/app"
+    out=$(run "$G" "$WORK/scratchpad/plain.html" "$P/app" "tier-$gh")
+    printf '%s' "$out" | grep -q 'mockup or theme preview' || note "$G STRONG docroot: a $dr dir above cwd must promote a plain page"
+  done
 done
 
 # (3) Twin dedupe — both copies installed, same session, same page: the shared

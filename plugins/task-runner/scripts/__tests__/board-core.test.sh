@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # board-core.test.sh — hooks/board-core.ts under node: parseIndex on a fixture for each status form, marker, blockquote,
-#   milestone and missing-table case and on this run's real index when the gitignored taskmaster-docs/ copy exists;
+#   milestone and missing-table case and on this run's real index when the gitignored .cc-artifacts/ or taskmaster-docs/ copy exists;
 #   counts, statusLine and planLine exact strings, record names and the running.pid rule as candor's gate.sh reads them;
 #   its open-card count against hooks/announce.sh on the same index; receiptOf against scripts/check-receipt.sh's real output.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CORE="$ROOT/hooks/board-core.ts"
-REAL="$ROOT/../../taskmaster-docs/tasks/2026-10-06-ship-claude-code-mods/00-INDEX.md"
+REAL="$ROOT/../../.cc-artifacts/taskmaster/tasks/2026-10-06-ship-claude-code-mods/00-INDEX.md"
+[ -r "$REAL" ] || REAL="$ROOT/../../taskmaster-docs/tasks/2026-10-06-ship-claude-code-mods/00-INDEX.md"
 command -v node >/dev/null || { echo "FAIL: node is required"; exit 1; }
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
 pass=0; fail=0
@@ -17,7 +18,7 @@ bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 cat > "$WS/base.md" <<'EOF'
 # Task index — demo
 
-Spec: taskmaster-docs/specs/2026-01-01-demo.md
+Spec: .cc-artifacts/taskmaster/specs/2026-01-01-demo.md
 Branch: feat/demo
 
 ## Upgraded statement
@@ -58,7 +59,7 @@ Boosted runs stamp an Ultra: true line near the top.
 | --- | --- | --- |
 | SC1 demo | 01 | covered |
 EOF
-if [ -r "$REAL" ]; then cp "$REAL" "$WS/real.md"; else printf 'SKIP  the real index (taskmaster-docs/ is gitignored and absent here)\n'; fi
+if [ -r "$REAL" ]; then cp "$REAL" "$WS/real.md"; else printf 'SKIP  the real index (.cc-artifacts/ and taskmaster-docs/ are gitignored and absent here)\n'; fi
 
 CASES='
 import { existsSync, readFileSync } from "node:fs"
@@ -94,9 +95,12 @@ const cases = [
       "| 02 | a.ts | Second | 01 | backend | A | pending |\n", "x").cards.map((c) => [c.id, c.title, c.dependsOn, c.group]),
     [["02", "Second", ["01"], "A"]]],
   ["the spec path is read; neither a blockquoted nor a mid-line Ultra: true is a marker", [b.slug, b.specPath, b.marker],
-    ["demo", "taskmaster-docs/specs/2026-01-01-demo.md", null]],
+    ["demo", ".cc-artifacts/taskmaster/specs/2026-01-01-demo.md", null]],
   ["a spec path in a blockquote above the Spec: line is ignored",
     parseIndex(base.replace("Spec: ", "> Superseded: taskmaster-docs/specs/2025-01-01-old.md\n\nSpec: "), "demo").specPath,
+    ".cc-artifacts/taskmaster/specs/2026-01-01-demo.md"],
+  ["an older index naming taskmaster-docs/specs/ on its Spec: line is still read",
+    parseIndex(base.replace("Spec: .cc-artifacts/taskmaster/", "Spec: taskmaster-docs/"), "demo").specPath,
     "taskmaster-docs/specs/2026-01-01-demo.md"],
   ["an Ultra: line alone is ULTRA", withMarkers([ULTRA]), "ULTRA"],
   ["Goal: and Ultra: lines together are GOAL", withMarkers([ULTRA, GOAL]), "GOAL"],
@@ -211,8 +215,8 @@ console.log(`${c.total - c.done - c.parked} of ${c.total} cards still open`)
 '
 agree() { # <name> <index file>
   local want got
-  mkdir -p "$WS/run/.claude/task-runner"
-  printf '{"slug":"s","index_path":"%s"}\n' "$2" > "$WS/run/.claude/task-runner/active-run.json"
+  mkdir -p "$WS/run/.cc-artifacts/task-runner"
+  printf '{"slug":"s","index_path":"%s"}\n' "$2" > "$WS/run/.cc-artifacts/task-runner/active-run.json"
   want=$(printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}' "$WS/run" \
     | env -u CLAUDE_PROJECT_DIR CC_REMIND=on bash "$ROOT/hooks/announce.sh" 2>/dev/null | grep -o '[0-9]* of [0-9]* cards still open')
   got=$(node --input-type=module -e "$OPEN" "$CORE" "$2" 2>&1)

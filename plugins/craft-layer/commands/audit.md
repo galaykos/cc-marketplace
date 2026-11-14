@@ -66,7 +66,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
 
 3. **Resolve the persisted artifacts BY RUN STAMP.** Glob `**/craft/offer-contract.md`,
    `divergence-record.md`, `build-task.md`, `content-source.md`, `section-ledger.md` and
-   `reference-board.md` across the project AND the session working area. **When a glob matches more than
+   `reference-board.md` across the project AND the session working area, and list
+   `.cc-artifacts/taskmaster/craft/` and an older `taskmaster-docs/craft/` by path: a glob can skip a
+   dot-dir or a gitignored one. **When a glob matches more than
    one file, never take the first hit.** Each opens with
    `Run: <instant> · <product-slug> · <absolute project root>`. Drop every match whose project field is
    not the target. One candidate left wins; several, and the strictly NEWEST instant wins, but only when
@@ -131,7 +133,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
 
    Pass the paths step 3 resolved: `divergence.mjs` resolves `craft/…` relative to the PROJECT ROOT while
    the craft flow persists to the run's working area — the session scratch on a project with no
-   `taskmaster-docs/`, outside the project. Omit them and `spine-register` and `craft-stamp` both report
+   taskmaster docs area, outside the project. Omit them and `spine-register` and `craft-stamp` both report
    `not checked` on the ordinary case, which reads as a clean run rather than an ungraded one.
    `CLAUDE_PLUGIN_ROOT` keeps both corpora live rather than the frozen snapshots it prints without it.
    `CRAFT_TOKEN_SOURCE` is required whenever the tokens are not where the gates look — `contrast.mjs`
@@ -143,17 +145,17 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    MEASURED` and captures anyway — carry that phrase into the `Visual:` line rather than dropping it.
    `CRAFT_PRIMARY_ACTION` names the CTA whose position the suite's layout-floors test measures; unset or
    unmatched, it falls back to the hero's first link or button. That test writes
-   `<project>/.craft-layer/layout-floors.json` and never fails on a value — the floors are judged, not
+   `<project>/.cc-artifacts/craft-layer/layout-floors.json` and never fails on a value — the floors are judged, not
    gated. Note the instant you start the suite: step 8 dates the file against it.
    **Neither `--config` nor `NODE_PATH` is optional, and both fail in opposite directions.** Playwright
    has no `--spec` flag, so a bare `npx playwright test` scans the PROJECT's own testDir, finds no
    craft gate and exits 0 having run nothing — a `not checked` wearing a green. `--config` points at
    the config shipped beside the spec, which pins the plugin dir as the testDir and the project's
-   `.craft-layer/` as the output dir. But Node then resolves the spec's `@playwright/test` and
+   `.cc-artifacts/craft-layer/` as the output dir. But Node then resolves the spec's `@playwright/test` and
    `@axe-core/playwright` imports from the PLUGIN, which has no `node_modules`, and the run dies with
    MODULE_NOT_FOUND before the first test — `NODE_PATH` is what points it back at the project. Both
    symptoms, for diagnosis: bare → `Error: No tests found`; `--config` alone → MODULE_NOT_FOUND;
-   both set → the suite runs and writes shots into `<project>/.craft-layer/shots/`.
+   both set → the suite runs and writes shots into `<project>/.cc-artifacts/craft-layer/shots/`.
 
    **What the suite's reduced-motion trigger sees — standing `gate` for what it samples, and only that.**
    Under `prefers-reduced-motion: reduce` it fails the build on: a CSS keyframe animation whose keyframes
@@ -184,7 +186,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    Standing: **gate** where the suite runs; it slows the CPU only, so GPU cost is not measured.
 
    Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
-   `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`, EXCEPT from
+   `<project>/.cc-artifacts/craft-layer/waivers.json` with a reason (an older project's
+   `.craft-layer/` files copied across first, as `/craft-layer:craft` step 0 does) · **exit 2 is `not measured`, EXCEPT from
    `contrast.mjs`, where the script's own contract makes it a FAILURE** (see above — a contrast gate
    that cannot see the build has not cleared it) · a gate never run is `not checked`. None of the four
    is a pass.
@@ -193,7 +196,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    element exists, carries the right text and computes the right colour. It cannot see text running off
    its viewBox, two annotations landing on each other, or a fixed rail covering the column beneath —
    the defects a reader meets first and a query never meets at all. The suite writes two PNGs per
-   breakpoint (390, 768, 1280, light and dark) into `<project>/.craft-layer/shots/`. READ each and
+   breakpoint (390, 768, 1280, light and dark) into `<project>/.cc-artifacts/craft-layer/shots/`. READ each and
    describe what is visible, hunting: text CLIPPED at a container or viewBox edge, OVERLAPPING labels,
    truncation ellipses, fixed elements covering content, any element whose rendered position differs
    from where the markup implies. Inject the shot paths into step 6 so the reviewer opens them too.
@@ -207,8 +210,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    `gotchas.md` ·
    `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
    `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
-   `register-corpus.md`, `voice-contract.md`, `redesign-preservation.md` · `<project>/.craft-layer/preserve.json`
-   and `<project>/.craft-layer/layout-floors.json` — each named absent when missing, and a floors file
+   `register-corpus.md`, `voice-contract.md`, `redesign-preservation.md` · `<project>/.cc-artifacts/craft-layer/preserve.json` (an older
+   project's `.craft-layer/preserve.json` when that is absent)
+   and `<project>/.cc-artifacts/craft-layer/layout-floors.json` — each named absent when missing, and a floors file
    step 8's stamp rule rejects passed as `not measured`, never as a path · `scroll-orchestration/references/scroll-acts.md` ·
    `asset-sourcing/references/` `licence-discipline.md`, `component-sourcing.md` ·
    `section-decisions/references/section-ledger.md` plus the ledger when one exists · and, when the
@@ -272,8 +276,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    skipped or whose input was `not measured` says so. Order findings by severity and name the owning tool
    for each delegated line.
 
-9. **Append the run log.** After the audit runs, append ONE row to `<project>/.craft-layer/run-log.md`
-   (creating it with its header when missing) and trim to the last 5:
+9. **Append the run log.** After the audit runs, append ONE row to `<project>/.cc-artifacts/craft-layer/run-log.md`
+   (copied from an older project's `.craft-layer/` first, as above; created with its header when missing) and trim to the last 5:
    `| date | brief-slug | hue-family | type-strategy | spine | signature | draw |`, where `draw` holds
    the five drawn deck options joined by ` / `. A row is appended only AFTER the audit runs, so a failed
    or abandoned run appends nothing; the trim keeps the memory a window, not an archive; a malformed log

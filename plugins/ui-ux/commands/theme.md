@@ -33,9 +33,9 @@ accent swap.
 2. If $ARGUMENTS is empty, ask for direction in one round: brand color or hue
    family, light/dark priority, and any reference the user wants to echo.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
-   write `taskmaster-docs/mockups/theme.html`, reuse-or-start the shared preview
+   write `.cc-artifacts/taskmaster/mockups/theme.html`, reuse-or-start the shared preview
    server (port `${PREVIEW_PORT:-8123}`), and give the user the stable URL.
-   Creating `taskmaster-docs/mockups/`, drop a `.gitignore` holding `*` into it if
+   Creating `.cc-artifacts/taskmaster/mockups/`, drop a `.gitignore` holding `*` into it if
    one is not there — this page is scratch and belongs in no commit, and the only
    other artifact that drops that file is taskmaster's grill, which a ui-ux install
    does not bring.

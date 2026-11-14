@@ -83,11 +83,11 @@ plugin_sessionstart_bytes() {
   printf '%s' "$total"
 }
 
-# The same SessionStart hooks against a sandbox holding the state they wait for (CC_TERSE=full, brain/INDEX.md, manifests); other state still reads OFF, so a floor.
+# The same SessionStart hooks against a sandbox holding the state they wait for (CC_TERSE=full, .cc-artifacts/brain/INDEX.md, manifests); other state still reads OFF, so a floor.
 ACT_SANDBOX=$(mktemp -d)
 trap 'rm -rf "$HOOK_SANDBOX" "$ACT_SANDBOX" "$EDIT_SANDBOX"' EXIT
-mkdir -p "$ACT_SANDBOX/brain" "$ACT_SANDBOX/src" "$ACT_SANDBOX/app"
-cat > "$ACT_SANDBOX/brain/INDEX.md" <<'ACTEOF'
+mkdir -p "$ACT_SANDBOX/.cc-artifacts/brain" "$ACT_SANDBOX/src" "$ACT_SANDBOX/app"
+cat > "$ACT_SANDBOX/.cc-artifacts/brain/INDEX.md" <<'ACTEOF'
 # Project brain map
 
 | Area | Path | What lives here |
@@ -538,7 +538,7 @@ echo "note: skill BODIES loaded by skill-router rules are not metered in any cha
 echo 'note: mod-injected text (tool.call `context`, `prompt.suggest`, `ui.status`, panes, `prompt.section`/`prompt.context`/`skill.prompt`) is unmetered by nature — modules are never executed by this gate'
 echo "note: the listing cap is a FORMULA read out of CLI 2.1.251 (ctxTokens x bytesPerToken x skillListingBudgetFraction, default fraction 0.01, configurable in settings.json) — derivation in this script's LISTING_* header; the channel is report-only and never fails the build"
 echo "note: the listing channel costs entries the way the CLI does (name + 4 + capped desc, skills + commands). SessionStart stdout and MCP tools/list are always-on but not part of this listing, so they are eviction-proof and excluded. AGENTS are excluded too, and that one is UNVERIFIED rather than known: they render in a separate system-prompt listing and whether it draws on the same budget was not established"
-echo "note: the activated channel turns on what THIS fixture knows (terse level, brain/INDEX.md, manifests); a hook waiting for other state still reads its OFF value"
+echo "note: the activated channel turns on what THIS fixture knows (terse level, .cc-artifacts/brain/INDEX.md, manifests); a hook waiting for other state still reads its OFF value"
 echo "note: Stop hooks and Bash-matched PreToolUse are never executed by the dynamic probe (candor, code-architecture, task-runner, command-guard read 0 for that reason, not because they are silent)"
 echo "note: the per-tool probe now drives five file shapes (source, component, test, stylesheet, migration) with content chosen to trip the guards; MAX across shapes, SUM across a plugin's hooks for one shape"
 echo "note: a per-edit hook still reading 0 is NOT necessarily silent, and the cause is no longer path shape. Measured 2026-08-31: of six plugins reading 0, the file-shape corpus moved ONE (testing, 0 -> 127). The rest are gated on state this probe does not create (an active task-runner run), on a Bash matcher the probe never fires, or on content narrower than a generic fixture (a secret-shaped string, a comment body, a project theme file). Widening the fixture until every guard trips would measure a worst case no real edit reaches."

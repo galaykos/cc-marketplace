@@ -1,6 +1,6 @@
 ---
 name: overseer
-description: Use when /overseer:start or /overseer:resume runs, or a program is open under .claude/overseer/ — the product-owner loop for a whole product ("build a CRM", "clone Tinder") across sessions and branches: discover, clarify once, roadmap, brief the pipeline per milestone, accept only browser-proven work. Not for a single task — that is taskmaster.
+description: Use when /overseer:start or /overseer:resume runs, or a program is open under .cc-artifacts/overseer/ — the product-owner loop for a whole product ("build a CRM", "clone Tinder") across sessions and branches: discover, clarify once, roadmap, brief the pipeline per milestone, accept only browser-proven work. Not for a single task — that is taskmaster.
 ---
 
 # Overseer — own the program, delegate the work
@@ -36,7 +36,7 @@ can die between any two steps and `/overseer:resume` re-enters at the recorded o
 1. **Project inventory.** Stack and versions (`/stack-scan:report` when installed, else
    manifests, lockfiles, `Dockerfile`s); existing routes, pages, models, migrations; the
    component library already in the tree (`components/ui`, `components.json`,
-   `@radix-ui/*`, `@mui/*`…); test runner and suite size; lint and types; `brain/INDEX.md`
+   `@radix-ui/*`, `@mui/*`…); test runner and suite size; lint and types; the brain map
    when present. **CI is an inventory line:** workflow files, trigger branches against the
    base (the scan prints `# ci:` rows), and whether CI is green on the baseline — a red one
    is the charter's first suggestion. Read the project's own `CLAUDE.md`/`AGENTS.md` — its
@@ -139,7 +139,7 @@ items. Then `program.sh close`: it prints the deferred suggestions and which ins
 plugins no dispatch ever pinned, and refuses while two done milestones sit on branches
 containing neither the other — never walked in one tree — until a `--kind integration`
 milestone merges them and its walk crosses features, or `--divergent-ok "<why>"` records
-that the user merges later (**gate**). Close archives under `.claude/overseer/archive/`.
+that the user merges later (**gate**). Close archives under `.cc-artifacts/overseer/archive/`.
 
 ## Decisions live in one file
 

@@ -57,7 +57,7 @@ block inside `routes/web.php`; that wording contradicts the scratch surface belo
 
 Options: proceed / use the static shell mockup instead / skip. This gate is separate
 from the mockup fidelity consent — that one covered throwaway files in
-`taskmaster-docs/mockups/`, not the source tree. Ask once per session.
+`.cc-artifacts/taskmaster/mockups/`, not the source tree. Ask once per session.
 
 ## The scratch surface — zero edits to existing files
 

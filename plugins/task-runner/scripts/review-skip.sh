@@ -16,17 +16,30 @@
 #             the routing rules, and a reviewer plugin that is not installed cannot run.
 #             Writes rv-exempt-<card>.json. Routine, never prompts, still counted.
 #
-# Default --record-dir is <repo-root>/.claude/task-runner/rv, where the observer hook and
+# Default --record-dir is <repo-root>/.cc-artifacts/task-runner/rv, where the observer hook and
 # the completion gate look.
 set -euo pipefail
 
 PROG=review-skip
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 CARD=""; REASON=""; EXEMPT="";
 # The repo root, not the cwd: a record written under a subdirectory is one the completion gate never finds.
 ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-DIR="$ROOT_DIR/.claude/task-runner/rv"
+DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --card) [ $# -ge 2 ] || usage "--card needs an argument"; CARD="$2"; shift 2 ;;
@@ -48,9 +61,10 @@ case "$EXEMPT" in
   *) usage "--exempt takes leaf or no-reviewer-installed, got: $EXEMPT" ;;
 esac
 
+[ -n "$DIR" ] || DIR="$(tr_state_dir "$ROOT_DIR")/rv"
 mkdir -p "$DIR" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$DIR" >&2; exit 5; }
 # Only the default state root ignores itself (as hooks/scope.sh does), never a --record-dir override.
-case "${DIR%/*}" in */.claude/task-runner) [ -e "${DIR%/*}/.gitignore" ] || printf '*\n' > "${DIR%/*}/.gitignore" 2>/dev/null ;; esac
+case "${DIR%/*}" in */.cc-artifacts/task-runner) [ -e "${DIR%/*}/.gitignore" ] || printf '*\n' > "${DIR%/*}/.gitignore" 2>/dev/null ;; esac
 
 # Control characters stripped too: a newline in --reason made the record invalid JSON.
 esc() { printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g'; }

@@ -28,7 +28,7 @@ echo '<template/>' > "$REPO/ui/New.vue"                 # untracked, inside the 
 echo scratch > "$REPO/notes.txt"                        # untracked, outside
 
 out=$(cd "$REPO/app/sub" && bash "$RD" --card 03 --base "$CB" src/a.ts ui 2>&1); r=$?
-P="$REPO/.claude/task-runner/rv/diff-03.patch"
+P="$REPO/.cc-artifacts/task-runner/rv/diff-03.patch"
 [ "$r" = 0 ] && [ "$out" = "$P" ] && ok "writes rv/diff-<card>.patch at the repo root and prints its path" || bad "path" "rc=$r out=<$out>"
 grep -q '^diff --git a/src/a.ts b/src/a.ts$' "$P" && grep -q '^+TWO$' "$P" \
   && ok "from a subdirectory, root-relative paths name the card's hunk, with a/ b/ headers despite diff.noprefix" || bad "modified file" "$(head -5 "$P")"
@@ -41,11 +41,11 @@ grep -q ' seed$' "$P" && ok "names the subject of the commit the blame found" ||
 head -1 "$P" | grep -q 'Cite line numbers from the working file' && ok "the file opens with the cite-from-the-working-file rule" || bad "header" "$(head -1 "$P")"
 
 (cd "$REPO" && bash "$RD" --card '../x' --base "$CB" >/dev/null 2>&1); r=$?
-[ "$r" = 3 ] && [ ! -e "$REPO/.claude/task-runner/x.patch" ] && ok "a card id with path characters is a usage error" || bad "card id" "rc=$r"
+[ "$r" = 3 ] && [ ! -e "$REPO/.cc-artifacts/task-runner/x.patch" ] && ok "a card id with path characters is a usage error" || bad "card id" "rc=$r"
 (cd "$REPO" && bash "$RD" --card 04 --base no-such-ref >/dev/null 2>&1); r=$?
 [ "$r" = 3 ] && ok "a base that is no commit is a usage error" || bad "base" "rc=$r"
 out=$(cd "$REPO" && bash "$RD" --card 05 --base "$CB" app 2>&1 >/dev/null); r=$?
-[ "$r" = 4 ] && [ ! -e "$REPO/.claude/task-runner/rv/diff-05.patch" ] && printf '%s' "$out" | grep -q 'no diff' \
+[ "$r" = 4 ] && [ ! -e "$REPO/.cc-artifacts/task-runner/rv/diff-05.patch" ] && printf '%s' "$out" | grep -q 'no diff' \
   && ok "paths with no diff against the base exit 4, say so and leave no patch" || bad "empty diff" "rc=$r out=<$out>"
 
 exit $rc

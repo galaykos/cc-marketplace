@@ -1,5 +1,5 @@
 #!/bin/bash
-# phase-sentinel.sh write <phase> --owner <plugin:command> --session <id> [--cwd <dir>] | clear --session <id> [--cwd <dir>] — the one script writer of a session's own phase sentinel, <project root>/.claude/cc-phase/<key>.json (cc_phase_file); refuses an unknown phase or no session (exit 3); clear removes only that session's file. Exit 0 wrote or cleared (an absent one too), 3 usage. Removes a legacy repo-wide .claude/cc-phase.json that names no session, names this one, or is past the 120-minute TTL; readers ignore it.
+# phase-sentinel.sh write <phase> --owner <plugin:command> --session <id> [--cwd <dir>] | clear --session <id> [--cwd <dir>] — the one script writer of a session's own phase sentinel, <project root>/.cc-artifacts/cc-phase/<key>.json (cc_phase_file); refuses an unknown phase or no session (exit 3); clear removes only that session's file, at that path and at cc_phase_file_legacy. Exit 0 wrote or cleared (an absent one too), 3 usage. Removes a legacy repo-wide .claude/cc-phase.json that names no session, names this one, or is past the 120-minute TTL; readers ignore it.
 # Misses: clearing on its own (each entry command removes what it wrote; readers delete files past the TTL); a caller passing another session's id; a command writing the JSON by hand (no gate; standing: recorded); whether a reader honours the verdict (agent-graded, pc_phase_guard).
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/phase-sentinel.sh
 
@@ -23,10 +23,17 @@ cc_state_root() {
 
 # Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
-# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# cc_phase_file <root> <session_id> prints <root>/.cc-artifacts/cc-phase/<key>.json, that session's own phase sentinel; <key> is
 # <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# cc_phase_file_legacy: the same key under <root>/.claude/cc-phase/, where plugins wrote it before 2026-11-14; read it, never write it.
 # Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
 cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.cc-artifacts/cc-phase/%s.json\n' "$1" "$key"
+}
+cc_phase_file_legacy() {
   local key
   key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
   [ -n "$key" ] || return 1
@@ -92,12 +99,13 @@ if [ -f "$legacy" ]; then
 fi
 
 if [ "$cmd" = clear ]; then
-  rm -f "$sentinel" 2>/dev/null
+  # Plugins before 2026-11-14 wrote the sentinel under .claude/cc-phase/; readers fall back to it, so clear it too.
+  rm -f "$sentinel" "$(cc_phase_file_legacy "$root" "$session")" 2>/dev/null
   printf '%s: cleared %s\n' "$PROG" "$sentinel" >&2
   exit 0
 fi
 
-dir="$root/.claude/cc-phase"
+dir=$(dirname "$sentinel")
 mkdir -p "$dir" 2>/dev/null || usage "cannot create $dir"
 [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
 

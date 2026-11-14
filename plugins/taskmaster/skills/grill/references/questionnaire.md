@@ -8,7 +8,7 @@ the file or checks its shape.
 Ask the user two things: the recipient, and what the answers must settle. Never
 interview them about the subject — they do not hold it, which is why the file exists.
 
-Write `taskmaster-docs/questionnaires/YYYY-MM-DD-<slug>-<recipient>.md`, one recipient
+Write `.cc-artifacts/taskmaster/questionnaires/YYYY-MM-DD-<slug>-<recipient>.md`, one recipient
 per file (`<recipient>` a kebab of the role or name), in this order:
 
 1. **Purpose** — one line: why the file exists and the decision at stake.

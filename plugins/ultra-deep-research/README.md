@@ -3,7 +3,8 @@
 A deep-research harness for Claude Code. Ask it a hard question and it runs parallel web
 searches. It sorts sources into tiers by provenance and extracts date-stamped claims. Then
 it **adversarially** tries to refute them. It surfaces contradictions instead of hiding
-them. It synthesizes a cited report, shown inline and saved to `research/<topic>-<date>.md`.
+them. It synthesizes a cited report, shown inline and saved to
+`.cc-artifacts/ultra-deep-research/<topic>-<date>.md` (`research/` before 2026-11-14).
 
 Built to beat research's core failure mode: a plausible claim echoed across low-quality
 pages that all copied one unverified origin.
@@ -31,7 +32,7 @@ and an independent Tier-1/2 corroborating source, format-checked by
 `scripts/verdict-lint.sh` (the built-in's verdict is a boolean plus an evidence
 string); **`--ultra` loop-until-dry** — a completeness critic spawns further rounds
 until two in a row surface nothing new, capped at 3, with multi-vote panels; a
-**cited report file**, `research/<topic>-<date>.md`, with per-section confidence,
+**cited report file**, `.cc-artifacts/ultra-deep-research/<topic>-<date>.md`, with per-section confidence,
 source tiers and dates, and what it could NOT verify, so the answer outlives the
 session; and the **coverage engine** for one long document, which a web-only
 workflow cannot do at all.

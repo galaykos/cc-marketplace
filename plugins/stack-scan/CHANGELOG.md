@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.19.0 — 2026-11-14
+
+- **`hooks/cc-kit.ts` reads the phase sentinel and task-runner's active run at `.cc-artifacts/`, then at `.claude/`**, the copy every mod shares (`liveSentinel`, `activeRun`, `phaseFile`). Nothing in stack-scan writes into a project, and its pins hook calls none of the three. Standing: gate for the copy (`validate.sh`'s `pc_mod_kit`: every `cc-kit.ts` byte-identical); stack-scan's own mod test (`tests/pins.test.ts`, 27 cases) does not exercise the changed functions.
+
 ## 0.18.14 — 2026-11-13
 
 - **Framework-native tooling has rows for Unity's, Epic's and Phaser's own agent tools.**

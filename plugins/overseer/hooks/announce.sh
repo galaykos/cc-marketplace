@@ -8,7 +8,9 @@
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root="$cwd"
-  state="$root/.claude/overseer/program.json"
+  # Programs opened before 2026-11-14 live in .claude/overseer/ until program.sh first copies them; then only the new dir counts.
+  d="$root/.cc-artifacts/overseer"; [ -d "$d" ] || d="$root/.claude/overseer"
+  state="$d/program.json"
   [ -s "$state" ] || exit 0
   line=$(jq -r '
     (.milestones // []) as $m

@@ -51,7 +51,7 @@ block in chat plus the approve/amend question — no server, no SVG, no ASCII ar
 ## Preview rendering
 
 Full-mockups tier: hand-built inline SVG in crow's-foot notation, written to
-the shared preview server's reserved `diagram.html` slot in `taskmaster-docs/mockups/`.
+the shared preview server's reserved `diagram.html` slot in `.cc-artifacts/taskmaster/mockups/`.
 Server mechanics are visual-decisions' own, reused as-is:
 
 - Before every pass run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh"`: it starts the

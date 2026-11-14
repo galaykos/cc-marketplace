@@ -284,7 +284,7 @@ The plugin READMEs and skill descriptions use these words in a narrow sense.
 | red-team | A reviewer told to find holes, such as edge cases, wrong assumptions or security gaps, before the work is trusted. |
 | residual | What a check still misses after it runs, stated so nobody trusts the check for more than it does. |
 | rigour | overseer's review level for one milestone: `lean`, `standard` or `adversarial`. It decides whether the milestone buys the boost and its code red-team. |
-| sentinel | A small file a run writes while in progress, such as a session's phase sentinel `.claude/cc-phase/<session>.json`. Hooks read their own session's to know the current phase. |
+| sentinel | A small file a run writes while in progress, such as a session's phase sentinel `.cc-artifacts/cc-phase/<session>.json`. Hooks read their own session's to know the current phase. |
 | standing | How a rule is enforced: gate, agent-graded, recorded, or unenforceable (it cannot be checked as written). |
 | `ultra` | As the first word after a taskmaster command or `/craft-layer:craft`, it boosts that run. Elsewhere it is a different setting: candor's tersest reply level, ultra-deep-research's `--ultra` mode, or the built-in `/code-review`'s cloud pass. |
 | `ultra-assess` | Typed near the start of a prompt: boosts an assessment run (audit, inventory, gap analysis), which returns findings, not task cards. From task-runner; `ultraassess` and `ultra-assessment` work too. |
@@ -520,7 +520,7 @@ take a fuzzy request to a verified branch.
 /taskmaster:task "add bulk CSV export with date-range filtering"
 #   → grill: batched clarifying rounds until every requirement is CLEAR or ASSUMED
 #   → visual decisions where a choice is visual
-#   → spec written to taskmaster-docs/specs/
+#   → spec written to .cc-artifacts/taskmaster/specs/
 #   → optional red-team of the frozen spec
 #   → task cards, dependency-ordered, with parallel groups
 /task-runner:run                  # execute them, one at a time, scope locked
@@ -607,7 +607,7 @@ Nothing here is measured against a control arm.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
-| **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
+| **[brain](plugins/brain)** | a `.cc-artifacts/brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 | **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but the opt-in game plugins at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
 | **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls | You want the status-line figures without wiring a status-line tool, or a pane that stays up |

@@ -39,8 +39,9 @@ report options and touch nothing.
 When a task-runner run already passed the same suite command at the branch's head on this
 exact tree, finish does not run it again, says `Reused: suite passed at <head7> (<cmd>)` and
 shows the receipt log as the suite output. `scripts/receipt-fresh.sh --name suite --root <worktree>
---cmd "<suite command>"` decides from task-runner's `.claude/task-runner/receipt.json`: another
-commit or command, a changed, staged or new file (outside `.claude/` state and `taskmaster-docs/`;
+--cmd "<suite command>"` decides from task-runner's `.cc-artifacts/task-runner/receipt.json` (an older
+task-runner's `.claude/task-runner/` one while that is absent): another
+commit or command, a changed, staged or new file (outside `.claude/` state, `.cc-artifacts/` and `taskmaster-docs/`;
 new `.claude/skills|agents|commands|hooks` files, `.claude/settings.json` and root `.env*` files
 count), a failed run, a log task-runner did not write or that does not end `exit 0`, or an
 unreadable receipt reads `stale:`, and the suite runs. The review passes and the post-merge suite

@@ -3,6 +3,8 @@
 docs
 .junie
 taskmaster-docs
+# Every plugin's per-project artifacts (specs, ledgers, previews, run state); one folder, never tracked
+.cc-artifacts/
 # Local Claude Code state — track only settings.json (the committed authoring-guard hook)
 # plus the committed project skills below (a parent dir must be unignored before
 # anything under it can be re-included).
@@ -17,6 +19,7 @@ taskmaster-docs
 # .claude/ dirs were never matched — which is how six per-session state files
 # got committed into plugins/craft-layer/. Enforced in scripts/validate.sh.
 plugins/**/.claude/
+plugins/**/.cc-artifacts/
 .playwright-mcp/
 __pycache__/
 

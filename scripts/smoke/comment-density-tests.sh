@@ -18,7 +18,7 @@
 #      restores the sibling-only behaviour; and the PreToolUse lane denies a whole
 #      Write over the ceiling exactly once per file.
 #
-# Scratch git repos throughout; never the live repo, never real .claude state.
+# Scratch git repos throughout; never the live repo, never real .cc-artifacts state.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOOK="$ROOT/plugins/code-review/hooks/density.sh"
@@ -28,7 +28,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 rc=0
 export HOME="$TMP/home"   # keep the ledger out of the real ~/.claude
-unset CLAUDE_PLUGIN_DATA   # the cases read hook state under <root>/.claude
+unset CLAUDE_PLUGIN_DATA   # the cases read hook state under <root>/.cc-artifacts
 
 # ---- 0. THE CLASSIFIER (paths.sh): golden prose / comment / code triples ----------
 # Expected numbers, not a second awk: BSD awk here and the awk CI ships answer to one table.
@@ -971,7 +971,7 @@ fire_tp "$R2B" "$R2B/app/Svc/New/G2.php" >/dev/null
 fire_tp "$R2B" "$R2B/app/Svc/New/G3.php" >/dev/null
 expect "transcript_path: 4th dense file is silent (MAX_WARN engages)" \
   "$(fire_tp "$R2B" "$R2B/app/Svc/New/G4.php")" ""
-if [ -n "$(find "$R2B/.claude/comment-discipline" -name 'density-*' -type f 2>/dev/null)" ]
+if [ -n "$(find "$R2B/.cc-artifacts/comment-discipline" -name 'density-*' -type f 2>/dev/null)" ]
 then echo "PASS: transcript_path: the state file actually landed on disk"
 else echo "FAIL: transcript_path: the state file actually landed on disk — none under $R2B"; rc=1; fi
 
@@ -1135,9 +1135,9 @@ verdict $? "bash: a truncating cat heredoc of 60 comment / 20 code lines is deni
   "write=[$w_reason] bash=[$b_reason]"
 D2="$TMP/bw2"; mkdir -p "$D2/src"
 out=$(bash_hook PreToolUse "$D2" bb2 "$(heredoc 'cat >> src/Fat.js')")
-[ -z "$out" ] && [ ! -e "$D2/.claude" ]
+[ -z "$out" ] && [ ! -e "$D2/.cc-artifacts" ]
 verdict $? "bash: the same text appended with >> is not denied pre-write and leaves no state dir" \
-  "out=[$out] state=[$(ls -A "$D2/.claude" 2>/dev/null)]"
+  "out=[$out] state=[$(ls -A "$D2/.cc-artifacts" 2>/dev/null)]"
 expect "bash: tee -a is an append, not denied pre-write" \
   "$(bash_hook PreToolUse "$BW" bb3 "$(heredoc 'tee -a src/Fat.js')")" ""
 expect "bash: a heredoc fed to a writer that is not cat or tee is silent" \
@@ -1155,7 +1155,7 @@ verdict $? "bash: PostToolUse warns for a target on disk with the Write warning 
 D7="$TMP/bw7"; mkdir -p "$D7/src"; for k in 1 2 3 4; do calm "$D7/src/T$k.php"; done
 bash_hook PostToolUse "$D7" bb7 \
   "echo '// why 1' >> src/T1.php; echo '// why 2' >> src/T2.php; echo '// why 3' >> src/T3.php; echo '// why 4' >> src/T4.php" >/dev/null
-st=$(cat "$D7"/.claude/comment-discipline/density-* 2>/dev/null)
+st=$(cat "$D7"/.cc-artifacts/comment-discipline/density-* 2>/dev/null)
 case "$st" in *"/src/T3.php"*) case "$st" in *"/src/T4.php"*) false ;; *) true ;; esac ;; *) false ;; esac
 verdict $? "bash: PostToolUse measures three targets: the 4th target's name is absent from the state file" "state=[$st]"
 
@@ -1199,7 +1199,7 @@ verdict $? "multi: a thin first heredoc and a dense second draw one deny naming 
 
 D9="$TMP/bw9"; mkdir -p "$D9/src"; cp "$TMP/d6020.txt" "$D9/src/c.js"; cp "$TMP/d6020.txt" "$D9/src/d.js"
 out=$(bash_hook PostToolUse "$D9" m2 "echo '// x' >> src/c.js; echo '// y' >> src/d.js")
-rows=$(cat "$D9"/.claude/comment-discipline/density-* 2>/dev/null | grep -c '^warn ')
+rows=$(cat "$D9"/.cc-artifacts/comment-discipline/density-* 2>/dev/null | grep -c '^warn ')
 one_json "$out" && [ "$rows" = 1 ]
 verdict $? "multi: two over-limit targets on disk draw one JSON object and one warn row in the state file" \
   "warn rows=$rows out=[$out]"
@@ -1207,7 +1207,7 @@ verdict $? "multi: two over-limit targets on disk draw one JSON object and one w
 # The dense file sits where the target would resolve if the cd were ignored.
 DC="$TMP/bwc"; mkdir -p "$DC/src"; cp "$TMP/d6020.txt" "$DC/x.js"
 out=$(bash_hook PostToolUse "$DC" m3 "cd src && echo '// y' >> x.js")
-[ -z "$out" ] && ! grep -q 'x\.js' "$DC"/.claude/comment-discipline/density-* 2>/dev/null
+[ -z "$out" ] && ! grep -q 'x\.js' "$DC"/.cc-artifacts/comment-discipline/density-* 2>/dev/null
 verdict $? "multi: a relative target after an in-command cd is not measured on the disk lane" "out=[$out]"
 
 expect "multi: a truncating heredoc followed by an append to the same file is not denied pre-write" \
@@ -1380,7 +1380,7 @@ free() { # $1 label, $2 target name; fixture on stdin -> a Write is silent, and 
   local w d
   cat > "$TMP/f-$2"; cp "$TMP/f-$2" "$LG/src/$2"
   w=$(pre "$LG" "$LG/src/$2" "f-$2" "$TMP/f-$2"); d=$(fire "$LG" "$LG/src/$2" "f-$2")
-  [ -z "$w$d" ] && grep -qxF "file $LG/src/$2" "$LG"/.claude/comment-discipline/density-* 2>/dev/null
+  [ -z "$w$d" ] && grep -qxF "file $LG/src/$2" "$LG"/.cc-artifacts/comment-discipline/density-* 2>/dev/null
   verdict $? "$1" "write=[$w] on disk=[$d]"
 }
 deny60() { # $1 label, $2 target name; fixture on stdin -> a Write is refused at 60 prose / 20 code
@@ -1445,9 +1445,9 @@ build_file() { # $1 target, $2 comment line format, $3 code line format -> 60 pr
   w=$(pre "$root" "$root/$1" "bw-$1" "$f")
   h=$(bash_hook PreToolUse "$root" "bh-$1" "$(heredoc "cat > $1" "$f")")
   d=$(bash_hook PostToolUse "$root" "bd-$1" "echo '$(printf -- "$2" 0)' >> $1")
-  [ -z "$w$h$d" ] && [ ! -e "$root/.claude" ]
+  [ -z "$w$h$d" ] && [ ! -e "$root/.cc-artifacts" ]
   verdict $? "gov: a dense ${1##*/} is not judged for volume: a Write, a truncating heredoc and the file on disk are silent and leave no state" \
-    "write=[$w] heredoc=[$h] on disk=[$d] state=[$(ls -A "$root/.claude" 2>/dev/null)]"
+    "write=[$w] heredoc=[$h] on disk=[$d] state=[$(ls -A "$root/.cc-artifacts" 2>/dev/null)]"
 }
 build_file ops/Dockerfile "# $WHY" 'RUN echo %s'
 build_file ops/Makefile "# $WHY" 'V%s = 1'
@@ -1456,9 +1456,9 @@ ungov() { # $1 file name -> a Write and the file on disk are silent, and the hoo
   local f="$TMP/u-$1" root="$TMP/ungov-$1" w d
   mkdir -p "$root/src"; { rep 60 "# $WHY"; rep 20 'key%s: 1'; } > "$f"; cp "$f" "$root/src/$1"
   w=$(pre "$root" "$root/src/$1" u "$f"); d=$(fire "$root" "$root/src/$1" u)
-  [ -z "$w$d" ] && [ ! -e "$root/.claude" ]
+  [ -z "$w$d" ] && [ ! -e "$root/.cc-artifacts" ]
   verdict $? "gov: $1 is not governed: a Write and the file on disk are silent and leave no state" \
-    "write=[$w] on disk=[$d] state=[$(ls -A "$root/.claude" 2>/dev/null)]"
+    "write=[$w] on disk=[$d] state=[$(ls -A "$root/.cc-artifacts" 2>/dev/null)]"
 }
 ungov notes.md; ungov data.json; ungov conf.yaml
 
@@ -1810,7 +1810,7 @@ PY"
 
   EC="$TMP/eff-c"; mkdir -p "$EC/src"; calm "$EC/src/Calm.php"; commit_all "$EC"
   out=$(pyrun "$EC" ec1 "$DENSE_PY")
-  [ -z "$out" ] && [ -f "$EC/.claude/comment-discipline/bash-effects-density.mark" ]
+  [ -z "$out" ] && [ -f "$EC/.cc-artifacts/comment-discipline/bash-effects-density.mark" ]
   verdict $? "effects: the first call in a repo is silent and leaves the marker" "out=[$out]"
   expect "effects: a python run that wrote nothing is silent" "$(pyrun "$EC" ec2 'print(1)')" ""
 

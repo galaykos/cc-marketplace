@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.2 — 2026-11-14
+
+- **`hooks/sheet-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no
+  `CLAUDE_PLUGIN_DATA`, the hook's per-project state now goes to `.cc-artifacts/pixel-art/`, not
+  `.claude/pixel-art/`: one folder a team can gitignore and leave out of a deploy, outside the
+  `.claude/` path Claude Code protects. The state is a cache, so nothing is carried over from
+  the old dir. Standing: gate for the path (`templates/blocks/plugin-state.md`, held byte-identical
+  by `pc_shared_blocks`).
+
 ## 0.2.1 — 2026-11-09
 
 - **`pixel-art-pipeline` names its near miss.** A 3D asset goes to `meshy:meshy-generation` or

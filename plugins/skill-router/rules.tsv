@@ -300,6 +300,8 @@ content	['"](@(dnd-kit|fullcalendar|schedule-x|xyflow|tiptap|lexical)/|(react-bi
 # board is usually written by the plugin's own scripts, not by an Edit/Write the
 # hook sees; the rows that fire on real edits are `**/__design-kit__/**` (a scratch
 # page the model fills) and `**/design-system/**` (a record the user re-reads).
+# Since 2026-11-14 design-kit writes under .cc-artifacts/design-kit/ (design-system/ included, which
+# the first row still matches); the .design-kit/ rows stay for projects that predate the move.
 glob	**/design-system/**	system	design-kit	high
 glob	**/.design-kit/decks/**	slides	design-kit	high
 glob	**/.design-kit/boards/**	design	design-kit	high
@@ -307,6 +309,11 @@ glob	**/__design-kit__/**	in-codebase	design-kit	high
 glob	**/.design-kit/artifacts/**	artifact	design-kit	high
 glob	**/.design-kit/motion/**	motion	design-kit	high
 glob	**/.design-kit/film/**	film	design-kit	high
+glob	**/.cc-artifacts/design-kit/decks/**	slides	design-kit	high
+glob	**/.cc-artifacts/design-kit/boards/**	design	design-kit	high
+glob	**/.cc-artifacts/design-kit/artifacts/**	artifact	design-kit	high
+glob	**/.cc-artifacts/design-kit/motion/**	motion	design-kit	high
+glob	**/.cc-artifacts/design-kit/film/**	film	design-kit	high
 # game rows (2026-10-26, the gamedev import — rationale/gamedev-design-import-2026-10-26.md).
 # One plugin per engine, each installed only in its own projects, so a row fires only where
 # that plugin is installed. The generic .cs extension carries a `?` marker on the engine's own

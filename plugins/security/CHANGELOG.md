@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.6; earlier versions have no entries rather than invented ones.
 
+## 0.13.0 — 2026-11-14
+
+- **The write scan's marker with no plugin data dir moves to `.cc-artifacts/security/`** (was `.claude/security/`), through the shared plugin-state block in `hooks/write-scan.sh`. It starts fresh: the first Bash call after the upgrade only sets the marker.
+- Standing: gate for the path (`templates/blocks/plugin-state.md`, held byte-identical by `pc_shared_blocks`); no test of this plugin asserts the fallback location.
+
 ## 0.12.9 — 2026-11-08
 
 - **`/security:review` runs semgrep when it is already installed.** On a full audit it runs `semgrep scan --json` over the scope: offline with the project's own `.semgrep.yml` or `.semgrep/` rules, otherwise with the public `p/default` ruleset, which it downloads from semgrep.dev without sending code. `--config auto` is never used, because it sends the project URL and needs metrics on. Each hit becomes a finding ranked by the review's exploitability triage and merged with a manual finding on the same line. When semgrep is not installed, the coverage line says so and the review goes on. It never installs semgrep. Standing: recorded — nothing checks the run happened.

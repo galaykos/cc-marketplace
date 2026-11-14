@@ -17,8 +17,9 @@ installed plugin sits at `<marketplace>/<plugin>/<version>/`, so the sibling pat
 resolves only from a source checkout), run the newest installed copy —
 `find ~/.claude/plugins/cache -path '*/taskmaster/*/scripts/phase-sentinel.sh' | sort -V | tail -1`
 — and only if that misses too, or the copy you ran left no
-`.claude/cc-phase/${CLAUDE_SESSION_ID}.json` (a taskmaster before 0.56.0 writes a repo-wide file),
-write the JSON yourself to `.claude/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root (`git rev-parse --show-toplevel`; outside git,
+`.cc-artifacts/cc-phase/${CLAUDE_SESSION_ID}.json` (nor, from a taskmaster before 2026-11-14,
+`.claude/cc-phase/${CLAUDE_SESSION_ID}.json`; one before 0.56.0 writes a repo-wide file),
+write the JSON yourself to `.cc-artifacts/cc-phase/${CLAUDE_SESSION_ID}.json` at the repo root (`git rev-parse --show-toplevel`; outside git,
 the project directory), never under a subdirectory the shell has `cd`'d into — the
 readers look only at the root —
 `{"phase":"ship","owner":"git-workflow:finish","session_id":"${CLAUDE_SESSION_ID}","started_at":"<ISO-8601 UTC>"}`
@@ -35,8 +36,10 @@ Exit 1 means a marketplace plugin's scratch (a mockup dir, preview state, a scra
 entry) sits on disk unignored and would ride into the branch as `??` noise. Show the
 rows it printed and ask via AskUserQuestion: "Add the managed block to .gitignore
 (Recommended)" runs `scratch-ignore.sh --apply` and stages `.gitignore`; "Leave it"
-continues. Rows marked `left to you` (brain/, design-system/, research/, …) are
-per-project state the script never touches — name them in the report, decide nothing.
+continues. `.cc-artifacts/` holds what plugins write since 2026-11-14; the other rows
+are what older versions wrote. Rows marked `left to you` (the destructive-guard allow-list,
+and the brain/, design-system/ and research/ dirs older versions wrote) are per-project
+state the script never touches — name them in the report, decide nothing.
 
 Run the project's full check suite as the gate — a red suite stops here with
 the failures reported; no destination options for broken work. First run
@@ -44,8 +47,8 @@ the failures reported; no destination options for broken work. First run
 Reuse only when it prints `fresh: …`, exits 0, and its `<head7>` equals
 `git rev-parse --short=7 <branch>`: the suite already passed there on this exact tree, so
 do not run it again, put `Reused: suite passed at <head7> (<cmd>)` in the report, and use
-the receipt log that line names (`.claude/task-runner/receipts/suite-<HEAD12>.txt` in that
-worktree) as the suite output tail. Anything else (`stale: …`, another exit, another
+the receipt log that line names (`.cc-artifacts/task-runner/receipts/suite-<HEAD12>.txt` in that
+worktree, or `.claude/task-runner/…` from a task-runner before 2026-11-14) as the suite output tail. Anything else (`stale: …`, another exit, another
 head) runs the suite.
 
 On green, before offering any destination, run the review passes that exist in

@@ -34,30 +34,30 @@ awk '/^\*\*`--tracks/,/^$/' "$PLUGIN/commands/run.md" | tr '\n' ' ' | grep -qE '
   && ok "run.md --tracks establishes the run branch before registering" \
   || bad "run.md --tracks establishes the run branch before registering" "the paragraph registers first, or names no run branch"
 
-REPO="$WS/repo"; mkdir -p "$REPO/app/Models" "$REPO/taskmaster-docs/tasks/2026-01-01-demo"
+REPO="$WS/repo"; mkdir -p "$REPO/app/Models" "$REPO/.cc-artifacts/taskmaster/tasks/2026-01-01-demo"
 git -C "$REPO" init -q -b main && git -C "$REPO" config user.email t@t.t && git -C "$REPO" config user.name t
 echo a > "$REPO/a.txt"; git -C "$REPO" add -A && git -C "$REPO" commit -qm init
 git -C "$REPO" checkout -q -b feature; echo b >> "$REPO/a.txt"; git -C "$REPO" commit -qam two
 HEAD=$(git -C "$REPO" rev-parse HEAD); BASE=$(git -C "$REPO" rev-parse main)
-IDX="$REPO/taskmaster-docs/tasks/2026-01-01-demo/00-INDEX.md"; echo '| 01 | x | pending |' > "$IDX"
-TR="$REPO/.claude/task-runner"; SENT="$TR/active-run.json"
+IDX="$REPO/.cc-artifacts/taskmaster/tasks/2026-01-01-demo/00-INDEX.md"; echo '| 01 | x | pending |' > "$IDX"
+TR="$REPO/.cc-artifacts/task-runner"; SENT="$TR/active-run.json"
 mkdir -p "$TR/bg"
 printf '{"head":"%s"}' "$HEAD" > "$TR/gate-pass.json"
 printf '{}' > "$TR/bg/bg-$HEAD.json"; printf '{}' > "$TR/closed-run.json"
 
 # 1) fresh, from a subdirectory with a cwd-relative index path
-out=$(cd "$REPO/app/Models" && bash "$RR" --index ../../taskmaster-docs/tasks/2026-01-01-demo/00-INDEX.md --session s-1 2>&1); r=$?
+out=$(cd "$REPO/app/Models" && bash "$RR" --index ../../.cc-artifacts/taskmaster/tasks/2026-01-01-demo/00-INDEX.md --session s-1 2>&1); r=$?
 [ "$r" = 0 ] && ok "registers (exit 0)" || bad "registers (exit 0)" "rc=$r out=<$out>"
 got=$(jq -c '[.slug,.base,.branch,.start_sha,.index_path]' "$SENT" 2>/dev/null)
-want=$(jq -cn --arg b "$BASE" --arg h "$HEAD" '["2026-01-01-demo",$b,"feature",$h,"taskmaster-docs/tasks/2026-01-01-demo/00-INDEX.md"]')
+want=$(jq -cn --arg b "$BASE" --arg h "$HEAD" '["2026-01-01-demo",$b,"feature",$h,".cc-artifacts/taskmaster/tasks/2026-01-01-demo/00-INDEX.md"]')
 [ "$got" = "$want" ] && ok "active-run.json carries slug, merge-base, branch, start_sha and a root-relative index_path" \
   || bad "active-run.json fields" "got=$got want=$want"
 [ ! -e "$TR/gate-pass.json" ] && [ ! -e "$TR/bg/bg-$HEAD.json" ] && [ ! -e "$TR/closed-run.json" ] \
   && ok "stale gate-pass, bg-<HEAD> and closed-run records are deleted" || bad "stale records deleted" "$(ls -R "$TR")"
 for d in rv rt bg nc reductions; do [ -d "$TR/$d" ] || bad "creates $d/" "missing"; done
 [ "$(cat "$TR/.gitignore" 2>/dev/null)" = '*' ] && ok "creates the record dirs and a self-ignoring .gitignore" || bad ".gitignore" "missing"
-[ ! -e "$REPO/app/Models/.claude" ] && ok "writes nothing under the shell's subdirectory" || bad "subdir state" "found .claude"
-ph=$(jq -c '[.phase,.owner,.session_id]' "$REPO/.claude/cc-phase/s-1.json" 2>/dev/null)
+[ ! -e "$REPO/app/Models/.claude" ] && [ ! -e "$REPO/app/Models/.cc-artifacts" ] && ok "writes nothing under the shell's subdirectory" || bad "subdir state" "found .claude or .cc-artifacts"
+ph=$(jq -c '[.phase,.owner,.session_id]' "$REPO/.cc-artifacts/cc-phase/s-1.json" 2>/dev/null)
 [ "$ph" = '["build","task-runner:run","s-1"]' ] && ok "writes the build phase sentinel under this session's own key" || bad "phase sentinel" "got=$ph"
 
 # 2) resume: the same index on the same branch keeps the registration (its mtime is the record cutoff)
@@ -66,17 +66,17 @@ out=$(cd "$REPO" && bash "$RR" --index "$IDX" --session s-2 2>/dev/null)
 [ "$(cat "$SENT")" = "$before" ] && [ -z "$(find "$SENT" -newer "$REF")" ] && [ -e "$TR/gate-pass.json" ] \
   && ok "a second call for the same run resumes it untouched" || bad "resume" "out=<$out>"
 case "$out" in resumed*) ok "says it resumed" ;; *) bad "says it resumed" "out=<$out>" ;; esac
-[ "$(jq -r '.phase + "|" + .session_id' "$REPO/.claude/cc-phase/s-2.json" 2>/dev/null)" = "build|s-2" ] \
-  && [ "$(jq -r .session_id "$REPO/.claude/cc-phase/s-1.json" 2>/dev/null)" = s-1 ] \
+[ "$(jq -r '.phase + "|" + .session_id' "$REPO/.cc-artifacts/cc-phase/s-2.json" 2>/dev/null)" = "build|s-2" ] \
+  && [ "$(jq -r .session_id "$REPO/.cc-artifacts/cc-phase/s-1.json" 2>/dev/null)" = s-1 ] \
   && ok "a resume writes the new session its own build sentinel and leaves the first session's" \
-  || bad "resume phase sentinel" "$(ls "$REPO/.claude/cc-phase" 2>/dev/null | tr '\n' ' ')"
+  || bad "resume phase sentinel" "$(ls "$REPO/.cc-artifacts/cc-phase" 2>/dev/null | tr '\n' ' ')"
 
 # 3) --fresh, and a different list, both register anew
-rm -rf "$REPO/.claude/cc-phase"
+rm -rf "$REPO/.cc-artifacts/cc-phase"
 err=$(cd "$REPO" && bash "$RR" --index "$IDX" --fresh 2>&1 >/dev/null); r=$?
 [ -n "$(find "$SENT" -newer "$REF")" ] && [ ! -e "$TR/gate-pass.json" ] && ok "--fresh registers anew" || bad "--fresh" "sentinel not rewritten"
-[ "$r" = 0 ] && [ -z "$(ls "$REPO/.claude/cc-phase" 2>/dev/null)" ] && [ ! -e "$REPO/.claude/cc-phase.json" ] \
-  && ok "no --session: registers, and writes no phase sentinel any session would read" || bad "no --session phase" "rc=$r $(ls -a "$REPO/.claude")"
+[ "$r" = 0 ] && [ -z "$(ls "$REPO/.cc-artifacts/cc-phase" "$REPO/.claude/cc-phase" 2>/dev/null)" ] && [ ! -e "$REPO/.claude/cc-phase.json" ] \
+  && ok "no --session: registers, and writes no phase sentinel any session would read" || bad "no --session phase" "rc=$r $(ls -a "$REPO/.cc-artifacts")"
 case "$err" in *"no --session"*) ok "no --session: says no sentinel was written" ;; *) bad "no --session notice" "err=<$err>" ;; esac
 touch -t 200001010000 "$SENT"
 (cd "$REPO" && bash "$RR" --slug inline-fixes >/dev/null 2>&1)
@@ -149,11 +149,11 @@ printf '#!/bin/sh\n[ "$*" = "plugin list --json" ] && cat "%s"\n' "$WS/list.json
 got=$(pick "$STUB:$NOCLI" "$INST/register-run.sh")
 [ "$got" = cc-plugins-marketplace/taskmaster/0.50.6 ] && ok "installed, with the CLI: runs the enabled install's installPath, not the newest on disk or another project's" \
   || bad "installed, with the CLI: runs the enabled install's installPath" "picked=<$got>"
-# A taskmaster before 0.56.0 exits 0 without the per-session file (these stubs write none): register-run writes it.
-[ "$(jq -r '.phase + "|" + .session_id' "$REPO/.claude/cc-phase/s-p.json" 2>/dev/null)" = "build|s-p" ] \
+# An older taskmaster exits 0 without the new per-session file (these stubs write none): register-run writes it.
+[ "$(jq -r '.phase + "|" + .session_id' "$REPO/.cc-artifacts/cc-phase/s-p.json" 2>/dev/null)" = "build|s-p" ] \
   && grep -q 'wrote no per-session sentinel' "$WS/err" \
   && ok "a writer that exits 0 without the per-session file: register-run writes it and says so" \
-  || bad "old-writer fallback" "err=<$(cat "$WS/err")> files=<$(ls -a "$REPO/.claude/cc-phase" 2>/dev/null | tr '\n' ' ')>"
+  || bad "old-writer fallback" "err=<$(cat "$WS/err")> files=<$(ls -a "$REPO/.cc-artifacts/cc-phase" 2>/dev/null | tr '\n' ' ')>"
 
 # 5) ownership (0.56.0): the run names the session that registered it, the one candor's Stop gate holds. Before it, a
 # second session in the repo was held by a run it never registered and told the run file might be left over.
@@ -178,6 +178,31 @@ out=$(cd "$REPO" && CLAUDE_CODE_SESSION_ID=sess-B bash "$RR" --index "$IDX" 2>/d
 (cd "$REPO" && bash "$RR" --index "$IDX" --fresh --session s-1 >/dev/null 2>&1)
 [ "$(jq -r 'has("session_id")' "$SENT")" = false ] && ok "with no host session id a fresh run names no owner (the pre-0.56.0 shape)" \
   || bad "no host session id" "$(cat "$SENT")"
+
+# 6) a run registered before 2026-11-14 sits in .claude/task-runner/ with its index under taskmaster-docs/: the next call copies the dir
+# once, mtimes kept and iso/ (git worktrees) left out, resumes from the copy and leaves the old dir as it was; a sentinel this session
+# left in .claude/cc-phase/ is cleared with the new one written.
+L="$WS/legacy"; mkdir -p "$L/taskmaster-docs/tasks/old-run" "$L/.claude/task-runner/rv" "$L/.claude/task-runner/iso/bg.1/tree" "$L/.claude/cc-phase"
+git -C "$L" init -q -b feature && git -C "$L" config user.email t@t.t && git -C "$L" config user.name t
+echo a > "$L/a.txt"; git -C "$L" add a.txt && git -C "$L" commit -qm init
+LI="$L/taskmaster-docs/tasks/old-run/00-INDEX.md"; echo '| 01 | x | pending |' > "$LI"
+LH=$(git -C "$L" rev-parse HEAD)
+printf '{"slug":"old-run","base":"%s","branch":"feature","start_sha":"%s","index_path":"taskmaster-docs/tasks/old-run/00-INDEX.md"}\n' "$LH" "$LH" > "$L/.claude/task-runner/active-run.json"
+printf '{"id":"01","dispatched":true}\n' > "$L/.claude/task-runner/rv/rv-seen-01.json"
+printf '# Run environment notes\n- host node: /opt/node/bin\n' > "$L/.claude/task-runner/env-notes.md"
+printf '{"phase":"build","session_id":"s-l"}\n' > "$L/.claude/cc-phase/s-l.json"
+find "$L/.claude" -exec touch -t 200001010000 {} +
+old=$(cd "$L/.claude/task-runner" && find . -type f -exec cksum {} + | sort)
+out=$(cd "$L" && bash "$RR" --index "$LI" --session s-l 2>/dev/null); r=$?
+LT="$L/.cc-artifacts/task-runner"
+case "$out" in resumed*) [ "$r" = 0 ] && ok "a run registered under .claude/task-runner/ resumes, its taskmaster-docs/ index_path matching" ;;
+  *) bad "legacy resume" "rc=$r out=<$out>" ;; esac
+[ -f "$LT/rv/rv-seen-01.json" ] && grep -q 'host node' "$LT/env-notes.md" && [ ! -e "$LT/iso" ] && [ -z "$(find "$LT/active-run.json" -newer "$REF")" ] \
+  && ok "its records and notes are copied to .cc-artifacts/task-runner/ with the registration's mtime, iso/ left out" || bad "legacy copy" "$(ls -AR "$LT" 2>&1)"
+[ "$(cd "$L/.claude/task-runner" && find . -type f -exec cksum {} + | sort)" = "$old" ] && [ -z "$(find "$L/.claude/task-runner" -newer "$REF")" ] \
+  && ok "the old .claude/task-runner/ is left as it was" || bad "legacy dir untouched" "$(find "$L/.claude/task-runner" -newer "$REF")"
+[ ! -e "$L/.claude/cc-phase/s-l.json" ] && [ "$(jq -r .phase "$L/.cc-artifacts/cc-phase/s-l.json" 2>/dev/null)" = build ] \
+  && ok "the session's sentinel is written under .cc-artifacts/cc-phase/ and its .claude/cc-phase/ copy cleared" || bad "legacy sentinel" "$(ls -A "$L/.claude/cc-phase" "$L/.cc-artifacts/cc-phase" 2>&1)"
 
 # 4) refusals
 (cd "$REPO" && bash "$RR" --index nope/00-INDEX.md >/dev/null 2>&1); r=$?

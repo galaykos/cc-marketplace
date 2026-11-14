@@ -11,5 +11,5 @@ taskmaster:remind	hook	shape	requirements-clarification	prompt head carries a ma
 taskmaster:ultra	hook	any	ultra-task-boost-directive	prompt head matches ultra-?(task|goal) with no negation and no active-banner echo	-
 # generated:end
 taskmaster:clarify-gate	hook	any	pre-edit-clarification-gate	off by default; when armed, a Write/Edit lands before the task's ambiguity ledger is resolved	taskmaster:grill
-taskmaster:preview-guard	hook	any	mockup-preview-consent	an Artifact call carries mockup-shaped content, or targets taskmaster-docs/mockups, while a live preview server is the declared route	taskmaster:visual-decisions
-taskmaster:shape-guard	hook	shape	brainstorm-shape-write-guard	a Write/Edit/MultiEdit targets a project file outside taskmaster-docs/ and .claude/ while a taskmaster:brainstorm shape sentinel is live for this session	-
+taskmaster:preview-guard	hook	any	mockup-preview-consent	an Artifact call carries mockup-shaped content, or targets .cc-artifacts/taskmaster/mockups (an older project's taskmaster-docs/mockups), while a live preview server is the declared route	taskmaster:visual-decisions
+taskmaster:shape-guard	hook	shape	brainstorm-shape-write-guard	a Write/Edit/MultiEdit targets a project file outside .cc-artifacts/, .claude/ and an older project's taskmaster-docs/ while a taskmaster:brainstorm shape sentinel is live for this session	-

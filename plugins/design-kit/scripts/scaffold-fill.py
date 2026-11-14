@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """scaffold-fill.py — write a scratch page body from the extracted component inventory.
 
-Given the stack, a slug and design-system/components.json, prints the scratch source to stdout: the cleanup marker on line 1, one import per component (relative, or a tsconfig/jsconfig `paths` alias; `~/` on Nuxt), each component's prop signature verbatim as a comment, a `data-design-kit="strip"` section rendering every component in every union-typed variant (children from --brief), and a comment per `gaps` entry naming the file to open first. Stacks: vite-react, next, vite-vue, nuxt, laravel (Blade <x-…> tags), laravel-inertia-react and -vue (a page naming its own bare layout, so createInertiaApp's default stays out).
+Given the stack, a slug and .cc-artifacts/design-kit/design-system/components.json (else a pre-2026-11-14 design-system/components.json), prints the scratch source to stdout: the cleanup marker on line 1, one import per component (relative, or a tsconfig/jsconfig `paths` alias; `~/` on Nuxt), each component's prop signature verbatim as a comment, a `data-design-kit="strip"` section rendering every component in every union-typed variant (children from --brief), and a comment per `gaps` entry naming the file to open first. Stacks: vite-react, next, vite-vue, nuxt, laravel (Blade <x-…> tags), laravel-inertia-react and -vue (a page naming its own bare layout, so createInertiaApp's default stays out).
 Misses: it never compiles the imports (the dev server's overlay is the check), never passes a required prop it cannot fake (that line is emitted commented out, naming the prop), and does not resolve barrel re-exports.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/scaffold-fill.py
 """
@@ -258,15 +258,19 @@ def laravel_wrapper(root):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="scratch page body from design-system/components.json")
+    ap = argparse.ArgumentParser(description="scratch page body from the design system's components.json")
     ap.add_argument("stack", choices=sorted(STACK_DIR))
     ap.add_argument("slug")
-    ap.add_argument("--components", default=os.path.join("design-system", "components.json"))
+    ap.add_argument("--components", default=None)
     ap.add_argument("--brief", default="")
     ap.add_argument("--lang", choices=("ts", "js"), default="ts")
     ap.add_argument("--root", default=".")
     ap.add_argument("--css", default="", help="the app's main stylesheet (repo-relative); imported first so the strip is styled")
     a = ap.parse_args(argv)
+    if a.components is None:
+        a.components = os.path.join(".cc-artifacts", "design-kit", "design-system", "components.json")
+        if not os.path.exists(a.components):
+            a.components = os.path.join("design-system", "components.json")  # plugins before 2026-11-14 wrote it here
     if a.components in ("", "/dev/null") or not os.path.exists(a.components):
         doc = {}  # no inventory: the wrapper and the marker still come from here
     else:

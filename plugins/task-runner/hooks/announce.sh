@@ -23,10 +23,17 @@ cc_state_root() {
 
 # Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
-# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# cc_phase_file <root> <session_id> prints <root>/.cc-artifacts/cc-phase/<key>.json, that session's own phase sentinel; <key> is
 # <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# cc_phase_file_legacy: the same key under <root>/.claude/cc-phase/, where plugins wrote it before 2026-11-14; read it, never write it.
 # Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
 cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.cc-artifacts/cc-phase/%s.json\n' "$1" "$key"
+}
+cc_phase_file_legacy() {
   local key
   key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
   [ -n "$key" ] || return 1
@@ -55,6 +62,20 @@ cc_option() {
   return 0
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 {
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   command -v jq >/dev/null 2>&1 || exit 0
@@ -65,7 +86,7 @@ cc_option() {
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
-  sentinel="$root/.claude/task-runner/active-run.json"
+  sentinel="$(tr_state_dir "$root")/active-run.json"
   [ -r "$sentinel" ] || exit 0
   slug=$(jq -r '.slug // empty' "$sentinel" 2>/dev/null) || exit 0
   branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
@@ -94,7 +115,9 @@ cc_option() {
 
   # Another session's phase is not this one's: a new session (startup, clear) has none, a resumed one may.
   phase=""
-  f=$(cc_phase_file "$root" "$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)") || f=""
+  sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+  f=$(cc_phase_file "$root" "$sid") || f=""
+  [ -z "$f" ] || [ -r "$f" ] || f=$(cc_phase_file_legacy "$root" "$sid") || f=""
   if [ -n "$f" ] && [ -r "$f" ]; then
     p=$(jq -r '.phase // empty' "$f" 2>/dev/null)
     o=$(jq -r '.owner // empty' "$f" 2>/dev/null)
@@ -108,7 +131,7 @@ cc_option() {
   [ -n "$branch" ] && [ -n "$here" ] && [ "$branch" != "$here" ] \
     && elsewhere=" (you are on \`$here\`)"
 
-  msg=$(printf '[task-runner] Run in progress: `%s`%s%s%s%s. Continue it with /task-runner:run%s; do not delete .claude/task-runner/active-run.json until the run is finished.' \
+  msg=$(printf '[task-runner] Run in progress: `%s`%s%s%s%s. Continue it with /task-runner:run%s; do not delete .cc-artifacts/task-runner/active-run.json until the run is finished.' \
     "$slug" "${branch:+ on branch \`$branch\`}" "$elsewhere" "${cards:+ — $cards}" "$phase" "${index:+ (cards in $index)}")
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$m}}' 2>/dev/null

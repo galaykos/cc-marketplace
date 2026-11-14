@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.1 — 2026-11-14
+
+- **`hooks/glb-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no
+  `CLAUDE_PLUGIN_DATA`, the hook's per-project state now goes to `.cc-artifacts/meshy/`, not
+  `.claude/meshy/`: one folder a team can gitignore and leave out of a deploy, outside the
+  `.claude/` path Claude Code protects. The state is a cache, so nothing is carried over from
+  the old dir. Standing: gate for the path (`templates/blocks/plugin-state.md`, held byte-identical
+  by `pc_shared_blocks`).
+
 ## 0.3.0 — 2026-11-09
 
 - **`inspect_glb.py` sizes KTX2 and WebP textures.** It reads the KTX2 header

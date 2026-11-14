@@ -89,7 +89,7 @@ case "$out" in
   *'"permissionDecision":"deny"'*) echo "PASS: an existing cwd still reaches the deny lane" ;;
   *) echo "FAIL: an existing cwd no longer reaches the deny lane: ${out:-<silent>}"; rc=1 ;;
 esac
-[ -d "$FX/live/.claude/comment-discipline" ] \
+[ -d "$FX/live/.cc-artifacts/comment-discipline" ] \
   && echo "PASS: the bound is still recorded under an existing cwd" \
   || { echo "FAIL: the bound was not recorded under an existing cwd"; rc=1; }
 
@@ -130,7 +130,7 @@ density() { # cwd
     | bash plugins/code-review/hooks/density.sh >/dev/null 2>&1
 }
 density "$R/app/Enums"
-dstate="$R/.claude/comment-discipline/density-$(printf '%s' /t/density-walk.jsonl | cksum | cut -d' ' -f1)"
+dstate="$R/.cc-artifacts/comment-discipline/density-$(printf '%s' /t/density-walk.jsonl | cksum | cut -d' ' -f1)"
 grep -qF "file $R/src/big.ts" "$dstate" 2>/dev/null && echo "PASS: density.sh keeps its state at the repo root" \
   || { echo "FAIL: density.sh wrote no state at the repo root"; rc=1; }
 
@@ -149,8 +149,8 @@ else
   echo "FAIL: scan.sh deny budget across a cd — got $d1 $d2 $d3, want 1 1 0"; rc=1
 fi
 
-strays=$(find "$R/app" "$R/src" -name .claude 2>/dev/null)
-[ -z "$strays" ] && echo "PASS: no .claude/ in any subdirectory" \
+strays=$(find "$R/app" "$R/src" \( -name .claude -o -name .cc-artifacts \) 2>/dev/null)
+[ -z "$strays" ] && echo "PASS: no state dir in any subdirectory" \
   || { echo "FAIL: stray state dirs: $strays"; rc=1; }
 
 printf '\n'

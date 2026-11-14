@@ -5,7 +5,7 @@ screenshot every frame. `scripts/motion-check.mjs` is that recorder, on the proj
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/motion-check.mjs" "<page>?capture&static=1" --selector '#stage' \
-  --ms 12600 --pre 15 --frames .design-kit/motion/<slug>/.frames [--scale 1.333] [--viewport 1440x900]
+  --ms 12600 --pre 15 --frames .cc-artifacts/design-kit/motion/<slug>/.frames [--scale 1.333] [--viewport 1440x900]
 ```
 
 `--ms` counts from `__start`; the `--pre` frames come before it, so frame `PRE − 1` is loop time 0.
@@ -21,7 +21,7 @@ snippet below is what it does per frame, kept so the page side reads against it.
 
 Load the page as `?capture&static=1` — `capture` hands the clock to the recorder, `static=1` keeps
 design-kit's preview server from injecting its live-reload stream, which would keep the page from
-settling. Write frames into `.design-kit/motion/<slug>/.frames/`, a dot directory the server neither
+settling. Write frames into `.cc-artifacts/design-kit/motion/<slug>/.frames/`, a dot directory the server neither
 lists nor watches.
 
 Three details decide whether the loop is smooth and the seam clean; all three are in the snippet.

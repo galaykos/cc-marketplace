@@ -57,8 +57,10 @@ printf 'class AxeBuilder { constructor() { throw new Error("axe stub: the floors
 file_url() { node -p 'require("url").pathToFileURL(process.argv[1]).href' "$1"; }
 url=$(file_url "$FIXTURE")
 TITLE='Floors fixture'
-project="$WS/project"; mkdir -p "$project"
-FLOORS="$project/.craft-layer/layout-floors.json"
+project="$WS/project"; mkdir -p "$project/.craft-layer"
+FLOORS="$project/.cc-artifacts/craft-layer/layout-floors.json"
+# A floors file from before 2026-11-14 sits at .craft-layer/: the run writes the new path and never touches it.
+LEGACY="$project/.craft-layer/layout-floors.json"; printf '{"legacy":true}\n' > "$LEGACY"; legacy_sum=$(cksum < "$LEGACY")
 
 run_floors() { # expect-title report-name [project-dir base-url] -> the CLI's exit status
   ( cd "${3:-$project}" && BASE_URL="${4:-$url}" CRAFT_EXPECT_TITLE="$1" CRAFT_PRIMARY_ACTION='Start the trial' CRAFT_BROWSER_CHANNEL="$channel" NODE_PATH="$shim" \
@@ -88,7 +90,8 @@ problems=$(node -e '
   const widths = Object.keys(j.breakpoints || {}).sort().join(",")
   if (widths !== "1280,390,768") console.log(`breakpoints ${widths}, want 390,768,1280`)
 ' "$FLOORS" "$t0" "$url" "$TITLE")
-verdict 'floors file is written and stamped' "$problems"
+[ "$(cksum < "$LEGACY")" = "$legacy_sum" ] || problems=$(printf '%s\nthe .craft-layer/layout-floors.json left by an older run changed' "$problems")
+verdict 'floors file is written and stamped at the new path, the old one untouched' "$(printf '%s' "$problems" | sed '/^$/d')"
 
 problems=$(node -e '
   let j; try { j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")) } catch (e) { console.log(`no readable file: ${e.message}`); process.exit() }
@@ -136,7 +139,7 @@ probe() { # label fixture field want-json widths — a page shape that once prod
       const got = JSON.stringify(((j.breakpoints || {})[w] || {})[field])
       if (got !== want) console.log(`${w} ${field}: want ${want}, got ${got}`)
     }
-  ' "$dir/.craft-layer/layout-floors.json" "$3" "$4" $5)
+  ' "$dir/.cc-artifacts/craft-layer/layout-floors.json" "$3" "$4" $5)
   [ "$rc" -eq 0 ] && [ "$status" = passed ] || problems=$(printf 'test %s, CLI exit %s: %s\n%s' "$status" "$rc" "$(tail -3 "$WS/$name.stderr")" "$problems")
   verdict "$1" "$problems"
 }

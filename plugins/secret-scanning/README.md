@@ -53,7 +53,8 @@ off-switch documented only in a changelog is not reachable by the person it exis
   interpreter, `cp`, `mv`, `install` or `patch` run it **warns** — never denies, the write
   has landed — on a secret in what each file git reports changed added (the "What has
   teeth" row above names how and what it misses). Its marker lives in the plugin's data
-  dir, else under `<repo>/.claude/secret-scanning/` behind a `*` `.gitignore`.
+  dir, else under `<repo>/.cc-artifacts/secret-scanning/` (`.claude/secret-scanning/` before 0.18.0)
+  behind a `*` `.gitignore`.
 - **PostToolUse hook** (`hooks/unicode-scan.sh`) — **warns**, never blocks, when a file
   this session wrote *or read* carries invisible characters — since 0.9.0 including up to
   8 files per `Bash` command that wrote them (redirect, `tee`, `sed -i`) under the

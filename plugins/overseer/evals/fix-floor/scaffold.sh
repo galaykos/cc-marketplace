@@ -1,8 +1,8 @@
 #!/bin/bash
 # Scaffold for the fix-floor case: m1 in `accepting`, the walk finished, five findings of which one
-# fails an acceptance line and four sit below the bar. Writes only under ./.claude/overseer/.
+# fails an acceptance line and four sit below the bar. Writes only under ./.cc-artifacts/overseer/.
 set -e
-d=.claude/overseer; mkdir -p "$d/milestones/m1/dispatch" "$d/milestones/m1/evidence"
+d=.cc-artifacts/overseer; mkdir -p "$d/milestones/m1/dispatch" "$d/milestones/m1/evidence"
 cat > "$d/program.json" <<'JSON'
 {"goal":"Build a CRM that manages clients","slug":"crm","base_branch":"main","model":"opus","hands_off":false,
  "milestones":[

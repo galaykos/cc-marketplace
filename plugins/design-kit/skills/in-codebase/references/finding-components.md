@@ -5,12 +5,12 @@ source names what it proves and what it does not.
 
 | Source | Proves | Does not prove |
 |---|---|---|
-| `design-system/components.json` (written by `/design-kit:system`; read by `--create`) | every component's source path, export kind, props with types/defaults/required flags, union variants, story names | anything listed under its `gaps` — a generic, an `extends`, an intersection or a spread the regex could not resolve; open the file it names |
+| `.cc-artifacts/design-kit/design-system/components.json`, else an older `design-system/components.json` (written by `/design-kit:system`; read by `--create`) | every component's source path, export kind, props with types/defaults/required flags, union variants, story names | anything listed under its `gaps` — a generic, an `extends`, an intersection or a spread the regex could not resolve; open the file it names |
 | `components=` dir from `--detect` | where the library lives | that every export is current — check `git log -1` on a file that looks abandoned |
 | Index exports (`src/components/index.ts`, `resources/js/Components/index.js`) | the public surface the app itself imports | variants and props |
 | Storybook stories (`*.stories.tsx`, `*.stories.vue`) | every variant the team considered worth a story, with real args | that a story still matches the shipped component — run the story if Storybook is up |
 | The two closest existing pages (same section of the app) | composition, layout wrapper, data-fetching shape, which provider stack a page needs | that those pages are the pattern to copy — they may be the legacy one; ask if two pages disagree |
-| `design-system/` or the `## Design system` block in CLAUDE.md | token names and roles | component names |
+| `.cc-artifacts/design-kit/design-system/` (older: `design-system/`) or the `## Design system` block in CLAUDE.md | token names and roles | component names |
 | Blade `@props([...])`, `defineProps<...>()`, TS prop types | the props that exist | the visual result of each combination |
 
 ## Stack-specific reads

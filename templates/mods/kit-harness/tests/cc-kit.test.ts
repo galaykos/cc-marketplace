@@ -16,8 +16,9 @@ import type { Host } from '../hooks/cc-kit'
 
 const NOW = Date.UTC(2026, 9, 6, 12)
 const MINUTE = 60_000
-const SENTINEL = '/work/.claude/cc-phase/S1.json'
-const RUN = '/work/.claude/task-runner/active-run.json'
+const SENTINEL = '/work/.cc-artifacts/cc-phase/S1.json'
+const RUN = '/work/.cc-artifacts/task-runner/active-run.json'
+const LEGACY_RUN = '/work/.claude/task-runner/active-run.json'
 const A_MD = '/work/a.md'
 
 const LIVE_BUILD = JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S1' })
@@ -80,7 +81,14 @@ function hostIn(world: World): Host {
       return stdout === undefined ? ran(repo ? 1 : 128, '') : ran(0, `${stdout}\n`)
     },
     read: async path => (await fileAt(path)).text,
-    stat: async path => ({ kind: 'file', size: 0, mtimeMs: (await fileAt(path)).mtimeMs, isLink: false }),
+    stat: async path => {
+      // A directory exists when some file sits under it, as on disk.
+      if (Object.keys(world.files ?? {}).some(f => f.startsWith(`${path}/`))) {
+        return { kind: 'dir', size: 0, mtimeMs: NOW, isLink: false }
+      }
+
+      return { kind: 'file', size: 0, mtimeMs: (await fileAt(path)).mtimeMs, isLink: false }
+    },
     now: async () => NOW,
     sessionId: async () => 'S1',
     cwd: async () => cwd,
@@ -90,8 +98,8 @@ function hostIn(world: World): Host {
 
 const REPO = [{ toplevel: '/work', branch: 'feat/x' }]
 
-const sentinelAt = (body: Record<string, string>, ageMinutes = 1, root = '/work', session = 'S1') => ({
-  [`${root}/.claude/cc-phase/${session}.json`]: { text: JSON.stringify(body), mtimeMs: NOW - ageMinutes * MINUTE },
+const sentinelAt = (body: Record<string, string>, ageMinutes = 1, root = '/work', session = 'S1', base = '.cc-artifacts') => ({
+  [`${root}/${base}/cc-phase/${session}.json`]: { text: JSON.stringify(body), mtimeMs: NOW - ageMinutes * MINUTE },
 })
 
 const RUN_FILE = {
@@ -346,9 +354,18 @@ describe('cc-kit', () => {
     expect(await liveSentinel(hostIn({ repos: REPO, files: legacy({ phase: 'build', session_id: 'S1' }) }))).toBe(null)
   })
 
+  test('liveSentinel falls back to a sentinel an older plugin wrote under .claude/, and the new path wins', async () => {
+    const old = sentinelAt({ phase: 'build', owner: 'task-runner:run', session_id: 'S1' }, 1, '/work', 'S1', '.claude')
+    const both = { ...old, ...sentinelAt({ phase: 'ship', owner: 'git-workflow:finish', session_id: 'S1' }) }
+
+    expect(await liveSentinel(hostIn({ repos: REPO, files: old }))).toEqual({ phase: 'build' })
+    expect(await liveSentinel(hostIn({ repos: REPO, files: both }))).toEqual({ phase: 'ship' })
+  })
+
   test('phaseFile keys the path by the session id, dropping path bytes, and refuses an empty key', () => {
-    expect(phaseFile('/work', 'a1b2-C3_d')).toBe('/work/.claude/cc-phase/a1b2-C3_d.json')
-    expect(phaseFile('/work', '../x/S9')).toBe('/work/.claude/cc-phase/xS9.json')
+    expect(phaseFile('/work', 'a1b2-C3_d')).toBe('/work/.cc-artifacts/cc-phase/a1b2-C3_d.json')
+    expect(phaseFile('/work', '../x/S9')).toBe('/work/.cc-artifacts/cc-phase/xS9.json')
+    expect(phaseFile('/work', 'S9', '.claude')).toBe('/work/.claude/cc-phase/S9.json')
     expect(phaseFile('/work', '/../')).toBe(null)
   })
 
@@ -365,6 +382,21 @@ describe('cc-kit', () => {
       index_path: 'taskmaster-docs/tasks/ship-mods/00-INDEX.md',
       root: '/work',
     })
+  })
+
+  test('activeRun falls back to a run an older task-runner registered under .claude/', async () => {
+    const files = { [LEGACY_RUN]: RUN_FILE[RUN] }
+
+    expect(await activeRun(hostIn({ repos: REPO, files }))).toMatchObject({ slug: 'ship-mods', branch: 'feat/x' })
+  })
+
+  test('activeRun ignores the legacy run once task-runner has its new dir, so a run closed after the copy stays closed', async () => {
+    const files = {
+      [LEGACY_RUN]: RUN_FILE[RUN],
+      '/work/.cc-artifacts/task-runner/closed-run.json': { text: '{}', mtimeMs: NOW },
+    }
+
+    expect(await activeRun(hostIn({ repos: REPO, files }))).toBe(null)
   })
 
   test('activeRun ignores a run on another branch', async () => {
@@ -490,7 +522,7 @@ describe('cc-kit', () => {
   test("registerSuggestion is not silenced by another session's live sentinel", async ($, on) => {
     const world = seat(on)
 
-    world.disk.set('/work/.claude/cc-phase/S2.json', JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S2' }))
+    world.disk.set('/work/.cc-artifacts/cc-phase/S2.json', JSON.stringify({ phase: 'build', owner: 'task-runner:run', session_id: 'S2' }))
     await write($)
     await endTurn($)
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# inject.sh — SessionStart: injects <project root>/brain/INDEX.md as labelled project data (30 lines, 2 KB at most), with a staleness hint when files outside brain/ changed since its `built:` hash; with no map, a startup-only nudge in repos of 200+ tracked files. Writes nothing. Fails open.
+# inject.sh — SessionStart: injects <project root>/.cc-artifacts/brain/INDEX.md (older projects: brain/INDEX.md) as labelled project data (30 lines, 2 KB at most), with a staleness hint when files outside the map changed since its `built:` hash; with no map, a startup-only nudge in repos of 200+ tracked files. Writes nothing. Fails open.
 # Misses: the nudge repeats in every new session; drift it cannot count (an unreachable `built:` hash) prints no number; during a task-runner run the refresh is only offered.
 # Why, limits, history: rationale/derivations/plugin-brain.md § plugins/brain/hooks/inject.sh
 
@@ -29,7 +29,10 @@ cc_state_root() {
   [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
-  index="$root/brain/INDEX.md"
+  # brain before 2026-11-14 kept the map in brain/: read it there until the indexer has copied it over.
+  mapdir="$root/.cc-artifacts/brain"
+  [ -d "$mapdir" ] || mapdir="$root/brain"
+  index="$mapdir/INDEX.md"
   # The nudge is the plugin talking, not project data, so it sits outside the fenced block; the hook has no matcher, hence the startup test.
   if [ ! -f "$index" ] || [ ! -s "$index" ]; then
     [ "$(printf '%s' "$input" | jq -r '.source // "startup"' 2>/dev/null)" = startup ] || exit 0
@@ -50,8 +53,8 @@ cc_state_root() {
       case "$head_full" in
         "$built"*) ;;  # current HEAD begins with the built prefix → map is fresh
         *)
-          # git's own exit status, not a pipeline's: an unreachable hash must print no count. brain/ is excluded: the map's own commit is not drift.
-          if changed=$(git -C "$root" diff --name-only "$built"..HEAD -- . ':(exclude)brain' 2>/dev/null); then
+          # git's own exit status, not a pipeline's: an unreachable hash must print no count. Both map dirs are excluded: a committed map is not drift.
+          if changed=$(git -C "$root" diff --name-only "$built"..HEAD -- . ':(exclude).cc-artifacts/brain' ':(exclude)brain' 2>/dev/null); then
             drift=$(printf '%s' "$changed" | grep -c . | tr -d ' ')
             [ "$drift" = 0 ] && built_current=1
           else
@@ -59,11 +62,14 @@ cc_state_root() {
           fi
           count=""
           [ -n "$drift" ] && [ "$drift" -ge 1 ] 2>/dev/null && count=", $drift files changed"
-          # During a task-runner run only offer: its scope lock would order a brain/*.md write reverted.
+          # During a task-runner run only offer: its scope lock would order a map write reverted. task-runner before 2026-11-14
+          # kept scope.json under .claude/; that copy counts only while .cc-artifacts/task-runner/ is absent (task-runner copies it in and leaves it).
+          scoped=""
+          [ -f "$root/.cc-artifacts/task-runner/scope.json" ] && scoped=1
+          [ -d "$root/.cc-artifacts/task-runner" ] || { [ -f "$root/.claude/task-runner/scope.json" ] && scoped=1; }
           if [ -n "$built_current" ]; then
             :
-          elif [ -n "$count" ] && [ "$drift" -le 5 ] \
-             && [ ! -f "$root/.claude/task-runner/scope.json" ]; then
+          elif [ -n "$count" ] && [ "$drift" -le 5 ] && [ -z "$scoped" ]; then
             hint="⚠ brain map is behind HEAD (built $built$count) — Claude: run the incremental /brain index refresh now, before other work; no need to ask."
           else
             hint="⚠ brain map is behind HEAD (built $built$count) — offer /brain index to refresh."

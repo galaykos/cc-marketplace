@@ -44,12 +44,15 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    SCOPE: strip them from the idea before step 1. Carry the pinned ambition tier onto the build task
    and into the audit — a tier living only in a scope sentence binds nothing.
 
-   **Then read the project memory** — `<project>/.craft-layer/run-log.md`; its last 5 rows are what
-   this run must differ from. Create `<project>/.craft-layer/` with a `.gitignore` holding only `*`
+   **Then read the project memory** — `<project>/.cc-artifacts/craft-layer/run-log.md`; its last 5 rows are what
+   this run must differ from. Create `<project>/.cc-artifacts/craft-layer/` with a `.gitignore` holding only `*`
    when absent; it holds what must OUTLIVE the session (run log, `waivers.json`, `shots/`,
    `preserve.json`, `layout-floors.json`) and is not
-   the `craft/` working area. **On a `keep-brand` or `new-look` redesign, write
-   `<project>/.craft-layer/preserve.json`** before the draw: the concrete values the target ships now
+   the `craft/` working area. A project from before 2026-11-14 keeps them in `<project>/.craft-layer/`: before
+   reading or writing one, copy across each the new dir lacks, and never touch the old dir —
+   `for f in run-log.md waivers.json preserve.json; do [ -e .cc-artifacts/craft-layer/$f ] || [ ! -e .craft-layer/$f ] || cp -p .craft-layer/$f .cc-artifacts/craft-layer/; done`.
+   **On a `keep-brand` or `new-look` redesign, write
+   `<project>/.cc-artifacts/craft-layer/preserve.json`** before the draw: the concrete values the target ships now
    (`routes`, `anchors`, `nav`, `forms` with fields in order, `analytics`, `logo`, `legal`), stamped
    with the date and the target's HEAD or file hashes, plus `approved` — one
    `{"item","change","approvedAt"}` per value the user agrees to change, `item` as
@@ -84,8 +87,8 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
 
    **Finally, persist** the contract, divergence record and content source at
    `craft/offer-contract.md`, `craft/divergence-record.md` and `craft/content-source.md`, under the
-   run's working area — the taskmaster docs area when the project has one, else session scratch;
-   never the shipped tree. Persist AFTER the archetype is classified or the Archetype row ships
+   run's working area — `.cc-artifacts/taskmaster/` when the project has a taskmaster docs area (an
+   older `taskmaster-docs/` counts, but is never written), else session scratch; never the shipped tree. Persist AFTER the archetype is classified or the Archetype row ships
    empty, and write the content source even when nothing was found: `source: none-located` is a
    recorded DECISION, and an absent artifact is indistinguishable from a run that never asked. Every
    artifact carries the Part 8 `Run:` stamp BYTE-IDENTICAL on its first line, the build task

@@ -58,10 +58,10 @@ decision, a newcomer's silence is a gap.
 ## Persist and resume
 
 After reprinting the ledger each round, also write it — the raw + upgraded statement pair
-plus the table — to `.claude/taskmaster/ledger-<slug>.md` (`<slug>` a kebab of the task), so
-an interrupted interrogation is not lost. Creating that directory, drop a `.gitignore`
-holding `*` into it if absent: this is scratch and belongs in no commit. At grill start, an unfinished
-`.claude/taskmaster/ledger-*.md` offers Resume / Start fresh; Resume reuses the
+plus the table — to `.cc-artifacts/taskmaster/ledger-<slug>.md` (`<slug>` a kebab of the task), so
+an interrupted interrogation is not lost. With no `.gitignore` in that directory, write one holding
+`/ledger-*.md` and `/goal-ledger-*.md`: ledgers are scratch, the specs beside them are not. At grill start, an unfinished
+`ledger-*.md` there, or in `.claude/taskmaster/` (older projects), offers Resume / Start fresh; Resume reuses the
 stored statement (never re-derived), loads the table, continues from the first
 UNKNOWN row — no re-scout (a "lookup pending" row's one lookup excepted), no re-asking
 resolved rows. Delete when the spec is written.
@@ -165,11 +165,11 @@ assumption list, or the user says "enough". Then:
    strangler) and the task is not mechanical. approaches plugin installed → follow
    `approaches:approach-deliberation`: its inline slate by default, its blind panel
    (`references/blind-panel.md`) only for rework of existing code. It owns the mechanism
-   choice and the proceed rule (surface the pick for approval; never self-approve it). WRITE its marker `<repo root>/.claude/approaches/deliberated.json`
+   choice and the proceed rule (surface the pick for approval; never self-approve it). WRITE its marker `<repo root>/.cc-artifacts/approaches/deliberated.json`
    after: unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates
    the settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks,
    or when an upstream brainstorm design already recorded the approach.
-2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
+2. Write the spec to `.cc-artifacts/taskmaster/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
    alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
    as `## Ambiguity ledger (final)`; run `"${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh" --spec <file>` (blocks

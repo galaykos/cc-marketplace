@@ -34,7 +34,7 @@
     *.md)
       allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
       pc_doc_location "$rel" "$allow_md" >/dev/null 2>&1 || \
-        warns="${warns:+$warns\n}Non-functional .md inside a plugin ($rel) — docs belong in taskmaster-docs/, not plugins/"
+        warns="${warns:+$warns\n}Non-functional .md inside a plugin ($rel) — docs belong in .cc-artifacts/taskmaster/, not plugins/"
       ;;
   esac
 

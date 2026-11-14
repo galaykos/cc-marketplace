@@ -49,7 +49,7 @@ approved.
 First thing in every run, write the phase sentinel:
 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" write shape --owner taskmaster:brainstorm --session "${CLAUDE_SESSION_ID}"`.
 While it is live, `hooks/shape-guard.sh` denies any Write/Edit to a project file outside
-`taskmaster-docs/` and `.claude/` (visual-decisions' `__design-preview__` scratch passes).
+`.cc-artifacts/`, `.claude/` and an older project's `taskmaster-docs/` (visual-decisions' `__design-preview__` scratch passes).
 Clear it — `bash "${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh" clear --session "${CLAUDE_SESSION_ID}"` — once the user
 approves the design doc, and equally when the run is stopped or abandoned. Never clear it to
 get a write through. Standing: **gate** for Write/Edit/MultiEdit; writes through Bash or
@@ -135,7 +135,7 @@ design shapes are viable, do not generate them from one voice — that anchors e
 "alternative" on a single draft. approaches plugin installed → run its blind panel on the
 design question per `approaches:approach-deliberation` `references/blind-panel.md`, which
 owns the persona roster and the dispatch contract; synthesize alternatives + recommendation
-from their takes, then WRITE the round's marker `<repo root>/.claude/approaches/deliberated.json`:
+from their takes, then WRITE the round's marker `<repo root>/.cc-artifacts/approaches/deliberated.json`:
 unwritten, the double-run guard is unarmed and the question is re-litigated downstream.
 The panel's own pick-approval is satisfied here by the design doc's approval gate below.
 Absent → propose 2–3 yourself with their tradeoffs, recommendation first and argued. If only one approach exists, say so — "alternatives considered: none viable
@@ -154,7 +154,7 @@ whiteboard, not discovered mid-card.
 
 ## The design doc
 
-Write the approved design to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`: the
+Write the approved design to `.cc-artifacts/taskmaster/specs/YYYY-MM-DD-<slug>-design.md`: the
 problem, the chosen approach and the alternatives rejected (with reasons),
 component map, data flow, error handling, success criteria, non-goals, and —
 when the idea has a surface — a Staged decisions section (each pick: label,

@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 export default defineConfig({
   testDir: '.',
   testMatch: /gates\.spec\.ts$/,
-  outputDir: resolve(process.cwd(), '.craft-layer/test-results'),
+  outputDir: resolve(process.cwd(), '.cc-artifacts/craft-layer/test-results'),
   reporter: [['list']],
   use: { channel: process.env.CRAFT_BROWSER_CHANNEL || undefined },
 })

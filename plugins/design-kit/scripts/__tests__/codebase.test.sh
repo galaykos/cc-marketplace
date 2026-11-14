@@ -39,8 +39,8 @@ grep -q 'Fill me with real components' "$(bash "$scaffold" --create plain | sed 
 bash "$cleanup" >/dev/null
 
 # --- Vite React with the extracted inventory (components.json) ---
-mkdir -p design-system
-cat > design-system/components.json <<'EOF'
+mkdir -p .cc-artifacts/design-kit/design-system
+cat > .cc-artifacts/design-kit/design-system/components.json <<'EOF'
 {"generated":"2026-09-22","source":"repo `fx`","components":[
  {"name":"Button","source":"src/components/Button.tsx","export":"named",
   "props":[{"name":"variant","type":"'a' | 'b'","default":"a","required":false},{"name":"children","type":"ReactNode","default":null,"required":true}],
@@ -56,7 +56,7 @@ EOF
 printf 'import "./index.css";\nimport { x } from "./x";\n' > src/main.tsx; echo '@tailwind base;' > src/index.css
 out="$(bash "$scaffold" --create filled --brief 'Acme')"
 [ "$(cat src/index.css)" = '@tailwind base;' ] || fail "a Tailwind v3 stylesheet got an @source line: $(cat src/index.css)"
-grep -q '^filled=design-system/components.json$' <<<"$out" || fail "filled= line: $out"
+grep -q '^filled=.cc-artifacts/design-kit/design-system/components.json$' <<<"$out" || fail "filled= line: $out"
 f=src/__design-kit__/filled.tsx
 head -1 "$f" | grep -q '__design-kit__ scratch' || fail "filled marker line 1"
 grep -q '^import "../index.css";$' "$f" || fail "app stylesheet import: $(grep import "$f")"
@@ -80,7 +80,7 @@ cat > tsconfig.json <<'EOF'
 EOF
 bash "$scaffold" --create aliased >/dev/null
 grep -q '^import { Button } from "@/components/Button";$' src/__design-kit__/aliased.tsx || fail "alias import: $(grep import src/__design-kit__/aliased.tsx)"
-bash "$cleanup" >/dev/null; echo '{}' > tsconfig.json; rm -rf design-system
+bash "$cleanup" >/dev/null; echo '{}' > tsconfig.json; rm -rf .cc-artifacts
 
 # --- Laravel ---
 lar="$tmp/laravel"; mkdir -p "$lar/resources/views/layouts" "$lar/routes"
@@ -165,7 +165,8 @@ bash "$cleanup" >/dev/null
 cmp -s resources/css/app.css "$tmp/ine.css" || fail "cleanup did not restore the stylesheet byte-for-byte: $(od -c resources/css/app.css | tail -3)"
 cmp -s routes/web.php "$tmp/ine.web" || fail "cleanup did not restore routes/web.php byte-for-byte"
 bash "$cleanup" --verify >/dev/null || fail "inertia verify after cleanup"
-# with the inventory: alias imports from tsconfig paths, the layout line kept
+# with the inventory: alias imports from tsconfig paths, the layout line kept; the inventory sits where plugins before
+# 2026-11-14 wrote it, design-system/, read while the new folder holds none
 printf '{ "compilerOptions": { "paths": { "@/*": ["./resources/js/*"] } } }\n' > tsconfig.json; mkdir -p design-system
 echo '{"components":[{"name":"Button","source":"resources/js/components/ui/button.tsx","export":"named","props":[],"variants":{},"stories":[],"gaps":[]}]}' > design-system/components.json
 out="$(bash "$scaffold" --create filled)"

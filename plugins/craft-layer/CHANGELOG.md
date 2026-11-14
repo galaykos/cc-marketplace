@@ -7,6 +7,12 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.61.0 — 2026-11-14
+
+- **Project state moved from `.craft-layer/` to `.cc-artifacts/craft-layer/`**, the one folder a project gitignores for what plugins write during development: the run log, `waivers.json`, `preserve.json`, `layout-floors.json`, the audit's `shots/` and Playwright's `test-results/`. `divergence.mjs` and `finish-lint.mjs` read the run log and waivers at the new path, and at `.craft-layer/` only while the new file is absent; `gates.spec.ts` and `playwright.config.ts` write only the new path. `/craft-layer:craft` step 0 and `/craft-layer:audit` copy `run-log.md`, `waivers.json` and `preserve.json` across, file by file, before writing one, because the suite can create the new folder first; nothing writes or deletes `.craft-layer/`.
+- **Run records written to the taskmaster docs area go to `.cc-artifacts/taskmaster/craft/`** (was `taskmaster-docs/craft/`). `divergence.mjs` reads `taskmaster-docs/craft/` only while the new file is absent, so `craft-stamp` never counts an older copy beside a new one. The audit lists both folders by path as well as by glob. The README names design-kit's record at `.cc-artifacts/design-kit/design-system/` (an older project's `design-system/`).
+- Standing: gate for the scripts (`craft-gates.test.sh`, six new cases: old-only waivers, run log and build task read, a new file winning, the old one unchanged; `finish-lint.test.sh`, two; `layout-floors.test.sh` checks the new path is written and an old floors file is untouched). The copy before a write is command prose: agent-graded.
+
 ## 0.60.1 — 2026-11-11
 
 - **The contrast checker measures the dark theme, and reads more than `oklch()`.** `template/craft-gates/contrast.mjs` found the dark theme by searching for the text `.dark`. Stock shadcn v4 writes `@custom-variant dark (&:is(.dark *))` above the theme, so the light tokens were graded twice and an unreadable dark theme exited 0. A build with no dark rule got light values printed as dark passes. It now reads rules by selector: light from every `:root`/`html` rule, dark from every `.dark`, `[data-theme=dark]`, `[data-mode=dark]` or `prefers-color-scheme: dark` rule, with dark inheriting light as the cascade does. A build with no dark rule prints "not measured" for dark.

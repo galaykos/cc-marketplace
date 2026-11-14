@@ -6,7 +6,7 @@
 # Usage:
 #   review-diff.sh --card <id> --base <ref> [<path>...]
 #
-# Writes .claude/task-runner/rv/diff-<id>.patch: `git diff <base> -- <paths>` (the working
+# Writes .cc-artifacts/task-runner/rv/diff-<id>.patch: `git diff <base> -- <paths>` (the working
 # tree against the card's base, so uncommitted work is in it; paths are root-relative, as a
 # card lists them, from any directory; no path is the whole tree),
 # each untracked file under <paths> as a new-file diff, then, per hunk that changes existing
@@ -21,6 +21,19 @@ set -euo pipefail
 PROG=review-diff
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 die() { printf '%s: %s\n' "$PROG" "$1" >&2; exit 5; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 CARD=""; BASE=""; PATHS=()
 while [ $# -gt 0 ]; do
@@ -45,7 +58,7 @@ git -C "$ROOT" rev-parse -q --verify "$BASE^{commit}" >/dev/null 2>&1 || usage "
 B12=$(git -C "$ROOT" rev-parse --short=12 "$BASE")
 [ ${#PATHS[@]} -gt 0 ] || PATHS=(":/")
 
-DIR="$ROOT/.claude/task-runner/rv"
+DIR="$(tr_state_dir "$ROOT")/rv"
 mkdir -p "$DIR" 2>/dev/null || die "cannot create $DIR"
 [ -e "${DIR%/*}/.gitignore" ] || printf '*\n' > "${DIR%/*}/.gitignore"
 OUT="$DIR/diff-$CARD.patch"

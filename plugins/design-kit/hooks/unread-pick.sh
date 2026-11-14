@@ -1,6 +1,6 @@
 #!/bin/bash
-# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.design-kit/decisions.jsonl is unconsumed, and COUNTING open notes in notes.jsonl not handed out in the last 15 min (never their text, selector or page); a board name only as ASCII of at most 64 characters naming a file in .design-kit/boards/, an artboard only in 1..99, else a count; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
-# Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.design-kit/, whether the model acts on the line (agent-graded). Its phase-file and phase-guard copies are held to their blocks by pc_shared_blocks.
+# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.cc-artifacts/design-kit/decisions.jsonl (else the legacy .design-kit/) is unconsumed, and COUNTING open notes in notes.jsonl not handed out in the last 15 min (never their text, selector or page); a board name only as ASCII of at most 64 characters naming a file in that folder's boards/, an artboard only in 1..99, else a count; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
+# Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.cc-artifacts/design-kit/, whether the model acts on the line (agent-graded). Its phase-file and phase-guard copies are held to their blocks by pc_shared_blocks.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/hooks/unread-pick.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -52,16 +52,25 @@ cwd=""
 if command -v jq >/dev/null 2>&1; then cwd="$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null || true)"; fi
 [ -n "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
-# The root's board only: `dk decision --consume` clears rows there, so a <subdir>/.design-kit/ would repeat on every prompt.
-dec="$root/.design-kit/decisions.jsonl"; notes="$root/.design-kit/notes.jsonl"
+# The root's board only: `dk decision --consume` clears rows there, so a <subdir>/.cc-artifacts/design-kit/ would repeat on every prompt.
+# Plugins before 2026-11-14 kept it in .design-kit/; read that until dk.sh has made the new folder.
+dk="$root/.cc-artifacts/design-kit"; [ -d "$dk" ] || dk="$root/.design-kit"
+dec="$dk/decisions.jsonl"; notes="$dk/notes.jsonl"
 [ -s "$dec" ] || [ -s "$notes" ] || exit 0
 
 # Shared block templates/blocks/phase-file.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-file.md
-# cc_phase_file <root> <session_id> prints <root>/.claude/cc-phase/<key>.json, that session's own phase sentinel; <key> is
+# cc_phase_file <root> <session_id> prints <root>/.cc-artifacts/cc-phase/<key>.json, that session's own phase sentinel; <key> is
 # <session_id> with every byte outside A-Za-z0-9_- dropped. An empty key: no output, status 1. Creates nothing.
+# cc_phase_file_legacy: the same key under <root>/.claude/cc-phase/, where plugins wrote it before 2026-11-14; read it, never write it.
 # Misses: two ids equal once those bytes are dropped share one file (a UUID loses none).
 cc_phase_file() {
+  local key
+  key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
+  [ -n "$key" ] || return 1
+  printf '%s/.cc-artifacts/cc-phase/%s.json\n' "$1" "$key"
+}
+cc_phase_file_legacy() {
   local key
   key=$(printf '%s' "${2:-}" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
   [ -n "$key" ] || return 1
@@ -71,7 +80,7 @@ cc_phase_file() {
 # Shared block templates/blocks/phase-guard.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/phase-guard.md
 # No template directive in these comments: _expand_includes copies this file raw, then conditionals and substitution run over all of it.
-# cc_phase_guard returns 1 only when this session's sentinel (cc_phase_file of the cc_state_root and $sid), unexpired,
+# cc_phase_guard returns 1 only when this session's sentinel (cc_phase_file of the cc_state_root and $sid, else cc_phase_file_legacy), unexpired,
 # names a phase past $1's phase in this plugin's own lane.tsv; else 0. It deletes every sentinel older than cc_phase_ttl_min.
 # cc_phase_now: the phase this session's unexpired sentinel names, or empty; another session's sentinel never counts.
 # Set $cwd, or $input (the hook payload; an empty $cwd is then assigned its .cwd), and $sid before the call: without
@@ -80,14 +89,17 @@ cc_phase_file() {
 cc_phase_ttl_min=120
 cc_phase_now=""
 cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = proceed.
-  local sentinel lane want have root
+  local sentinel lane want have root d
   command -v jq >/dev/null 2>&1 || return 0
   [ -n "${cwd:-}" ] || cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || return 0
   root=$(cc_state_root "$cwd") || return 0
-  [ -d "$root/.claude/cc-phase" ] || return 0
-  find "$root/.claude/cc-phase" -maxdepth 1 -name '*.json' -mmin +"$cc_phase_ttl_min" -exec rm -f {} + 2>/dev/null
+  [ -d "$root/.cc-artifacts/cc-phase" ] || [ -d "$root/.claude/cc-phase" ] || return 0
+  for d in "$root/.cc-artifacts/cc-phase" "$root/.claude/cc-phase"; do
+    if [ -d "$d" ]; then find "$d" -maxdepth 1 -name '*.json' -mmin +"$cc_phase_ttl_min" -exec rm -f {} + 2>/dev/null; fi
+  done
   sentinel=$(cc_phase_file "$root" "${sid:-}") || return 0
+  [ -r "$sentinel" ] || sentinel=$(cc_phase_file_legacy "$root" "${sid:-}") || return 0
   [ -r "$sentinel" ] || return 0
   [ -z "$(find "$sentinel" -maxdepth 0 -mmin +"$cc_phase_ttl_min" 2>/dev/null)" ] || return 0
 

@@ -26,7 +26,8 @@
 #                     Every appended line keeps the file's own final-newline state, so
 #                     cleanup restores it byte for byte.
 #
-#                     When design-system/components.json exists (system-extract.py
+#                     When .cc-artifacts/design-kit/design-system/components.json (else a
+#                     pre-2026-11-14 design-system/components.json) exists (system-extract.py
 #                     wrote it), the component-bearing scratch file is filled by
 #                     scaffold-fill.py: real imports, prop signatures, a variant
 #                     strip and a gap comment per extractor blind spot. Without it
@@ -38,7 +39,7 @@ set -euo pipefail
 
 MARK="__design-kit__ scratch — removed by codebase-cleanup.sh"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-mode=""; slug=""; force_stack=""; brief=""; components="design-system/components.json"
+mode=""; slug=""; force_stack=""; brief=""; components=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --detect) mode=detect ;;
@@ -46,12 +47,17 @@ while [ $# -gt 0 ]; do
     --brief) brief="${2:-}"; shift ;;
     --components) components="${2:-}"; shift ;;
     --stack) case "${2:-}" in vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue) force_stack="$2" ;; *) echo "codebase-scaffold.sh: --stack must be vite-react|vite-vue|next|nuxt|laravel|laravel-inertia-react|laravel-inertia-vue" >&2; exit 2 ;; esac; shift ;;
-    -h|--help) sed -n '2,34p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,35p' "$0"; exit 0 ;;
     *) echo "codebase-scaffold.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift
 done
 [ -n "$mode" ] || { echo "codebase-scaffold.sh: --detect or --create <slug> required" >&2; exit 2; }
+if [ -z "$components" ]; then
+  components=".cc-artifacts/design-kit/design-system/components.json"
+  # plugins before 2026-11-14 wrote it under design-system/: read that while the new one is absent
+  [ -f "$components" ] || [ ! -f design-system/components.json ] || components="design-system/components.json"
+fi
 
 has_dep() { [ -f package.json ] && grep -Eq "\"$1\"[[:space:]]*:" package.json; }
 first_dir() { for d in "$@"; do [ -d "$d" ] && { echo "$d"; return; }; done; echo "-"; }

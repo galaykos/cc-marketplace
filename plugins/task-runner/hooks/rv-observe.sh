@@ -21,6 +21,20 @@ cc_state_root() {
   printf '%s\n' "$1"
 }
 
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
+
 {
   command -v jq >/dev/null 2>&1 || exit 0
 
@@ -30,7 +44,8 @@ cc_state_root() {
   root=$(cc_state_root "$cwd") || exit 0
 
   # A closed-run.json is a run between its closing rename and candor's last read: a review then still counts.
-  [ -r "$root/.claude/task-runner/active-run.json" ] || [ -r "$root/.claude/task-runner/closed-run.json" ] || exit 0
+  tr=$(tr_state_dir "$root")
+  [ -r "$tr/active-run.json" ] || [ -r "$tr/closed-run.json" ] || exit 0
 
   # The whole tool_input, not `prompt` alone: a dispatch shape carrying the marker elsewhere still counts.
   blob=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null)
@@ -38,7 +53,7 @@ cc_state_root() {
   record() { # record <subdir> <prefix> <id> [<suffix>]
     case "$3" in '' | *[!a-zA-Z0-9._-]*) return 0 ;; esac
     case "${4:-}" in *[!a-zA-Z0-9._@-]*) return 0 ;; esac
-    d="$root/.claude/task-runner/$1"
+    d="$tr/$1"
     mkdir -p "$d" 2>/dev/null || return 0
     [ -w "$d" ] || return 0
     # Idempotent by id: several reviewers dispatch per card, and the gate counts one record per card.

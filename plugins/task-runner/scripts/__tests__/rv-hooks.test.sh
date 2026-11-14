@@ -20,20 +20,20 @@ ok()  { echo "PASS: $1"; }
 bad() { echo "FAIL: $1 — $2"; rc=1; }
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
 
-REPO="$WS/repo"; SUB="$REPO/app/Models"; mkdir -p "$SUB" "$REPO/.claude/task-runner"
+REPO="$WS/repo"; SUB="$REPO/app/Models"; mkdir -p "$SUB" "$REPO/.cc-artifacts/task-runner"
 git init -q "$REPO" 2>/dev/null
-SENT="$REPO/.claude/task-runner/active-run.json"
+SENT="$REPO/.cc-artifacts/task-runner/active-run.json"
 printf '{"slug":"t"}' > "$SENT"
 
 # 1) the observer, fired from a subdirectory, records at the ROOT
 jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{prompt:"RV-CARD: 05\nreview the diff"}}' \
   | bash "$OBS" >/dev/null 2>&1
-[ -f "$REPO/.claude/task-runner/rv/rv-seen-05.json" ] \
+[ -f "$REPO/.cc-artifacts/task-runner/rv/rv-seen-05.json" ] \
   && ok "rv-observe from a subdirectory records at the repo root" \
-  || bad "rv-observe from a subdirectory records at the repo root" "no rv-seen-05.json under $REPO/.claude"
-[ ! -e "$SUB/.claude" ] && [ ! -e "$REPO/app/.claude" ] \
-  && ok "rv-observe creates no .claude/ in the subdirectory" \
-  || bad "rv-observe creates no .claude/ in the subdirectory" "found one under $REPO/app"
+  || bad "rv-observe from a subdirectory records at the repo root" "no rv-seen-05.json under $REPO/.cc-artifacts"
+[ ! -e "$SUB/.claude" ] && [ ! -e "$REPO/app/.claude" ] && [ ! -e "$SUB/.cc-artifacts" ] && [ ! -e "$REPO/app/.cc-artifacts" ] \
+  && ok "rv-observe creates no .claude/ or .cc-artifacts/ in the subdirectory" \
+  || bad "rv-observe creates no .claude/ or .cc-artifacts/ in the subdirectory" "found one under $REPO/app"
 
 # 2) the consent ask, fired from a subdirectory, sees the root's registered run
 out=$(jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:"bash review-skip.sh --card 03 --reason \"ctx pressure\""}}' \
@@ -59,39 +59,39 @@ msg=$(consent_msg 'H=$(git rev-parse HEAD); bash review-skip.sh --card "bg-${H:0
 case "$msg" in *'for card bg-${H:0:12}. Reason: gate is red'*) ok "rv-consent names a shell-built id whole" ;;
   *) bad "rv-consent names a shell-built id whole" "msg=<$msg>" ;; esac
 # a REDIRECT into a record named with a shell expansion is a write too; its id class lagged the display's
-msg=$(consent_msg 'H=$(git rev-parse HEAD); echo "{}" > .claude/task-runner/rv/rv-skip-bg-${H:0:12}.json')
+msg=$(consent_msg 'H=$(git rev-parse HEAD); echo "{}" > .cc-artifacts/task-runner/rv/rv-skip-bg-${H:0:12}.json')
 case "$msg" in *'for card bg-${H:0:12}.'*) ok "rv-consent asks on a redirect into rv-skip-bg-\${H:0:12}.json" ;;
   *) bad "rv-consent asks on a redirect into rv-skip-bg-\${H:0:12}.json" "msg=<$msg>" ;; esac
-msg=$(consent_msg 'cat .claude/task-runner/rv/rv-skip-bg-${H:0:12}.json')
+msg=$(consent_msg 'cat .cc-artifacts/task-runner/rv/rv-skip-bg-${H:0:12}.json')
 [ -z "$msg" ] && ok "rv-consent stays silent on reading that record" || bad "rv-consent stays silent on reading that record" "msg=<$msg>"
 # any shell expansion can build the name: a command substitution, a quoted variable, a backtick
-for c in 'echo "{}" > .claude/task-runner/rv/rv-skip-bg-$(git rev-parse --short=12 HEAD).json' \
-         'echo "{}" > .claude/task-runner/rv/rv-skip-"$H".json' \
-         'echo "{}" > .claude/task-runner/rv/rv-skip-`git rev-parse HEAD`.json'; do
+for c in 'echo "{}" > .cc-artifacts/task-runner/rv/rv-skip-bg-$(git rev-parse --short=12 HEAD).json' \
+         'echo "{}" > .cc-artifacts/task-runner/rv/rv-skip-"$H".json' \
+         'echo "{}" > .cc-artifacts/task-runner/rv/rv-skip-`git rev-parse HEAD`.json'; do
   [ -n "$(consent_msg "$c")" ] && ok "rv-consent asks on a redirect into a record named by: ${c#*rv-skip-}" \
     || bad "rv-consent asks on a redirect into a record named by: ${c#*rv-skip-}" "silent"
 done
 # ...and one whose expansion holds a pipe, which read as the end of the redirect (2026-10-15)
-for c in 'echo "{}" > .claude/task-runner/rv/rv-skip-bg-$(git rev-parse HEAD | cut -c1-12).json' \
-         'echo "{}" > ".claude/task-runner/rv/rv-skip-`git rev-parse HEAD | cut -c1-12`.json"'; do
+for c in 'echo "{}" > .cc-artifacts/task-runner/rv/rv-skip-bg-$(git rev-parse HEAD | cut -c1-12).json' \
+         'echo "{}" > ".cc-artifacts/task-runner/rv/rv-skip-`git rev-parse HEAD | cut -c1-12`.json"'; do
   [ -n "$(consent_msg "$c")" ] && ok "rv-consent asks on a redirect into a record named by a piped expansion: ${c#*rv-skip-}" \
     || bad "rv-consent asks on a redirect into a record named by a piped expansion: ${c#*rv-skip-}" "silent"
 done
-c='echo "$(wc -l < /tmp/a)" > /tmp/n; ls .claude/task-runner/rv/rv-skip-*.json'
+c='echo "$(wc -l < /tmp/a)" > /tmp/n; ls .cc-artifacts/task-runner/rv/rv-skip-*.json'
 [ -z "$(consent_msg "$c")" ] && ok "rv-consent stays silent on a read after a redirect fed by an expansion" \
   || bad "rv-consent stays silent on a read after a redirect fed by an expansion" "asked"
-msg=$(consent_msg 'cat .claude/task-runner/rv/rv-skip-07.json > /tmp/x')
+msg=$(consent_msg 'cat .cc-artifacts/task-runner/rv/rv-skip-07.json > /tmp/x')
 [ -z "$msg" ] && ok "rv-consent stays silent on copying a record out" || bad "rv-consent stays silent on copying a record out" "msg=<$msg>"
 # an earlier redirect is not the record's: the path before the name stops at a separator too
-for c in 'mkdir -p out 2>/dev/null; ls .claude/task-runner/rv/rv-skip-*.json' \
-         'git status > /tmp/st && jq -r .reason .claude/task-runner/rv/rv-skip-*.json'; do
+for c in 'mkdir -p out 2>/dev/null; ls .cc-artifacts/task-runner/rv/rv-skip-*.json' \
+         'git status > /tmp/st && jq -r .reason .cc-artifacts/task-runner/rv/rv-skip-*.json'; do
   [ -z "$(consent_msg "$c")" ] && ok "rv-consent stays silent on a read after another redirect: $c" \
     || bad "rv-consent stays silent on a read after another redirect: $c" "asked"
 done
 
 # 2c) the reviewer's type per card, so candor can ask for ui-ux-reviewer on a UI card by name,
 #     and the run-close range review's RV-RANGE marker, which arrives through a Skill call.
-RVD="$REPO/.claude/task-runner/rv"
+RVD="$REPO/.cc-artifacts/task-runner/rv"
 jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{subagent_type:"ui-ux:ui-ux-reviewer", prompt:"RV-CARD: 07\nreview"}}' \
   | bash "$OBS" >/dev/null 2>&1
 [ -f "$RVD/rv-agent-07@ui-ux.ui-ux-reviewer.json" ] && [ -f "$RVD/rv-seen-07.json" ] \
@@ -117,7 +117,7 @@ grep -q '"matcher": "Agent|Task|Skill"' "$here/../../hooks/hooks.json" \
 
 # 2d) a closing run: the sentinel renamed to closed-run.json until candor's last read. A review
 #     its block asks for must still be recorded, and a skip must still ask.
-CLOSED="$REPO/.claude/task-runner/closed-run.json"; mv "$SENT" "$CLOSED"
+CLOSED="$REPO/.cc-artifacts/task-runner/closed-run.json"; mv "$SENT" "$CLOSED"
 jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Skill", tool_input:{skill:"code-review:review", args:"RV-RANGE: 89abcdef0123"}}' \
   | bash "$OBS" >/dev/null 2>&1
 [ -f "$RVD/range-89abcdef0123.json" ] && ok "rv-observe records inside a closing run" || bad "rv-observe records inside a closing run" "no range record"
@@ -131,7 +131,7 @@ mv "$CLOSED" "$SENT"
 rm -f "$SENT"
 jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Agent", tool_input:{prompt:"RV-CARD: 06"}}' \
   | bash "$OBS" >/dev/null 2>&1
-[ ! -e "$REPO/.claude/task-runner/rv/rv-seen-06.json" ] \
+[ ! -e "$REPO/.cc-artifacts/task-runner/rv/rv-seen-06.json" ] \
   && ok "rv-observe records nothing outside a registered run" \
   || bad "rv-observe records nothing outside a registered run" "rv-seen-06.json written"
 out=$(jq -cn --arg cwd "$SUB" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:"bash review-skip.sh --card 03 --reason \"x\""}}' \
@@ -153,6 +153,20 @@ for marker in 'Goal: true (boost=off)' 'Verify: range' 'Goal: false'; do
   fi
 done
 printf '{"slug":"t"}' > "$SENT"; rm -f "$REPO/00-INDEX.md"
+
+# 6) a run registered before 2026-11-14 sits in .claude/task-runner/: the consent ask still sees it, the observer records in the
+#    one-time copy under .cc-artifacts/task-runner/, and the old dir is left as it was.
+OLDR="$WS/old"; mkdir -p "$OLDR/.claude/task-runner/rv"; git init -q "$OLDR" 2>/dev/null
+printf '{"slug":"t"}' > "$OLDR/.claude/task-runner/active-run.json"; printf '{}' > "$OLDR/.claude/task-runner/rv/rv-seen-01.json"
+before=$(cd "$OLDR/.claude" && find . | sort)
+out=$(jq -cn --arg cwd "$OLDR" '{cwd:$cwd, tool_name:"Bash", tool_input:{command:"bash review-skip.sh --card 03 --reason \"x\""}}' | bash "$CONSENT" 2>/dev/null)
+printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "ask"' >/dev/null 2>&1 \
+  && ok "rv-consent asks inside a run registered under .claude/task-runner/" || bad "rv-consent asks inside a legacy run" "out=<$out>"
+jq -cn --arg cwd "$OLDR" '{cwd:$cwd, tool_name:"Agent", tool_input:{prompt:"RV-CARD: 02"}}' | bash "$OBS" >/dev/null 2>&1
+[ -f "$OLDR/.cc-artifacts/task-runner/rv/rv-seen-02.json" ] && [ -f "$OLDR/.cc-artifacts/task-runner/rv/rv-seen-01.json" ] \
+  && [ "$(cd "$OLDR/.claude" && find . | sort)" = "$before" ] \
+  && ok "rv-observe records a legacy run's review beside its copied records, the old dir as it was" \
+  || bad "rv-observe in a legacy run" "$(cd "$OLDR" && find .claude .cc-artifacts 2>&1 | tr '\n' ' ')"
 
 # 4) fail-open on a cwd that no longer exists
 for h in "$OBS" "$CONSENT"; do

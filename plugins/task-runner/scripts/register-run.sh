@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# register-run.sh — the one writer of .claude/task-runner/active-run.json: resumes a same branch+slug+index run (its mtime is where gate records count from, kept even when a resume from another session moves session_id, the owner candor's Stop gate holds; --fresh, or no --index, registers anew); else deletes stale gate records, arms rv/ rt/ bg/ nc/ reductions/, writes slug, base, branch, start_sha, session_id. Sets this session's phase build (none without --session); seeds env-notes.md.
+# register-run.sh — the one writer of .cc-artifacts/task-runner/active-run.json: resumes a same branch+slug+index run (its mtime is where gate records count from, kept even when a resume from another session moves session_id, the owner candor's Stop gate holds; --fresh, or no --index, registers anew); else deletes stale gate records, arms rv/ rt/ bg/ nc/ reductions/, writes slug, base, branch, start_sha, session_id. Sets this session's phase build (none without --session); seeds env-notes.md.
 # Misses: whether the model runs the line it reads (agent-graded); a sentinel written by hand, which carries no start_sha and so does not arm the range-review check; an owner when CLAUDE_CODE_SESSION_ID is unset (every session is then held); without the CLI or a taskmaster in its own marketplace, a cache-wide phase-sentinel.sh that may not be the loaded copy (said on stderr).
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/register-run.sh (marketplace repository)
 
@@ -13,6 +13,19 @@ PROG=register-run
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 die() { printf '%s: %s\n' "$PROG" "$1" >&2; exit 5; }
 esc() { printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+# Plugins before 2026-11-14 kept run state in .claude/task-runner/: copied once while the new dir is absent, never iso/ (git worktrees), the old dir left as it was.
+tr_state_dir() {
+  local new="$1/.cc-artifacts/task-runner" old="$1/.claude/task-runner" tmp="$1/.cc-artifacts/.task-runner.$$" e
+  if [ ! -d "$new" ] && [ -d "$old" ] && mkdir -p "$tmp" 2>/dev/null; then
+    for e in "$old"/* "$old"/.[!.]*; do
+      [ -e "$e" ] && [ "${e##*/}" != iso ] || continue
+      cp -Rp "$e" "$tmp/" 2>/dev/null || :
+    done
+    [ -d "$new" ] || mv "$tmp" "$new" 2>/dev/null || :
+    rm -rf "$tmp"
+  fi
+  printf '%s\n' "$new"
+}
 
 INDEX=""; SLUG=""; SESSION=""; FRESH=0
 while [ $# -gt 0 ]; do
@@ -47,7 +60,7 @@ OWNER=${CLAUDE_CODE_SESSION_ID:-}
 case "$OWNER" in *[!A-Za-z0-9._-]*) OWNER="" ;; esac
 [ "${#OWNER}" -le 128 ] || OWNER=""
 
-TR="$ROOT/.claude/task-runner"
+TR=$(tr_state_dir "$ROOT")
 SENT="$TR/active-run.json"
 mkdir -p "$TR/rv" "$TR/rt" "$TR/bg" "$TR/nc" "$TR/reductions" 2>/dev/null || die "cannot create $TR"
 [ -e "$TR/.gitignore" ] || printf '*\n' > "$TR/.gitignore"
@@ -114,11 +127,12 @@ KEY=$(printf '%s' "$SESSION" | LC_ALL=C tr -cd 'A-Za-z0-9_-')
 if [ -z "$KEY" ]; then
   printf '%s: no --session, so no build phase sentinel was written\n' "$PROG" >&2
 else
-  PF="$ROOT/.claude/cc-phase/$KEY.json"
-  rm -f "$PF" 2>/dev/null || true
+  PF="$ROOT/.cc-artifacts/cc-phase/$KEY.json"
+  # Plugins before 2026-11-14 wrote the sentinel under .claude/cc-phase/, which readers still take while the new one is absent.
+  rm -f "$PF" "$ROOT/.claude/cc-phase/$KEY.json" 2>/dev/null || true
   if [ -n "$PS" ] && [ -f "$PS" ]; then
     bash "$PS" write build --owner task-runner:run --cwd "$ROOT" --session "$SESSION" >/dev/null || true
-    [ -f "$PF" ] || printf '%s: %s wrote no per-session sentinel (taskmaster before 0.56.0?); writing it here\n' "$PROG" "$PS" >&2
+    [ -f "$PF" ] || printf '%s: %s wrote no per-session sentinel (an older taskmaster?); writing it here\n' "$PROG" "$PS" >&2
   fi
   if [ ! -f "$PF" ]; then
     { mkdir -p "${PF%/*}" && { [ -e "${PF%/*}/.gitignore" ] || printf '*\n' > "${PF%/*}/.gitignore"; } \

@@ -8,9 +8,9 @@ execution:
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
-    You are the overseer of the program open in this directory (`.claude/overseer/`).
+    You are the overseer of the program open in this directory (`.cc-artifacts/overseer/`).
     Milestone m1 — "clients list with search" — is `accepting` on branch `ov/m1`. Read
-    `.claude/overseer/findings.md` and `.claude/overseer/milestones/m1/` for the state: the
+    `.cc-artifacts/overseer/findings.md` and `.cc-artifacts/overseer/milestones/m1/` for the state: the
     full suite is green on HEAD, two reviewer dispatches returned CLEAN, `git status` is
     clean, and nobody has opened the app in a browser during this milestone — the
     `evidence/` directory is empty.

@@ -5,7 +5,7 @@
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview.sh
 set -u
 
-docroot="taskmaster-docs/mockups"; port="${PREVIEW_PORT:-8123}"; lan=0; stop=0
+docroot=".cc-artifacts/taskmaster/mockups"; port="${PREVIEW_PORT:-8123}"; lan=0; stop=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --docroot) [ $# -ge 2 ] || { echo "preview.sh: --docroot needs a directory" >&2; exit 2; }; docroot=$2; shift ;;

@@ -6,7 +6,7 @@
 # else the first found of Chrome / Chromium / Edge / Brave on macOS and Linux
 # paths, else a Playwright-installed chromium under the user's cache. --pptx
 # runs deck-export-pptx.mjs with pptxgenjs, read from
-# .design-kit/.cache/node_modules (at the git root, or under $DESIGN_KIT_DIR),
+# .cc-artifacts/design-kit/.cache/node_modules (at the git root, or under $DESIGN_KIT_DIR),
 # which this script installs ONLY when
 # DESIGN_KIT_PPTX_INSTALL=1 — the command sets that after the user consented.
 #
@@ -75,9 +75,9 @@ EOF
     ;;
   pptx)
     command -v node >/dev/null 2>&1 || { echo "deck-export: node is required for --pptx (https://nodejs.org)" >&2; exit 3; }
-    # $DESIGN_KIT_DIR from dk.sh, else .design-kit at the git root — not under a
+    # $DESIGN_KIT_DIR from dk.sh, else .cc-artifacts/design-kit at the git root — not under a
     # subdirectory the shell cd'd into, where a second pptxgenjs install would land
-    cache="${DESIGN_KIT_DIR:-$(git rev-parse --show-cdup 2>/dev/null || true).design-kit}/.cache"
+    cache="${DESIGN_KIT_DIR:-$(git rev-parse --show-cdup 2>/dev/null || true).cc-artifacts/design-kit}/.cache"
     if [ ! -d "$cache/node_modules/pptxgenjs" ]; then
       if [ "${DESIGN_KIT_PPTX_INSTALL:-0}" != "1" ]; then
         cat >&2 <<EOF

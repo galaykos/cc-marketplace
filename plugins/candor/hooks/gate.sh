@@ -24,7 +24,7 @@ cc_state_root() {
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -34,7 +34,7 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }
@@ -358,6 +358,10 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 # -d, not -n: the payload cwd is a host string, and the state mkdir below must never recreate a project the user deleted.
 [ -n "$cwd" ] && [ -d "$cwd" ] || cwd="$PWD"
 root=$(cc_state_root "$cwd") || exit 0
+# task-runner kept run state in .claude/task-runner/ before 2026-11-14: read it there until .cc-artifacts/task-runner/, its one-time copy, exists.
+trd="$root/.cc-artifacts/task-runner"
+[ -d "$trd" ] || [ ! -d "$root/.claude/task-runner" ] || trd="$root/.claude/task-runner"
+trel=${trd#"$root"/}
 # Per-agent marker suffix: hashed, so the id never lands raw in a path.
 agent_sfx=""
 [ -n "$agent_id" ] && agent_sfx="-$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
@@ -451,7 +455,7 @@ inflight_count() {
 # bg/running.pid (PID, HEAD, optional deadline) is one worker while its sha is <head>, its deadline unpassed (none: younger than BG_PID_TTL_MIN) and live: with /proc, the PID's or else any <root> process's command line names behavioral-gate.sh (a sandbox records its own namespace's PID); [e] stops the scan's grep matching itself.
 # Misses: without /proc liveness is kill -0, so a recycled PID at the same HEAD holds until the deadline or the file ages out.
 bg_running() { # <head> -> 1 or 0
-  local f="$root/.claude/task-runner/bg/running.pid" pid="" sha="" dl="" rp p
+  local f="$trd/bg/running.pid" pid="" sha="" dl="" rp p
   if [ -r "$f" ]; then
     { read -r pid || :; read -r sha || :; read -r dl || :; } < "$f"
     case "$dl" in
@@ -477,14 +481,14 @@ bg_running() { # <head> -> 1 or 0
 }
 
 run_clause() {
-  local sentinel="$root/.claude/task-runner/active-run.json"
+  local sentinel="$trd/active-run.json"
   [ "$evt" != "SubagentStop" ] || return 0
   case "$(cc_option TASK_RUNNER_STOP_GATE block)" in off) return 0 ;; esac
   # A run closes by renaming its sentinel (run.md step 4), so the stop after the report still reads its records; a clean read retires it.
-  [ -r "$sentinel" ] || sentinel="$root/.claude/task-runner/closed-run.json"
+  [ -r "$sentinel" ] || sentinel="$trd/closed-run.json"
   [ -r "$sentinel" ] || return 0
   local owner
-  owner=$(jq -r '.session_id? // empty' "$sentinel" 2>/dev/null) || { say "[candor] .claude/task-runner/active-run.json is malformed, so the task-runner run is not checked."; return 0; }
+  owner=$(jq -r '.session_id? // empty' "$sentinel" 2>/dev/null) || { say "[candor] $trel/active-run.json is malformed, so the task-runner run is not checked."; return 0; }
   # A run names the session that registered it (task-runner 0.56.0): another session is not held, told to delete it, or let retire it.
   [ -z "$owner" ] || [ -z "$sid" ] || [ "$owner" = "$sid" ] || return 0
   command -v git >/dev/null 2>&1 || { say "[candor] git not found, so the task-runner run is not checked."; return 0; }
@@ -493,7 +497,7 @@ run_clause() {
   # A closed run whose gate pass names an earlier HEAD closed there, and its closing stop never reached this clause.
   local closed_at
   case "$sentinel" in */closed-run.json)
-    closed_at=$(jq -r '.head // empty' "$root/.claude/task-runner/gate-pass.json" 2>/dev/null)
+    closed_at=$(jq -r '.head // empty' "$trd/gate-pass.json" 2>/dev/null)
     if [ -n "$closed_at" ] && [ "$closed_at" != "$head" ]; then rm -f "$sentinel" 2>/dev/null; return 0; fi ;;
   esac
 
@@ -503,13 +507,13 @@ run_clause() {
   cur_branch=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null)
   case $? in 0) cur_branch=${cur_branch#refs/heads/} ;; 1) cur_branch=HEAD ;; *) cur_branch="" ;; esac
   if [ -n "$run_branch" ] && [ -n "$cur_branch" ] && [ "$run_branch" != "$cur_branch" ]; then
-    say "$(printf '[candor] The task-runner run was registered on branch %s and you are on %s, so it is not checked here.\n  If that run is finished or abandoned, delete .claude/task-runner/%s.' "$run_branch" "$cur_branch" "${sentinel##*/}")"
+    say "$(printf '[candor] The task-runner run was registered on branch %s and you are on %s, so it is not checked here.\n  If that run is finished or abandoned, delete '"$trel"'/%s.' "$run_branch" "$cur_branch" "${sentinel##*/}")"
     return 0
   fi
   RUN_HEAD="$head"; RUN_SENTINEL="$sentinel"
   slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
 
-  local gatepass="$root/.claude/task-runner/gate-pass.json" v ct cdone cpark
+  local gatepass="$trd/gate-pass.json" v ct cdone cpark
   if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" = "$head" ]; then
     v=$(jq -r '
       if ((.cards_total|type)=="number" and (.cards_done|type)=="number" and (.cards_parked|type)=="number")
@@ -525,7 +529,7 @@ run_clause() {
       ct=$(jq -r '.cards_total' "$gatepass" 2>/dev/null)
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       cpark=$(jq -r '.cards_parked' "$gatepass" 2>/dev/null)
-      run_item "card counts that add up" "$(printf 'Finish or park every card, then record the three counts in .claude/task-runner/gate-pass.json as numbers that add up (now %s: done=%s parked=%s total=%s).' "$v" "$cdone" "$cpark" "$ct")"
+      run_item "card counts that add up" "$(printf 'Finish or park every card, then record the three counts in '"$trel"'/gate-pass.json as numbers that add up (now %s: done=%s parked=%s total=%s).' "$v" "$cdone" "$cpark" "$ct")"
     fi
     # `Verify: range` in the index (an overseer run) verifies per milestone: no per-card control or review is owed; the range review and a teeth lens below are.
     local vidx range_mode=0
@@ -533,22 +537,22 @@ run_clause() {
     case "$vidx" in '' | /*) ;; *) vidx="$root/$vidx" ;; esac
     [ -n "$vidx" ] && grep -qiE '^[[:space:]]*Verify:[[:space:]]*range' "$vidx" 2>/dev/null && range_mode=1
     # Only records newer than this registration count: card ids repeat across runs, and these dirs are never cleared.
-    local ncdir="$root/.claude/task-runner/nc" nc_count
+    local ncdir="$trd/nc" nc_count
     if [ "$v" = "complete" ] && [ "$range_mode" = 0 ] && [ -d "$ncdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) -newer "$sentinel" 2>/dev/null |
         sed -E 's#.*/nc-(pass|skip)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
       if [ "$nc_count" -lt "$cdone" ] 2>/dev/null; then
-        run_item "checks that tests fail without the change" "$(printf 'Run the missing checks that a card'"'"'s test fails without the change (%s cards done, only %s have one in .claude/task-runner/nc/) with task-runner'"'"'s scripts/negative-control.sh --record-dir .claude/task-runner/nc --card <id>, or record a skip with its reason (--skip "<why>").' "$cdone" "$nc_count")"
+        run_item "checks that tests fail without the change" "$(printf 'Run the missing checks that a card'"'"'s test fails without the change (%s cards done, only %s have one in '"$trel"'/nc/) with task-runner'"'"'s scripts/negative-control.sh --record-dir '"$trel"'/nc --card <id>, or record a skip with its reason (--skip "<why>").' "$cdone" "$nc_count")"
       fi
     fi
-    local rvdir="$root/.claude/task-runner/rv" rv_count
+    local rvdir="$trd/rv" rv_count
     if [ "$v" = "complete" ] && [ "$range_mode" = 0 ] && [ -d "$rvdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
       rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
         sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | grep -v '^range-' | sort -u | wc -l | tr -d ' ')
       if [ "$rv_count" -lt "$cdone" ] 2>/dev/null; then
-        run_item "card reviews" "$(printf 'Dispatch the missing reviews (%s cards done, only %s have a review recorded in .claude/task-runner/rv/) as task-runner'"'"'s skills/task-execution/references/reviewer-routing.md (Coverage marker) describes, or record why not with scripts/review-skip.sh --card <id> --reason "<why>" (or --exempt no-reviewer-installed).' "$cdone" "$rv_count")"
+        run_item "card reviews" "$(printf 'Dispatch the missing reviews (%s cards done, only %s have a review recorded in '"$trel"'/rv/) as task-runner'"'"'s skills/task-execution/references/reviewer-routing.md (Coverage marker) describes, or record why not with scripts/review-skip.sh --card <id> --reason "<why>" (or --exempt no-reviewer-installed).' "$cdone" "$rv_count")"
       fi
     fi
     # A card whose review diff (task-runner's review-diff.sh) names a UI file owes ui-ux-reviewer: the count above let any reviewer stand in.
@@ -583,14 +587,14 @@ run_clause() {
       fi
     fi
     # Of the red verdicts only no-behavioral-coverage may pass, beside this HEAD's coverage reduction, which the report must then name.
-    local bgdir="$root/.claude/task-runner/bg" bgv covred
+    local bgdir="$trd/bg" bgv covred
     if [ "$v" = "complete" ] && [ -d "$bgdir" ]; then
       if [ ! -r "$bgdir/bg-$head.json" ]; then
-        run_item "a behavioral-gate verdict" "$(printf 'Run task-runner'"'"'s scripts/behavioral-gate.sh against HEAD %s: gate-pass.json names it, but behavioral-gate.sh left no verdict record for it (.claude/task-runner/bg/bg-<head>.json).' "${head:0:12}")"
+        run_item "a behavioral-gate verdict" "$(printf 'Run task-runner'"'"'s scripts/behavioral-gate.sh against HEAD %s: gate-pass.json names it, but behavioral-gate.sh left no verdict record for it ('"$trel"'/bg/bg-<head>.json).' "${head:0:12}")"
       else
         bgv=$(jq -r '.verdict // empty' "$bgdir/bg-$head.json" 2>/dev/null)
         case "$bgv" in covered | no-executable-surface | '') bgv="" ;; esac
-        covred="$root/.claude/task-runner/reductions/coverage-bg-${head:0:12}.json"
+        covred="$trd/reductions/coverage-bg-${head:0:12}.json"
         if [ "$bgv" = "no-behavioral-coverage" ] && [ -f "$covred" ] && [ "$covred" -nt "$sentinel" ]; then
           bgv=""
         fi
@@ -602,7 +606,7 @@ run_clause() {
       fi
     fi
     # A boosted run owes the panel unless its diff since the run's base is docs and data only; a missing or unknown base counts as code.
-    local rtdir="$root/.claude/task-runner/rt" idx idxp boosted run_base code_touched lenses critic degraded
+    local rtdir="$trd/rt" idx idxp boosted run_base code_touched lenses critic degraded
     if [ "$v" = "complete" ] && [ -d "$rtdir" ]; then
       idx=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
       boosted=0
@@ -627,7 +631,7 @@ run_clause() {
       if [ "$boosted" = 1 ]; then
         lenses=$(find "$rtdir" -maxdepth 1 -name 'rt-lens-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         critic=$(find "$rtdir" -maxdepth 1 -name 'rt-critic-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
-        degraded=$(find "$root/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
+        degraded=$(find "$trd/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         if [ "$degraded" -eq 0 ] 2>/dev/null && { [ "$lenses" -lt 3 ] || [ "$critic" -lt 1 ]; } 2>/dev/null; then
           run_item "the red-team panel" "$(printf 'Dispatch the missing red-team agents as task-runner'"'"'s code-redteam skill describes, or record a reduced inline pass with scripts/reduction-record.sh --kind redteam --id <ref> --reason "<why>": the run is marked for max effort (Ultra or Goal in its index) and the red-team panel is short (%s of 3 refuters, %s of 1 completeness critic).' "$lenses" "$critic")"
         fi
@@ -639,9 +643,9 @@ run_clause() {
       vbase=$(jq -r '.base // empty' "$sentinel" 2>/dev/null)
       if [ -z "$vbase" ] || ! git -C "$root" rev-parse --verify "$vbase" >/dev/null 2>&1 ||
          git -C "$root" diff --name-only "$vbase..HEAD" 2>/dev/null | grep -qvE '\.(md|txt|json|ya?ml|lock|csv|svg|png|jpe?g|gif)$|^$'; then
-        teeth=$(find "$root/.claude/task-runner/rt" -maxdepth 1 -name 'rt-lens-teeth*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
+        teeth=$(find "$trd/rt" -maxdepth 1 -name 'rt-lens-teeth*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
         [ "${teeth:-0}" -gt 0 ] 2>/dev/null ||
-          [ -n "$(find "$root/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null)" ] ||
+          [ -n "$(find "$trd/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null)" ] ||
           run_item "a test-teeth lens over the range" "$(printf 'Dispatch one red-team refuter with the does-the-test-have-teeth lens over the run'"'"'s range (task-runner'"'"'s code-redteam skill), its prompt opening with "RT-LENS: teeth-%s": this run verifies per milestone (Verify: range in its index), so that lens replaces the per-card negative controls. Or record why not with scripts/reduction-record.sh --kind redteam --id <ref> --reason "<why>".' "${head:0:12}")"
       fi
     fi
@@ -649,7 +653,7 @@ run_clause() {
     if [ "$v" = "complete" ]; then
       ids=$(find "$rvdir" -maxdepth 1 -name 'rv-skip-*.json' -newer "$sentinel" 2>/dev/null |
               sed -E 's|.*/rv-skip-||; s|\.json$||'
-            find "$root/.claude/task-runner/reductions" -maxdepth 1 -name '*.json' -newer "$sentinel" 2>/dev/null |
+            find "$trd/reductions" -maxdepth 1 -name '*.json' -newer "$sentinel" 2>/dev/null |
               sed -E 's|.*/[a-z]+-||; s|\.json$||')
       ids=$(printf '%s\n' "$ids" | sed '/^$/d' | sort -u)
       if [ -n "$ids" ]; then
@@ -661,7 +665,7 @@ run_clause() {
             printf '%s' "$said" | grep -qF "$id" || missing="$missing $id"
           done
           if [ -n "$said" ] && [ -n "$missing" ]; then
-            run_item "naming skipped steps in the report" "$(printf 'Name each skipped or reduced step the closing report never names, and why it was cut:%s (details in .claude/task-runner/rv/ and reductions/).' "$missing")"
+            run_item "naming skipped steps in the report" "$(printf 'Name each skipped or reduced step the closing report never names, and why it was cut:%s (details in '"$trel"'/rv/ and reductions/).' "$missing")"
           fi
         fi
       fi
@@ -693,10 +697,10 @@ run_clause() {
     repo root, in the background, run task-runner'"'"'s scripts/behavioral-gate.sh --isolate --changed "<the run'"'"'s touched
     files>" with a Bash timeout of 7200000 (the default can stop it at 30 minutes). --isolate makes and removes its
     own worktree: do not build a checkout or write any .env for it.
-    Then write .claude/task-runner/gate-pass.json as {"head":"%s"} plus the card counts, and rename
+    Then write '"$trel"'/gate-pass.json as {"head":"%s"} plus the card counts, and rename
     active-run.json to closed-run.json (run.md step 4). The repo'"'"'s own test suite passing does not replace this.
   No rush: run one shell step per call and read its result; a denied or failed call ran nothing.
-  Not running this task list? The run file is left over: delete .claude/task-runner/%s.' "$slug" "${head:0:12}" "$head" "${sentinel##*/}")
+  Not running this task list? The run file is left over: delete '"$trel"'/%s.' "$slug" "${head:0:12}" "$head" "${sentinel##*/}")
   run_note="candor sent the turn back: the task-runner run $slug is not finished."
   run_owed="candor let the turn end, but the task-runner run $slug still owes a recorded behavioral-gate pass for this commit."
   verdict="run"
@@ -736,12 +740,14 @@ if [ "$verdict" = "run" ]; then
   This turn answered a pause request or a question, so the stop is allowed; the run's next work turn is checked again."
   elif [ "$run_mode" = "block" ]; then
     # One block per HEAD and context: the nudge counts only while newer than the sentinel, so an earlier run's marker cannot eat this one's block.
-    nudge="$root/.claude/task-runner/gate-nudge"
+    # It sits in candor's own state dir: a run registered under .claude/task-runner/ must not be written to, nor a new run dir made beside it.
+    nudge="$state_dir/gate-nudge"
     [ -z "$ctx" ] || nudge="$nudge-$ctxk"
     if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
       pass_note="$run_owed"               # bounded at this HEAD — printed, not blocked
-    elif printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
-      find "$root/.claude/task-runner" -maxdepth 1 -name 'gate-nudge-*' ! -name "${nudge##*/}" ! -newer "$RUN_SENTINEL" -delete 2>/dev/null
+    elif mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } \
+         && printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
+      find "$state_dir" -maxdepth 1 -name 'gate-nudge-*' ! -name "${nudge##*/}" ! -newer "$RUN_SENTINEL" -delete 2>/dev/null
       block_turn "$run_msg" "$run_note"
     elif [ "$sha_active" != "true" ]; then
       # No writable marker, so no per-HEAD bound: honour the shared flag here only, or an unwritable state dir blocks forever.

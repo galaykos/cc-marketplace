@@ -165,8 +165,8 @@ out=$(bashfire "echo x > missing.ts"); [ -z "$out" ] && ok "a target that does n
 cmd9=""; for i in 1 2 3 4 5 6 7 8; do cp "$T/clean.ts" "$R/app/sub/c$i.ts"; cmd9="${cmd9}echo x > c$i.ts; "; done
 out=$(bashfire "${cmd9}echo x > zw.ts"); [ -z "$out" ] && ok "at most 8 targets are handled per call" || bad "at most 8 targets are handled per call" "$out"
 out=$(bashfire "echo x > zw.ts" "$T/gone"); [ -z "$out" ] && ok "a cwd that no longer exists fails open" || bad "a cwd that no longer exists fails open" "$out"
-[ -z "$(find "$R" -name .claude 2>/dev/null)" ] && ok "no .claude/ state under the repo root or the subdirectory" \
-  || bad "no .claude/ state under the repo root or the subdirectory" "$(find "$R" -name .claude)"
+[ -z "$(find "$R" \( -name .claude -o -name .cc-artifacts \) 2>/dev/null)" ] && ok "no state dir under the repo root or the subdirectory" \
+  || bad "no state dir under the repo root or the subdirectory" "$(find "$R" \( -name .claude -o -name .cc-artifacts \))"
 # After an in-command cd a relative target is skipped, a miss and never a wrong file; a cd inside a heredoc body moves nothing.
 mkdir -p "$R/app/sub/docs"; cp "$T/bidi.ts" "$R/app/sub/README.md"; cp "$T/clean.ts" "$R/app/sub/docs/README.md"
 out=$(bashfire "$(printf "cd docs && cat > README.md <<'EOF'\nclean\nEOF")")
@@ -214,9 +214,9 @@ jq -e '.hooks.PostToolUseFailure[] | select(.matcher == "Bash") | .hooks[] | sel
 out=$(pyrun "open('app/other.ts', 'w').write('const o' + chr(0x200b) + ' = 1;\n')" other-session)
 [ -z "$out" ] && ok "effects: a marker another session dated reads nothing" || bad "effects: a marker another session dated reads nothing" "$out"
 out=$(CLAUDE_PLUGIN_DATA= bashfire "echo x > clean.ts")
-[ -f "$R/.claude/secret-scanning/bash-effects-unicode.mark" ] && ! git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep -q '\.claude' \
+[ -f "$R/.cc-artifacts/secret-scanning/bash-effects-unicode.mark" ] && ! git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep -q '\.cc-artifacts' \
   && ok "effects: without a plugin data dir the marker sits under the repo, ignored by git" \
-  || bad "effects: without a plugin data dir the marker sits under the repo, ignored by git" "$(git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep '\.claude')"
+  || bad "effects: without a plugin data dir the marker sits under the repo, ignored by git" "$(git -C "$R" status --porcelain --untracked-files=all 2>/dev/null | grep '\.cc-artifacts')"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

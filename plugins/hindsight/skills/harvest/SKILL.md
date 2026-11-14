@@ -54,9 +54,10 @@ record the failure and continue.
   when the cluster has evidence from ≥2 distinct sessions. A single-session
   pattern is listed under the report's digest as a candidate, not proposed.
 - Existing-coverage check, before any proposal reaches the report: grep
-  the project's CLAUDE.md, the installed skills' descriptions, and `brain/`
-  when it exists for the rule the candidate states — and, for a fixed pattern,
-  the lint config and CI workflows for a check that already enforces it.
+  the project's CLAUDE.md, the installed skills' descriptions, and the brain map
+  (`.cc-artifacts/brain/`; older projects `brain/`) when it exists for the rule the
+  candidate states — and, for a fixed pattern, the lint config and CI workflows for a
+  check that already enforces it.
   Already covered → report it as a routing or
   compliance gap ("the rule exists at X and was not followed"), never as
   a new rule — the approving user otherwise sees evidence FOR the rule
@@ -110,33 +111,39 @@ category, each proposal a separate option and every question carrying a
   machine-local and personal, so committing it to a shared CLAUDE.md would impose
   one person's preference on the team. A finding that describes the CODEBASE —
   where something lives, a trap in one specific module, a choice that was
-  settled — is neither a rule nor a preference: when `brain/INDEX.md` exists
-  (brain plugin), offer it as a **brain note**, one bullet appended under a
-  `## Notes` heading in the `brain/<area>.md` whose `## Files` lists the module
-  (`brain/decisions.md` for a settled choice; the area's `INDEX.md` line names it
-  when unsure). It is committed and shared like the map; the indexer carries
-  `## Notes` over verbatim, so tell the user no `/brain index` is needed after a
-  note. When the correction is mechanical — the same call, import or path every
-  time — prose asks the model to remember what a machine can refuse: propose the
-  **check** instead, in the tool the repo already runs (its linter, its pre-commit
+  settled — is neither a rule nor a preference: when the brain plugin's map exists
+  (`.cc-artifacts/brain/INDEX.md`), offer it as a **brain note**, one bullet appended under a
+  `## Notes` heading in the `.cc-artifacts/brain/<area>.md` whose `## Files` lists the module
+  (`decisions.md` there for a settled choice; the area's `INDEX.md` line names it
+  when unsure). A map from before 2026-11-14 is in `brain/`: when `.cc-artifacts/brain/`
+  does not exist, copy it over once first and never touch `brain/`:
+  `mkdir -p .cc-artifacts/brain && cp -Rp brain/. .cc-artifacts/brain/`. The note is
+  shared exactly as far as the map is; the indexer carries `## Notes` over verbatim, so
+  tell the user no `/brain index` is needed after a note. When the correction is
+  mechanical — the same call, import or path every time — prose asks the model to
+  remember what a machine can refuse: propose the **check** instead, in the tool the repo already runs (its linter, its pre-commit
   hooks, its CI). When the existing-coverage check found that check configured
   but never invoked, wiring it is the proposal. On a pick, print the exact
   change — file and lines — for the user to apply, and write nothing. Standing:
   recorded — no script tells a fixed pattern from a judgement call. Offer the
   destination as part of the
-  option's label; when the memory directory or `brain/INDEX.md` is not present,
+  option's label; when the memory directory or the brain map is not present,
   fall back to CLAUDE.md and say that is what happened. The recurrence gate
   applies to all four alike.
 - Ideas → hand each pick to a `/new-skill` or `/new-plugin` project skill
   (whichever fits the idea's size) when the project has one — the marketplace
   repository keeps both under `.claude/skills/`; else write the idea as a
   one-paragraph scaffold brief in the harvest output for manual capture.
-- Warnings → write picks to `<project>/.claude/hindsight/anti-patterns.md` — the
-  ONE project-tree file this plugin writes, and only on an explicit pick. It is
-  team-shared, so it must be tracked, not gitignored, or the committed pointer
-  below does not resolve for teammates. Everything else stays machine-local. Then
-  propose exactly ONE pointer line for CLAUDE.md referencing that file — the
-  pointer is itself an option, never auto-added.
+- Warnings → write picks to `<project>/.cc-artifacts/hindsight/anti-patterns.md` — the
+  ONE project-tree file this plugin writes, and only on an explicit pick. Before
+  2026-11-14 it was `.claude/hindsight/anti-patterns.md`: when `.cc-artifacts/hindsight/`
+  does not exist and `.claude/hindsight/` does, copy it over once first and never touch
+  the old file:
+  `mkdir -p .cc-artifacts/hindsight && cp -Rp .claude/hindsight/. .cc-artifacts/hindsight/`.
+  `.cc-artifacts/` is meant to be gitignored, so the file stays on this machine unless
+  the team tracks `.cc-artifacts/hindsight/`; say so beside the pointer. Everything else stays machine-local. Then propose exactly ONE pointer line
+  for CLAUDE.md referencing that file (or replacing one that still names
+  `.claude/hindsight/`) — the pointer is itself an option, never auto-added.
 
 Nothing is written without an explicit pick; declining every option is
 a valid outcome and still counts as a completed harvest.
@@ -155,10 +162,10 @@ Do not edit the ledger by hand. A transcript whose miner failed stays unmarked.
 ## Boundaries
 
 Never edits application code: outputs are CLAUDE.md lines, `feedback` memory
-files under `~/.claude/projects/<slug>/memory/`, brain notes under `brain/`
+files under `~/.claude/projects/<slug>/memory/`, brain notes under `.cc-artifacts/brain/`
 (only when the brain plugin's map exists), files under
-`$HOME/.claude/hindsight/<slug>/`, the project's `.claude/hindsight/anti-patterns.md`,
-and the scaffold handoffs above. Never writes a lint config, pre-commit hook or CI
+`$HOME/.claude/hindsight/<slug>/`, the project's `.cc-artifacts/hindsight/anti-patterns.md`
+(and the one-time copies above), and the scaffold handoffs above. Never writes a lint config, pre-commit hook or CI
 file: a proposed check is printed for the user to apply. No auto-apply — every write
 passes the apply gate above. Whether an applied rule helped is not measured here:
 that takes an eval with a control arm, not a before-and-after count. Transcript

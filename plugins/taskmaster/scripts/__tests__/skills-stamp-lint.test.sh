@@ -156,10 +156,10 @@ check_warn "cache layout: a cached sibling skill is reachable" absent unreachabl
 # --card: the project is the card's git toplevel, wherever the lint runs from
 if command -v git >/dev/null 2>&1; then
   git init -q "$proj" 2>/dev/null
-  mkdir -p "$proj/taskmaster-docs/tasks/demo"
-  cp "$tmp_t_ok" "$proj/taskmaster-docs/tasks/demo/04-add-policy.md"
+  mkdir -p "$proj/.cc-artifacts/taskmaster/tasks/demo"
+  cp "$tmp_t_ok" "$proj/.cc-artifacts/taskmaster/tasks/demo/04-add-policy.md"
   check_warn "card: shadow found from the card's git toplevel" present 'shadowed-skill: "laravel-best-practices"' \
-    env -u CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --card "$proj/taskmaster-docs/tasks/demo/04-add-policy.md"
+    env -u CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --card "$proj/.cc-artifacts/taskmaster/tasks/demo/04-add-policy.md"
 fi
 
 # no CLAUDE_PLUGIN_ROOT (the model runs the script by path): siblings come from the

@@ -1,5 +1,5 @@
 #!/bin/bash
-# compact-recovery.sh — SessionStart, `compact` only: after a compaction, re-asserts the deliberation marker (.claude/approaches/deliberated.json at the project root, named by absolute path) so a settled shape is not re-litigated; deletes one older than 120 minutes. Advisory, cannot block. Fails open.
+# compact-recovery.sh — SessionStart, `compact` only: after a compaction, re-asserts the deliberation marker (.cc-artifacts/approaches/deliberated.json at the project root, named by absolute path; an older project's .claude/approaches/ is copied over once) so a settled shape is not re-litigated; deletes one older than 120 minutes. Advisory, cannot block. Fails open.
 # Misses: the reasoning (alternatives, kill-trigger), only that a decision exists; whether the marker's task is still the task in hand, inside the TTL; a deliberation that wrote no marker.
 # Why, limits, history: rationale/derivations/plugin-approaches.md § plugins/approaches/hooks/compact-recovery.sh
 
@@ -33,7 +33,10 @@ cc_state_root() {
   [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   root=$(cc_state_root "$cwd") || exit 0
 
-  marker="$root/.claude/approaches/deliberated.json"
+  dir="$root/.cc-artifacts/approaches"; old="$root/.claude/approaches"
+  # Plugins before 2026-11-14 kept this state in .claude/approaches/; copy it over once, then use only the new dir.
+  if [ ! -d "$dir" ] && [ -d "$old" ]; then mkdir -p "$dir" && cp -Rp "$old/." "$dir/"; fi
+  marker="$dir/deliberated.json"
   [ -f "$marker" ] || exit 0
 
   # The phase sentinel's 120-minute mtime TTL (portable shell cannot parse ISO-8601); erring toward forgetting, since a late expiry costs wrong work.

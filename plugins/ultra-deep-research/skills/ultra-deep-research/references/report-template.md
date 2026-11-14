@@ -1,7 +1,7 @@
 # Report template
 
 The report is the product. It is written inline in chat **and** to
-`research/<slugged-topic>-<YYYY-MM-DD>.md`. Structure:
+`.cc-artifacts/ultra-deep-research/<slugged-topic>-<YYYY-MM-DD>.md`. Structure:
 
 ```markdown
 # <Question restated as a title>

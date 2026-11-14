@@ -6,7 +6,7 @@
 """Threaded static file server with an SSE push-reload lane.
 
 First rung of the mockup preview launch chain: static files under a docroot
-(default ``taskmaster-docs/mockups``) plus ``GET /events``, a Server-Sent
+(default ``.cc-artifacts/taskmaster/mockups``) plus ``GET /events``, a Server-Sent
 Events stream that fires the changed file's docroot-relative path whenever a
 watcher thread notices an mtime change. ``ThreadingHTTPServer`` means one
 open SSE connection never blocks concurrent static requests.
@@ -1019,8 +1019,8 @@ def parse_args(argv=None):
         help="Port to bind (default: $PREVIEW_PORT or 8123).",
     )
     parser.add_argument(
-        "--docroot", default="taskmaster-docs/mockups",
-        help="Directory to serve; created if missing (default: taskmaster-docs/mockups).",
+        "--docroot", default=".cc-artifacts/taskmaster/mockups",
+        help="Directory to serve; created if missing (default: .cc-artifacts/taskmaster/mockups).",
     )
     parser.add_argument(
         "--lan", action="store_true",

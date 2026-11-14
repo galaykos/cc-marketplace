@@ -5,13 +5,13 @@ import type { Engine, Mounted } from 'claude-code/testing'
 import { isPinOn } from '../hooks/board'
 
 const NOW = Date.UTC(2026, 9, 6, 12)
-const INDEX = '/work/taskmaster-docs/tasks/ship-mods/00-INDEX.md'
-const RUN = '/work/.claude/task-runner/active-run.json'
-const SENTINEL = '/work/.claude/cc-phase/S1.json'
-const BG = '/work/.claude/task-runner/bg/running.pid'
-const RV = '/work/.claude/task-runner/rv'
-const NC = '/work/.claude/task-runner/nc'
-const RECEIPT = '/work/.claude/task-runner/receipt.json'
+const INDEX = '/work/.cc-artifacts/taskmaster/tasks/ship-mods/00-INDEX.md'
+const RUN = '/work/.cc-artifacts/task-runner/active-run.json'
+const SENTINEL = '/work/.cc-artifacts/cc-phase/S1.json'
+const BG = '/work/.cc-artifacts/task-runner/bg/running.pid'
+const RV = '/work/.cc-artifacts/task-runner/rv'
+const NC = '/work/.cc-artifacts/task-runner/nc'
+const RECEIPT = '/work/.cc-artifacts/task-runner/receipt.json'
 const GIT_INDEX = '/work/.git/index'
 const HEAD = '9f1c2b3a4d5e6f708192a3b4c5d6e7f8091a2b3c'
 const GATE = 'bash\0/home/u/.claude/plugins/cache/task-runner/scripts/behavioral-gate.sh\0--isolate\0'
@@ -19,7 +19,7 @@ const GATE = 'bash\0/home/u/.claude/plugins/cache/task-runner/scripts/behavioral
 const row = (id: string, status: string, dependsOn = 'none', group = 'A') => `| ${id} | Card ${id} | ${dependsOn} | generic | ${group} | ${status} |`
 
 const BOARD = [
-  'Spec: taskmaster-docs/specs/ship-mods.md',
+  'Spec: .cc-artifacts/taskmaster/specs/ship-mods.md',
   'Goal: true (two lanes)',
   '',
   '| card | title | depends-on | agent | parallel group | status |',
@@ -31,7 +31,7 @@ const BOARD = [
   '',
 ].join('\n')
 
-const RUN_HERE = JSON.stringify({ slug: 'ship-mods', branch: 'feat/x', index_path: 'taskmaster-docs/tasks/ship-mods/00-INDEX.md' })
+const RUN_HERE = JSON.stringify({ slug: 'ship-mods', branch: 'feat/x', index_path: '.cc-artifacts/taskmaster/tasks/ship-mods/00-INDEX.md' })
 const RUN_HERE_ABSOLUTE = JSON.stringify({ slug: 'ship-mods', branch: 'feat/x', index_path: INDEX })
 const RUN_ELSEWHERE = JSON.stringify({ slug: 'ship-mods', branch: 'master', index_path: INDEX })
 const PLAIN_RUN = JSON.stringify({ slug: 'adhoc', branch: 'feat/x' })
@@ -42,12 +42,12 @@ const pidFile = (pid: string, deadline = NOW / 1000 + 3600) => `${pid}\n${HEAD.s
 const FRESH: [number, string] = [0, 'fresh: suite passed at 9f1c2b3 (bash scripts/validate.sh)\n']
 const STALE: [number, string] = [1, 'stale: files changed since suite ran at 9f1c2b3\n']
 
-const TASKS = '/work/taskmaster-docs/tasks'
+const TASKS = '/work/.cc-artifacts/taskmaster/tasks'
 
 const LEGEND = 'review = review recorded · check = test shown to fail without the change · skip, exempt = left out with a reason'
 
 const LAYOUT = [
-  'Spec: taskmaster-docs/specs/ship-mods.md',
+  'Spec: .cc-artifacts/taskmaster/specs/ship-mods.md',
   'Ultra: true',
   '',
   '| card | title | depends-on | agent | parallel group | status |',
@@ -190,6 +190,10 @@ function seat(on: On, live: Live = {}) {
 
     const file = world.disk.get(e.path)
 
+    if (file === undefined && [...world.disk.keys()].some(path => path.startsWith(`${e.path}/`))) {
+      return { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false } }
+    }
+
     return file === undefined || world.unstatted.has(e.path)
       ? { deny: `ENOENT: ${e.path}` }
       : { value: { kind: 'file', size: file.text.length, mtimeMs: file.mtimeMs, isLink: false } }
@@ -245,7 +249,7 @@ function seat(on: On, live: Live = {}) {
       put(e.file_path, (world.disk.get(e.file_path)?.text ?? '').replace(e.old_string, e.new_string))
     }
 
-    if (e.tool === 'Bash' && e.command === 'rm .claude/task-runner/active-run.json') {
+    if (e.tool === 'Bash' && e.command === 'rm .cc-artifacts/task-runner/active-run.json') {
       world.disk.delete(RUN)
     }
 
@@ -467,7 +471,7 @@ describe('board', () => {
     world.procs.set('4242', { cmdline: GATE, cwd: '/work' })
     checkStarted(world, '4242', 3)
     await start($)
-    await $.tool.call({ tool: 'Bash', command: 'rm .claude/task-runner/active-run.json' })
+    await $.tool.call({ tool: 'Bash', command: 'rm .cc-artifacts/task-runner/active-run.json' })
     await world.clock.advance(180_000)
 
     expect(world.statuses).toEqual(['task-runner  build 5/8  check running 3m', undefined])
@@ -497,7 +501,7 @@ describe('board', () => {
     }
 
     world.disk.delete(SENTINEL)
-    world.put('/work/.claude/cc-phase/S2.json', phased('shape', 'S2'))
+    world.put('/work/.cc-artifacts/cc-phase/S2.json', phased('shape', 'S2'))
     world.put('/work/.claude/cc-phase.json', phased('shape', 'S1'))
     await $.turn.complete(TURN)
     shown.push(world.statuses.at(-1))
@@ -538,6 +542,33 @@ describe('board', () => {
       '07 Card 07              B   [-]      no      no',
       '08 Card 08              C   [!] <06  no      no',
     ])
+  })
+
+  test("an older project's run under .claude/task-runner/ shows with its records, read there only until .cc-artifacts/task-runner/ exists", async ($, on) => {
+    const world = seat(on)
+    const legacy = '/work/.claude/task-runner'
+
+    world.put(`${legacy}/active-run.json`, JSON.stringify({ slug: 'ship-mods', branch: 'feat/x', index_path: 'taskmaster-docs/tasks/ship-mods/00-INDEX.md' }))
+    world.put('/work/taskmaster-docs/tasks/ship-mods/00-INDEX.md', LAYOUT)
+    world.disk.set(`${legacy}/rv/rv-seen-01.json`, { text: '{}', mtimeMs: NOW - 1_000 })
+    await start($)
+
+    const pane = await mount($, 50)
+
+    expect((await lines(pane)).slice(0, 5)).toEqual([
+      'Task board  ship-mods  ULTRA',
+      'build  1/5 done  1 parked',
+      LEGEND,
+      '#  card                grp  stat     review  check',
+      '01 Card 01              A   [x]      yes     no',
+    ])
+
+    // The scripts' one-time copy keeps the registration's mtime; from then on only the new dir counts.
+    world.disk.set(RUN, world.disk.get(`${legacy}/active-run.json`) ?? { text: '', mtimeMs: 0 })
+    world.disk.set(`${RV}/rv-seen-05.json`, { text: '{}', mtimeMs: NOW - 1_000 })
+    await $.tool.call({ tool: 'Bash', command: 'true' })
+
+    expect((await lines(pane)).slice(4, 6)).toEqual(['01 Card 01              A   [x]      no      no', '05 Card 05              B   [>]      yes     no'])
   })
 
   test('pane draws a board saved before 0.49.2 with no record columns and no waiting line', async ($, on) => {
@@ -791,7 +822,7 @@ describe('board', () => {
     const older = $.tool.call({ tool: 'Bash', command: 'true' })
 
     await read.reached
-    await $.tool.call({ tool: 'Bash', command: 'rm .claude/task-runner/active-run.json' })
+    await $.tool.call({ tool: 'Bash', command: 'rm .cc-artifacts/task-runner/active-run.json' })
     read.release()
     await older
 
@@ -874,7 +905,7 @@ describe('board', () => {
     world.put(RUN, RUN_HERE)
     world.put(INDEX, BOARD)
     await start($)
-    await $.tool.call({ tool: 'Bash', command: 'rm .claude/task-runner/active-run.json' })
+    await $.tool.call({ tool: 'Bash', command: 'rm .cc-artifacts/task-runner/active-run.json' })
 
     expect(world.statuses).toEqual(['task-runner  build 5/8  card 5/12  1 parked  goal', undefined])
   })
@@ -1023,6 +1054,17 @@ describe('board', () => {
     expect(world.statuses).toEqual([undefined, undefined])
   })
 
+  test("/task-board with no active run finds the newest index under an older project's taskmaster-docs/tasks/ too", async ($, on) => {
+    const world = seat(on)
+
+    world.disk.set(`${TASKS}/alpha/00-INDEX.md`, { text: BOARD, mtimeMs: NOW - 120_000 })
+    world.disk.set('/work/taskmaster-docs/tasks/ship-mods/00-INDEX.md', { text: LAYOUT, mtimeMs: NOW - 10_000 })
+    await start($)
+    await $.command.run(TASK_BOARD)
+
+    expect((await lines(await mount($)))[0]).toBe('Task board  ship-mods  ULTRA  not running')
+  })
+
   test('/task-board keeps the newest index when a tool call refreshes while it opens', async ($, on) => {
     const world = seat(on)
 
@@ -1120,9 +1162,20 @@ describe('board', () => {
     await start($)
     await (await mount($)).press({ key: 'red-team' })
 
-    expect(world.fills).toEqual(['/taskmaster:redteam /work/taskmaster-docs/specs/ship-mods.md'])
+    expect(world.fills).toEqual(['/taskmaster:redteam /work/.cc-artifacts/taskmaster/specs/ship-mods.md'])
     expect(world.submits).toEqual([])
     expect(world.ran).toEqual([])
+  })
+
+  test('red-team fills the redteam command for a spec an older index names under taskmaster-docs/specs/', async ($, on) => {
+    const world = seat(on)
+
+    world.put(RUN, RUN_HERE)
+    world.put(INDEX, LAYOUT.replace('Spec: .cc-artifacts/taskmaster/specs/', 'Spec: taskmaster-docs/specs/'))
+    await start($)
+    await (await mount($)).press({ key: 'red-team' })
+
+    expect(world.fills).toEqual(['/taskmaster:redteam /work/taskmaster-docs/specs/ship-mods.md'])
   })
 
   test('red-team is hidden without taskmaster', async ($, on) => {
@@ -1204,7 +1257,7 @@ describe('board', () => {
     world.put(INDEX, LAYOUT)
     await start($)
     world.panes.delete('task-board')
-    await $.tool.call({ tool: 'Bash', command: 'rm .claude/task-runner/active-run.json' })
+    await $.tool.call({ tool: 'Bash', command: 'rm .cc-artifacts/task-runner/active-run.json' })
     await $.tool.call({ tool: 'Write', file_path: RUN, content: RUN_HERE })
 
     expect(world.opened).toEqual(['task-board'])

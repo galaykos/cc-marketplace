@@ -19,11 +19,11 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD"
-MARKER="$CWD/.claude/candor/last"
+MARKER="$CWD/.cc-artifacts/candor/last"
 # The namespaced-disarm record. A blocking case WRITES it, so it must be cleared
 # between cases — otherwise a later case inherits the previous one's block and reads
 # as that gate's own continuation, which is test pollution wearing a PASS.
-CLAIMED="$CWD/.claude/candor/blocked"
+CLAIMED="$CWD/.cc-artifacts/candor/blocked"
 
 # Transcript builders: one JSONL line per entry.
 text_entry() { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}'; }
@@ -126,9 +126,9 @@ else fail=$((fail+1)); printf 'FAIL  would loop — marker did not bound it (rc=
 
 # 10c. Fallback: with no writable marker the gate has no bound of its own, so the
 # shared flag is honoured rather than blocking the same turn forever.
-UNW="$WS/unwritable"; mkdir -p "$UNW/.claude"; cp "$T1" "$UNW/t.jsonl"; chmod 500 "$UNW/.claude"
+UNW="$WS/unwritable"; mkdir -p "$UNW/.cc-artifacts"; cp "$T1" "$UNW/t.jsonl"; chmod 500 "$UNW/.cc-artifacts"
 run_gate "" "$(jq -cn --arg tp "$UNW/t.jsonl" --arg cwd "$UNW" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}')"
-chmod 700 "$UNW/.claude" 2>/dev/null
+chmod 700 "$UNW/.cc-artifacts" 2>/dev/null
 if [ "$rc" = 0 ]; then pass=$((pass+1)); printf 'PASS  falls back to the shared flag when it cannot write a marker\n'
 else fail=$((fail+1)); printf 'FAIL  blocks forever on unwritable state (rc=%s)\n' "$rc"; fi
 

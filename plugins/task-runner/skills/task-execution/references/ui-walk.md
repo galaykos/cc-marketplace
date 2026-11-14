@@ -53,12 +53,12 @@ that surface — never a backlog line.
 
 ## Shots and the Screens table
 
-`<repo>/.claude/task-runner/walk/<group>/{desktop,mobile}/<route>.png` (1280/375). Before set:
+`<repo>/.cc-artifacts/task-runner/walk/<group>/{desktop,mobile}/<route>.png` (1280/375). Before set:
 `walk/<group>-before/`, same layout, shots only, at group OPEN, of surfaces already rendering.
 `<route>` is design-kit's slug (non-alphanumeric runs → `-`, ends trimmed, `/` → `index`; a
 state appends a word). Save in `.playwright-mcp/`, `mv` into place, `Read` it before tabling.
 Never pair with a `dk snapshot` set (1440/390). With design-kit,
-`DESIGN_KIT_DIR=<repo>/.claude/task-runner/walk DESIGN_KIT_PORT=<free port> bash <design-kit>/scripts/snapshot.sh review --base <walk>/<group>-before --current <walk>/<group>`
+`DESIGN_KIT_DIR=<repo>/.cc-artifacts/task-runner/walk DESIGN_KIT_PORT=<free port> bash <design-kit>/scripts/snapshot.sh review --base <walk>/<group>-before --current <walk>/<group>`
 prints `url=` (`<design-kit>`: `${CLAUDE_PLUGIN_ROOT}/../design-kit`, else the newest
 `~/.claude/plugins/cache/*/design-kit/<version>/`).
 
@@ -75,7 +75,7 @@ before cell reads `new` for a surface the group creates, `not shot` for one neve
 ## No JS runner: the walk is the evidence
 
 `no-behavioral-coverage` for UI files → the recorded exit from `run.md` step 4, adding
-`--evidence .claude/task-runner/walk/<group>` (or `walk/` for several groups) to
+`--evidence .cc-artifacts/task-runner/walk/<group>` (or `walk/` for several groups) to
 `reduction-record.sh --kind coverage --id bg-<HEAD12> --reason "…"`. The path must exist
 inside the repo, or the script exits 3. Re-walk a surface changed after its walk. Still a
 disclosed reduction: the walk saw screens; nothing ran the code's branches.

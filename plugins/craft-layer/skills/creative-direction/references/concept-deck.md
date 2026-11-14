@@ -30,7 +30,7 @@ The main thread draws, before it dispatches the `creative-director` — that age
 to hash a seed and no Write to record a draw, and three runs that left the draw to it got an
 improvised seed. It receives the draw, the seed and the lens carry in its dispatch.
 
-1. Read `<project>/.craft-layer/run-log.md` and take the `draw` cell of the last 5 rows.
+1. Read `<project>/.cc-artifacts/craft-layer/run-log.md` and take the `draw` cell of the last 5 rows.
 2. EXCLUDE every option those rows used — the exclusion window is the last 5 draws,
    applied per axis. If an axis has fewer than two options left, drop its oldest exclusions
    until two are drawable again.

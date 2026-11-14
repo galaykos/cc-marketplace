@@ -141,7 +141,7 @@ Exit-code semantics are the script's existing ones, unchanged:
 
 - **`FAIL` → exit 1**, one detail line per hit naming the region, the slot, the marker, its
   class and its `path:line`. It has the same standing as every other craft finding: resolve it,
-  or waive `spine-register` in `<project>/.craft-layer/waivers.json` with a reason.
+  or waive `spine-register` in `<project>/.cc-artifacts/craft-layer/waivers.json` with a reason.
 - **`SKIP`** — no build task, no `Spine regions:` line, no buyer slot mapped, no mapped anchor
   found in the tree, or **one or more mapped buyer slots UNREADABLE while the rest carry no
   marker**. Reported with the reason, counted as `not checked`, never a pass and never a fail.

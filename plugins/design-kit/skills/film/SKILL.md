@@ -12,7 +12,8 @@ Run this section only when a new film starts; loaded mid-build, skip to the orde
    conversation. Blanks are yours to decide: write each choice and its reason into `brief.txt`.
    Run mode: stop at every ⏸ (one AskUserQuestion, strongest option first, "(Recommended)") or
    `--run-to-end` (take the strongest yourself and log why in `brief.txt`).
-2. **Workspace.** Everything lives in `.design-kit/film/<slug>/`; frames go in its `.frames/`, a
+2. **Workspace.** Everything lives in `.cc-artifacts/design-kit/film/<slug>/` (resuming an older
+   project's `.design-kit/film/<slug>/`: copy it there first); frames go in its `.frames/`, a
    dot directory the preview server neither lists nor watches.
 3. **Tools.** `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/film.py" doctor --renderer <r> --dir <ws>`.
    Exit 3 names what is missing: install it inside the workspace where you can, else stop and

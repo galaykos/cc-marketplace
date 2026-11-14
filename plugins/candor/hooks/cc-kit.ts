@@ -133,24 +133,37 @@ async function rootOf(host: Host): Promise<string> {
   return projectDir !== '' && `${cwd}/`.startsWith(`${projectDir}/`) ? projectDir : cwd
 }
 
+// Plugins wrote these under .claude/ before 2026-11-14: read there when the new path holds nothing, never write there.
+const ARTIFACTS_DIR = '.cc-artifacts'
+const LEGACY_DIR = '.claude'
+
 // This session's own sentinel, as templates/blocks/phase-file.md names it: another session's phase never counts here.
-export function phaseFile(root: string, sessionId: string): string | null {
+export function phaseFile(root: string, sessionId: string, base: string = ARTIFACTS_DIR): string | null {
   const key = sessionId.replace(/[^A-Za-z0-9_-]/g, '')
 
-  return key === '' ? null : `${root}/.claude/cc-phase/${key}.json`
+  return key === '' ? null : `${root}/${base}/cc-phase/${key}.json`
+}
+
+async function statted(host: Host, path: string): Promise<{ path: string; stat: FsStat } | null> {
+  const stat = await host.stat(path).catch(() => null)
+
+  return stat === null ? null : { path, stat }
 }
 
 export async function liveSentinel(host: Host, root?: string): Promise<{ phase: string } | null> {
-  const path = phaseFile(root ?? (await stateRoot(host)), await host.sessionId())
+  const at = root ?? (await stateRoot(host))
+  const sessionId = await host.sessionId()
+  const path = phaseFile(at, sessionId)
+  const legacy = phaseFile(at, sessionId, LEGACY_DIR)
 
-  if (path === null) {
+  if (path === null || legacy === null) {
     return null
   }
 
-  const stat = await host.stat(path).catch(() => null)
-  const text = stat ? await host.read(path).catch(() => null) : null
+  const found = (await statted(host, path)) ?? (await statted(host, legacy))
+  const text = found ? await host.read(found.path).catch(() => null) : null
 
-  if (!stat || text === null || (await host.now()) - stat.mtimeMs > PHASE_TTL_MS) {
+  if (!found || text === null || (await host.now()) - found.stat.mtimeMs > PHASE_TTL_MS) {
     return null
   }
 
@@ -167,7 +180,12 @@ export async function activeRun(
   host: Host,
 ): Promise<{ slug: string; branch: string; index_path?: string; root: string } | null> {
   const root = await stateRoot(host)
-  const text = await host.read(`${root}/.claude/task-runner/active-run.json`).catch(() => null)
+  // task-runner copies its old dir in and leaves it, so the legacy file counts only while the new dir is absent.
+  const text =
+    (await host.read(`${root}/${ARTIFACTS_DIR}/task-runner/active-run.json`).catch(() => null)) ??
+    ((await host.stat(`${root}/${ARTIFACTS_DIR}/task-runner`).catch(() => null)) === null
+      ? await host.read(`${root}/${LEGACY_DIR}/task-runner/active-run.json`).catch(() => null)
+      : null)
   const data = text === null ? null : parsed(text)
 
   if (!isRecord(data) || typeof data.slug !== 'string') {

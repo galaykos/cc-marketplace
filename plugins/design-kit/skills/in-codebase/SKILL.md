@@ -66,8 +66,8 @@ Two entry shapes, one procedure:
    spacing intent; build every element from the component library. A `.html` from a
    bundle that lands under `src/`, `resources/` or `app/` is a defect. Standing:
    agent-graded — `git status` after the pick is the check.
-2. **Find components before writing any.** When `design-system/components.json`
-   exists (`/design-kit:system` wrote it), the scratch page already opens with every
+2. **Find components before writing any.** When `.cc-artifacts/design-kit/design-system/components.json`
+   (older projects: `design-system/`) exists (`/design-kit:system` wrote it), the scratch page already opens with every
    component imported, its prop signature in a comment, and a strip rendering every
    variant — your job is composition and data, not discovery. Otherwise read, in
    order: `components=` from `--detect`; the library's index exports; Storybook
@@ -148,7 +148,7 @@ Two entry shapes, one procedure:
    file that git would commit (README, "Behind a login").
 6. After the pick: record what was decided (which components, which variants,
    which tokens, any gap rows) in the reply and as one line via
-   `dk.sh decision --record "…"` (→ `design-system/DECISIONS.md`), then run
+   `dk.sh decision --record "…"` (→ `.cc-artifacts/design-kit/design-system/DECISIONS.md`), then run
    `dk.sh scratch --cleanup` and `dk.sh scratch --verify`. Verify failing means
    the turn is not done. The user may say "keep it" — then say in one line that
    `__design-kit__` paths remain and `--verify` will fail until they are removed.

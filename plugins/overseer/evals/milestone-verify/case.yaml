@@ -8,8 +8,8 @@ execution:
   max_turns: 12
   allowed_tools: [Read, Glob, Grep, Skill]
   prompt: |
-    You are the overseer of the program open in this directory (`.claude/overseer/`).
-    Milestone m3 is `briefed`; read its brief under `.claude/overseer/milestones/m3/brief.md`.
+    You are the overseer of the program open in this directory (`.cc-artifacts/overseer/`).
+    Milestone m3 is `briefed`; read its brief under `.cc-artifacts/overseer/milestones/m3/brief.md`.
     taskmaster and task-runner are installed. The user says: "Merge m2, start m3."
 
     Before anything runs, answer in under 200 words: the rigour profile you record for m3 and

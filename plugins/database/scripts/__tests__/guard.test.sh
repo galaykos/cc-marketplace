@@ -234,6 +234,8 @@ check "ScanCommand in a test"         allow src/a.test.ts    'const r = await dd
 # --- doc surfaces execute nothing
 check "markdown quoting a drop"       allow docs/runbook.md  'await col.deleteMany({})'
 check "markdown quoting SQL"          allow docs/runbook.md  'DROP TABLE users;'
+check "SQL in a taskmaster spec dir"  allow /p/.cc-artifacts/taskmaster/specs/seed.sql 'DROP TABLE users;'
+check "SQL in an older taskmaster-docs" allow /p/taskmaster-docs/specs/seed.sql 'DROP TABLE users;'
 
 # --- 0.10.2: Bash writes. A statement written to a file asks like a Write; one fed to
 #     a command that writes no file is command-guard's and stays silent here.
@@ -258,6 +260,10 @@ check_bash "bash: create migration written by heredoc, drop only in down()" allo
   "$(printf '%s\n' "cat > database/migrations/2026_01_01_000000_create_widgets_table.php <<'PHP'" '<?php' 'return new class extends Migration {' "    public function up(): void { Schema::create('widgets', fn (\$t) => \$t->id()); }" '    public function down(): void' '    {' "        Schema::dropIfExists('widgets');" '    }' '};' 'PHP')"
 check_bash "relative doc: a relative taskmaster-docs target is a doc surface" allow \
   "$(printf '%s\n' "cat > taskmaster-docs/specs/seed.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
+check_bash "relative doc: a relative .cc-artifacts/taskmaster target is a doc surface" allow \
+  "$(printf '%s\n' "cat > .cc-artifacts/taskmaster/specs/seed.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
+check_bash "relative doc: another plugin's .cc-artifacts dir is no doc surface" ask \
+  "$(printf '%s\n' "cat > .cc-artifacts/scratch/seed.sql <<'SQL'" 'DROP TABLE users;' 'SQL')"
 
 # --- 0.11.4: scratch is not the project, and SQLite gets no CONCURRENTLY ask. Fixture projects sit
 #     in $WS (no git: the root is the payload cwd) and the hook's TMPDIR is $WS/tmp, so the

@@ -52,11 +52,13 @@ Without arguments it asks for a description first. The pipeline then:
    clickable walkthrough demo** on the same preview URL — every screen, state
    variant, and failure exit navigable — and walks you through it with a task
    script; gaps found by clicking become ledger rows before the spec freezes
-5. Writes a spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
-   path and cross-screen contracts when one was built)
+5. Writes a spec to `.cc-artifacts/taskmaster/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
+   path and cross-screen contracts when one was built). Every taskmaster artifact lives under
+   `.cc-artifacts/taskmaster/`, one folder to gitignore; specs, cards and ledgers a project made
+   before 0.60.0 under `taskmaster-docs/` or `.claude/taskmaster/` are still read
 6. When code-architecture is installed, runs a plan check on the spec before
    card-splitting
-7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
+7. Emits single-prompt task cards to `.cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md` — each card stamped with the stack skills it needs as `plugin:skill`
    (from the stack-scan inventory; `skills-stamp-lint.sh` warns when a same-named
    project skill, such as Laravel Boost's, shadows a bare stamp), sized S/M/L/XL against task-cards' anchor rule, and
@@ -153,7 +155,7 @@ running through to a green full suite.
 
 Every auto-take is auditable through three sinks:
 
-- **Goal ledger** — `.claude/taskmaster/goal-ledger-<slug>.md`, appended live per
+- **Goal ledger** — `.cc-artifacts/taskmaster/goal-ledger-<slug>.md`, appended live per
   decision (options, pick, rationale, source)
 - **Spec appendix** — a `## Auto-decisions` summary inside the frozen spec
 - **Index marker** — `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying
@@ -207,11 +209,11 @@ Claude:  Round 2 — 1 question, 1 assumption:
 You:     Both fine.
 
 Claude:  Ledger: 5 CLEAR, 1 ASSUMED.
-         Spec: taskmaster-docs/specs/2026-07-05-orders-csv-export.md
-         Cards: taskmaster-docs/tasks/2026-07-05-orders-csv-export/
+         Spec: .cc-artifacts/taskmaster/specs/2026-07-05-orders-csv-export.md
+         Cards: .cc-artifacts/taskmaster/tasks/2026-07-05-orders-csv-export/
            01 export class · 02 controller + route + policy · 03 UI button ·
            04 feature tests (02 and 03 run in parallel after 01)
-         Start: /task-runner:run taskmaster-docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
+         Start: /task-runner:run .cc-artifacts/taskmaster/tasks/2026-07-05-orders-csv-export/00-INDEX.md
 ```
 
 Notice what the starting prompt does and doesn't do: it states the goal, one

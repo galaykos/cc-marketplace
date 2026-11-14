@@ -147,10 +147,10 @@ for pair in "fixture-emoji.html:FAIL" "fixture-emoji-clean.html:PASS" "fixture-e
   fi
 done
 
-d="$WS/emoji-waived"; mkdir -p "$d/.craft-layer"
+d="$WS/emoji-waived"; mkdir -p "$d/.cc-artifacts/craft-layer"
 write_tokens "$d"
 cp "$FIXTURES/fixture-emoji.html" "$d/page.html"
-cat > "$d/.craft-layer/waivers.json" <<'JSON'
+cat > "$d/.cc-artifacts/craft-layer/waivers.json" <<'JSON'
 [{ "check": "emoji-as-icon", "value": "*", "reason": "the brief reproduces user chat messages verbatim, emoji included" }]
 JSON
 out=$(run_divergence "$d")
@@ -159,6 +159,20 @@ if [ "$got" = "WAIVED" ]; then ok; else
   bad "waived emoji-as-icon expected WAIVED, got $got" \
       "$(printf '%s\n' "$out" | grep -E 'emoji-as-icon' | head -1)"
 fi
+
+# A project from before 2026-11-14 keeps its waivers in .craft-layer/: read only while the new file is absent, never written.
+d="$WS/emoji-waived-legacy"; mkdir -p "$d/.craft-layer"; write_tokens "$d"; cp "$FIXTURES/fixture-emoji.html" "$d/page.html"
+cp "$WS/emoji-waived/.cc-artifacts/craft-layer/waivers.json" "$d/.craft-layer/waivers.json"
+legacy_sum=$(cksum < "$d/.craft-layer/waivers.json")
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" emoji-as-icon)" = WAIVED ] && [ "$(cksum < "$d/.craft-layer/waivers.json")" = "$legacy_sum" ] && [ ! -e "$d/.cc-artifacts" ]; then ok; else
+  bad "an old-only .craft-layer/waivers.json waives, stays untouched, and nothing is written to .cc-artifacts/" \
+      "$(printf '%s\n' "$out" | grep -E 'emoji-as-icon' | head -1); $(ls -A "$d")"; fi
+mkdir -p "$d/.cc-artifacts/craft-layer"; printf '[]\n' > "$d/.cc-artifacts/craft-layer/waivers.json"
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" emoji-as-icon)" = FAIL ]; then ok; else
+  bad "a new waivers.json wins over the old one, so the legacy waiver no longer applies" \
+      "$(printf '%s\n' "$out" | grep -E 'emoji-as-icon' | head -1)"; fi
 
 for pair in "fixture-copy.html:FAIL" "fixture-copy-clean.html:PASS"; do
   fx=${pair%%:*}; want=${pair##*:}
@@ -228,6 +242,22 @@ if [ "$(state_of "$out" copy-register)" = "PASS" ] && [ "$(state_of "$out" voice
   bad "the voice control fixture did not come out clean" \
       "$(printf '%s\n' "$out" | grep -E 'copy-register|voice-contract' | head -2 | tr '\n' ' ')"
 fi
+
+# Run records resolve at .cc-artifacts/taskmaster/craft/, and at taskmaster-docs/craft/ (before 2026-11-14) only while the new file is absent.
+d="$WS/craft-doc-move"; mkdir -p "$d/taskmaster-docs/craft"; write_tokens "$d"; cp "$WS/voice/ok/page.html" "$d/page.html"
+printf 'Run: 2026-11-01T09:00Z \xc2\xb7 tide-app\n' > "$d/taskmaster-docs/craft/build-task.md"
+cat "$WS/voice/ok/craft/build-task.md" >> "$d/taskmaster-docs/craft/build-task.md"
+legacy_sum=$(cksum < "$d/taskmaster-docs/craft/build-task.md")
+out=$(run_divergence "$d")
+if printf '%s\n' "$out" | grep -qE '^ +PASS +voice-contract +.*taskmaster-docs/craft/build-task\.md carries'; then ok; else
+  bad "an old-only taskmaster-docs/craft/build-task.md is read" "$(printf '%s\n' "$out" | grep -E 'voice-contract' | head -1)"; fi
+mkdir -p "$d/.cc-artifacts/taskmaster/craft"
+sed 's/2026-11-01T09:00Z/2026-11-14T09:00Z/' "$d/taskmaster-docs/craft/build-task.md" > "$d/.cc-artifacts/taskmaster/craft/build-task.md"
+out=$(run_divergence "$d")
+if printf '%s\n' "$out" | grep -qE '^ +PASS +voice-contract +.*\.cc-artifacts/taskmaster/craft/build-task\.md carries' \
+   && [ "$(state_of "$out" craft-stamp)" = PASS ] && [ "$(cksum < "$d/taskmaster-docs/craft/build-task.md")" = "$legacy_sum" ]; then ok; else
+  bad "the new build task wins, the older one is no craft-stamp candidate, and it stays untouched" \
+      "$(printf '%s\n' "$out" | grep -E 'voice-contract|craft-stamp' | head -2 | cut -c1-240)"; fi
 
 for pair in "fixture-chrome.html:FAIL" "fixture-chrome-clean.html:PASS"; do
   fx=${pair%%:*}; want=${pair##*:}
@@ -433,7 +463,7 @@ for want in "utility-palette:PASS" "utility-font:PASS"; do
   fi
 done
 
-d="$WS/util-falsepos"; mkdir -p "$d/src" "$d/.craft-layer"
+d="$WS/util-falsepos"; mkdir -p "$d/src" "$d/.cc-artifacts/craft-layer"
 write_tokens "$d" 'oklch(0.55 0.22 295)'
 cat > "$d/src/page.tsx" <<'TSX'
 export default function Page() {
@@ -448,7 +478,7 @@ export default function Page() {
   )
 }
 TSX
-cat > "$d/.craft-layer/waivers.json" <<'JSON'
+cat > "$d/.cc-artifacts/craft-layer/waivers.json" <<'JSON'
 [
   { "check": "utility-palette", "value": "*", "reason": "the brand mark has been aubergine since 1998; the offer contract records it as a brand echo" },
   { "check": "accent-default-band", "value": "*", "reason": "same brand echo — the accent token is derived FROM the mark, not reached for" }
@@ -529,12 +559,12 @@ for k in poster gradient; do
 done
 
 # A waiver names one hero element (its kind or file:line); the elements it does not name still fail.
-d="$WS/poster-waive"; mkdir -p "$d/.craft-layer"; write_tokens "$d"; cp "$FIXTURES/fixture-poster.html" "$d/page.html"
-printf '[{"check":"poster-first","value":"video","reason":"the clip is a placeholder until the shoot"}]\n' > "$d/.craft-layer/waivers.json"
+d="$WS/poster-waive"; mkdir -p "$d/.cc-artifacts/craft-layer"; write_tokens "$d"; cp "$FIXTURES/fixture-poster.html" "$d/page.html"
+printf '[{"check":"poster-first","value":"video","reason":"the clip is a placeholder until the shoot"}]\n' > "$d/.cc-artifacts/craft-layer/waivers.json"
 out=$(run_divergence "$d"); line=$(printf '%s\n' "$out" | grep -E '^ +[A-Z]+ +poster-first ')
 if [ "$(state_of "$out" poster-first)" = FAIL ] && printf '%s\n' "$line" | grep -q '<canvas> at page.html:18' && ! printf '%s\n' "$line" | grep -q '<video> at'; then ok; else
   bad "a poster-first waiver for the video leaves the hero canvas failing" "$line"; fi
-printf '[{"check":"poster-first","value":"video","reason":"the clip is a placeholder until the shoot"},{"check":"poster-first","value":"page.html:18","reason":"a decorative overlay"}]\n' > "$d/.craft-layer/waivers.json"
+printf '[{"check":"poster-first","value":"video","reason":"the clip is a placeholder until the shoot"},{"check":"poster-first","value":"page.html:18","reason":"a decorative overlay"}]\n' > "$d/.cc-artifacts/craft-layer/waivers.json"
 out=$(run_divergence "$d")
 if [ "$(state_of "$out" poster-first)" = WAIVED ]; then ok; else
   bad "waivers naming both hero elements waive poster-first" "$(printf '%s\n' "$out" | grep -E 'poster-first' | head -1)"; fi
@@ -587,9 +617,9 @@ done
 # The run log's last row is this run's own only when it carries this run's draw or Run: stamp (slug and date).
 # audit.md appends the row AFTER the audit, so at audit time a matching hue there is the previous run: a repeat.
 log_project() { # dir slug-in-last-row date-in-last-row [stamp]
-  mkdir -p "$1/.craft-layer" "$1/src"; printf ':root { --primary: oklch(0.55 0.15 250); }\n' > "$1/src/index.css"
+  mkdir -p "$1/.cc-artifacts/craft-layer" "$1/src"; printf ':root { --primary: oklch(0.55 0.15 250); }\n' > "$1/src/index.css"
   printf '<!doctype html><html lang="en"><body><main><h1>Harbour tide tables</h1></main></body></html>\n' > "$1/page.html"
-  printf '| date | brief-slug | hue-family | type-strategy | spine | signature | draw |\n|---|---|---|---|---|---|---|\n| 2026-11-01 | ferry-app | green | Fraunces | x | y | a / b / c / d / e |\n| %s | %s | blue | Fraunces | x | y | a / b / c / d / e |\n' "$3" "$2" > "$1/.craft-layer/run-log.md"
+  printf '| date | brief-slug | hue-family | type-strategy | spine | signature | draw |\n|---|---|---|---|---|---|---|\n| 2026-11-01 | ferry-app | green | Fraunces | x | y | a / b / c / d / e |\n| %s | %s | blue | Fraunces | x | y | a / b / c / d / e |\n' "$3" "$2" > "$1/.cc-artifacts/craft-layer/run-log.md"
   if [ -n "${4:-}" ]; then mkdir -p "$1/craft"; printf '# Offer contract\nRun: %s\n' "$4" > "$1/craft/offer-contract.md"; fi
 }
 for k in 'previous|tide-app|2026-11-08||FAIL' 'own-stamp|tide-app|2026-11-11|2026-11-11T09:30Z · tide-app · ROOT|PASS' \
@@ -602,6 +632,16 @@ EOF
   if [ "$(state_of "$out" hue-repeat)" = "$want" ]; then ok; else
     bad "hue-repeat with a blue last row ($name) expected $want" "$(printf '%s\n' "$out" | grep -E 'hue-repeat|note' | head -3)"; fi
 done
+# A run log only in .craft-layer/ (before 2026-11-14) is still the project memory; a new log, once written, replaces it.
+d="$WS/log-legacy"; log_project "$d" tide-app 2026-11-08; mv "$d/.cc-artifacts/craft-layer" "$d/.craft-layer"; rmdir "$d/.cc-artifacts"
+legacy_sum=$(cksum < "$d/.craft-layer/run-log.md")
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" hue-repeat)" = FAIL ] && printf '%s\n' "$out" | grep -q 'sed -n .1,20p. \.craft-layer/run-log\.md'; then ok; else
+  bad "an old-only .craft-layer/run-log.md is read (blue last row → hue-repeat FAIL naming that file)" "$(printf '%s\n' "$out" | grep -E 'hue-repeat' | head -1 | cut -c1-240)"; fi
+mkdir -p "$d/.cc-artifacts/craft-layer"; head -3 "$d/.craft-layer/run-log.md" > "$d/.cc-artifacts/craft-layer/run-log.md"
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" hue-repeat)" = PASS ] && [ "$(cksum < "$d/.craft-layer/run-log.md")" = "$legacy_sum" ]; then ok; else
+  bad "a new run log holding only the green row wins over the old one (hue-repeat PASS), and the old log stays untouched" "$(printf '%s\n' "$out" | grep -E 'hue-repeat' | head -1 | cut -c1-240)"; fi
 
 # asset-manifest: three heavy assets (a video by kind, a 150 KB image, a 120 KB CSS texture); a 2 KB icon and a remote font are not heavy.
 asset_project() { # dir
@@ -657,14 +697,14 @@ if [ "$(state_of "$out" asset-manifest)" = FAIL ] && printf '%s\n' "$out" | grep
   bad "asset-manifest fails heavy assets with no manifest at all" "$(printf '%s\n' "$out" | grep -E 'asset-manifest' | head -1)"
 fi
 # A waiver names one asset; the assets it does not name still fail.
-d="$WS/assets-waive"; asset_project "$d"; mkdir -p "$d/.craft-layer"
+d="$WS/assets-waive"; asset_project "$d"; mkdir -p "$d/.cc-artifacts/craft-layer"
 printf -- '- ref: public/img/hero.avif · origin: third-party · licence-class: unknown · source: found online\n' > "$d/ASSETS.md"
-printf '[{"check":"asset-manifest","value":"harbour.mp4","reason":"re-shoot pending, record lands with it"}]\n' > "$d/.craft-layer/waivers.json"
+printf '[{"check":"asset-manifest","value":"harbour.mp4","reason":"re-shoot pending, record lands with it"}]\n' > "$d/.cc-artifacts/craft-layer/waivers.json"
 out=$(run_divergence "$d"); line=$(printf '%s\n' "$out" | grep -E '^ +[A-Z]+ +asset-manifest ')
 if [ "$(state_of "$out" asset-manifest)" = FAIL ] && printf '%s\n' "$line" | grep -q 'texture.jpg' && printf '%s\n' "$line" | grep -q 'hero.avif' \
    && ! printf '%s\n' "$line" | grep -q 'harbour.mp4 ('; then ok; else
   bad "an asset-manifest waiver for the first failing asset (harbour.mp4) leaves hero.avif and texture.jpg failing" "$line"; fi
-printf '[{"check":"asset-manifest","value":"hero.avif","reason":"licence being cleared"},{"check":"asset-manifest","value":"texture.jpg","reason":"scanned in-house"},{"check":"asset-manifest","value":"harbour.mp4","reason":"re-shoot pending"}]\n' > "$d/.craft-layer/waivers.json"
+printf '[{"check":"asset-manifest","value":"hero.avif","reason":"licence being cleared"},{"check":"asset-manifest","value":"texture.jpg","reason":"scanned in-house"},{"check":"asset-manifest","value":"harbour.mp4","reason":"re-shoot pending"}]\n' > "$d/.cc-artifacts/craft-layer/waivers.json"
 out=$(run_divergence "$d")
 if [ "$(state_of "$out" asset-manifest)" = WAIVED ]; then ok; else
   bad "waivers naming every failing asset waive asset-manifest" "$(printf '%s\n' "$out" | grep -E 'asset-manifest' | head -1)"; fi

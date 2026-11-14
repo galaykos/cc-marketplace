@@ -108,7 +108,7 @@ assert "a newline quoted from a scene cannot start a line of its own" sh -c "pri
 rm -f "$G/levels/evil.tscn"
 
 check "without CLAUDE_PLUGIN_DATA the repo state dir is used" fire 'ext-resource-missing' "$(payload PostToolUse Edit "$R" "$WS/c15.jsonl" "$G/levels/level.tscn")" CLAUDE_PLUGIN_DATA=
-assert "the repo-fallback state dir is invisible to git" sh -c "[ -f '$R/.claude/godot/.gitignore' ] && [ -z \"\$(git -C '$R' status --porcelain .claude)\" ]"
+assert "the repo-fallback state dir is invisible to git" sh -c "[ -f '$R/.cc-artifacts/godot/.gitignore' ] && [ -z \"\$(git -C '$R' status --porcelain .cc-artifacts)\" ]"
 mkdir -p "$WS/ro"; chmod 500 "$WS/ro"
 check "unwritable state is silent, exit 0" silent '' "$(payload PostToolUse Edit "$R" "$WS/c16.jsonl" "$G/levels/level.tscn")" CLAUDE_PLUGIN_DATA="$WS/ro/data"
 chmod 700 "$WS/ro"

@@ -24,43 +24,62 @@ function fieldOf(text: string | null, key: string): string {
   }
 }
 
+// Plugins kept this state under .claude/ before 2026-11-14: each read below falls back to it while the new path holds none.
+const LEGACY = '.claude'
+
 // A summary keeps what it is told word for word, so a sentinel past its writer's TTL is left out (taskmaster scripts/phase-sentinel.sh).
 // Only this session's sentinel: another session's phase is not this conversation's state.
-async function freshSentinel($: EngineInterface, root: string): Promise<string | null> {
-  const path = phaseFile(root, await $.session.id())
+async function freshSentinel($: EngineInterface, root: string): Promise<{ dir: string; text: string | null } | null> {
+  const id = await $.session.id()
 
-  if (path === null) {
-    return null
+  for (const base of ['.cc-artifacts', LEGACY]) {
+    const path = phaseFile(root, id, base)
+    const stat = path === null ? null : await $.fs.stat(path).catch(() => null)
+
+    if (path !== null && stat !== null) {
+      return (await $.clock.now()) - stat.mtimeMs > PHASE_TTL_MS ? null : { dir: `${base}/cc-phase/`, text: await $.fs.read(path).catch(() => null) }
+    }
   }
 
-  const stat = await $.fs.stat(path).catch(() => null)
+  return null
+}
 
-  if (stat === null || (await $.clock.now()) - stat.mtimeMs > PHASE_TTL_MS) {
-    return null
+// The ledgers of one kind in the first directory holding any.
+function ledgersOf(lists: readonly (readonly [string, string[]])[], shape: RegExp): { dir: string; names: string[] } | null {
+  for (const [dir, names] of lists) {
+    const hits = names.filter(name => shape.test(name)).map(cleaned)
+
+    if (hits.length > 0) {
+      return { dir, names: hits }
+    }
   }
 
-  return $.fs.read(path).catch(() => null)
+  return null
 }
 
 // The paths hooks/compact-capsule.sh reads; it still names a stale sentinel, since its notice has the model re-read each file.
 export async function stateLines($: EngineInterface, root: string): Promise<string[]> {
-  const read = (path: string) => $.fs.read(`${root}/.claude/${path}`).catch(() => null)
-  const [sentinel, run, scope, names] = await Promise.all([
-    freshSentinel($, root),
-    read('task-runner/active-run.json'),
-    $.fs.exists(`${root}/.claude/task-runner/scope.json`).catch(() => false),
+  const listed = (dir: string) =>
     $.fs
-      .list(`${root}/.claude/taskmaster`)
+      .list(`${root}/${dir}`)
       .then(entries => entries.map(entry => entry.name).sort())
-      .catch(() => [] as string[]),
+      .catch(() => [] as string[])
+  // task-runner copies its old directory into the new one once, so the old one counts only until the new one exists.
+  const runDir = (await $.fs.exists(`${root}/.cc-artifacts/task-runner`).catch(() => false)) ? '.cc-artifacts/task-runner' : `${LEGACY}/task-runner`
+  const [sentinel, run, scope, fresh, old] = await Promise.all([
+    freshSentinel($, root),
+    $.fs.read(`${root}/${runDir}/active-run.json`).catch(() => null),
+    $.fs.exists(`${root}/${runDir}/scope.json`).catch(() => false),
+    listed('.cc-artifacts/taskmaster'),
+    listed(`${LEGACY}/taskmaster`),
   ])
   const lines: string[] = []
-  const phase = fieldOf(sentinel, 'phase')
+  const phase = fieldOf(sentinel?.text ?? null, 'phase')
 
   if (phase !== '') {
-    const owner = fieldOf(sentinel, 'owner')
+    const owner = fieldOf(sentinel?.text ?? null, 'owner')
 
-    lines.push(`arc phase ${phase}${owner === '' ? '' : ` owned by ${owner}`}, declared by this session (.claude/cc-phase/)`)
+    lines.push(`arc phase ${phase}${owner === '' ? '' : ` owned by ${owner}`}, declared by this session (${sentinel?.dir})`)
   }
 
   if (run !== null) {
@@ -68,22 +87,26 @@ export async function stateLines($: EngineInterface, root: string): Promise<stri
     const branch = fieldOf(run, 'branch')
     const index = fieldOf(run, 'index_path')
 
-    lines.push(`task-runner run${slug === '' ? '' : ` ${slug}`}${branch === '' ? '' : ` on branch ${branch}`}${index === '' ? '' : `, cards at ${index}`} (.claude/task-runner/active-run.json)`)
+    lines.push(`task-runner run${slug === '' ? '' : ` ${slug}`}${branch === '' ? '' : ` on branch ${branch}`}${index === '' ? '' : `, cards at ${index}`} (${runDir}/active-run.json)`)
   }
 
   if (scope) {
-    lines.push('scope lock active (.claude/task-runner/scope.json)')
+    lines.push(`scope lock active (${runDir}/scope.json)`)
   }
 
-  const ledgers = names.filter(name => /^ledger-.+\.md$/.test(name)).map(cleaned)
-  const goals = names.filter(name => /^goal-ledger-.+\.md$/.test(name)).map(cleaned)
+  const lists = [
+    ['.cc-artifacts/taskmaster/', fresh],
+    [`${LEGACY}/taskmaster/`, old],
+  ] as const
+  const ledgers = ledgersOf(lists, /^ledger-.+\.md$/)
+  const goals = ledgersOf(lists, /^goal-ledger-.+\.md$/)
 
-  if (ledgers.length > 0) {
-    lines.push(`open taskmaster ledger(s): ${ledgers.join(', ')} (.claude/taskmaster/)`)
+  if (ledgers !== null) {
+    lines.push(`open taskmaster ledger(s): ${ledgers.names.join(', ')} (${ledgers.dir})`)
   }
 
-  if (goals.length > 0) {
-    lines.push(`goal ledger(s): ${goals.join(', ')} (.claude/taskmaster/)`)
+  if (goals !== null) {
+    lines.push(`goal ledger(s): ${goals.names.join(', ')} (${goals.dir})`)
   }
 
   return lines

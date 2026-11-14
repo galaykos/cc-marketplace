@@ -2,7 +2,7 @@
 # codebase-cleanup.sh — remove every scratch file codebase-scaffold.sh wrote.
 #
 # WHAT IT CATCHES. Any path containing `__design-kit__` under the project (skipping
-# node_modules, vendor, .git, .design-kit) is deleted, and every line carrying the
+# node_modules, vendor, .git, .cc-artifacts, .design-kit) is deleted, and every line carrying the
 # `__design-kit__ scratch` marker is stripped from routes/web.php and from any .css
 # file (the scaffold's Tailwind v4 `@source` line), restoring each file's bytes —
 # including a missing final newline. `--verify` only lists leftovers and exits 1 if
@@ -23,13 +23,13 @@ case "${1:-}" in --verify) verify=1 ;; "") ;; -h|--help) sed -n '2,16p' "$0"; ex
 
 leftovers=()
 while IFS= read -r p; do leftovers+=("$p"); done < <(
-  find . \( -name node_modules -o -name vendor -o -name .git -o -name .design-kit \) -prune -o -path '*__design-kit__*' -print 2>/dev/null | sort
+  find . \( -name node_modules -o -name vendor -o -name .git -o -name .cc-artifacts -o -name .design-kit \) -prune -o -path '*__design-kit__*' -print 2>/dev/null | sort
 )
 marked=()  # real files carrying marked lines: the route file and an entry stylesheet
 while IFS= read -r f; do marked+=("${f#./}"); done < <(
   { [ -f routes/web.php ] && grep -lF "$MARK" routes/web.php
     grep -rlF --include='*.css' --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git \
-      --exclude-dir=.design-kit --exclude-dir=__design-kit__ "$MARK" . ; } 2>/dev/null | sort -u
+      --exclude-dir=.cc-artifacts --exclude-dir=.design-kit --exclude-dir=__design-kit__ "$MARK" . ; } 2>/dev/null | sort -u
 )
 hits=0
 for f in "${marked[@]:-}"; do [ -n "$f" ] && hits=$(( hits + $(grep -cF "$MARK" "$f") )); done

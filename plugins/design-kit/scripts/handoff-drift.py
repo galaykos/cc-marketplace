@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """handoff-drift.py — how far shipped code drifts from the repo's declared tokens.
 
-Bundle mode (`handoff-drift.py <dir>`): every colour and font-family a Claude Design bundle's .html/.css use, against every token the repo declares (CSS custom properties, tailwind.config.*, design-system/tokens.json) — one row per value, match / near (RGB distance <= --near) / no token; exit 0. Scan mode (`--scan PATH...`, `dk drift`): literal colours and named Tailwind palette utilities in components that reach no token; --ci exits 1 on a hit. No token source: exit 2 in either mode.
+Bundle mode (`handoff-drift.py <dir>`): every colour and font-family a Claude Design bundle's .html/.css use, against every token the repo declares (CSS custom properties, tailwind.config.*, .cc-artifacts/design-kit/design-system/tokens.json, else a pre-2026-11-14 design-system/tokens.json) — one row per value, match / near (RGB distance <= --near) / no token; exit 0. Scan mode (`--scan PATH...`, `dk drift`): literal colours and named Tailwind palette utilities in components that reach no token; --ci exits 1 on a hit. No token source: exit 2 in either mode.
 Misses: spacing, radius, shadow and font drift; a runtime colour; a literal on a declaration line (`--name:`, `$name:`); a 3-hex slug outside href/to; the right token in the wrong role (`bg-primary` is clean by construction); a scale renamed `indigo` in tailwind.config unless tokens.json declares it.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/handoff-drift.py
 """
@@ -121,7 +121,7 @@ def repo_tokens(repo):
         base = os.path.join(repo, root)
         pattern = os.path.join(base, "*.css") if root == "." else os.path.join(base, "**", "*.css")
         css_files += [p for p in glob.glob(pattern, recursive=True)
-                      if "node_modules" not in p and "vendor" not in p and ".design-kit" not in p]
+                      if "node_modules" not in p and "vendor" not in p and ".design-kit" not in p and ".cc-artifacts" not in p]
     for path in sorted(set(css_files)):
         for name, value in CUSTOM_PROP.findall(_read(path)):
             for _lit, rgb in colours_in(value):
@@ -132,7 +132,9 @@ def repo_tokens(repo):
     for path in glob.glob(os.path.join(repo, "tailwind.config.*")):
         for name, hexv in TW_PAIR.findall(_read(path)):
             colours.setdefault(_hex_to_rgb(hexv), f"tailwind:{name}")
-    tokens_json = os.path.join(repo, "design-system", "tokens.json")
+    tokens_json = os.path.join(repo, ".cc-artifacts", "design-kit", "design-system", "tokens.json")
+    if not os.path.isfile(tokens_json):
+        tokens_json = os.path.join(repo, "design-system", "tokens.json")  # plugins before 2026-11-14 wrote it here
     if os.path.isfile(tokens_json):
         try:
             data = json.loads(_read(tokens_json))
@@ -161,7 +163,7 @@ def _walk_dtcg(node, path, colours, fonts):
 
 
 SCAN_EXT = (".tsx", ".jsx", ".vue", ".blade.php", ".css", ".scss")
-SCAN_SKIP = ("node_modules", "vendor", ".design-kit", "__design-kit__", "dist", "build", ".git")
+SCAN_SKIP = ("node_modules", "vendor", ".cc-artifacts", ".design-kit", "__design-kit__", "dist", "build", ".git")
 
 # Tailwind's default palette scales: a utility naming one never passes the token layer, so the class string is the evidence. black/white/transparent/current/inherit are deliberately absent.
 TW_SCALES = ("slate", "gray", "grey", "zinc", "neutral", "stone", "red", "orange", "amber",
@@ -237,7 +239,7 @@ def run_scan(args):
     colours, fonts = repo_tokens(args.repo)
     files = scan_files(args.paths)
     if not colours and not fonts:
-        print("drift: no design-system/tokens.json, tailwind.config.* or `--token:` custom property "
+        print("drift: no design-system tokens.json, tailwind.config.* or `--token:` custom property "
               f"found under {os.path.abspath(args.repo)} — NOT MEASURED. Run /design-kit:system first; "
               "a drift check that cannot find the tokens has not cleared anything.")
         return 2

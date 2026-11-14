@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# mark-deliberated.sh write --task <slug> [--shape "<pick>"] [--why "<one line>"] [--kill-trigger "<…>"] [--by <who>] | check --task <slug> — the one writer and reader of <project root>/.claude/approaches/deliberated.json, the double-run marker. check exits 0 when an unexpired marker (120 min, the compact-recovery TTL) names <slug>, 1 otherwise; write exits 0; 3 is a usage error.
+# mark-deliberated.sh write --task <slug> [--shape "<pick>"] [--why "<one line>"] [--kill-trigger "<…>"] [--by <who>] | check --task <slug> — the one writer and reader of <project root>/.cc-artifacts/approaches/deliberated.json, the double-run marker (an older project's .claude/approaches/ is copied over once). check exits 0 when an unexpired marker (120 min, the compact-recovery TTL) names <slug>, 1 otherwise; write exits 0; 3 is a usage error.
 # Misses: whether a deliberation actually ran before write, a marker written by hand, and a second task in the same project overwriting the first (one marker per project by design).
 # Why, limits, history: rationale/derivations/plugin-approaches.md § plugins/approaches/scripts/mark-deliberated.sh
 
@@ -40,7 +40,10 @@ while [ $# -gt 0 ]; do
 done
 printf '%s' "$task" | grep -Eq '^[a-z0-9][a-z0-9-]{0,79}$' || usage "--task must be a short kebab-case slug (got: ${task:-nothing})"
 root=$(cc_state_root "$cwd") || usage "cannot resolve a project root from $cwd"
-marker="$root/.claude/approaches/deliberated.json"
+dir="$root/.cc-artifacts/approaches"; old="$root/.claude/approaches"
+marker="$dir/deliberated.json"
+# Plugins before 2026-11-14 kept this state in .claude/approaches/; copy it over once, then use only the new dir.
+if [ ! -d "$dir" ] && [ -d "$old" ]; then mkdir -p "$dir" && cp -Rp "$old/." "$dir/"; fi
 
 if [ "$cmd" = check ]; then
   [ -f "$marker" ] || exit 1
@@ -50,7 +53,7 @@ if [ "$cmd" = check ]; then
   exit 0
 fi
 
-mkdir -p "$root/.claude/approaches" || usage "cannot create $root/.claude/approaches"
+mkdir -p "$dir" || usage "cannot create $dir"
 jq -n --arg task "$task" --arg by "$by" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg shape "$shape" --arg why "$why" --arg kill "$kill" \
   '{task: $task, by: $by, at: $at} + (if $shape != "" then {shape: $shape} else {} end)
    + (if $why != "" then {why: $why} else {} end) + (if $kill != "" then {kill_trigger: $kill} else {} end)' > "$marker" \

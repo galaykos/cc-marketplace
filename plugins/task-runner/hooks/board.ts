@@ -38,6 +38,9 @@ const GATE = /behavioral-gate\.sh/
 
 const RECEIPT_CHECK = '/scripts/check-receipt.sh'
 
+// Plugins before 2026-11-14 kept cards under taskmaster-docs/tasks/, where an older project's newest index may still be.
+const TASK_DIRS = ['.cc-artifacts/taskmaster/tasks', 'taskmaster-docs/tasks']
+
 async function isBoardOn($: EngineInterface, option: boolean): Promise<boolean> {
   return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_TASK_BOARD'), option)
 }
@@ -84,28 +87,44 @@ async function indexOf(host: Host, held: Board | undefined, root: string, indexP
 
 async function newestBoard($: EngineInterface, host: Host, held: Board | undefined, refreshes: Refreshes, phase: string, isTurnEnd: boolean): Promise<Board> {
   const root = await stateRoot(host)
-  const tasks = `${root}/taskmaster-docs/tasks`
-  const entries = await $.fs.list(tasks).catch(() => [])
 
   const stamped = await Promise.all(
-    entries.map(({ name }) => host.stat(`${tasks}/${name}/00-INDEX.md`).then(s => [{ slug: name, mtimeMs: s.mtimeMs }], () => [])),
+    TASK_DIRS.map(async dir => {
+      const tasks = `${root}/${dir}`
+      const entries = await $.fs.list(tasks).catch(() => [])
+
+      return Promise.all(
+        entries.map(({ name }) => {
+          const indexPath = `${tasks}/${name}/00-INDEX.md`
+
+          return host.stat(indexPath).then(s => [{ slug: name, indexPath, mtimeMs: s.mtimeMs }], () => [])
+        }),
+      )
+    }),
   )
 
-  const newest = stamped.flat().sort((a, b) => b.mtimeMs - a.mtimeMs)[0]
+  const newest = stamped.flat(2).sort((a, b) => b.mtimeMs - a.mtimeMs)[0]
 
   if (newest === undefined) {
     return INACTIVE
   }
 
-  const indexPath = `${tasks}/${newest.slug}/00-INDEX.md`
+  const { indexPath } = newest
   const { mtimeMs, model } = await indexOf(host, held, root, indexPath, newest.slug)
   const receipt = await receiptAt($, host, root, refreshes, isTurnEnd)
 
   return { indexPath, mtimeMs, model, runActive: false, phase, hasRedTeam: refreshes.hasRedTeam, records: null, checkMinutes: null, receipt }
 }
 
+// Plugins before 2026-11-14 kept run state in .claude/task-runner/; the scripts copy it over once, so read it there only while the new dir is absent.
+async function runDir(host: Host, root: string): Promise<string> {
+  const dir = `${root}/.cc-artifacts/task-runner`
+
+  return host.stat(dir).then(() => dir, () => `${root}/.claude/task-runner`)
+}
+
 async function recordsAt($: EngineInterface, host: Host, root: string): Promise<Board['records']> {
-  const dir = `${root}/.claude/task-runner`
+  const dir = await runDir(host, root)
   const registeredMs = await host.stat(`${dir}/active-run.json`).then(s => s.mtimeMs, () => null)
   const listed = (name: string) => $.fs.list(`${dir}/${name}`).catch(() => [])
 
@@ -114,7 +133,7 @@ async function recordsAt($: EngineInterface, host: Host, root: string): Promise<
 
 // Freshness is the script's to decide, so the board asks it; only at a turn end or once the receipt, HEAD or the index moved.
 async function receiptAt($: EngineInterface, host: Host, root: string, refreshes: Refreshes, isTurnEnd: boolean): Promise<Board['receipt']> {
-  const receiptMs = await host.stat(`${root}/.claude/task-runner/receipt.json`).then(s => s.mtimeMs, () => null)
+  const receiptMs = await host.stat(`${await runDir(host, root)}/receipt.json`).then(s => s.mtimeMs, () => null)
 
   if (receiptMs === null) {
     refreshes.probed = null
@@ -160,7 +179,7 @@ async function isGateLive($: EngineInterface, host: Host, root: string, pid: str
 }
 
 async function checkAt($: EngineInterface, host: Host, root: string): Promise<{ minutes: number; dueInMs: number } | null> {
-  const path = `${root}/.claude/task-runner/bg/running.pid`
+  const path = `${await runDir(host, root)}/bg/running.pid`
   const stat = await host.stat(path).catch(() => null)
   const text = stat === null ? null : await host.read(path).catch(() => null)
 

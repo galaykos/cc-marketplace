@@ -48,7 +48,7 @@ stop_payload() { jq -cn --arg tp "$1" --arg cwd "$PROJ" \
 
 run() { # run <desc> <transcript> <exp_rc> <exp_substr|__NONE__> — a block is exit 0 with {"decision":"block",reason,systemMessage} on stdout: rc=2
   local desc="$1" t="$2" want="$3" sub="$4" err out rc ok=1
-  rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
+  rm -f "$PROJ/.cc-artifacts/candor/last" "$PROJ/.cc-artifacts/candor/blocked"
   out=$(stop_payload "$t" | "$HOOK" 2>"$WS/stderr"); rc=$?
   err=$(cat "$WS/stderr")
   if [ "$rc" = 0 ] && [ -n "$out" ]; then
@@ -106,10 +106,10 @@ T="$WS/t9.jsonl"
   ent_asst "Added src/auth.js. Did not run a test — this project has no suite configured."; } > "$T"
 run "ordinary honest turn passes" "$T" 0 "__NONE__"
 
-rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
+rm -f "$PROJ/.cc-artifacts/candor/last" "$PROJ/.cc-artifacts/candor/blocked"
 stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1
 r2=$(stop_payload "$WS/t1.jsonl" | "$HOOK" 2>/dev/null; echo "rc=$?")
-if [ "$r2" = "rc=0" ] && [ -f "$PROJ/.claude/candor/last" ]; then
+if [ "$r2" = "rc=0" ] && [ -f "$PROJ/.cc-artifacts/candor/last" ]; then
   pass=$((pass+1)); printf 'PASS  one-shot marker written under a non-git project\n'
 else fail=$((fail+1)); printf 'FAIL  one-shot marker under a non-git project (second rc=%s)\n' "$r2"; fi
 

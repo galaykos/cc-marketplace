@@ -2,6 +2,14 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.13.0 — 2026-11-14
+
+- **Clause 4 reads the task-runner run in `.cc-artifacts/task-runner/`, else in `.claude/task-runner/`**, where task-runner wrote it before 2026-11-14. The old dir counts only while the new one does not exist (task-runner copies it over once), and every path the block text names is the dir the run was read from.
+- **The one-block-per-HEAD nudge moved into candor's own state dir**, beside `last` and `blocked` (was `.claude/task-runner/gate-nudge*`), so the gate never writes a run's old dir nor creates its new one. Old nudges are not read: a run blocked once at this HEAD before the upgrade can be blocked once more.
+- **The gate's state with no plugin data dir moves to `.cc-artifacts/candor/`** (was `.claude/candor/`), through the shared plugin-state block in `hooks/gate.sh`. Markers start fresh. `~/.claude/terse-mode` does not move.
+- `hooks/cc-kit.ts`, the shared mod kit, reads `.cc-artifacts/cc-phase/` and `.cc-artifacts/task-runner/active-run.json` first, then the `.claude/` paths.
+- Standing: gate (`gate.test.sh` "legacy run" cases: an old-only run is read and named, the nudge lands in `.cc-artifacts/candor/`, the old dir stays byte-identical, a stale old run stops counting once the new dir exists; `gate-pins.test.sh`; the marketplace repository's `scripts/smoke/evidence-gate-hook-tests.sh`).
+
 ## 0.12.8 — 2026-11-12
 
 - **The preamble skip list follows the analyzer agent's new name.** `preamble.sh` skips `code-review:analyzer-expert` (read-only), which replaces the five `toolchain-experts` agents.

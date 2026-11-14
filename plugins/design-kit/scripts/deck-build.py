@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """deck-build.py — outline markdown → one self-contained HTML deck.
 
-Renders an outline (skills/slides/references/outline-format.md) into skills/slides/assets/deck-shell.html with local images inlined and theme tokens from design-system/ when present; writes .design-kit/decks/YYYY-MM-DD-<slug>.html (or --out). Stdlib only. Exit 2 with no `# ` title, no slide, a slide body over --max-lines visible lines (default 6; --allow-long warns instead), or an external src=/href= in the output.
+Renders an outline (skills/slides/references/outline-format.md) into skills/slides/assets/deck-shell.html with local images inlined and theme tokens from .cc-artifacts/design-kit/design-system/ (else a pre-2026-11-14 design-system/) when present; writes .cc-artifacts/design-kit/decks/YYYY-MM-DD-<slug>.html (or --out). Stdlib only. Exit 2 with no `# ` title, no slide, a slide body over --max-lines visible lines (default 6; --allow-long warns instead), or an external src=/href= in the output.
 Misses: whether a headline states a claim and whether numbers belong in a figure (agent-graded in the skill).
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/deck-build.py
 """
@@ -22,7 +22,7 @@ INLINE_RE = re.compile(r"(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[([^\]]+)\]\(([
 
 
 def dk_dir():
-    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .design-kit at the git root (the cwd outside git)."""
+    """$DESIGN_KIT_DIR (dk.sh exports it, anchored at the project root), else .cc-artifacts/design-kit at the git root (the cwd outside git)."""
     import subprocess
     if os.environ.get("DESIGN_KIT_DIR"):
         return os.environ["DESIGN_KIT_DIR"]
@@ -31,7 +31,7 @@ def dk_dir():
         up = r.stdout.strip() if r.returncode == 0 else ""
     except (OSError, subprocess.SubprocessError):
         up = ""
-    return os.path.join(up, ".design-kit")
+    return os.path.join(up, ".cc-artifacts", "design-kit")
 
 
 def inline(text):
@@ -195,7 +195,10 @@ THEME_USED = {"path": None}  # the theme file theme_css() actually read, for the
 
 def theme_css(theme_path, cwd):
     """Map design-system output to --dk-* variables. Returns css lines (may be empty)."""
-    cands = [theme_path] if theme_path else [os.path.join(cwd, "design-system", "tokens.json"), os.path.join(cwd, "design-system", "DESIGN-SYSTEM.md")]
+    ds = os.path.join(cwd, ".cc-artifacts", "design-kit", "design-system")
+    if not any(os.path.isfile(os.path.join(ds, f)) for f in ("tokens.json", "DESIGN-SYSTEM.md")):
+        ds = os.path.join(cwd, "design-system")  # plugins before 2026-11-14 wrote it here; read while the new one is absent
+    cands = [theme_path] if theme_path else [os.path.join(ds, "tokens.json"), os.path.join(ds, "DESIGN-SYSTEM.md")]
     THEME_USED["path"] = None
     for p in cands:
         if not p or not os.path.isfile(p):
@@ -342,7 +345,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="outline markdown → self-contained HTML deck")
     ap.add_argument("outline")
     ap.add_argument("--out")
-    ap.add_argument("--theme", help="design-system/tokens.json or DESIGN-SYSTEM.md; auto-detected under ./design-system when omitted")
+    ap.add_argument("--theme", help="tokens.json or DESIGN-SYSTEM.md; auto-detected under ./.cc-artifacts/design-kit/design-system, else ./design-system, when omitted")
     ap.add_argument("--max-lines", type=int, default=6)
     ap.add_argument("--allow-long", action="store_true")
     a = ap.parse_args(argv)

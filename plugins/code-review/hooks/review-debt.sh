@@ -1,6 +1,6 @@
 #!/bin/bash
 # UserPromptSubmit, advisory: one line when 8+ code/config files or an auth path changed since this context's last review (a ship prompt: at once, untracked included), once per base and set of files; a review Agent/Task/Skill call (PostToolUse) moves the base, clears what was named and credits each file's content as it was then.
-# Skips docs, lockfiles, art, media, fonts and binaries; `guard` is auth only as a word (Guard.php, JwtGuard; not GuardPost). Misses: uncommitted work until a commit or ship verb; reviews by other names; what a review did not read; a rebase or branch switch resets the base; silent while .claude/task-runner/active-run.json exists, a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
+# Skips docs, lockfiles, art, media, fonts and binaries; `guard` is auth only as a word (Guard.php, JwtGuard; not GuardPost). Misses: uncommitted work until a commit or ship verb; reviews by other names; what a review did not read; a rebase or branch switch resets the base; silent while .cc-artifacts/task-runner/active-run.json exists (.claude/task-runner/'s until that dir does), a crashed run's stale one too. Off: CC_REMIND, CC_REVIEW_NUDGE.
 # Why, limits, history: rationale/derivations/plugin-code-review.md § plugins/code-review/hooks/review-debt.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -24,7 +24,7 @@ cc_state_root() {
 # Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
 # cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.claude/<name>. Status 0; creates nothing.
+# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
 # The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
 # Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
 cc_plugin_state() {
@@ -34,7 +34,7 @@ cc_plugin_state() {
     sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
     printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
   else
-    printf '%s/.claude/%s\n' "$1" "$2"
+    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
   fi
   return 0
 }
@@ -208,7 +208,7 @@ cc_prompt_question() {
     find "$dir" -maxdepth 1 -name 'review-*' -type f -mtime +14 -exec rm -f {} + 2>/dev/null
   }
   code_only() {
-    grep -vE '\.md$|(^|/)\.claude/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
+    grep -vE '\.md$|(^|/)\.claude/|(^|/)\.cc-artifacts/|(^|/)taskmaster-docs/|(^|/)(node_modules|vendor|dist|build|\.next|coverage|generated|__generated__)/' \
     | grep -vE '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|pnpm-lock\.yaml|composer\.lock|Gemfile\.lock|Cargo\.lock|poetry\.lock|Pipfile\.lock|uv\.lock|go\.sum|bun\.lockb?|mix\.lock|flake\.lock)$' \
     | LC_ALL=C grep -viE '\.(png|jpe?g|gif|webp|bmp|tga|tiff?|psd|psb|ico|icns|svg|exr|hdr|dds|ktx2?|avif|heic|xcf|kra|aseprite|fbx|blend1?|glb|gltf|obj|mtl|dae|3ds|max|stl|ply|usd[acz]?|abc|vox|sbsar|spp|meta|mat|controller|overridecontroller|anim|prefab|unity|physicmaterial|mask|mixer|rendertexture|spriteatlas|playable|cubemap|lighting|terrainlayer|bytes|import|uasset|umap|wav|mp3|ogg|flac|aiff?|m4a|opus|bank|mp4|mov|webm|avi|mkv|ttf|otf|woff2?|eot|pdf|zip|gz|tgz|7z|rar|dll|so|dylib|exe|jar|class|pyc|wasm)$'
   }
@@ -245,7 +245,9 @@ cc_prompt_question() {
     } | awk '!seen[$0]++' | tail -n 5000 > "$credit_f.$$" 2>/dev/null && mv -f "$credit_f.$$" "$credit_f" 2>/dev/null
     exit 0
   fi
-  [ -e "$root/.claude/task-runner/active-run.json" ] && { record "$head"; exit 0; }
+  # task-runner kept run state in .claude/task-runner/ before 2026-11-14: it counts until .cc-artifacts/task-runner/, its one-time copy, exists.
+  trd="$root/.cc-artifacts/task-runner"; [ -d "$trd" ] || trd="$root/.claude/task-runner"
+  [ -e "$trd/active-run.json" ] && { record "$head"; exit 0; }
 
   [ -n "$base" ] || { record "$head"; exit 0; }               # first prompt: baseline, silent
   if [ -z "$bbranch" ]; then

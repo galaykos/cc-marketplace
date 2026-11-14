@@ -34,7 +34,7 @@ Per task, loop — but with a hard ceiling:
 1. Implement the change the task describes. Inline, first Read every `<skill>` SKILL.md the card names.
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
 3. Pass → run the negative-control gate before flipping (`references/negative-control.md`)
-   with `--record-dir .claude/task-runner/nc --card <cardId>` — the pass record lands
+   with `--record-dir .cc-artifacts/task-runner/nc --card <cardId>` — the pass record lands
    mechanically, and the completion gate (candor's clause 4, when candor is installed)
    refuses a clean stop when done cards outnumber nc records: `discriminating` → flip; `vacuous`/`invalid-control` → back into this
    loop (no teeth); exit 5 → halt (stderr prose, empty stdout — branch on the code). Manual/visual: `--skip "<reason>"`, same flags.

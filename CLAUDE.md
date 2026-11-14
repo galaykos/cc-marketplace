@@ -14,7 +14,8 @@ scope, and that includes polishing this file. **Standing: `recorded`** — no sc
 ## Where documentation lives (enforced)
 
 - **Task documentation, specifications, design docs and task history live ONLY in
-  `taskmaster-docs/`**, a gitignored working area. Never copy them into `plugins/`.
+  `.cc-artifacts/`** (taskmaster's under `.cc-artifacts/taskmaster/`), a gitignored working area. Never
+  copy them into `plugins/`. The older `taskmaster-docs/` is still gitignored and still read.
 - A plugin ships **only functional files**:
   - `.claude-plugin/plugin.json`
   - `README.md` (and optionally `CHANGELOG.md` / `ROADMAP.md`) at the plugin root
@@ -33,8 +34,8 @@ scope, and that includes polishing this file. **Standing: `recorded`** — no sc
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/` or spec dir inside a plugin to "preserve" history. A document
   that truly must be tracked goes in **`rationale/`** at the repo root, never inside a plugin.
-  (`taskmaster-docs/` and `docs/` are both gitignored, so "move it there" is deletion, not
-  preservation.)
+  (`.cc-artifacts/`, `taskmaster-docs/` and `docs/` are all gitignored, so "move it there" is
+  deletion, not preservation.)
 - **Doctrine with exactly one user, this repository, is a tracked project skill**:
   `.claude/skills/<name>/SKILL.md` (+ `references/`), not a plugin. `.gitignore` re-includes
   `.claude/skills/*/` as a whole, so a new project skill is tracked the moment it exists.

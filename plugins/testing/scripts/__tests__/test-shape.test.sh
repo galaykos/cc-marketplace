@@ -317,11 +317,11 @@ print(json.dumps({"hook_event_name":"PostToolUse","tool_name":"Write","cwd":sys.
 first=$(twice); second=$(twice)
 if [ -n "$first" ] && [ -z "$second" ]; then pass "the same file is reported once per context"
 else fail "the same file is reported once per context" "first='${first:0:40}' second='${second:0:40}'"; fi
-if [ -n "$(find "$cwd/.claude/testing" -name 'shape-*' -type f 2>/dev/null)" ]
+if [ -n "$(find "$cwd/.cc-artifacts/testing" -name 'shape-*' -type f 2>/dev/null)" ]
 then pass "the state file lands on disk (the key is hashed, not a raw path)"
 else fail "the state file lands on disk (the key is hashed, not a raw path)" "none under $cwd"; fi
-if [ "$(cat "$cwd/.claude/testing/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
-else fail "the state dir ignores itself" ".claude/testing/.gitignore missing or not '*'"; fi
+if [ "$(cat "$cwd/.cc-artifacts/testing/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
+else fail "the state dir ignores itself" ".cc-artifacts/testing/.gitignore missing or not '*'"; fi
 
 # ---- 7b. a payload cwd that no longer exists must not be rebuilt -------------------------
 # A session outlives the directory it started in, and `mkdir -p` was happy to recreate a

@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.3.0 — 2026-11-14
+
+- **The shared mod kit reads plugin state from `.cc-artifacts/` first.** `hooks/cc-kit.ts` `phaseFile` and `liveSentinel` read `.cc-artifacts/cc-phase/<session>.json`, and `activeRun` reads `.cc-artifacts/task-runner/active-run.json`; each falls back to the old `.claude/` path when the new one holds nothing, and never writes there. The HUD itself calls none of the three, so nothing it draws changes. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).
+
 ## 0.2.3 — 2026-11-12
 
 - **The shared mod kit reads only this session's phase sentinel.** `hooks/cc-kit.ts` `liveSentinel` reads `.claude/cc-phase/<session>.json` (taskmaster 0.56.0) through the new `phaseFile`. A sentinel naming no session, or another session's, no longer counts. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).

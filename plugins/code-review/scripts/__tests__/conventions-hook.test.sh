@@ -26,7 +26,7 @@ export TMPDIR="$FX/tmp"
 # This session exports CLAUDE_PROJECT_DIR (the marketplace repo); a fixture outside git
 # must resolve to its own directory, not to that.
 unset CLAUDE_PROJECT_DIR CC_REMIND CC_CONVENTIONS
-unset CLAUDE_PLUGIN_DATA   # the effects cases read the marker under <root>/.claude
+unset CLAUDE_PLUGIN_DATA   # the effects cases read the marker under <root>/.cc-artifacts
 
 mkdir -p "$FX/repo/.github/workflows" "$FX/repo/src" "$FX/bare"
 printf 'root = true\n[*]\nindent_style = tab\nquote_type = double\nmax_line_length = 120\n' > "$FX/repo/.editorconfig"
@@ -274,8 +274,8 @@ PY"
 
   d=$(efx c nomark)
   o=$(prun "$d" ec1 "open('src/made.ts', 'w').write('export const a = 1\n')")
-  [ -z "$o" ] && [ -f "$d/.claude/code-review/bash-effects-conventions.mark" ] && echo "PASS: the first call in a repo is silent and leaves the marker" \
-    || { echo "FAIL: the first call in a repo — out [${o:+fired}] marker [$(ls "$d/.claude/code-review" 2>&1)]"; rc=1; }
+  [ -z "$o" ] && [ -f "$d/.cc-artifacts/code-review/bash-effects-conventions.mark" ] && echo "PASS: the first call in a repo is silent and leaves the marker" \
+    || { echo "FAIL: the first call in a repo — out [${o:+fired}] marker [$(ls "$d/.cc-artifacts/code-review" 2>&1)]"; rc=1; }
   quiet "a python run that wrote nothing" "$(prun "$d" ec2 'print(1)')"
 
   d=$(efx e); printf 'export const e = 1\n' > "$d/src/edited.ts"; efire "$d/src/edited.ts" "$d" ee1 >/dev/null

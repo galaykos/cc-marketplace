@@ -206,22 +206,33 @@ assert m._newest_mtime(sys.argv[2]) == before
 os.unlink(os.path.join(sys.argv[2], ".notes.jsonl.tmp"))
 PY
 
-# token badge: a stamped page vs ../design-system/tokens.json
-mkdir -p "$tmp.ds/design-system"; printf '{"color":{"a":{"$value":"#000"}}}' > "$tmp.ds/design-system/tokens.json"
-sha="$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest()[:12])' "$tmp.ds/design-system/tokens.json")"
-mkdir -p "$tmp.ds/.design-kit/decks"
-printf '<!doctype html><html><head><title>Cur</title><meta name="design-kit-tokens" content="%s none"></head><body>x</body></html>' "$sha" > "$tmp.ds/.design-kit/decks/cur.html"
-printf '<!doctype html><html><head><title>Old</title><meta name="design-kit-tokens" content="000000000000 none"></head><body>x</body></html>' > "$tmp.ds/.design-kit/decks/old.html"
+# token badge: a stamped page vs <docroot>/design-system/tokens.json; the design-system/ folder is not a gallery group
+dr="$tmp.ds/.cc-artifacts/design-kit"
+mkdir -p "$dr/design-system"; printf '{"color":{"a":{"$value":"#000"}}}' > "$dr/design-system/tokens.json"
+printf '<!doctype html><html><head><title>Kit</title></head><body>k</body></html>' > "$dr/design-system/kit.html"
+sha="$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest()[:12])' "$dr/design-system/tokens.json")"
+mkdir -p "$dr/decks"
+printf '<!doctype html><html><head><title>Cur</title><meta name="design-kit-tokens" content="%s none"></head><body>x</body></html>' "$sha" > "$dr/decks/cur.html"
+printf '<!doctype html><html><head><title>Old</title><meta name="design-kit-tokens" content="000000000000 none"></head><body>x</body></html>' > "$dr/decks/old.html"
 port2=$(( 20000 + RANDOM % 10000 ))
-bash "$here/preview.sh" --docroot "$tmp.ds/.design-kit" --port "$port2" >/dev/null; sleep 0.4
+bash "$here/preview.sh" --docroot "$dr" --port "$port2" >/dev/null; sleep 0.4
 idx="$(curl -s "http://127.0.0.1:$port2/_index.json")"
 python3 -c '
 import json,sys; d={p["path"]:p["tokens"] for p in json.loads(sys.argv[1])}
 assert d["decks/cur.html"]["current"] is True, d
-assert d["decks/old.html"]["current"] is False, d' "$idx" || { echo "FAIL: _index.json tokens: $idx"; exit 1; }
+assert d["decks/old.html"]["current"] is False, d
+assert not [p for p in d if p.startswith("design-system/")], d' "$idx" || { echo "FAIL: _index.json tokens: $idx"; exit 1; }
 gal2="$(curl -s "http://127.0.0.1:$port2/")"
 case "$gal2" in *"tokens current"*"tokens moved since build"*|*"tokens moved since build"*"tokens current"*) ;; *) echo "FAIL: badges missing in gallery"; exit 1 ;; esac
-bash "$here/preview.sh" --docroot "$tmp.ds/.design-kit" --stop >/dev/null; rm -rf "$tmp.ds"
+bash "$here/preview.sh" --docroot "$dr" --stop >/dev/null
+# plugins before 2026-11-14 kept design-system/ at the project root: read it while the docroot holds none
+mkdir -p "$tmp.ds/design-system"; mv "$dr/design-system/tokens.json" "$tmp.ds/design-system/tokens.json"
+python3 - "$here/serve.py" "$dr" "$sha" <<'PY' || { echo "FAIL: the badge did not fall back to <project>/design-system/tokens.json"; exit 1; }
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+assert m._tokens_sha(sys.argv[2]) == sys.argv[3], m._tokens_sha(sys.argv[2])
+PY
+rm -rf "$tmp.ds"
 
 # LAN key, as a unit: the peer/key decision and the redirect target are pure functions
 python3 - "$here/serve.py" <<'PY' || { echo "FAIL: lan_gate / without_key unit cases"; exit 1; }
