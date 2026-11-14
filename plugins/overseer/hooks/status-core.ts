@@ -16,8 +16,9 @@ export function nextMilestone(program: unknown): NextMilestone | null {
   const done = new Set<unknown>(ms.filter((m) => m.status === 'done').map((m) => m.id))
   const i = ms.findIndex((m) =>
     m.status !== 'done' && m.status !== 'parked' && (m.depends ?? []).every((d) => done.has(d)))
-  if (i === -1) return null
-  const { id, title, status } = ms[i]
+  const found = ms[i]
+  if (found === undefined) return null
+  const { id, title, status } = found
   return { k: i + 1, n: ms.length, id, title, status }
 }
 

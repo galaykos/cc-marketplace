@@ -813,9 +813,10 @@ case "$cmd" in
     jq --arg a "$dir/milestones/" --arg b "$phys/milestones/" --arg to "$(cd "$arch" && pwd -P)/milestones/" \
       '(.milestones[].evidence[].file) |= (if startswith($a) then $to + .[($a|length):] elif startswith($b) then $to + .[($b|length):] else . end)' \
       "$arch/program.json" > "$arch/program.json.tmp" && mv "$arch/program.json.tmp" "$arch/program.json"
-    for f in charter.md discovery.md capabilities.tsv decisions.md suggestions.md; do [ -f "$dir/$f" ] && cp "$dir/$f" "$arch/$f"; done
+    # Moved, not copied: a decisions.md left behind let the next hands-off program pass its ASSUMED gate on this one's rows.
+    for f in charter.md discovery.md capabilities.tsv decisions.md suggestions.md; do [ -f "$dir/$f" ] && mv "$dir/$f" "$arch/$f"; done
     mkdir -p "$dir/milestones"
-    echo "program closed → $arch (decisions.md kept in place; init may start a new program)";;
+    echo "program closed → $arch (its decisions and suggestions moved there; init may start a new program)";;
 
   *) usage;;
 esac

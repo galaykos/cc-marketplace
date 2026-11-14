@@ -1,7 +1,7 @@
 {
   "name": "gamedev",
-  "version": "0.3.1",
-  "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal, phaser).",
+  "version": "0.3.2",
+  "description": "Engine-agnostic game shipping: Steam release (a SteamPipe build-script validator, the store and review timeline, Content Survey AI disclosure, Steam Cloud and Deck/Machine compatibility) and itch.io release (butler channels, HTML5 limits, jam submissions), plus game asset checks, an AI art pipeline (Higgsfield concept → Meshy 3D, remesh, rig → Blender → Unity) with a budget and a checker at each handoff, Yarn Spinner and Ink dialogue scripting, seed-stable procedural generation, and console/PC/handheld text-size and loudness floors. Companion to the engine plugins (godot, unity-traps, unreal).",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

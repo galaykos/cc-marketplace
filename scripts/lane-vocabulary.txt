@@ -84,7 +84,6 @@ message-delivery-design
 mui-idioms
 nextjs-idioms
 performance-optimization
-phaser-idioms
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
 pixel-art-idioms

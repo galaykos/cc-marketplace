@@ -5,6 +5,9 @@ set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CORE="$ROOT/hooks/status-core.ts"; PROG="$ROOT/scripts/program.sh"
 for c in node jq; do command -v "$c" >/dev/null || { echo "FAIL: $c is required"; exit 1; }; done
+# node loads .ts without a flag from 22.18 / 23.6; an older node fails with ERR_UNKNOWN_FILE_EXTENSION, which names no version
+node -e 'const [a, b] = process.versions.node.split(".").map(Number); process.exit(a > 23 || (a === 23 && b >= 6) || (a === 22 && b >= 18) ? 0 : 1)' \
+  || { echo "FAIL: node $(node --version) cannot load .ts files; this harness needs node 22.18+ (CI runs 24)"; exit 1; }
 ERR=$(mktemp); trap 'rm -f "$ERR"' EXIT
 pass=0; fail=0
 

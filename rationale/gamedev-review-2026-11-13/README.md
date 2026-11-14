@@ -33,6 +33,30 @@ Net: no plugin is retired outright. One is retired after an eval (phaser), two s
 gamedev), two get a kill-trigger (unreal, asset-forge). Every keep rests on a mechanism the
 external tools lack: a hook, or a checker with an exit code. None rests on prose.
 
+## Decided and done on this branch (user picks, 2026-11-13)
+
+| Pick | Outcome |
+| --- | --- |
+| phaser: eval first, then decide | **Retired.** Eval file: `rationale/evals/2026-11-13-164401-phaser.json`. CLI 2.1.323, 3 runs per arm, haiku judge, $2.20. Results below. Removed by `scripts/remove-plugin.sh phaser --apply`, with the residual sweep of the pixijs precedent |
+| Fix stale docs + routes | unity-traps README now names `unity projects verify` and what this plugin's checker adds. asset-forge README: status, Meshy bone map, test counts (45 and 136, run 2026-11-13). stack-scan Framework-native rows added for Unity's, Epic's and Phaser's own tools |
+| meshy shrink, gamedev shrink, unreal and asset-forge kill-triggers | not picked; still proposals |
+
+Phaser eval results:
+
+| Case | with phaser | without |
+| --- | --- | --- |
+| `hud-relaunch` (base) | 3/3 | 3/3 |
+| `onfloor-dynamic` (base) | 3/3 | 3/3 |
+| `hud-relaunch-vendor` (vendor skills installed) | 3/3 | 3/3 |
+| `onfloor-dynamic-vendor` (vendor skills installed) | 3/3 | 3/3 |
+
+- The plugin's skill fired in every with-arm run.
+- One no-plugin answer to the onFloor prompt was read by hand: it named `touching.down` and kept
+  the crate pushable. The judge's PASS holds.
+- Three runs per arm cannot tell a small effect from noise. Three of three in every cell is
+  still no headroom for the plugin to show anything.
+- The case files were deleted with the plugin. Their prompts and graders are in the eval file.
+
 ## Re-checked by the orchestrator
 
 Spot checks of the claims a verdict turns on, run in this session:

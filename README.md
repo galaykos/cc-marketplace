@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **41 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **40 leaf plugins** covering stacks, game engines, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -579,8 +579,7 @@ bill you did not agree to.
 ## Game development
 
 One plugin per engine or art tool, so a project installs only its own — `/stack-scan:suggest` finds
-it from the manifest or file (`project.godot`, `ProjectVersion.txt`, `*.uproject`, a `phaser`
-dep, `*.blend`, a Meshy key or client, `*.aseprite`, Tiled or LDtk maps), and
+it from the manifest or file (`project.godot`, `ProjectVersion.txt`, `*.uproject`, `*.blend`, a Meshy key or client, `*.aseprite`, Tiled or LDtk maps), and
 `/all-plugins:install` leaves every game plugin out unless you name it. Each carries only what a
 model gets wrong from memory — the inversions of the tool's last few releases, its footguns and
 hard limits — and most ship a read-only checker script with an exit code. The engine plugins and
@@ -595,7 +594,6 @@ Nothing here is measured against a control arm.
 | **[godot](plugins/godot)** | Godot 4.4–4.7 inversions (Jolt as the 3D default and its behaviour differences, 4.7's typed-return and packed-array changes, `.uid` sidecars, `duplicate_deep`), multiplayer and export traps, a headless test runner that cannot hang or exit 0 on failure, and `check_godot_project.py` for broken `res://`, uid and scene references | Any `.gd`, `.tscn`, `.tres` or `project.godot` work |
 | **[unity-traps](plugins/unity-traps)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, atlas settings that blur, Light2D normal maps), and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, sprite atlases, CI builds |
 | **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
-| **[phaser](plugins/phaser)** | Phaser 3→4 inversions (filters replace preFX/postFX, `setTintFill` a stub, `TAU` changed) and Arcade collision traps | `phaser` in the lockfile |
 | **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
 | **[blender](plugins/blender)** | Blender 5.x Python API removals and renames (`action.fcurves`, `scene.node_tree`, `BLENDER_EEVEE_NEXT`, `bgl`), headless runs that exit 0 on a Python error unless `--python-exit-code` comes before `--python`, FBX/glTF export rules for Unreal, Unity and Godot — and `check_bpy_scripts.py` (no Blender needed) plus `blender_qa.py` (mesh QA inside Blender) | A `.py` importing `bpy`, a `*.blend` in the repo, exporting assets to an engine |
 | **[asset-forge](plugins/asset-forge)** | Game-asset creation in Blender: a headless MCP server (Python standard library, nothing installed) that renders review contact sheets, validates against platform budgets and engine presets, bakes, stylizes, projects AI textures and exports — always on snapshots, never the working `.blend`; a pure-bpy library of deforms, blockouts, LODs, collision and retargeting; an independent art-reviewer agent; a review-after-change Stop gate | Building a prop, creature or character in Blender for Unity, Unreal or Godot |

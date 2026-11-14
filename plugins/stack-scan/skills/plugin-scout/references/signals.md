@@ -49,7 +49,6 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `project.godot` (its `config/features` names the 4.x minor) | `godot` | a `*.csproj` beside it with `Sdk="Godot.NET.Sdk/…"` is Godot C#, not Unity — suggest `godot`, never `unity-traps` |
 | `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion:`) beside an `Assets/` directory | `unity-traps` | Unity generates `*.csproj` files, so a lone `*.csproj` is not evidence |
 | a `*.uproject` (`"EngineAssociation"`) | `unreal` | |
-| dep `phaser` | `phaser` | read the major from the lockfile: v3 and v4 differ |
 | `MESHY_API_KEY` in `.env`/`.env.example`; dep `meshy-cli`, `@meshy-ai/cli` or `@meshy-ai/meshy-mcp-server`; or a `meshy` server in `.mcp.json` | `meshy` | never key on `*.glb` alone — every three.js repo has them |
 | `*.aseprite`; `*.tmx`/`*.tmj`/`*.tsj`/`*.tiled-project`; `*.ldtk`/`*.ldtkl`; or a `*.tsx` whose root element is `<tileset>` | `pixel-art` | a bare `.tsx` is React, not Tiled; `*.ase` alone is weak evidence (Adobe Swatch Exchange shares the extension) |
 | any game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, `butler push` or `BUTLER_API_KEY` in a CI file, or `*.yarn`/`*.yarnproject`/`*.ink` files | `gamedev` | the engine-agnostic half: Steam and itch release, asset checks, dialogue scripting, seed stability |

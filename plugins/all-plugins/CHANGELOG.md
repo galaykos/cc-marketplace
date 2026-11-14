@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.7.1; earlier versions have no entries rather than invented ones.
 
+## 0.7.9 — 2026-11-13
+
+- **`phaser` is no longer in the game-plugin opt-in list.** The plugin was removed on 2026-11-13.
+
 ## 0.7.8 — 2026-11-12
 
 - **`pixijs` left the marketplace, so it is no longer in the opt-in game list.** `install` prints one fewer `skip (opt-in: game plugin …)` row.

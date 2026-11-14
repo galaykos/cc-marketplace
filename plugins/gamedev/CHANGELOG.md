@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.2 — 2026-11-13
+
+- **The companion list no longer names `phaser`** (`plugin.json` description and README). The plugin was removed on 2026-11-13; stack-scan routes a `phaser` dependency to Phaser's own skills.
+
 ## 0.3.1 — 2026-11-12
 
 - **The description and README no longer name `pixijs` as a companion.** That plugin left the
