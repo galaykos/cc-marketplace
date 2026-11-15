@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher written into the look row, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, on a page at every limit, or for a control a frame draws with the switcher attributes), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette whose first rule is empty and a later one filled; a dark rule inside @media screen, and inside @media print, @supports, a narrower @media screen or a block nested in one; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), layout at 375 px under each style and each type option (E2: a heading a Mono type widens and a row a Roomy style widens, each named with its option, with none in the look at load; at 375 when another width comes first and at no other width; under the first option when the page authors the second; a finding the look at load draws printed once beside one an option adds; a clipping box an option moves; six frames with four palettes, four styles and four types in 14 states, and no state on a page with no switcher; 18 states of which 16 run; with the time the states share lowered, none of it, states too slow to all fit, states at two widths and one that outlasts it once started, each state not run named, the width recorded, exit 5), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher written into the look row, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, on a page at every limit, or for a control a frame draws with the switcher attributes; such a control of the palette, style or type kind adding no state), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette whose first rule is empty and a later one filled; a dark rule inside @media screen, and inside @media print, @supports, a narrower @media screen or a block nested in one; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), layout at 375 px under each style and each type option (E2: a heading a Mono type widens and a row a Roomy style widens, each named with its option, with none in the look at load; at 375 when another width comes first and at no other width; under the first option when the page authors the second; a finding the look at load draws printed once beside one an option adds; a clipping box an option moves; six frames with four palettes, four styles and four types in 14 states, and no state on a page with no switcher; 18 states of which 16 run; with the time the states share lowered, none of it, states too slow to all fit, states at two widths and one that outlasts it once started, each state not run named, the width recorded, exit 5), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
 # Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; of E8, a see-through colour that is not rgba(), most of the soft-text primitives, a palette on a page with no frame, and a state whose check throws; of the states' limits, the 16 s itself (lowered here, never waited out), the run ending at its own limit before the browser's, and a state that cannot be stopped; a style or type name used twice; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP, and fails under PREVIEW_REQUIRE_BROWSER=1, as a missing python3 or curl does.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -217,8 +217,10 @@ assert len(LONGEST) == 24 and len(TOO_LONG) == 25
 write("f/limit-most.html", presets(six, ["Neutral", "Sand", LONGEST, "Moss"], ["Soft", "Sharp", "Round", "Flat"], ["Sans", "Serif", "Mono", "Slab"]))
 write("f/limit-lone.html", presets(page(), [TOO_LONG]))
 # A control a frame draws as its own content, with the shell's switcher attributes: five options, one name twice and one serve.py would refuse, beside three real switchers.
-RANGE = ('<div class="vd-seg" role="group" aria-label="Range" data-vd-switcher="range">'
-         + " ".join('<button type="button" data-vd-option="%s" aria-pressed="false">%s</button>' % (n, n) for n in ("Day", "Week", "Month", "Month", "Year (YTD)")) + "</div> ")
+def control(kind, *names):
+    return ('<div class="vd-seg" role="group" aria-label="%s" data-vd-switcher="%s">' % (kind.title(), kind)
+            + " ".join('<button type="button" data-vd-option="%s" aria-pressed="false">%s</button>' % (n, n) for n in names) + "</div> ")
+RANGE = control("range", "Day", "Week", "Month", "Month", "Year (YTD)")
 write("f/limit-content.html", presets(page(a=RANGE + LINES[0], b=RANGE + LINES[1]), ["Neutral", "Sand"], ["Soft", "Sharp"], ["Sans", "Serif"]))
 
 # E8: a palette's seven pairs, each lowered by the smallest rule that lowers it alone, on a page that draws every primitive and on one that draws none.
@@ -318,6 +320,11 @@ NAV = '<div class="vd-nav"><span class="vd-brand">Ledgerly</span> <a href="#">In
 headed = lambda b, css="": page(a=HEAD + LINES[0], b=b, css=".fx-head{white-space:nowrap}" + css)
 write("f/type-wide.html", dressed(headed(LINES[1]), types=[SANS, MONO]))
 write("f/style-wide.html", dressed(page(a=NAV + LINES[0], b=LINES[0]), styles=[COMPACT, ROOMY]))
+# A frame's own control of a kind the look row has no switcher for, on the lone failing palette's page and on the two pages above: its names are no option of the page.
+write("f/control-palette.html", painted(page(a=control("palette", "Ocean", "Sand") + APP + CARDS, b=APP + ROWS), palette("Dusk", DUSK_LIGHT, DUSK_DARK % "#5f5f68")))
+FACE, FIT = control("type", "Serif", "Slab"), control("style", "Dense", "Loose")
+write("f/control-type.html", dressed(page(a=FACE + NAV + LINES[0], b=FACE + LINES[0]), styles=[COMPACT, ROOMY]))
+write("f/control-style.html", dressed(page(a=FIT + HEAD + LINES[0], b=FIT + LINES[1], css=".fx-head{white-space:nowrap}"), types=[SANS, MONO]))
 # The same heading on a page that lists Mono first and authors Sans on the html tag: the look at load is the second option.
 write("f/type-wide-authored.html", dressed(headed(LINES[1]), types=[MONO, SANS]).replace(HTML_TAG, HTML_TAG[:-1] + ' data-vd-type="Sans">'))
 # Frame B too wide in the look at load, on a page whose Mono type also breaks frame A's heading and whose Sharp style changes no width.
@@ -543,6 +550,11 @@ count "dark soft text under 4.5 reported with palette name: once, though the pag
 run f/soft-dark-fixed.html; want "dark soft text under 4.5 reported with palette name: none on the same page with the value fixed" 0
 run f/soft-dark-lone.html --widths 375; want "a palette that is its kind's one option, which has no switcher, is checked in dark too" 1 "E8|soft text under 4.5:1|375"
 names "a palette that is its kind's one option: the palette and the scheme" E8 "soft text under 4.5:1" '^palette "Dusk", dark: soft text is 3\.00:1 '
+run f/control-palette.html --widths 375; want "a frame's own palette control beside the page's one palette: that palette is still checked in dark" 1 "E8|soft text under 4.5:1|375"
+names "a frame's own palette control: the finding names the page's palette" E8 "soft text under 4.5:1" '^palette "Dusk", dark: soft text is 3\.00:1 '
+visited "a frame's own palette control: the palette's two states and no other" 2
+PREVIEW_STATE_BUDGET=0 run f/control-palette.html --widths 375
+probe "a frame's own palette control: its names are in no state of the plan" 'assert [x[0] for x in left] == [{"check": "E8", "palette": "Dusk", "scheme": m} for m in ("light", "dark")], left'
 while IFS='|' read -r fixture pair measured <&3; do
   run "f/pair-$fixture.html" --widths 375; want "each of seven pairs reported ($pair)" 1 "E8|$pair under 4.5:1|375"
   names "each of seven pairs reported ($pair): the palette, the scheme, the ratio and the element a frame draws" E8 "$pair under 4.5:1" "^palette \"Low\", light: $pair is $measured"
@@ -596,6 +608,15 @@ run f/style-wide.html; want "overflow under second style option reported" 1 "E2|
 names "overflow under second style option reported: the option, the frame and the row's last link" E2 "variant scrolls sideways" \
   '^style "Roomy": variant A is [0-9]*px wide in [0-9]*px; first element past the edge: a "Customers"$'
 count "overflow under second style option reported: none under the default" 1
+while IFS='|' read -r kind real state <&3; do
+  run "f/control-$kind.html" --widths 375; want "a frame's own $kind control on a page with no $kind option: the page's own option is still checked" 1 "E2|variant scrolls sideways|375"
+  names "a frame's own $kind control: the finding names the page's option" E2 "variant scrolls sideways" "^$real: variant A is "
+  PREVIEW_STATE_BUDGET=0 run "f/control-$kind.html" --widths 375
+  probe "a frame's own $kind control: its names are in no state of the plan" "assert [x[0] for x in left] == [$state], left"
+done 3<<'EOF'
+type|style "Roomy"|{"check": "E2", "style": "Roomy"}
+style|type "Mono"|{"check": "E2", "type": "Mono"}
+EOF
 run f/type-wide.html --widths 1280,375; want "an option is checked at 375 px when another width comes first" 1 "E2|variant scrolls sideways|375"
 visited "an option is checked at 375 px when another width comes first: once, not at 1280 too" 1
 run f/type-wide.html --widths 768,1280; want "an option is checked at 375 px only: no finding at 768 and 1280" 0

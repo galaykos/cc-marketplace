@@ -60,6 +60,8 @@
   const letterOf = el => 'ABCDEF'[Array.from(document.querySelectorAll('.vd-frame')).indexOf(el.closest('.vd-frame'))] || '?';
   // The pass kind the author marked on <body>: 'layout' or 'creative', else null (every other pass kind, which keeps its own rules).
   const passKind = () => { const kind = document.body.getAttribute('data-vd-pass-kind'); return kind === 'layout' || kind === 'creative' ? kind : null; };
+  // The switchers of the header's look row, which the shell builds: a frame may draw a control of its own with the same attributes.
+  const switchers = () => Array.from(document.querySelectorAll('#vd-header > .vd-look [data-vd-switcher]'));
   const shown = el => (el.checkVisibility ? el.checkVisibility({ visibilityProperty: true }) : el.getClientRects().length > 0);
   const style = el => getComputedStyle(el);
   const clips = cs => cs.overflowX !== 'visible' || cs.overflowY !== 'visible';
@@ -370,8 +372,7 @@
     if (!passKind()) return;
     const frames = document.querySelectorAll('.vd-frame');
     if (frames.length > 6) add('E7', frames[6], 'more than 6 frames', frames.length + ' frames; a layout or creative pass holds at most 6');
-    // The header's look row only: a frame may draw a control of its own with the same attributes.
-    const groups = Array.from(document.querySelectorAll('#vd-header > .vd-look [data-vd-switcher]')).map(el => {
+    const groups = switchers().map(el => {
       const kind = cut(el.getAttribute('data-vd-switcher'), 24);
       return { el, kind, where: 'the ' + kind + ' switcher', names: Array.from(el.querySelectorAll('[data-vd-option]'), b => b.getAttribute('data-vd-option')) };
     });
@@ -499,7 +500,7 @@
     try { checkLayout(); } finally { under = null; }
   }
   const STATE_CHECKS = { E2: checkLayoutUnder, E8: checkContrast };
-  const optionsOf = kind => { const switcher = document.querySelector('[data-vd-switcher="' + kind + '"]'); return switcher && Array.from(switcher.querySelectorAll('button[data-vd-option]'), b => b.getAttribute('data-vd-option')); };
+  const optionsOf = kind => { const switcher = switchers().find(el => el.getAttribute('data-vd-switcher') === kind); return switcher && Array.from(switcher.querySelectorAll('button[data-vd-option]'), b => b.getAttribute('data-vd-option')); };
   // The states preview-check.sh's loop visits after __vdRun(): E8 under every palette in light and, unless it is light only, in dark (a lone palette has no switcher and is read from <html>); E2 under each style, then each type, the page did not load with, one at a time.
   window.__vdStates = () => {
     const now = lookNow();
