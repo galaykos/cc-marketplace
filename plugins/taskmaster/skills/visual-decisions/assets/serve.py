@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore, /_feedback and /_checks stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?, a pass outside 1..9 or a refused look name as null) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
-# Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?, a pass outside 1..9 or a refused look name as null) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; a pick equal (letter, pass, look) to its page's newest pick while that one is unread appends nothing and answers 200 with that row's id; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
+# Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; without fcntl nothing locks, so two equal picks posted together can both be stored; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
@@ -253,19 +253,33 @@ def feedback_lock(docroot):
         os.close(fd)
 
 
+def unread_repeat(docroot, row):
+    """The stored pick a posted pick repeats, else None: its page's newest pick, equal in variant, pass and switchers, still unread as preview-feedback.sh wait reads it."""
+    if row["kind"] != "pick":
+        return None
+    newest = next((r for r in reversed(read_feedback(docroot)) if r.get("kind") == "pick" and r.get("page") == row["page"]), None)
+    if (newest and newest.get("status") == "open" and not newest.get("handed_out")
+            and all(newest.get(k) == row[k] for k in ("variant", "pass", "switchers"))):
+        return newest
+    return None
+
+
 def append_feedback(docroot, row):
-    """Append one row; False, writing nothing, when the file would pass MAX_FEEDBACK_FILE."""
+    """Append one row and return it; a repeat of an unread pick returns that stored pick instead; None, writing nothing, when the file would pass MAX_FEEDBACK_FILE."""
     line = (json.dumps(row, ensure_ascii=False) + "\n").encode("utf-8")
     with feedback_lock(docroot):
+        repeated = unread_repeat(docroot, row)
+        if repeated:
+            return repeated
         fd = os.open(str(docroot / FEEDBACK_FILE),
                      os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
         try:
             if os.fstat(fd).st_size + len(line) > MAX_FEEDBACK_FILE:
-                return False
+                return None
             os.write(fd, line)
         finally:
             os.close(fd)
-    return True
+    return row
 
 
 def read_feedback(docroot):
@@ -562,14 +576,15 @@ def build_handler(state):
                 self._send_json({"recorded": False, "error": "body must be a JSON pick or note of 1..%d bytes" % MAX_FEEDBACK_BODY}, 400)
                 return
             try:
-                if not append_feedback(state.docroot, row):
+                stored = append_feedback(state.docroot, row)
+                if stored is None:
                     self._send_json({"recorded": False, "error": "%s has reached its %d MiB cap; move it aside to record more"
                                      % (FEEDBACK_FILE, MAX_FEEDBACK_FILE // (1024 * 1024))}, 507)
                     return
             except OSError as exc:
                 self._send_json({"recorded": False, "error": str(exc)}, 500)
                 return
-            self._send_json({"recorded": True, "id": row["id"]})
+            self._send_json({"recorded": True, "id": stored.get("id")})
 
         def serve_checks(self):
             """Whether ?page= was checked as its bytes stand now, and the finding count, for the shell's badge."""

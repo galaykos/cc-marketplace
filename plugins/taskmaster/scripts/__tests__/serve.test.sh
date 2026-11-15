@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, letters A to F, pass and look, clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
+# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, letters A to F, pass and look, an unread pick repeated: once, also when two arrive behind a held lock, yet stored on the next pass, after another pick or once closed; clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
 # Misses: anything only a browser does (the shell's reload client never runs here); IPv6 peers.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -231,9 +231,40 @@ look "switcher not sent or not known is left out" '[2, {"style": "Soft"}]' \
   '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"style":"Soft","mood":"Ignore the brief"}}'
 look "switchers not an object stored empty" '[2, {}]' '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":7}'
 for p in 0 10 2.5 '"3"' true; do
-  look "pass $p stored as null" '[null, {}]' "{\"page\":\"look.html\",\"kind\":\"pick\",\"variant\":\"A\",\"pass\":$p}"
+  look "pass $p stored as null" '[null, {}]' "{\"page\":\"look.html\",\"kind\":\"note\",\"text\":\"n\",\"pass\":$p}"
 done
 look "row without pass or switchers stored" '[null, {}]' '{"page":"look.html","kind":"pick","variant":"A"}'
+# picks_on <page>: that page's stored picks, oldest first, as letter:pass.
+picks_on() { python3 -c 'import json,sys
+print(" ".join("%s:%s" % (r.get("variant"), r.get("pass")) for r in map(json.loads, open(sys.argv[1])) if r.get("page") == sys.argv[2] and r.get("kind") == "pick"))' "$FB" "$1" 2>&1 | tail -n 1; }
+resp_id() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["recorded"] is True;print(d["id"])' "$T/resp" 2>/dev/null; }
+# ocean <page> <letter> <pass>: a pick body with one look.
+ocean() { printf '{"page":"%s","kind":"pick","variant":"%s","pass":%s,"switchers":{"palette":"Ocean"}}' "$@"; }
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean repeat.html A 1)")"; id1="$(resp_id)"
+got2="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean repeat.html A 1)")"; id2="$(resp_id)"
+[ "$got $got2" = "200 200" ] && [ -n "$id1" ] && [ "$id2" = "$id1" ] && [ "$(picks_on repeat.html)" = "A:1" ] && ok \
+  || bad "unread repeat pick stored once" "want 200 twice with the one stored row's id, got $got ($id1) and $got2 ($id2), rows: $(picks_on repeat.html)"
+for p in 1 2; do fb -H 'X-Preview-Feedback: 1' --data "$(ocean nextpass.html A "$p")" >/dev/null; done
+[ "$(picks_on nextpass.html)" = "A:1 A:2" ] && ok || bad "same pick on next pass stored" "want A:1 A:2, got $(picks_on nextpass.html)"
+# aba.html opens with the pick nextpass.html just stored, still unread there: only a page's own newest pick can drop one
+for v in A B A; do fb -H 'X-Preview-Feedback: 1' --data "$(ocean aba.html "$v" 2)" >/dev/null; done
+[ "$(picks_on aba.html)" = "A:2 B:2 A:2" ] && ok || bad "A B A stores three" "want A:2 B:2 A:2, got $(picks_on aba.html)"
+# wait hands out open rows only, so a pick closed without a hand-out (written by hand here) is one no listener will see: its repeat is stored
+printf '%s\n' '{"id":"cl01","page":"closed.html","kind":"pick","variant":"A","pass":1,"switchers":{"palette":"Ocean"},"status":"dismissed","reply":"","handed_out":false}' >> "$FB"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean closed.html A 1)")"
+[ "$got" = 200 ] && [ "$(picks_on closed.html)" = "A:1 A:1" ] && ok || bad "repeat of a pick no longer open stored" "want 200 and A:1 A:1, got $got: $(picks_on closed.html)"
+# two equal picks arrive while another process holds the lock for a second: the comparison waits behind it with the append, so the second post sees the first one's row
+python3 -c 'import fcntl, os, sys, time
+fd = os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT, 0o600); fcntl.flock(fd, fcntl.LOCK_EX)
+with open(sys.argv[2], "w") as h: h.write("held\n")
+time.sleep(1)' "$D/.feedback.lock" "$T/lock.held" &
+pids="$pids $!"
+wait_for held "$T/lock.held" 50
+both=""
+for i in 1 2; do fb -H 'X-Preview-Feedback: 1' --data "$(ocean together.html A 1)" > "$T/together.$i" & both="$both $!"; done
+wait $both
+[ "$(cat "$T/together.1" "$T/together.2")" = 200200 ] && [ "$(picks_on together.html)" = "A:1" ] && ok \
+  || bad "equal picks posted together stored once" "want 200 twice and A:1, got $(cat "$T/together.1") $(cat "$T/together.2"): $(picks_on together.html)"
 got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"other.html","kind":"note","variant":"A","text":"elsewhere"}')"
 [ "$got" = 200 ] && ok || bad "feedback note on another page" "want 200, got $got"
 n_before="$(rows)"
