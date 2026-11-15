@@ -54,9 +54,10 @@ report what was auto-decided, and proceed. A guided flow that outlives the user'
 patience has failed even if every answer was good.
 
 Iteration on a single pick stops after two revisions, asked in the dialog or staged on a drawing
-page. On taskmaster's mockup page that is the page's own limit: three passes for one decision, the
-first included. A design-kit board states no limit, so the two is this skill's. Past that, take the
-closest option and note the reservation in the ledger.
+page. On taskmaster's mockup page a layout or creative pass has that limit itself: three passes for
+one decision, the first included. Any other pass kind there stops at two passes, so one revision. A
+design-kit board states no limit, so the two is this skill's. Past that, take the closest option and
+note the reservation in the ledger. Standing: recorded.
 
 ## Always-available exits
 

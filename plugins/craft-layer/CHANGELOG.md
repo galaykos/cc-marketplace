@@ -9,7 +9,7 @@ than an honest starting point.
 
 ## 0.61.2 — 2026-11-15
 
-- `section-decisions` says why a question round offers two or three options (the question dialog holds four beside your own answer, and each must be a structurally different page). A round staged on a drawing page (taskmaster's mockup page, a design-kit board) may hold up to 5 options, never more than 6: that page's own count rule, which taskmaster 0.62.0 and design-kit 0.18.0 raised. A pick still stops after two revisions, staged or asked in the dialog; on taskmaster's page that is its three passes, the first included. Standing: recorded.
+- `section-decisions` says why a question round offers two or three options (the question dialog holds four beside your own answer, and each must be a structurally different page). A round staged on a drawing page (taskmaster's mockup page, a design-kit board) may hold up to 5 options, never more than 6: that page's own count rule, which taskmaster 0.62.0 and design-kit 0.18.0 raised. A pick still stops after two revisions, staged or asked in the dialog; on taskmaster's page that is a layout or creative pass's three passes, the first included (any other pass kind there allows two passes). Standing: recorded.
 
 ## 0.61.1 — 2026-11-14
 
