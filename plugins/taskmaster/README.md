@@ -308,9 +308,13 @@ what they produce.
   (colours), Style (corner radius, spacing, shadow) and Type (a system font stack), with at most 4 named
   options each. Choosing an option restyles the content of every frame at once and nothing else on the page;
   the active option of each switcher is the look. A switcher with fewer than two options is not shown, and in
-  a window 600 px wide or narrower the row folds behind a `Look` button. A browser tab keeps its look across
-  reloads. Gate: `scripts/__tests__/shell-controls.test.sh`, which drives the page in a headless browser (it
-  prints SKIP and passes on a machine without one); the limits are check E7.
+  a window 600 px wide or narrower the row folds behind a `Look` button, under which a switcher's options
+  wrap onto further lines. While the header is taller than half the window it stops sticking and scrolls away
+  with the page; opening `Look` on a six-frame page in a window 375 px wide and 800 px tall does this (the
+  open header measured 53% of the window's height). A browser tab keeps its look across reloads. Gate:
+  `scripts/__tests__/shell-controls.test.sh`, which drives the page in a headless browser (without one it
+  prints SKIP and passes, unless `PREVIEW_REQUIRE_BROWSER=1`: see Standing under Render checks); the limits
+  are check E7.
 - **The project's theme.** A project with a theme of its own gets it as the first Palette option, `Project`,
   with `Neutral` second; no separate theme toggle exists. A palette with no dark colours holds the page light
   and disables the Scheme toggle while it is active. Each palette's text contrast is read in light and, where
@@ -364,7 +368,8 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   built from the shell (`diagram.html`, `walkthrough.html` and the like) carry no reload client.
 - **Feedback: picks and notes from the page.** `POST /_feedback` appends one row to the docroot's
   `.feedback.jsonl` (a dot file, so never served): a pick of a frame, A to F, or a note with its text, the
-  frame, the element it points at (CSS selector, tag, text, bounding box), the viewport, theme, width and
+  frame, the element it points at (CSS selector, tag, text, bounding box), the viewport, theme, scheme
+  (`context.scheme`: `light` or `dark`, anything else stored as null), width and
   state toggles in effect and the last five console errors. Either row also holds `pass`, the page's pass
   number (1 to 9, anything else stored as null), and `switchers`, the look: the palette, style and type option
   active at that moment (a name that is not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores is
@@ -382,11 +387,15 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   `Picked with <palette>, <style>, <type>` (plain `Picked` on a page with no look), and `Pick with current
   look` once the active look differs from the recorded one; pressing that stores a new pick. A frame reads
   as picked only while the newest pick carries the page's own pass number. A post the server refuses shows
-  `Not recorded: the server answered <status>` by its control. On a lower rung, over
+  `Not recorded:` and the reason by its control: the server's own sentence and the status in parentheses
+  where it sends one (a full feedback file, 507, is one), else `the server answered <status>`. A post with no
+  answer in 10 s reads `no answer from the server in 10 s`; one the server stores after that stays stored,
+  though the page has said `Not recorded`. On a lower rung, over
   `file://` and with `?static=1` none of it appears, and `?static=1` also turns the reload client off.
-  Gate: `shell-controls.test.sh`, in a headless Chromium (it prints SKIP and passes on a machine without
-  one), for Pick and Note on pages of one to six frames, the row a pick stores, the button's three texts and
-  the refusal message. Recorded: Point & note's outline, shortcut and arrow keys, and the Notes list, driven in
+  Gate: `shell-controls.test.sh`, in a headless Chromium (without one it prints SKIP and passes, unless
+  `PREVIEW_REQUIRE_BROWSER=1`), for Pick and Note on pages of one to six frames, the row a pick stores, the
+  button's three texts and the refusal messages (the server's sentences come from a stand-in server that
+  copies them). Recorded: Point & note's outline, shortcut and arrow keys, and the Notes list, driven in
   Playwright Chromium on 2026-11-13, and again after the review fixes (a data attribute
   holding a newline, a console object with no `toString`, cuts by code point); no harness drives those.
 - **Feedback: the reader.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-feedback.sh"` with `list [--all]`
@@ -402,7 +411,8 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   starts `wait` and acts on what it reads is agent-graded.
   Misses: any script on a served page, third-party script included, can post a pick or note; note text is
   whatever was typed and nothing verifies it; the screenshot is drawn in the row's palette, style, type and
-  scheme only where the row holds the name and the page still has that option, else in the page's own, and
+  scheme (its `context.scheme`, or the last word of its theme in a row with none) only where the row holds
+  the name and the page still has that option, else in the page's own, and
   always with the default states, direction and width preset, never the row's; a page copied from an older
   shell may not show the noted element; console errors thrown before the shell's own script runs are not
   captured; a lower rung serves
@@ -413,8 +423,13 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-check.sh" [--docroot DIR] [--page PATH] [--widths 375,768,1280]`
 loads one page (default `current.html`) from this docroot's serve.py, starting it through `preview.sh` when
 none answers, in a headless Chromium-family browser at each width. Every line it prints is one escaped JSON
-object: a finding, an E6 advisory, a `{"not_reported": width, "reason": ...}`, then the summary. Exit 0 means
-no findings, 1 findings, 3 to 6 not checked or not at every width (the header lists them). Each width's record
+object: a finding, an E6 advisory, a `{"not_reported": width, "reason": ...}` for a width that was not
+reported, the same line with a `"state"` (its check and its option) for a state that did not run, then the
+summary. A state is one more look a check runs under: a palette in a scheme for E8, a style or type option at
+375 px for E2. A run visits at most 16 states, in 16 s together; the summary counts those that ran as
+`"states"` and the rest as `"states_not_run"`. A state not run is named in the output and the exit code only:
+the width's record does not carry it. Exit 0 means no findings, 1 findings, 3 to 6 not checked, not at every
+width or, for exit 5, not under every state (the header lists them). Each width's record
 and a full-page PNG land in the docroot's `.checks/<page>-<hash>/` (a dot folder, never served), and the
 folders of pages deleted since go. Three widths took under a second on a two-variant page here. Findings
 carry page text, so they print with control and invisible characters escaped. visual-decisions runs it on
@@ -428,16 +443,18 @@ each pass before asking for the pick, fixes what it shows, re-runs once and name
 | E4 stand-in content | lorem ipsum, "placeholder", TODO, TBD or FIXME, "your text here" and the like, a whole text that is a generic word plus a number ("Item 3", "Row N"); three or more sibling rows or cards (`tr`, `li`, `article`, or blocks of two or more elements) with the same text outside a `data-state="loading"` block; a table with no filled cell or a list with no filled item outside a `data-state="empty"` block | realistic-looking wrong data; stand-ins in attributes such as `alt`; such a word used on purpose |
 | E5 variants, advisory | two variants with the same text, markup (tags, classes, attributes), colours and fonts; two variants sharing less than half of their words, of their parent-child tag pairs and of their colour and font values | two axes changed while a third stays close; the axis the header names; anything outside `.vd-frame > .vd-content` |
 | E6 change, advisory | for `current.html` or a ledger pass: the share of pixels that differ from the newest older ledger pass whose bytes differ, at the widest width, and the box around them; printed with `"advisory": true`, not counted as a finding | whether the change was the one asked for; a page that grew or shrank shifts everything below it, so the box covers it all; that pass can belong to another decision |
-| E7 limits | on a layout or creative pass only: more than 6 frames; more than 3 switchers; more than 4 options in one switcher; an option name used twice in its switcher; an option name the server refuses (not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores). Findings, not advisory | a page of any other pass kind, which is held to no limit; the default of 3 frames, the floor of 2 and the condition on a sixth; whether the frames differ on layout only |
+| E7 limits | on a layout or creative pass only: more than 6 frames; and, read from the header's look row, more than 3 switchers; more than 4 options in one switcher; an option name used twice in its switcher; an option name the server refuses (not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores). Findings, not advisory | a page of any other pass kind, which is held to no limit; a switcher written by hand outside the header's look row; the default of 3 frames, the floor of 2 and the condition on a sixth; whether the frames differ on layout only |
 | E8 palette contrast | on any page with a palette, for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert or nav text, or the primary colour used as text, under 4.5:1 against the colour behind it, naming the palette and the scheme; read once, in the first width's load | text over a background image or dimmed by opacity; text that is no shell primitive; a pair on any background but those the page draws it on; a page with no palette |
 
 Thresholds and the reasons for them: `rationale/derivations/plugin-taskmaster.md`, section
 `plugins/taskmaster/scripts/preview-check.sh`.
 
 - **Standing.** Gate for each check against its own fixture page, and for a clean shell page reporting
-  nothing, in `scripts/__tests__/preview-check.test.sh` with a real browser (it prints SKIP and passes on a
-  machine without one). Agent-graded: that the model runs the script and acts on what it prints; no eval
-  measures it.
+  nothing, in `scripts/__tests__/preview-check.test.sh` with a real browser. On a machine without one it
+  prints SKIP and passes by default. With `PREVIEW_REQUIRE_BROWSER=1` a missing browser fails it, as it fails
+  `shell-controls.test.sh` and `preview-feedback.test.sh`. The marketplace repository's CI now exports that
+  variable for its harness step; that setting has not been exercised on a CI runner yet. Agent-graded: that
+  the model runs the script and acts on what it prints; no eval measures it.
 - **How the page runs it.** The script registers `check.js` in an isolated world of every page it loads
   (DevTools `Page.addScriptToEvaluateOnNewDocument` with a world name), evaluates the vendored axe-core there
   after `load`, calls the check and reads its findings back over DevTools, then writes each width's record
