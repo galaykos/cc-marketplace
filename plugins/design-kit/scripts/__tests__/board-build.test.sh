@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Drives board-build.py: a JSON spec renders 3 artboards with knobs, pick buttons,
 # meta sizes and no external request; a markdown spec parses; tokens.json steers
-# the accent; the gates reject lorem, external assets, and a 1-artboard spec.
+# the accent; six artboards build; the gates reject lorem, external assets, and a 1- or 7-artboard spec.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -149,4 +149,17 @@ python3 - <<'PY' > one.json
 import json;s=json.load(open('spec.json'));s['boards']=s['boards'][:1];print(json.dumps(s))
 PY
 python3 "$here/board-build.py" one.json --out x.html 2>e && { echo "FAIL: 1 artboard accepted"; exit 1; } || [ $? = 2 ]
+python3 - <<'PY'
+import json
+s = json.load(open('spec.json')); b = s['boards']
+for n in (6, 7):
+    s['boards'] = [dict(b[i % len(b)], title="Direction %d" % (i + 1)) for i in range(n)]
+    json.dump(s, open('n%d.json' % n, 'w'))
+PY
+python3 "$here/board-build.py" n6.json --out b6six.html >/dev/null 2>e || { echo "FAIL: six artboards build: refused"; cat e; exit 1; }
+[ "$(grep -c 'class="dk-board"' b6six.html)" = 6 ] && grep -q '<option value="6">' b6six.html && grep -q 'id="board-6"' b6six.html \
+  || { echo "FAIL: six artboards build: expected 6 artboards, a sixth scope option and board-6"; exit 1; }
+python3 "$here/board-build.py" n7.json --out x7.html 2>e && { echo "FAIL: seven artboards refused: accepted"; exit 1; } || [ $? = 2 ]
+grep -q '2–6 artboards; spec has 7' e || { echo "FAIL: seven artboards refused: message should name the 2–6 bound and the count"; cat e; exit 1; }
+[ -e x7.html ] && { echo "FAIL: seven artboards refused: a board file was written"; exit 1; }
 echo "PASS board-build.test.sh"

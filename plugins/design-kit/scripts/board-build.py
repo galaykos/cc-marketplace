@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""board-build.py — render a design board (2–4 artboards on one canvas) from a spec.
+"""board-build.py — render a design board (2–6 artboards on one canvas) from a spec.
 
 Reads a JSON or markdown spec (skills/design/references/spec-format.md), fills skills/design/assets/board-shell.html, writes .cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path; accent, spacing, radius and body font come from --tokens (default .cc-artifacts/design-kit/design-system/tokens.json, else a pre-2026-11-14 design-system/tokens.json) by path-name heuristic, else the shell's defaults. Exit 2 on fewer than 2 or more than 4 artboards, an empty body, "lorem ipsum", or any external reference in a body (the board renders with the network off).
 Misses: realistic-looking but wrong content, an artboard that is a palette swap of its neighbour (agent-graded), and the bodies' accessibility (a hand-written body can undo the shell's floor).
@@ -191,8 +191,8 @@ def esc(s):
 
 def build(spec, theme, device_default):
     boards = spec.get("boards") or []
-    if not 2 <= len(boards) <= 4:
-        fail(f"a board holds 2–4 artboards; spec has {len(boards)}")
+    if not 2 <= len(boards) <= 6:
+        fail(f"a board holds 2–6 artboards; spec has {len(boards)}")
     html_boards, metas, scopes = [], [], ['<option value="all">All artboards</option>']
     for i, b in enumerate(boards, 1):
         body = (b.get("body") or "").strip()
