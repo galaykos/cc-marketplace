@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
 # Misses: whether the model runs the script or acts on a finding; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -88,7 +88,7 @@ def page(a=TABLE, b=CARDS, css="", top="", caption="Dense table, scans by column
     for k, v in fills.items():
         assert "<!-- SLOT: %s -->" % k in s, k
         s = s.replace("<!-- SLOT: %s -->" % k, v)
-    s = re.sub(r"<!-- FRAME-C-START -->.*?<!-- FRAME-C-END -->", "", s, flags=re.S)
+    s = re.sub(r"<!-- FRAME-([C-F])-START -->.*?<!-- FRAME-\1-END -->", "", s, flags=re.S)
     if css:
         s = s.replace("</head>", "<style>" + css + "</style>\n</head>")
     if top:
@@ -162,6 +162,8 @@ changed = page(caption="Dense table; amounts right-aligned for comparison.")
 write("2026-11-13-c.html", changed, age=10)
 write("current.html", changed)
 EOF
+# One to six frames: shell-controls.test.sh's pages, so the pages a person walks are the pages checked here.
+bash "$here/shell-controls.test.sh" --emit "$D/f" || bad "frame-count fixtures" "shell-controls.test.sh --emit did not write them"
 
 port="$(free_port)"
 PREVIEW_PORT="$port" bash "$P" --docroot "$D" --port "$port" >/dev/null 2>&1 || bad "server start" "preview.sh did not start serve.py"
@@ -277,6 +279,7 @@ run f/identical.html;   want "E5 identical variants" 1 "E5|variants identical|$A
 grep -q 'advisory' "$T/out" && ok || bad "E5 says advisory" "$(head -c 300 "$T/out")"
 run f/plain.html;       want "a page not built from the shell is checked too" 0
 run f/ramp.html;        want "the shell's display line above a t1 line is not an overlap" 0
+for n in 1 2 3 4 5 6; do run "f/layout-$n.html" --widths 375; want "one to six frames no sideways scroll at 375 ($n)" 0; done
 
 # A page's own script: a global it sets is not the check's answer, a post it makes is not a record.
 run f/forge-answer.html; want "a page-set __vdCheck is not the answer" 0

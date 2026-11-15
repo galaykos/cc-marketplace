@@ -232,6 +232,7 @@ body {
   font-size: .95rem;
   background: var(--vd-surface);
   border-bottom: 1px solid var(--vd-line);
+  display: flow-root; /* a floated title button that wraps to a second line stays inside the title */
 }
 .vd-frame > h2 .vd-badge {
   display: inline-block;
@@ -1536,7 +1537,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
    presets on `.vd-content` (see Theme-axis passes). */
 </style>
 </head>
-<body data-vd-mode="side" data-vd-vw="full">
+<body data-vd-mode="side" data-vd-vw="full" data-vd-pass-kind="layout" data-vd-pass="1">
 
 <!-- Inline icon sprite — 12 hand-authored 24x24 stroke glyphs, fully
      self-contained: no href/src/xmlns to any URL, so there is nothing to fetch
@@ -1574,9 +1575,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     </div>
   </div>
   <div class="vd-controls">
-    <nav class="vd-jump" aria-label="Jump to variant">
-      <a href="#vd-a">A</a><a href="#vd-b">B</a><a href="#vd-c">C</a>
-    </nav>
+    <nav class="vd-jump" aria-label="Jump to variant"></nav>
     <div class="vd-seg" role="group" aria-label="Compare mode">
       <button type="button" data-vd-set-mode="side" aria-pressed="true">Side-by-side</button>
       <button type="button" data-vd-set-mode="stack" aria-pressed="false">Stacked</button>
@@ -1634,6 +1633,33 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-C --></ul>
   </section>
   <!-- FRAME-C-END -->
+
+  <!-- FRAME-D-START -->
+  <section class="vd-frame" id="vd-d" tabindex="-1">
+    <h2><span class="vd-badge">D</span><!-- SLOT: variant-D-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-D-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-D-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-D --></ul>
+  </section>
+  <!-- FRAME-D-END -->
+
+  <!-- FRAME-E-START -->
+  <section class="vd-frame" id="vd-e" tabindex="-1">
+    <h2><span class="vd-badge">E</span><!-- SLOT: variant-E-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-E-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-E-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-E --></ul>
+  </section>
+  <!-- FRAME-E-END -->
+
+  <!-- FRAME-F-START -->
+  <section class="vd-frame" id="vd-f" tabindex="-1">
+    <h2><span class="vd-badge">F</span><!-- SLOT: variant-F-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-F-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-F-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-F --></ul>
+  </section>
+  <!-- FRAME-F-END -->
 </main>
 
 <div id="vd-offline" role="status"></div>
@@ -1653,6 +1679,28 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 <script>
 (() => {
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
+
+  // A frame's letter is its position, first A, whatever its id; a seventh has none. The feedback script reads data-vd-letter.
+  const jump = document.querySelector('.vd-jump');
+  if (jump) jump.replaceChildren();
+  frames.forEach((frame, i) => {
+    const letter = 'ABCDEF'[i];
+    if (!letter) return;
+    frame.dataset.vdLetter = letter;
+    const badge = frame.querySelector('h2 .vd-badge');
+    if (badge) badge.textContent = letter;
+    if (!jump) return;
+    const a = document.createElement('a');
+    a.href = '#' + frame.id;
+    a.textContent = letter;
+    a.addEventListener('click', e => {
+      if (document.body.dataset.vdMode === 'flip') {
+        e.preventDefault();
+        focusVariant(i);
+      }
+    });
+    jump.appendChild(a);
+  });
 
   // Data-state toggles: a frame's .vd-content may hold sibling blocks
   // tagged data-state="populated|empty|loading|error". Each stateful frame
@@ -1887,19 +1935,13 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       frame.classList.add('vd-focus');
       setTimeout(() => frame.classList.remove('vd-focus'), 900);
     }
+    frame.focus({ preventScroll: true });
   }
   document.addEventListener('keydown', e => {
     if (e.target instanceof Element && e.target.closest('input, textarea, select')) return;
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= frames.length) focusVariant(n - 1);
   });
-  document.querySelectorAll('.vd-jump a').forEach((a, i) =>
-    a.addEventListener('click', e => {
-      if (document.body.dataset.vdMode === 'flip') {
-        e.preventDefault();
-        focusVariant(i);
-      }
-    }));
 
   // Callout pairing: highlight badge + matching tradeoff bullet per frame.
   // Each tradeoff <li> gets a deterministic id (frame id + "-t" + its data-n)
@@ -2071,10 +2113,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 
   const params = new URLSearchParams(location.search);
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
-  function letterOf(frame) {
-    const m = /^vd-([a-c])$/.exec((frame && frame.id) || '');
-    return m ? m[1].toUpperCase() : null;
-  }
+  function letterOf(frame) { return (frame && frame.dataset.vdLetter) || null; }
 
   // ?_outline=<selector>: preview-feedback.sh shot outlines the noted
   // element and scrolls to it before the headless screenshot.
