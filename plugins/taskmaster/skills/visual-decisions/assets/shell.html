@@ -272,6 +272,8 @@ body {
   margin-inline-start: 6px;
 }
 [dir="rtl"] .vd-title-btns { float: left; }
+/* WCAG 2.5.8: wrapped rows sit 4 px apart, too close for its spacing exception, so each button is a 24 px target by itself. */
+.vd-title-btns > button { min-block-size: 24px; min-inline-size: 24px; }
 .vd-frame > h2 .vd-badge {
   display: inline-block;
   min-width: 1.6em;
