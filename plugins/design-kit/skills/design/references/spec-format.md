@@ -26,7 +26,7 @@ rebuild; the builder writes the board beside it.
 | `brief` | no | one line shown in the top bar |
 | `device` | no | default frame for artboards that name none: `phone` 375×812, `tablet` 768×1024, `desktop` 1280×800 |
 | `css` | no | extra CSS injected once for the whole board (the signature element, a column width) |
-| `boards[]` | 2–4 | one per direction |
+| `boards[]` | 2–6 (3 by default, up to 5) | one per direction |
 | `boards[].title` | yes | short, names the structural idea ("Split view", not "Option B") |
 | `boards[].tradeoff` | yes | one line: what this direction wins and what it costs |
 | `boards[].device` | no | overrides the board default |
@@ -66,5 +66,5 @@ The first `#` heading is the title; `Brief:` and `Device:` lines before the firs
 | `--device phone\|tablet\|desktop` | default frame when the spec names none |
 | `--docroot <dir>` | default `.cc-artifacts/design-kit` |
 
-Exit 2 names the gate that failed: artboard count outside 2–4, an empty body, lorem
+Exit 2 names the gate that failed: artboard count outside 2–6, an empty body, lorem
 ipsum, an external reference, an unknown device, or an unfilled shell slot.

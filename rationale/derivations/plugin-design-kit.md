@@ -652,6 +652,12 @@ rationale/2026-09-25-session-plugin-usage-review.md).
 
 Moved verbatim on 2026-10-28: the module docstring (quotes removed; `--help` prints argparse's own description) and the history in `_color_to_hsl`'s and `dk_dir`'s docstrings.
 
+### Two to six artboards (2026-11-15, design-kit 0.18.0)
+
+The gate was "fewer than 2 or more than 4 artboards", as the docstring below records. It is now 2 to 6, in commit `cc8e4365`, so that this board and taskmaster's mockup page state one count rule: 3 by default, up to 5, never more than 6. Before the change the two disagreed (2 to 4 here, 3 there) with no stated reason for either. The reasoning and its sources are in `rationale/derivations/plugin-taskmaster.md` under `plugins/taskmaster/skills/visual-decisions/SKILL.md § count rule`; the numbers are a judgment that matches what other tools ship, not a measured optimum.
+
+What the gate catches: a spec with 1 or 7 artboards (exit 2, the message names the bound and the count). What it does not: whether three was the right number for a given brief, and whether a fourth or fifth artboard is really a different direction; both are agent-graded. The harness cases "six artboards build" and "seven artboards refused" fail on the builder before the change (exit 1, `a board holds 2–4 artboards; spec has 6`). The canvas is a flex row on a pan and zoom surface, so a six-artboard board needed no layout change; no other design-kit script was found to assume four.
+
 ### Module docstring
 
 ```text

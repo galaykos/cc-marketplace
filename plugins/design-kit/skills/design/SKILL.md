@@ -1,7 +1,7 @@
 ---
 name: design
-description: Use when drafting UI directions for a screen, flow, landing page or feature before any code — 2-4 artboards on one local canvas with editable text and adjustment knobs, the pick and edits pasted back as a prompt. Structural divergence, real content, one signature element, a11y floor. Reached by /design-kit:design.
-argument-hint: "[brief] [--screens 2-4] [--device phone|tablet|desktop] [--theme FILE]"
+description: Use when drafting UI directions for a screen, flow, landing page or feature before any code — 3 artboards by default, up to 5, never more than 6, on one local canvas with editable text and adjustment knobs, the pick and edits pasted back as a prompt. Structural divergence, real content, one signature element, a11y floor. Reached by /design-kit:design.
+argument-hint: "[brief] [--screens 2-6] [--device phone|tablet|desktop] [--theme FILE]"
 ---
 
 <!-- host-ok --> The host's own `/design` publishes artboards to claude.ai as an artifact and
@@ -21,7 +21,7 @@ this conversation. The steps below are the entry sequence, not a substitute for 
 of this skill. Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh"`.
 
 1. `dk.sh check` first; repeat its one line. Then parse `--screens` (default 3, clamp
-   2–4), `--device` (default `desktop`; a brief that says mobile, app, phone, game or
+   2–6; ask for 4 or 5 only when the directions are really different, 6 never by default), `--device` (default `desktop`; a brief that says mobile, app, phone, game or
    play → `phone`), `--theme` (default the design system's `tokens.json` when it exists —
    `.cc-artifacts/design-kit/design-system/`, older projects `design-system/` — else the
    shell's neutral defaults). Typed with no brief (`/design-kit:design` alone), read `.cc-artifacts/design-kit/workshop.json`:
@@ -62,7 +62,9 @@ of this skill. Every script call goes through `bash "${CLAUDE_PLUGIN_ROOT}/scrip
 
 ## What a board is
 
-One HTML file: 2–4 artboards side by side on a pan/zoom canvas, each a **different
+One HTML file: 3 artboards by default, up to 5, never more than 6 and never fewer than 2 (the
+rule taskmaster's mockup page shares; why: `rationale/derivations/plugin-taskmaster.md` § count rule,
+in the marketplace repository), side by side on a pan/zoom canvas, each a **different
 structural answer** to the same brief, each framed at a device size, each with a title and
 a one-line trade-off. The reader edits text in place, moves knobs, picks one, and clicks
 "Copy edits as prompt"; the text that lands back in the session is the decision. Mockups
@@ -94,7 +96,7 @@ pasting the artboard's HTML into the tree.
    everything else quiet. Spend the `css` field on that element, not on decoration.
 5. **Build and serve**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh" board <spec>` builds,
    starts or reuses the server and prints `url=`; give the user that URL. The builder
-   refuses lorem, external assets and artboard counts outside 2–4 — fix the spec, do
+   refuses lorem, external assets and artboard counts outside 2–6 — fix the spec, do
    not work around the gate.
 6. **Ask for the pick** with the URL in hand and the wait in "Notes from the page" running. The board records every pick, knob move and
    text edit to the local server as it happens (loopback only; a phone on the LAN is

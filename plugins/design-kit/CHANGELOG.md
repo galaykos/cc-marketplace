@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.18.0 — 2026-11-15
+
+- **A board holds 3 artboards by default, up to 5, and never more than 6.** The builder refused anything but 2 to 4. It now accepts 2 to 6, and `--screens` defaults to 3 and is clamped to 2-6: ask for 4 or 5 when the directions are really different. A spec with 1 or 7 artboards still fails with exit 2, and the message names the bound. The reason: taskmaster's mockup page and this board now state one count rule, where they disagreed (3 against 2 to 4). The numbers are a judgment that matches what other design tools ship, not a measured optimum; the sources are in the marketplace repository's `rationale/derivations/plugin-taskmaster.md`, under "count rule".
+
+Standing: gate for the bound (`scripts/__tests__/board-build.test.sh`: six artboards build, seven are refused); the default of 3 and when to go to 4 or 5 are agent-graded.
+
 ## 0.17.0 — 2026-11-14
 
 - **Everything design-kit writes now sits in `.cc-artifacts/design-kit/`, so one ignore line covers it.** `.design-kit/` (decks, boards, artifacts, previews, shots, reviews, the motion and film workspaces, `workshop.json`, `decisions.jsonl`, `notes.jsonl`, `usage.jsonl`, `.cache/`, `.checks/`, `.notes/` and the server's `.preview.*` files) moved to `.cc-artifacts/design-kit/`, and `design-system/` (`tokens.json`, `DESIGN-SYSTEM.md`, `components.json`, `kit.html`, `DECISIONS.md`) to `.cc-artifacts/design-kit/design-system/`. `__design-kit__/`, the scratch entry inside your source tree, did not move. The `dk.sh` managed `.gitignore` block now names `.cc-artifacts/design-kit/`, so the design system is ignored too; `git add -f` it to keep it in git. `serve.py`, `preview.sh`, every builder and `snapshot.sh` default to the new folder, the gallery does not list the `design-system/` folder now inside its docroot, and the `/design-kit:system` skill's default `--out`, its `.gitignore` check (now `.cc-artifacts/`) and every skill's paths follow.
