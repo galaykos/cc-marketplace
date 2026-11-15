@@ -50,7 +50,8 @@
   }
   const textOf = el => (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
   function label(el) { const t = textOf(el); return el.localName + (t ? ' "' + cut(t, 40) + '"' : ''); }
-  const letterOf = el => { const f = el.closest('.vd-frame'); return f && /^vd-([a-c])$/.test(f.id) ? f.id.slice(3).toUpperCase() : '?'; };
+  // The letter of el's frame by its position among the frames (first A, a seventh has none): the shell's rule. data-vd-letter is not read, since page script writes it.
+  const letterOf = el => 'ABCDEF'[Array.from(document.querySelectorAll('.vd-frame')).indexOf(el.closest('.vd-frame'))] || '?';
   const shown = el => (el.checkVisibility ? el.checkVisibility({ visibilityProperty: true }) : el.getClientRects().length > 0);
   const style = el => getComputedStyle(el);
   const clips = cs => cs.overflowX !== 'visible' || cs.overflowY !== 'visible';

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
 # Misses: whether the model runs the script or acts on a finding; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -75,7 +75,8 @@ SAME_CARDS = """<div class="vd-cards">""" + """
 <div class="vd-card"><h3>Harbor Freight</h3><p>$4,120</p><span class="vd-chip vd-ok">Paid</span></div>""" * 3 + "\n</div>"
 assert SAME_ROWS.count("Harbor Freight") == 3
 
-def page(a=TABLE, b=CARDS, css="", top="", caption="Dense table, scans by column."):
+def page(a=TABLE, b=CARDS, css="", top="", caption="Dense table, scans by column.", more=()):
+    """The shell with frames A and B filled, then one frame per content in more (C onward); the frames left over are deleted."""
     s = shell
     fills = {
         "title": "How should the invoice list read?", "question": "How should the invoice list read?",
@@ -85,10 +86,14 @@ def page(a=TABLE, b=CARDS, css="", top="", caption="Dense table, scans by column
         "variant-B-label": "Cards", "variant-B-caption": "One card per customer.", "variant-B-content": b,
         "tradeoffs-B": '<li data-n="1">Reads well on a phone</li><li data-n="2">Fewer rows per screen</li>',
     }
+    for letter, content in zip("CDEF", more):
+        fills.update({"variant-%s-label" % letter: "Lines", "variant-%s-caption" % letter: "One sentence per customer.", "variant-%s-content" % letter: content,
+                      "tradeoffs-%s" % letter: '<li data-n="1">Reads as prose</li><li data-n="2">No column to scan</li>'})
     for k, v in fills.items():
         assert "<!-- SLOT: %s -->" % k in s, k
         s = s.replace("<!-- SLOT: %s -->" % k, v)
-    s = re.sub(r"<!-- FRAME-([C-F])-START -->.*?<!-- FRAME-\1-END -->", "", s, flags=re.S)
+    for letter in "CDEF"[len(more):]:
+        s = re.sub(r"<!-- FRAME-%s-START -->.*?<!-- FRAME-%s-END -->" % (letter, letter), "", s, flags=re.S)
     if css:
         s = s.replace("</head>", "<style>" + css + "</style>\n</head>")
     if top:
@@ -154,6 +159,14 @@ write("f/busy.html", page(top="<script>addEventListener('load', () => setTimeout
 write("f/textnodes.html", page(a=TABLE + "<p class=\"fx-row\">" + "".join("Harbor Freight ledger %d. <!---->" % i for i in range(4600)) + "</p>"))
 write("f/huge.html", page(a=TABLE + "".join('<p class="fx-row">Ledger line %d: Harbor Freight paid %d dollars on account %d.</p>' % (i, 100 + i, 4000 + i) for i in range(5000))))
 write("f/gone.html", page())
+# Six frames, a too-wide line in the last three, the last two alike; then the same with no third block and no letter stamped by the shell's script, so only position can name a frame.
+FAR = '<p class="fx-far">Settlement account 4410 9923 0042</p> '
+late = lambda top="": page(a="<p>Harbor Freight paid $4,120</p>", b="<p>Lumen Dental owes $860 by Friday</p>", css=".fx-far{width:900px}", top=top,
+                           more=["<p>Okafor Builders is $12,400 overdue</p>", FAR + "<p>Harbor Freight paid $4,120</p>"]
+                                + [FAR + "<p>Lumen Dental owes $860 by Friday</p>"] * 2)
+write("f/late-frames.html", late())
+write("f/late-gap.html", re.sub(r"<!-- FRAME-C-START -->.*?<!-- FRAME-C-END -->", "", late(
+    "<script>addEventListener('load', () => document.querySelectorAll('.vd-frame').forEach(f => f.removeAttribute('data-vd-letter')));</script>"), flags=re.S))
 
 # E6: a ledger with a renders-the-same pair (b differs from a by a comment only) and a changed current.html.
 write("2026-11-12-a.html", page(), age=300)
@@ -242,6 +255,16 @@ want() {
   expected="$(printf '%s\n' "$@" | sed '/^$/d' | sort -u)"
   [ "$rc" = "$code" ] && [ "$have" = "$expected" ] && ok || bad "$name" "want exit $code and [$(echo $expected)], got $rc and [$(echo $have)] $(head -c 300 "$T/err")"
 }
+# names <name> <check> <text> <pattern>: some finding with that check and text has a detail matching the pattern.
+names() {
+  local have
+  have="$(python3 -c '
+import json, sys
+for l in open(sys.argv[1], encoding="utf-8"):
+    f = json.loads(l) if l.strip() else {}
+    if [f.get("check"), f.get("text")] == sys.argv[2:4]: print(f["detail"])' "$T/out" "$2" "$3" 2>&1)"
+  printf '%s\n' "$have" | grep -q -- "$4" && ok || bad "$1" "want a $2 \"$3\" detail matching \"$4\", got $rc: ${have//$'\n'/ | } $(head -c 300 "$T/err")"
+}
 ALL=375,768,1280
 
 want "clean shell page" 0
@@ -280,6 +303,13 @@ grep -q 'advisory' "$T/out" && ok || bad "E5 says advisory" "$(head -c 300 "$T/o
 run f/plain.html;       want "a page not built from the shell is checked too" 0
 run f/ramp.html;        want "the shell's display line above a t1 line is not an overlap" 0
 for n in 1 2 3 4 5 6; do run "f/layout-$n.html" --widths 375; want "one to six frames no sideways scroll at 375 ($n)" 0; done
+run f/late-frames.html --widths 375
+names "E2 names variant D" E2 "variant scrolls sideways" "^variant D is "
+names "E2 names variant E" E2 "variant scrolls sideways" "^variant E is "
+names "E2 names variant F" E2 "variant scrolls sideways" "^variant F is "
+names "E5 names variants E and F" E5 "variants identical" "variants E and F have "
+run f/late-gap.html --widths 375
+names "E2 names the third of five frames variant C, its id vd-d and no letter stamped on it" E2 "variant scrolls sideways" "^variant C is "
 
 # A page's own script: a global it sets is not the check's answer, a post it makes is not a record.
 run f/forge-answer.html; want "a page-set __vdCheck is not the answer" 0
