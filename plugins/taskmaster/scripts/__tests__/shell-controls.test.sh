@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; a page rewritten in place to its next pass (the earlier round's pick is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the switcher row at 375 (walked by eye); of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line, surface and primary), Moss's dark set, and print; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand; a shell rule keyed on a look attribute being there, whatever its value. With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the switcher row at 375 (walked by eye); of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line, surface and primary), Moss's dark set, and print; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -15,7 +15,7 @@ if [ "${1:-}" = --emit ]; then
 fi
 command -v python3 >/dev/null 2>&1 || skip "python3 not found"  # skip: nothing here runs without python3; PREVIEW_REQUIRE_BROWSER=1 exits 1 instead
 
-# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes) and look-other.html (three, no pass marks, look-5's presets and one frame's own radius), from the shipped shell.
+# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), and kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), from the shipped shell.
 build_pages() {
   python3 - "$SHELL_HTML" "$1" <<'EOF'
 import os, re, sys
@@ -94,12 +94,20 @@ def page(n, drop=""):
 
 
 MARKS = ' data-vd-pass-kind="layout" data-vd-pass="1"'
+PASS_2 = ' data-vd-pass-kind="layout" data-vd-pass="2"'
+ROOT = '<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="light">'
 
 
 def marked(text, marks):
     """The page with these pass marks on its body in place of the shell's."""
     assert MARKS in text, "the shell's body does not carry%s" % MARKS
     return text.replace(MARKS, marks)
+
+
+def rooted(text, tag):
+    """The page with this start tag in place of the shell's html tag."""
+    assert ROOT in text, "the shell's html tag is not %s" % ROOT
+    return text.replace(ROOT, tag)
 
 
 def write(name, text):
@@ -140,13 +148,25 @@ def look(n, palettes=(), styles=(), types=(), css=""):
 for n in range(1, 7):
     write("layout-%d.html" % n, page(n))
 write("layout-gap.html", page(6, drop="C"))
-write("pass-2.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="2"'))
+write("pass-2.html", marked(page(3), PASS_2))
 write("pass-none.html", marked(page(3), ""))
 write("pass-12.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="12"'))
-write("look-5.html", look(5, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF]))
+look_5 = look(5, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF])
+write("look-5.html", look_5)
 write("look-one.html", look(3, [BERRY], [SHARP], [SERIF]))
 write("look-creative.html", marked(look(3, [NEUTRAL, BERRY]), ' data-vd-pass-kind="creative" data-vd-pass="1"'))
 write("look-other.html", marked(look(3, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF], css="#vd-b .vd-content{--vd-radius:0}"), ""))
+# Only dir is turned: data-vd-dir is the shell's own mirror, which an author does not write.
+write("look-authored.html", rooted(look_5, '<html lang="en" dir="rtl" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="dark"'
+                                           ' data-vd-palette="Berry" data-vd-style="Sharp" data-vd-type="Serif">'))
+write("look-authored-gone.html", rooted(look_5, ROOT[:-1] + ' data-vd-palette="Plum">'))
+# Written before serve.py starts: a page that appeared under it would be announced as changed, and reload the tab that has it open.
+for name in ("kept", "fewer", "retitled"):
+    write(name + ".html", look_5)
+write("kept-next.html", marked(look_5, PASS_2))
+write("fewer-next.html", marked(look(5, [NEUTRAL, BERRY], [SOFT, SHARP], [SANS, SERIF]), PASS_2))
+assert look_5.count("<title>How should the invoice list read?</title>") == 1, "the page's title is not its question"
+write("retitled-next.html", look_5.replace("<title>How should the invoice list read?</title>", "<title>Which invoice list ships?</title>"))
 EOF
 }
 
@@ -183,12 +203,12 @@ for _ in $(seq 1 50); do
 done
 grep -q '^Serving ' "$T/serve.log" 2>/dev/null || { echo "FAIL server start: serve.py did not start: $(tail -n 1 "$T/serve.log")"; summary 0 1; exit 1; }
 
-python3 - "http://127.0.0.1:$port/" "$browser" "$sandbox" <<'PY'
+python3 - "http://127.0.0.1:$port/" "$browser" "$sandbox" "$T/docroot" <<'PY'
 import fcntl, json, os, select, shutil, signal, subprocess, sys, tempfile, time
 from urllib.parse import quote
 from urllib.request import ProxyHandler, Request, build_opener
 
-base, browser, sandbox = sys.argv[1:4]
+base, browser, sandbox, docroot = sys.argv[1:5]
 opener = build_opener(ProxyHandler({}))
 passed = failed = 0
 
@@ -292,20 +312,49 @@ def wait(condition, ms=5000):
               " else setTimeout(poll, 20); })(); })" % (condition, ms))
 
 
-def open_page(name, width, static=False):
-    """Load a docroot page in a fresh tab at this viewport width: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded."""
-    cdp.tab()
-    cdp.call("Emulation.setDeviceMetricsOverride", {"width": width, "height": 800, "deviceScaleFactor": 1, "mobile": False})
-    cdp.loaded = False
-    nav = cdp.call("Page.navigate", {"url": base + quote(name) + ("?static=1" if static else "")})
-    if nav.get("errorText"):
-        raise RuntimeError("could not load %s: %s" % (name, nav["errorText"]))
+def settle(static=False):
+    """Wait for the tab's next load and, on a live page, for its Pick and Note buttons and its check badge."""
     until = time.monotonic() + 15
     while not cdp.loaded:
         cdp.recv(until)
     cdp.call("Page.bringToFront")
     if not static and not wait("!document.getElementById('vd-fb').hidden && !document.getElementById('vd-check-badge').hidden"):
-        raise RuntimeError("%s: the feedback controls or the check badge never appeared" % name)
+        raise RuntimeError("%s: the feedback controls or the check badge never appeared" % js("location.pathname"))
+
+
+def open_page(name, width, static=False, fresh=True, stream=True):
+    """Load a docroot page at this viewport width, in a fresh tab or, with fresh=False, in the tab already open: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded. stream=False refuses the fresh tab's pages their event stream."""
+    if fresh:
+        cdp.tab()
+        if not stream:
+            cdp.call("Network.enable")
+            cdp.call("Network.setBlockedURLs", {"urls": ["*/events"]})
+    cdp.call("Emulation.setDeviceMetricsOverride", {"width": width, "height": 800, "deviceScaleFactor": 1, "mobile": False})
+    cdp.loaded = False
+    nav = cdp.call("Page.navigate", {"url": base + quote(name) + ("?static=1" if static else "")})
+    if nav.get("errorText"):
+        raise RuntimeError("could not load %s: %s" % (name, nav["errorText"]))
+    settle(static)
+
+
+def reload():
+    """Reload the open tab, as the browser's own reload button does."""
+    cdp.loaded = False
+    cdp.call("Page.reload")
+    settle()
+
+
+def next_pass(name):
+    """Write a page's -next.html over it, as a pass is written over the one before, and wait for the reload the open page then does by itself. The page has to be open with stream=False: serve.py has eight event streams and holds a closed tab's until a write to it fails, so which pages here would get one varies by run."""
+    # With no stream a page fetches itself each second and reloads once two fetches differ, so its first has to be in before the file changes.
+    if not wait("performance.getEntriesByType('resource').some(e => e.initiatorType === 'fetch' && e.name === location.href)"):
+        raise RuntimeError("%s never fetched itself: was it opened with stream=False?" % name)
+    cdp.loaded = False
+    # Moved into place whole: a fetch that met a half-written page would reload into it.
+    part = os.path.join(docroot, name + ".part")
+    shutil.copyfile(os.path.join(docroot, name.replace(".html", "-next.html")), part)
+    os.replace(part, os.path.join(docroot, name))
+    settle()
 
 
 def style(selector, prop):
@@ -587,6 +636,31 @@ def moved(before, after):
     return [i for i, (a, b) in enumerate(zip(before["shell"], after["shell"])) if a != b]
 
 
+# What the open page says is active: the five values on <html>, each switcher's pressed options, the two toggles' labels.
+ACTIVE = """(() => { const root = document.documentElement;
+  return [['data-vd-palette', 'data-vd-style', 'data-vd-type', 'data-vd-scheme', 'dir'].map(a => root.getAttribute(a)),
+          Array.from(document.querySelectorAll('[data-vd-switcher]')).map(g =>
+            Array.from(g.querySelectorAll('[aria-pressed="true"]')).map(b => b.dataset.vdOption)),
+          ['vd-scheme-toggle', 'vd-dir-toggle'].map(id => document.getElementById(id).textContent)]; })()"""
+AS_ACTIVE = "as [html's palette, style, type, scheme and dir; pressed options per switcher; toggle labels]"
+
+
+def showing(palette, style, kind, scheme="light", direction="ltr"):
+    """What ACTIVE answers when <html>, the pressed options and the toggle labels all say these five values."""
+    return [[palette, style, kind, scheme, direction], [[palette], [style], [kind]], ["Scheme, " + scheme, "Direction, " + direction.upper()]]
+
+
+CHOSEN, DEFAULTS = showing("Berry", "Sharp", "Serif", "dark", "rtl"), showing("Neutral", "Soft", "Sans")
+
+
+def choose_all():
+    """Choose Berry, Sharp, Serif, the dark scheme and RTL on the open page."""
+    for kind, name in (("palette", "Berry"), ("style", "Sharp"), ("type", "Serif")):
+        switch(kind, name)
+    click("#vd-scheme-toggle")
+    click("#vd-dir-toggle")
+
+
 def palette_restyles():
     open_page(LOOK, 1280)
     before = js(LOOK_PROBE)
@@ -680,9 +754,11 @@ def no_reload():
 
 def one_option():
     open_page("look-one.html", 1280)
-    got = [listed(), js(LOOK_PROBE)["look"]]
-    case("one-option switcher hidden", got == [[], [None, None, None]],
-         "one palette, one style and one type are authored: switchers shown %s, html says %s" % tuple(got))
+    probe = js(LOOK_PROBE)
+    got = [listed(), js("document.querySelectorAll('#vd-header > .vd-controls').length"), probe["look"], [c[0] for c in colours(probe)]]
+    case("one-option switcher hidden", got == [[], 1, ["Berry", "Sharp", "Serif"], [BERRY[0]] * 3],
+         "Berry, Sharp and Serif are each the one option of their kind: switchers shown %s, control rows in the header %s (want the first row alone),"
+         " html says %s, paper per frame %s (want Berry's)" % tuple(got))
 
 
 def creative_pass():
@@ -714,6 +790,98 @@ def static_page():
          % (colours(before), colours(after), MOSS, moved(before, after)))
 
 
+def survives_reload():
+    open_page("kept.html", 1280, stream=False)
+    choose_all()
+    reload()
+    got = [js(ACTIVE), colours(js(LOOK_PROBE))]
+    case("look survives reload", got == [CHOSEN, [BERRY_DARK] * 5],
+         "Berry, Sharp, Serif, dark and RTL were chosen, then the tab reloaded: %s %s, per frame [paper, ink, nav bar, nav text] %s (want Berry's dark set)"
+         % (AS_ACTIVE, got[0], got[1]))
+    next_pass("kept.html")
+    got = [js("document.body.dataset.vdPass"), js(ACTIVE)]
+    case("look survives the reload a new pass causes", got == ["2", CHOSEN],
+         "pass 2 was written over the open page, which now says pass %s: %s %s" % (got[0], AS_ACTIVE, got[1]))
+
+
+def stored_option_gone():
+    open_page("fewer.html", 1280, stream=False)
+    for kind, name in (("palette", "Moss"), ("style", "Sharp"), ("type", "Serif")):
+        switch(kind, name)
+    next_pass("fewer.html")
+    got = [listed()[0], js(ACTIVE)]
+    case("missing stored option falls back to first", got == [["palette", ["Neutral", "Berry"]], showing("Neutral", "Sharp", "Serif")],
+         "Moss, Sharp and Serif were chosen, then a pass with no Moss was written over the page: its palettes are %s, %s %s" % (got[0], AS_ACTIVE, got[1]))
+
+
+def second_tab():
+    open_page(LOOK, 1280)
+    choose_all()
+    first = js(ACTIVE)
+    # The first tab stays open beside the second: tab() closes only the one it knows.
+    held, cdp.target = cdp.target, None
+    try:
+        open_page(LOOK, 1280)
+        got = js(ACTIVE)
+    finally:
+        cdp.call("Target.closeTarget", {"targetId": held}, tab=False)
+    case("second tab starts from defaults", first == CHOSEN and got == DEFAULTS,
+         "%s: the first tab, after its choices, %s; a second tab on the same page %s" % (AS_ACTIVE, first, got))
+
+
+def authored_look():
+    open_page("look-authored.html", 1280)
+    got = [js(ACTIVE), colours(js(LOOK_PROBE))]
+    case("authored look opens active", got == [CHOSEN, [BERRY_DARK] * 5],
+         "the page's html tag says Berry, Sharp, Serif, dark and dir rtl: %s %s, per frame [paper, ink, nav bar, nav text] %s (want Berry's dark set)"
+         % (AS_ACTIVE, got[0], got[1]))
+    open_page("look-authored-gone.html", 1280)
+    got = js(ACTIVE)
+    case("an authored option the page lacks opens on the first", got == DEFAULTS,
+         "the page's html tag says palette Plum, which it does not declare: %s %s" % (AS_ACTIVE, got))
+
+
+def another_path_or_title():
+    open_page("retitled.html", 1280, stream=False)
+    choose_all()
+    open_page(LOOK, 1280, fresh=False)
+    elsewhere = js(ACTIVE)
+    open_page("retitled.html", 1280, fresh=False)
+    back = js(ACTIVE)
+    case("a kept look stays with its page path", elsewhere == DEFAULTS and back == CHOSEN,
+         "%s: after the choices the tab went to a page of the same title and options, which shows %s, then back, which shows %s" % (AS_ACTIVE, elsewhere, back))
+    next_pass("retitled.html")
+    got = [js("document.title"), js(ACTIVE)]
+    case("a kept look does not outlive its decision title", got == ["Which invoice list ships?", DEFAULTS],
+         "another decision was written over the open page, whose title is now %s: %s %s" % (got[0], AS_ACTIVE, got[1]))
+
+
+def static_after_choices():
+    open_page(LOOK, 1280)
+    choose_all()
+    open_page(LOOK, 1280, static=True, fresh=False)
+    static = js(ACTIVE)
+    open_page(LOOK, 1280, fresh=False)
+    live = js(ACTIVE)
+    case("a page loaded with ?static=1 ignores the look the tab keeps", static == DEFAULTS and live == CHOSEN,
+         "%s: after the choices the tab loaded the page with ?static=1, which shows %s, then without, which shows %s" % (AS_ACTIVE, static, live))
+
+
+def storage_refused():
+    open_page(LOOK, 1280)
+    # What Chrome does with site data blocked: reading window.sessionStorage itself throws.
+    cdp.call("Page.addScriptToEvaluateOnNewDocument", {"source": "window.vdThrown = []; addEventListener('error', e => window.vdThrown.push(e.message));"
+             " Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('refused', 'SecurityError'); } });"})
+    reload()
+    refused = js("(() => { try { return !window.sessionStorage; } catch { return true; } })()")
+    opened = js(ACTIVE)
+    choose_all()
+    got = [js(ACTIVE), colours(js(LOOK_PROBE)), js("window.vdThrown")]
+    case("storage that throws leaves the page working from its defaults", refused and opened == DEFAULTS and got == [CHOSEN, [BERRY_DARK] * 5, []],
+         "sessionStorage throws on this page: %s; %s it opened %s, after the five choices %s with frames %s; uncaught errors %s"
+         % (refused, AS_ACTIVE, opened, got[0], got[1], got[2]))
+
+
 cdp = None
 try:
     cdp = Browser()
@@ -739,6 +907,13 @@ try:
     group("a creative pass", creative_pass)
     group("a page of another pass kind", another_pass_kind)
     group("static page honours the palette attribute", static_page)
+    group("look survives reload", survives_reload)
+    group("missing stored option falls back to first", stored_option_gone)
+    group("second tab starts from defaults", second_tab)
+    group("authored look opens active", authored_look)
+    group("a kept look stays with its path and title", another_path_or_title)
+    group("a page loaded with ?static=1 after choices", static_after_choices)
+    group("storage that throws", storage_refused)
 except Exception as exc:
     case("browser start", False, "%s: %s" % (type(exc).__name__, exc))
 finally:

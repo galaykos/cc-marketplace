@@ -1553,10 +1553,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 /* Page-wide looks for a layout or creative pass. One rule per option, exactly
    `html[data-vd-palette="Name"] .vd-content { }` (or data-vd-style,
    data-vd-type); an empty rule is an option that keeps the shell's own values.
-   A kind with two or more options gets a switcher in the header: options in
-   rule order, the first active, the active name written to that attribute on
-   <html>. With fewer it gets none and its rule stays unused. Scope every rule
-   to .vd-content: the header, captions and tradeoff lists keep the neutrals. */
+   A kind with two or more options gets a switcher in the header, options in
+   rule order, the active name written to that attribute on <html>. A kind
+   with one option gets no switcher and that option applied. The page opens on
+   the option its browser tab last chose, else the one authored in that
+   attribute on <html>, else the first. Scope every rule to .vd-content: the
+   header, captions and tradeoff lists keep the neutrals. */
 /* A palette may set --vd-paper, --vd-surface, --vd-ink, --vd-ink-soft,
    --vd-line, --vd-primary, --vd-on-primary, --vd-nav-bg, --vd-nav-ink and
    --vd-nav-ink-soft. Its dark set is a second rule:
@@ -2085,6 +2087,24 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   });
   labelToggle();
 
+  // Kept for this tab only, under the page's path and decision title: every preview on the port shares one origin. ?static=1 keeps nothing.
+  const lookKey = 'vd-look\n' + location.pathname + '\n' + document.title;
+  const keeps = new URLSearchParams(location.search).get('static') !== '1';
+  let kept = {};
+  try {
+    if (keeps) kept = JSON.parse(sessionStorage.getItem(lookKey)) || {};
+  } catch { /* storage refused: the page opens on its own look */ }
+  function keep(control, value) {
+    kept[control] = value;
+    try {
+      if (keeps) sessionStorage.setItem(lookKey, JSON.stringify(kept));
+    } catch { /* storage refused: the choice lasts until the next load */ }
+  }
+  function opening(control, attr, options) {
+    const authored = document.documentElement.getAttribute(attr);
+    return options.includes(kept[control]) ? kept[control] : options.includes(authored) ? authored : options[0];
+  }
+
   // Scheme toggle: preview every frame on the dark neutral set. Explicit
   // control only — no OS colour-scheme auto-switch, so screenshot and
   // side-by-side comparisons stay deterministic regardless of the OS setting.
@@ -2096,8 +2116,10 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   schemeToggle.addEventListener('click', () => {
     const root = document.documentElement;
     root.dataset.vdScheme = root.dataset.vdScheme === 'dark' ? 'light' : 'dark';
+    keep('scheme', root.dataset.vdScheme);
     labelScheme();
   });
+  document.documentElement.dataset.vdScheme = opening('scheme', 'data-vd-scheme', ['light', 'dark']);
   labelScheme();
 
   // Direction toggle: preview every frame in RTL. Mirrors the scheme toggle —
@@ -2109,14 +2131,18 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     const cur = document.documentElement.dataset.vdDir;
     dirToggle.textContent = cur === 'rtl' ? 'Direction, RTL' : 'Direction, LTR';
   }
-  dirToggle.addEventListener('click', () => {
+  function setDir(dir) {
     const root = document.documentElement;
-    const next = root.dataset.vdDir === 'rtl' ? 'ltr' : 'rtl';
-    root.dataset.vdDir = next;
-    root.setAttribute('dir', next);
+    root.dataset.vdDir = dir;
+    root.setAttribute('dir', dir);
     labelDir();
+  }
+  dirToggle.addEventListener('click', () => {
+    const next = document.documentElement.dataset.vdDir === 'rtl' ? 'ltr' : 'rtl';
+    setDir(next);
+    keep('dir', next);
   });
-  labelDir();
+  setDir(opening('dir', 'dir', ['ltr', 'rtl']));
 
   // An option is one #vd-presets rule whose whole selector is `html[data-vd-<kind>="Name"] .vd-content`: a dark-scheme rule declares none.
   const passKind = document.body.dataset.vdPassKind;
@@ -2128,7 +2154,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     [['palette', 'Palette'], ['style', 'Style'], ['type', 'Type']].forEach(([kind, label]) => {
       const declares = new RegExp('^html\\[data-vd-' + kind + '="([^"\\\\]*)"\\] \\.vd-content$');
       const names = selectors.map(s => declares.exec(s)).filter(Boolean).map(m => m[1]);
-      if (names.length < 2) return;
+      if (!names.length) return;
       const group = document.createElement('div');
       group.className = 'vd-seg vd-switcher';
       group.setAttribute('role', 'group');
@@ -2144,10 +2170,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         b.type = 'button';
         b.dataset.vdOption = name;
         b.textContent = name;
-        b.addEventListener('click', () => choose(name));
+        b.addEventListener('click', () => { choose(name); keep(kind, name); });
         group.appendChild(b);
       });
-      choose(names[0]);
+      choose(opening(kind, 'data-vd-' + kind, names));
+      // A lone option is applied and has no switcher to show.
+      if (names.length < 2) return;
       const item = document.createElement('div');
       item.className = 'vd-look-item';
       const title = document.createElement('span');
