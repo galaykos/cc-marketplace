@@ -234,7 +234,7 @@ def feedback_row(body):
         "text": text,
         "context": {
             "viewport": {k: _number(viewport.get(k)) for k in ("w", "h")},
-            "theme": _clip(context.get("theme"), 16),
+            "theme": _clip(context.get("theme"), 30),  # a 24-character palette name, a space, "light" or "dark"
             "states": dict([(_clip(k, 32), _clip(v, 32)) for k, v in states.items() if isinstance(v, str)][:16]),
             "console": [_clip(s, 300) for s in console if isinstance(s, str)][-5:],
         },

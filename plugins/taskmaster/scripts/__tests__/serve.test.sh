@@ -174,7 +174,7 @@ import json
 print(json.dumps({"page": "current.html", "kind": "note", "variant": "B", "text": "t" * 3000,
   "id": "forged", "status": "addressed", "reply": "x", "handed_out": True, "evil": 1,
   "anchor": {"selector": "s" * 600, "tag": "t" * 40, "text": "x" * 300, "rect": {"x": 1.5, "y": "bad", "w": 10, "h": 20, "z": 9}, "extra": 1},
-  "context": {"viewport": {"w": 1280, "h": 800, "d": 1}, "theme": "q" * 20,
+  "context": {"viewport": {"w": 1280, "h": 800, "d": 1}, "theme": "q" * 40,
               "states": {"k%d" % i: "v" * 40 for i in range(20)}, "console": ["e" * 350] * 7, "more": 1}}))')"
 got="$(fb -H 'X-Preview-Feedback: 1' --data "$note")"
 [ "$got" = 200 ] && ok || bad "feedback note" "want 200, got $got: $(cat "$T/resp")"
@@ -190,10 +190,20 @@ assert (len(a["selector"]), len(a["tag"]), len(a["text"])) == (512, 32, 200), a
 assert a["rect"] == {"x": 1.5, "y": 0, "w": 10, "h": 20}, a["rect"]
 c = r["context"]
 assert set(c) == {"viewport", "theme", "states", "console"}, sorted(c)
-assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 16, c
+assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 30, c
 assert len(c["states"]) == 16 and all(len(v) <= 32 for v in c["states"].values()), c["states"]
 assert len(c["console"]) == 5 and all(len(s) == 300 for s in c["console"]), [len(s) for s in c["console"]]
 EOF
+theme_of() { tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["context"]["theme"])'; }
+long_name="Harbour morning at sunset"; long_name="${long_name:0:24}"
+for theme in "Berry preserve dark" "$long_name light"; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"$theme\"}}")"
+  [ "$got" = 200 ] && [ "$(theme_of)" = "$theme" ] && ok \
+    || bad "theme with a long palette name keeps its scheme" "want 200 and '$theme', got $got and '$(theme_of)'"
+done
+got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"$(printf 'x%.0s' $(seq 40))\"}}")"
+[ "$got" = 200 ] && [ "$(theme_of)" = "$(printf 'x%.0s' $(seq 30))" ] && ok \
+  || bad "theme longer than 30 characters is clipped" "want 200 and 30 characters, got $got and '$(theme_of)'"
 huge="$(python3 -c 'print("{\"kind\":\"note\",\"text\":\"n\",\"anchor\":{\"selector\":\"p\",\"rect\":{\"x\":" + "9"*400 + ",\"y\":1e999,\"w\":-1e308,\"h\":1e308}},\"context\":{\"viewport\":{\"w\":NaN,\"h\":3e9}}}")')"
 got="$(fb -H 'X-Preview-Feedback: 1' --data "$huge")"
 [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["anchor"]["rect"], r["context"]["viewport"])')" = "{'x': 10000000, 'y': 0, 'w': -10000000, 'h': 10000000} {'w': 0, 'h': 10000000}" ] && ok \
