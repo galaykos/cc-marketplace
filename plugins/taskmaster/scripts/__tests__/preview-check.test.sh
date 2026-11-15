@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
-# Misses: whether the model runs the script or acts on a finding; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, or on a page at every limit), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 R="$here/../preview-check.sh"
@@ -168,6 +168,52 @@ write("f/late-frames.html", late())
 write("f/late-gap.html", re.sub(r"<!-- FRAME-C-START -->.*?<!-- FRAME-C-END -->", "", late(
     "<script>addEventListener('load', () => document.querySelectorAll('.vd-frame').forEach(f => f.removeAttribute('data-vd-letter')));</script>"), flags=re.S))
 
+# E7: each limit of a layout pass broken by the smallest page that breaks it, the same five pages with no pass marks, seven frames on a creative pass and under another pass-kind value, a page at every limit, and a name too long on a kind with one option.
+MARKS = ' data-vd-pass-kind="layout" data-vd-pass="1"'
+def marked(text, marks):
+    """The page with these pass marks on its body in place of the shell's."""
+    assert text.count(MARKS) == 1, "the shell's body does not carry" + MARKS
+    return text.replace(MARKS, marks)
+
+def presets(text, palettes=(), styles=(), types=()):
+    """The page with one empty rule per name in the shell's palette, style and type slots, so an option changes nothing but its name."""
+    for kind, options in (("palette", palettes), ("style", styles), ("type", types)):
+        slot = "/* SLOT: %ss */" % kind
+        assert slot in text, "the shell has no slot %ss" % kind
+        text = text.replace(slot, "\n".join('html[data-vd-%s="%s"] .vd-content {}' % (kind, o) for o in options))
+    return text
+
+LINES = ["<p>Harbor Freight paid $4,120</p>", "<p>Lumen Dental owes $860 by Friday</p>", "<p>Okafor Builders is $12,400 overdue</p>",
+         "<p>Northwind Traders paid $2,310</p>", "<p>Fenwick Wholesale owes $640 by Monday</p>", "<p>Calloway Print is $1,980 overdue</p>"]
+six = page(a=LINES[0], b=LINES[1], more=LINES[2:])
+assert six.count("</main>") == 1
+seven = six.replace("</main>", """<section class="vd-frame" id="vd-g" tabindex="-1">
+<h2><span class="vd-badge">G</span>Lines</h2> <p class="vd-caption">One sentence per customer.</p>
+<div class="vd-content"><p>Brightwater Marina paid $7,050</p></div>
+<ul class="vd-tradeoffs"><li data-n="1">Reads as prose</li> <li data-n="2">No column to scan</li></ul>
+</section>
+</main>""")
+# The shell builds palette, style and type only: a fourth switcher is markup an author wrote by hand.
+DENSITY = ('<div class="vd-seg vd-switcher" role="group" aria-label="Density" data-vd-switcher="density">'
+           '<button type="button" data-vd-option="Compact" aria-pressed="true">Compact</button> '
+           '<button type="button" data-vd-option="Roomy" aria-pressed="false">Roomy</button></div>')
+limits = {
+    "frames": seven,
+    "options": presets(page(), ["Neutral", "Sand", "Slate", "Moss", "Berry"]),
+    "switchers": presets(page(top=DENSITY), ["Neutral", "Sand"], ["Soft", "Sharp"], ["Sans", "Serif"]),
+    "duplicate": presets(page(), ["Neutral", "Berry", "Berry"]),
+    "name": presets(page(), ["Cocoa & cream", "Neutral"]),
+}
+for name, text in limits.items():
+    write("f/limit-%s.html" % name, text)
+    write("f/limit-%s-unmarked.html" % name, marked(text, ""))
+write("f/limit-creative.html", marked(seven, ' data-vd-pass-kind="creative" data-vd-pass="1"'))
+write("f/limit-other.html", marked(seven, ' data-vd-pass-kind="data-shape" data-vd-pass="1"'))
+LONGEST, TOO_LONG = "Slate_2 - harbor at dusk", "Harbour morning at sunset"
+assert len(LONGEST) == 24 and len(TOO_LONG) == 25
+write("f/limit-most.html", presets(six, ["Neutral", "Sand", LONGEST, "Moss"], ["Soft", "Sharp", "Round", "Flat"], ["Sans", "Serif", "Mono", "Slab"]))
+write("f/limit-lone.html", presets(page(), [TOO_LONG]))
+
 # E6: a ledger with a renders-the-same pair (b differs from a by a comment only) and a changed current.html.
 write("2026-11-12-a.html", page(), age=300)
 write("2026-11-12-b.html", page().replace("</body>", "<!-- second draft -->\n</body>"), age=200)
@@ -310,6 +356,27 @@ names "E2 names variant F" E2 "variant scrolls sideways" "^variant F is "
 names "E5 names variants E and F" E5 "variants identical" "variants E and F have "
 run f/late-gap.html --widths 375
 names "E2 names the third of five frames variant C, its id vd-d and no letter stamped on it" E2 "variant scrolls sideways" "^variant C is "
+
+# E7, the limits of a layout or creative pass: one finding per broken limit, naming the rule and the number found; none on a page with no pass-kind mark.
+run f/limit-frames.html;    want "seven frames reported" 1 "E7|more than 6 frames|$ALL"
+names "seven frames reported: the number found" E7 "more than 6 frames" "^7 frames; "
+run f/limit-options.html;   want "five options reported" 1 "E7|more than 4 options in a switcher|$ALL"
+names "five options reported: the switcher and the number found" E7 "more than 4 options in a switcher" "^the palette switcher has 5 options; "
+run f/limit-switchers.html; want "four switchers reported" 1 "E7|more than 3 switchers|$ALL"
+names "four switchers reported: the number found and the kinds" E7 "more than 3 switchers" "^4 switchers (palette, style, type, density); "
+run f/limit-duplicate.html; want "duplicate option name reported" 1 "E7|option name repeated|$ALL"
+names "duplicate option name reported: the name and the number found" E7 "option name repeated" '^the palette switcher has 2 options named "Berry"; '
+run f/limit-name.html;      want "refused option name reported" 1 "E7|option name the server refuses|$ALL"
+names "refused option name reported: the name and the number found" E7 "option name the server refuses" '^the palette switcher has 1 name outside .*: "Cocoa & cream"; '
+python3 -c 'import json,sys;s=json.loads(open(sys.argv[1]).read().splitlines()[-1])["summary"];assert s["findings"]==1,s' "$T/out" 2>/dev/null \
+  && ok || bad "refused option name reported: once, though it is the active option and so on the html tag too" "$(tail -n 1 "$T/out")"
+run f/limit-creative.html --widths 375; want "creative pass with seven frames reported" 1 "E7|more than 6 frames|375"
+names "creative pass with seven frames reported: the number found" E7 "more than 6 frames" "^7 frames; "
+for p in frames options switchers duplicate name; do run "f/limit-$p-unmarked.html" --widths 375; want "unmarked page clean for all five limits ($p)" 0; done
+run f/limit-other.html --widths 375; want "seven frames under a pass-kind value that is neither layout nor creative draw none" 0
+run f/limit-most.html;      want "six frames and three four-option switchers clean, one name 24 characters of every kind a name may hold" 0
+run f/limit-lone.html --widths 375; want "a 25-character name on a kind with one option, which has no switcher, reported" 1 "E7|option name the server refuses|375"
+names "a 25-character name on a kind with one option: where it is applied" E7 "option name the server refuses" '^the palette applied with no switcher has 1 name outside .*: "Harbour morning at sunset"; '
 
 # A page's own script: a global it sets is not the check's answer, a post it makes is not a record.
 run f/forge-answer.html; want "a page-set __vdCheck is not the answer" 0

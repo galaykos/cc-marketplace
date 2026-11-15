@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# preview-check.sh [--docroot DIR] [--page PATH] [--widths 375,768,1280] (defaults .cc-artifacts/taskmaster/mockups, current.html): loads the page from this docroot's serve.py (started through preview.sh when none answers, said on stderr) in a headless Chromium-family browser driven over its DevTools pipe, one exact width at a time; check.js and axe-core run in an isolated world page script cannot reach (E1 load, E2 layout, E3 axe-core, E4 stand-in content, E5 variants; console and uncaught errors read from the browser), and this script writes each width's record and a full-page PNG to DIR/.checks/<page>-<hash>/; E6 compares the widest PNG with the newest ledger pass that differs from the page. Every stdout line is one escaped JSON object: a finding (seen at several widths once, with "widths"), an E6 "advisory" that counts as no finding, a {"not_reported": width, "reason": ...}, then one {"summary": ...}.
+# preview-check.sh [--docroot DIR] [--page PATH] [--widths 375,768,1280] (defaults .cc-artifacts/taskmaster/mockups, current.html): loads the page from this docroot's serve.py (started through preview.sh when none answers, said on stderr) in a headless Chromium-family browser driven over its DevTools pipe, one exact width at a time; check.js and axe-core run in an isolated world page script cannot reach (E1 load, E2 layout, E3 axe-core, E4 stand-in content, E5 variants, E7 the frame, switcher, option and option-name limits of a layout or creative pass; console and uncaught errors read from the browser), and this script writes each width's record and a full-page PNG to DIR/.checks/<page>-<hash>/; E6 compares the widest PNG with the newest ledger pass that differs from the page. Every stdout line is one escaped JSON object: a finding (seen at several widths once, with "widths"), an E6 "advisory" that counts as no finding, a {"not_reported": width, "reason": ...}, then one {"summary": ...}.
 # Exit: 0 no findings; 1 findings; 2 bad argument, or --page names no .html file inside DIR; 3 no serve.py with the /_checks route (preview.sh could not start one, or one from before this version runs: --stop, then rerun); 4 no Chromium-family browser (PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 some width not reported (the check timed out or failed, or no screenshot), the rest still printed; 6 python3 missing, the browser failed, a signal, or the run passed 60 s, with what was collected still printed.
 # Misses: what each check misses (see the derivation); whether the model acts on a finding; page script still runs and can change what is measured, so a clean check is not proof the page is fine; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page leaning on a CDN reads as broken, yet loopback stays reachable; E6 is pixels at one width against the newest differing ledger pass, which can belong to another decision.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
@@ -59,7 +59,7 @@ MAX_SHOT = 8000
 WORLD = "vd-check"  # the isolated world check.js and axe-core run in
 KEEP = 60  # findings kept per width; the rest are counted as dropped
 EVENTS = 200  # console and exception events kept per page; the rest are counted
-CHECK_IDS = ("E1", "E2", "E3", "E4", "E5")
+CHECK_IDS = ("E1", "E2", "E3", "E4", "E5", "E7")
 opener = build_opener(ProxyHandler({}))
 # preview-feedback.sh's output rule: variation selectors and blank-rendering letters escape too, though not C*.
 BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
@@ -404,7 +404,7 @@ def pct(x):
 
 
 def record_of(answer, errs, lost, w):
-    """One width's record: check.js's findings (named fields, clamped, E1-E5 only) and the browser's E1 errors, KEEP of them; the rest counted."""
+    """One width's record: check.js's findings (named fields, clamped, CHECK_IDS only) and the browser's E1 errors, KEEP of them; the rest counted."""
     raw = answer.get("findings") if isinstance(answer.get("findings"), list) else []
     rows = [{"check": f["check"], "selector": clip(f.get("selector"), 300) or None, "text": clip(f.get("text"), 120), "detail": clip(f.get("detail"), 400)}
             for f in raw if isinstance(f, dict) and f.get("check") in CHECK_IDS]

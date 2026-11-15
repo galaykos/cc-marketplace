@@ -607,6 +607,25 @@ meant to change. Misses: whether the change is the one asked for; a height chang
 it, so the box covers it (the real run: 7 px taller, box x 0-1279, y 41-818); the previous pass may belong to
 another decision; one width only.
 
+**E7 limits (a layout or creative pass).** Runs only when `<body data-vd-pass-kind>` is `layout` or
+`creative`; `passKind()` in check.js reads that mark, and later checks call it. No mark, or any other value,
+draws nothing: the shell builds no switcher row there either. Every limit is read from the page as loaded,
+never from the `#vd-presets` rules: the shell is the one reader of those rules, and what it built is what a
+person is shown and what a pick posts. Frames: more than 6 `.vd-frame` elements. Switchers: more than 3
+elements carrying `data-vd-switcher`; the shell builds palette, style and type only, so a fourth is markup
+written by hand and appears in no preset rule. Options: more than 4 `[data-vd-option]` in one switcher. A name
+repeated in one switcher: one finding per name. A name serve.py's `LOOK_NAME` refuses (not 1 to 24 ASCII
+letters, digits, spaces, hyphens or underscores): one finding per switcher, listing the names. That rule is
+now written three times (serve.py, the shell, check.js). A kind with one option has no switcher, yet the
+shell applies it and a pick posts its name from `<html>`; so for palette, style and type with no switcher,
+the `data-vd-<kind>` attribute on `<html>` is read as that kind's one name. These are findings (exit 1), not
+advisories: they are the gate behind the count rule. Misses: a preset rule the shell does not list (a
+selector list, `:root[…]`, a name holding `"` or `\`), which is an option its author wrote and nobody is
+shown; a kind with one option beside three shown switchers (four kinds, three switchers); the floor of 2
+frames, the default of 3 and the sixth frame being legal only as one kept plus five new, which need the
+passes before this one; a pass-kind mark with a typo, read as another kind; a page whose script stopped
+before the shell built its switchers (E1 reports the error).
+
 ### Red, then green
 
 The harness was written first and run against nothing: 48 of 58 failed (`bash: …/preview-check.sh: No such
@@ -655,6 +674,32 @@ A review of the uncommitted tree listed defects; each was reproduced first, the 
 **Records (L9).** Folders whose records and `run.json` name only pages no longer in the docroot are removed at each run (red: the folder stayed). Records are runner-written, so the server's shared 2 MiB budget and any-integer width went with the route.
 
 **What a hostile page can still do.** Its script runs while it is measured: change the DOM it is measured on, detect a headless browser, keep the main thread busy so a width reads not reported, log errors, open dialogs (accepted), and reach any loopback service, `POST /_feedback` of this server included. It can no longer read, replace or answer for the check, nor write a record.
+
+### E7: the limits of a layout or creative pass (2026-11-15)
+
+The shell had come to draw up to six lettered frames and a palette, style and type switcher from the page's
+preset rules, and nothing capped either. Measured on the shell: five rules give five buttons, two rules of
+one name give two buttons, and a name serve.py refuses is drawn as a button (serve.py's `_look_name` stores such a
+name as null on a pick). E7 is the check behind "never more than 6 frames, 3 switchers, 4 options in one,
+each name once and storable". The code E6 was taken, so E7 is the next free one.
+
+Red, then green. The 22 cases were written first and run on the check as it stood: the 15 that expect a
+finding failed (`got 0 and []`: the limit pages draw no other finding). With E7 in check.js and no `"E7"` in
+preview-check.sh's `CHECK_IDS`, the findings were counted as dropped and never printed (`got 1 and []`).
+
+The 7 cases that expect no finding pass on any code without E7. Three were shown to fail under a mutant of
+check.js: with the pass-kind guard removed, `FAIL unmarked page clean for all five limits (frames)`; with any
+mark value read as a pass kind, `FAIL seven frames under a pass-kind value that is neither layout nor
+creative draw none`; with a limit one lower, a name of 23 characters refused, or a name allowed no space,
+digit, hyphen or underscore, `FAIL six frames and three four-option switchers clean, …`. The other four are
+the unmarked pages of the switcher limits. The shell builds no switcher on a page with no mark, so no change
+to check.js makes them fail: they hold only against a shell that starts building switchers there, or a check
+that starts reading the rules. A switcher written by hand on an unmarked page is not covered.
+
+Twenty mutants of check.js in all; none survived the final cases. Two survived a first draft and changed
+them: reading the `<html>` name for a kind that has a switcher too printed a refused active option twice, so
+the refused palette is now the first, active one and the case counts one finding; and the page marked with
+another pass-kind value was added.
 
 ## plugins/taskmaster/scripts/preview-cleanup.sh
 

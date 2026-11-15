@@ -1,5 +1,5 @@
 // Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun() and reads the findings back over DevTools.
-// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory).
+// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses.
 // Misses: what each check misses is listed in its derivation; nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
 // Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 (() => {
@@ -52,6 +52,8 @@
   function label(el) { const t = textOf(el); return el.localName + (t ? ' "' + cut(t, 40) + '"' : ''); }
   // The letter of el's frame by its position among the frames (first A, a seventh has none): the shell's rule. data-vd-letter is not read, since page script writes it.
   const letterOf = el => 'ABCDEF'[Array.from(document.querySelectorAll('.vd-frame')).indexOf(el.closest('.vd-frame'))] || '?';
+  // The pass kind the author marked on <body>: 'layout' or 'creative', else null (every other pass kind, which keeps its own rules).
+  const passKind = () => { const kind = document.body.getAttribute('data-vd-pass-kind'); return kind === 'layout' || kind === 'creative' ? kind : null; };
   const shown = el => (el.checkVisibility ? el.checkVisibility({ visibilityProperty: true }) : el.getClientRects().length > 0);
   const style = el => getComputedStyle(el);
   const clips = cs => cs.overflowX !== 'visible' || cs.overflowY !== 'visible';
@@ -356,10 +358,43 @@
     }
   }
 
+  const LOOK_NAME = /^[A-Za-z0-9 _-]{1,24}$/; // serve.py's rule of the same name: a pick stores any other name as null
+  function checkLimits() {
+    if (!passKind()) return;
+    const frames = document.querySelectorAll('.vd-frame');
+    if (frames.length > 6) add('E7', frames[6], 'more than 6 frames', frames.length + ' frames; a layout or creative pass holds at most 6');
+    const groups = Array.from(document.querySelectorAll('[data-vd-switcher]')).map(el => {
+      const kind = cut(el.getAttribute('data-vd-switcher'), 24);
+      return { el, kind, where: 'the ' + kind + ' switcher', names: Array.from(el.querySelectorAll('[data-vd-option]'), b => b.getAttribute('data-vd-option')) };
+    });
+    if (groups.length > 3) {
+      add('E7', groups[3].el, 'more than 3 switchers', groups.length + ' switchers (' + groups.map(g => g.kind).join(', ') + '); a layout or creative pass holds at most 3');
+    }
+    // The shell applies a kind's one option with no switcher, and a pick posts that name from <html> all the same.
+    for (const kind of ['palette', 'style', 'type']) {
+      const name = document.documentElement.getAttribute('data-vd-' + kind);
+      if (name !== null && !groups.some(g => g.kind === kind)) groups.push({ el: 'html', kind, where: 'the ' + kind + ' applied with no switcher', names: [name] });
+    }
+    for (const g of groups) {
+      if (g.names.length > 4) add('E7', g.el, 'more than 4 options in a switcher', g.where + ' has ' + g.names.length + ' options; a switcher holds at most 4');
+      const times = new Map();
+      g.names.forEach(name => times.set(name, (times.get(name) || 0) + 1));
+      times.forEach((count, name) => {
+        if (count > 1) add('E7', g.el, 'option name repeated', g.where + ' has ' + count + ' options named "' + cut(name, 40) + '"; a name is used once in a switcher');
+      });
+      const refused = Array.from(times.keys()).filter(name => !LOOK_NAME.test(name));
+      if (refused.length) {
+        add('E7', g.el, 'option name the server refuses', g.where + ' has ' + refused.length + ' name' + (refused.length === 1 ? '' : 's')
+          + ' outside 1 to 24 ASCII letters, digits, spaces, hyphens and underscores: ' + refused.map(name => '"' + cut(name, 40) + '"').join(', ')
+          + '; a pick stores null in its place');
+      }
+    }
+  }
+
   async function run() {
     const total = document.body.getElementsByTagName('*').length;
     visible = new Set(first(document.body).filter(shown));
-    for (const [id, fn] of [['E3', checkAxe], ['E1', checkLoad], ['E2', checkLayout], ['E4', checkStandIns], ['E5', checkVariants]]) {
+    for (const [id, fn] of [['E3', checkAxe], ['E1', checkLoad], ['E2', checkLayout], ['E4', checkStandIns], ['E5', checkVariants], ['E7', checkLimits]]) {
       try { await fn(); } catch (err) { add(id, null, 'check failed to run', String((err && err.message) || err)); }
     }
     scrollTo(0, 0);
