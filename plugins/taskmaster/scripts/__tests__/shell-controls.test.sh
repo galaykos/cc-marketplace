@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row; how a wrapped title looks (walked by eye). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; a page rewritten in place to its next pass (the earlier round's pick is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -15,7 +15,7 @@ if [ "${1:-}" = --emit ]; then
 fi
 command -v python3 >/dev/null 2>&1 || skip "python3 not found"  # skip: nothing here runs without python3; PREVIEW_REQUIRE_BROWSER=1 exits 1 instead
 
-# build_pages <dir>: layout-1.html to layout-6.html (that many frames) and layout-gap.html (six, the third block deleted), from the shipped shell.
+# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12) and pass-none.html (three, no pass marks), from the shipped shell.
 build_pages() {
   python3 - "$SHELL_HTML" "$1" <<'EOF'
 import os, re, sys
@@ -93,6 +93,15 @@ def page(n, drop=""):
     return s
 
 
+MARKS = ' data-vd-pass-kind="layout" data-vd-pass="1"'
+
+
+def marked(text, marks):
+    """The page with these pass marks on its body in place of the shell's."""
+    assert MARKS in text, "the shell's body does not carry%s" % MARKS
+    return text.replace(MARKS, marks)
+
+
 def write(name, text):
     with open(os.path.join(out, name), "w", encoding="utf-8") as h:
         h.write(text)
@@ -101,6 +110,9 @@ def write(name, text):
 for n in range(1, 7):
     write("layout-%d.html" % n, page(n))
 write("layout-gap.html", page(6, drop="C"))
+write("pass-2.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="2"'))
+write("pass-none.html", marked(page(3), ""))
+write("pass-12.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="12"'))
 EOF
 }
 
@@ -124,6 +136,9 @@ mkdir -p "$T/docroot" "$T/tmp"
 export TMPDIR="$T/tmp"
 
 build_pages "$T/docroot" 2>"$T/build.err" || { echo "FAIL fixture pages: not built from the shipped shell: $(tail -n 1 "$T/build.err")"; summary 0 1; exit 1; }
+# Picks as serve.py stored them before rows carried a pass (no "pass" key): B on the page with no pass mark, A on a page marked pass 1.
+printf '{"id": "0a1b2c3%s", "ts": "2026-11-01T09:00:00Z", "page": "%s", "kind": "pick", "variant": "%s", "anchor": null, "text": "", "context": {"viewport": {"w": 1280, "h": 800}, "theme": "baseline light", "states": {}, "console": []}, "status": "open", "reply": "", "handed_out": false}\n' \
+  d pass-none.html B e layout-2.html A >"$T/docroot/.feedback.jsonl"
 port="$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')"
 python3 "$SERVE" --docroot "$T/docroot" --port "$port" >"$T/serve.log" 2>&1 &
 srv=$!
@@ -137,7 +152,7 @@ grep -q '^Serving ' "$T/serve.log" 2>/dev/null || { echo "FAIL server start: ser
 python3 - "http://127.0.0.1:$port/" "$browser" "$sandbox" <<'PY'
 import fcntl, json, os, select, shutil, signal, subprocess, sys, tempfile, time
 from urllib.parse import quote
-from urllib.request import ProxyHandler, build_opener
+from urllib.request import ProxyHandler, Request, build_opener
 
 base, browser, sandbox = sys.argv[1:4]
 opener = build_opener(ProxyHandler({}))
@@ -288,6 +303,13 @@ def rows(name):
         return json.loads(resp.read().decode("utf-8"))["rows"]
 
 
+def seed_pick(name, letter, number):
+    """Store a pick of this frame on this pass number for a page through serve.py, the way the page's own post does."""
+    body = json.dumps({"page": name, "kind": "pick", "variant": letter, "pass": number}).encode("utf-8")
+    with opener.open(Request(base + "_feedback", body, {"Content-Type": "application/json", "X-Preview-Feedback": "1"}), timeout=5) as resp:
+        resp.read()
+
+
 # Per frame: its box and title box in page coordinates, its badge, and its title buttons by accessible name.
 FRAMES = """(() => {
   const box = el => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top + scrollY, right: r.right, bottom: r.bottom + scrollY, width: r.width }; };
@@ -305,6 +327,8 @@ INNER = ("(() => { const m = document.getElementById('vd-frames'), c = getComput
 LETTERS = "ABCDEF"
 EACH = ["one frame has", "two frames each have", "three frames each have", "four frames each have", "five frames each have", "six frames each have"]
 NTH = ["first", "second", "third", "fourth", "fifth", "sixth"]
+PICK_B = '#vd-b button[aria-label^="Pick variant"]'
+PICK, PICKED = ["Pick", "false"], ["Picked", "true"]
 
 
 def group(name, body):
@@ -356,6 +380,11 @@ def wrapped_title():
          % (len(lines), inside, widths[0], widths[1], tight["title"]["bottom"], [round(b["box"]["bottom"], 1) for b in tight["buttons"]]))
 
 
+def pick_states():
+    """Each frame's Pick button as [text, aria-pressed], in frame order."""
+    return [[b["text"], b["pressed"]] for f in js(FRAMES) for b in f["buttons"] if b["name"].startswith("Pick variant")]
+
+
 def middle_frame_removed():
     # Frames by id are a, b, d, e, f here: a letter that followed the id would skip C.
     open_page("layout-gap.html", 1280)
@@ -367,10 +396,72 @@ def middle_frame_removed():
     click('#vd-e button[aria-label^="Pick variant"]')
     marked = wait("document.querySelector('#vd-e button[aria-label^=\"Pick variant\"]').getAttribute('aria-pressed') === 'true'")
     picks = [r["variant"] for r in rows("layout-gap.html") if r["kind"] == "pick"]
-    state = [[b["text"], b["pressed"]] for f in js(FRAMES) for b in f["buttons"] if b["name"].startswith("Pick variant")]
+    state = pick_states()
     case("a pick on the fourth frame stores D and shows Picked there only",
          marked and picks == ["D"] and state == [["Picked", "true"] if i == 3 else ["Pick", "false"] for i in range(5)],
          "stored picks %s, Pick buttons %s" % (picks, state))
+
+
+def pick_b(name):
+    """Pick the second frame of the open page; returns whether B then reads Picked, and the page's stored picks as [letter, pass]."""
+    click(PICK_B)
+    shown = wait("document.querySelector(%s).getAttribute('aria-pressed') === 'true'" % json.dumps(PICK_B))
+    return shown, [[r["variant"], r.get("pass")] for r in rows(name) if r["kind"] == "pick"]
+
+
+def posts_the_pass(name, number):
+    shown, picks = pick_b(name)
+    case("pick posts the pass number", shown and picks[-1:] == [["B", number]],
+         "%s is marked pass %d: stored picks as [letter, pass] %s, B reads Picked: %s" % (name, number, picks, shown))
+
+
+def pick_on_pass_one():
+    # The feedback file started with a pick of A for this page that has no pass key (written beside the pages).
+    open_page("layout-2.html", 1280)
+    state = pick_states()
+    case("a stored pick that has no pass is not picked on a page marked pass 1", state == [PICK] * 2, "Pick buttons %s" % state)
+    posts_the_pass("layout-2.html", 1)
+
+
+def a_new_pass():
+    # A pass is written over the path of the one before and rows are kept by path: the earlier round's pick is still stored under this page.
+    seed_pick("pass-2.html", "B", 1)
+    open_page("pass-2.html", 1280)
+    state = pick_states()
+    case("pass 2 opens with nothing picked", state == [PICK] * 3, "the one stored pick is B on pass 1; Pick buttons %s" % state)
+    posts_the_pass("pass-2.html", 2)
+    seed_pick("pass-2.html", "A", 1)
+    open_page("pass-2.html", 1280)
+    state = pick_states()
+    case("a newer pick from another pass leaves nothing picked", state == [PICK] * 3,
+         "stored picks are B on pass 1, B on pass 2, then A on pass 1; Pick buttons on the pass 2 page %s" % state)
+
+
+def note_on_pass_two():
+    open_page("pass-2.html", 1280)
+    click('#vd-a button[aria-label^="Note on variant"]')
+    typing = wait("document.activeElement === document.getElementById('vd-fb-text')")
+    key("n")
+    click('#vd-fb-box button[type="submit"]')
+    sent = wait("document.getElementById('vd-fb-box').hidden")
+    notes = [[r["variant"], r["text"], r.get("pass")] for r in rows("pass-2.html") if r["kind"] == "note"]
+    case("a note posts the pass number", typing and sent and notes == [["A", "n", 2]],
+         "stored notes as [letter, text, pass] %s; the note box took focus: %s, closed after Send: %s" % (notes, typing, sent))
+
+
+def an_unmarked_page():
+    # The feedback file started with a pick of B for this page that has no pass key (written beside the pages).
+    open_page("pass-none.html", 1280)
+    state = pick_states()
+    case("a page with no pass mark shows a stored pick that has no pass", state == [PICK, PICKED, PICK], "Pick buttons %s" % state)
+
+
+def pick_on_a_refused_mark():
+    # serve.py stores a pass outside 1 to 9 as none: a page that kept 12 as its own pass would never match the row its pick left.
+    open_page("pass-12.html", 1280)
+    shown, picks = pick_b("pass-12.html")
+    case("a pick on a page marked pass 12 is stored with no pass and reads Picked", shown and picks == [["B", None]],
+         "stored picks as [letter, pass] %s, B reads Picked: %s" % (picks, shown))
 
 
 def number_keys():
@@ -410,6 +501,11 @@ try:
     group("six frames at 1280", rows_at_1280)
     group("wrapped title buttons", wrapped_title)
     group("a middle frame removed", middle_frame_removed)
+    group("a pick on pass 1", pick_on_pass_one)
+    group("a new pass", a_new_pass)
+    group("a note on pass 2", note_on_pass_two)
+    group("a page with no pass mark", an_unmarked_page)
+    group("a pass mark outside 1 to 9", pick_on_a_refused_mark)
     group("number keys", number_keys)
     group("a key past the last frame", key_past_the_last)
     group("Flip mode", flip_mode)

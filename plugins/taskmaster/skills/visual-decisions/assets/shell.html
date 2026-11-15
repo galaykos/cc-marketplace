@@ -2130,6 +2130,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   if (params.get('static') === '1') return;
 
   const page = decodeURIComponent(location.pathname).replace(/^\/+/, '');
+  // The body's pass mark as serve.py stores it: a digit 1 to 9, anything else is no pass.
+  const mark = document.body.dataset.vdPass || '';
+  const pass = /^[1-9]$/.test(mark) ? Number(mark) : null;
   const wrap = document.getElementById('vd-fb');
   const toggle = document.getElementById('vd-fb-toggle');
   const panel = document.getElementById('vd-fb-panel');
@@ -2170,7 +2173,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   }
 
   function post(fields) {
-    const body = Object.assign({ page: page, context: context() }, fields);
+    const body = Object.assign({ page: page, pass: pass, context: context() }, fields);
     if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
     return fetch('/_feedback', {
       method: 'POST',
@@ -2188,7 +2191,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 
   function render(rows) {
     const picks = rows.filter(r => r.kind === 'pick');
-    const picked = picks.length ? picks[picks.length - 1].variant : null;
+    const last = picks[picks.length - 1];
+    // A row stored before rows carried a pass has no such key: it reads as no pass.
+    const picked = last && (last.pass || null) === pass ? last.variant : null;
     frames.forEach(frame => {
       const btn = frame.querySelector('.vd-fb-pick');
       if (!btn) return;
