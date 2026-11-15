@@ -53,9 +53,9 @@ the cap, decide the remainder against the concept and the archetype defaults,
 report what was auto-decided, and proceed. A guided flow that outlives the user's
 patience has failed even if every answer was good.
 
-Iteration on a single pick is capped at two revisions, matching the preview
-surfaces' own limit; past that, take the closest option and note the reservation
-in the ledger.
+Iteration on a single pick asked in the dialog stops after two revisions. A pick staged on a
+drawing page (taskmaster's mockup page, a design-kit board) allows up to three, that page's own
+limit. Past that, take the closest option and note the reservation in the ledger.
 
 ## Always-available exits
 
@@ -79,7 +79,8 @@ When the design-kit plugin is installed, a round can draw its options as artboar
 board or checks that its pick reached the ledger.
 
 - **One board per decision, one artboard per option.** Round 1's board holds the two or three
-  whole-page outlines. A Round 2 section gets a board only when the user wants it drawn, so a batch
+  whole-page outlines; a round staged on a drawing page may hold up to 5 options when the
+  directions are really different, and never more than 6, which is that page's own count rule. A Round 2 section gets a board only when the user wants it drawn, so a batch
   stays one exchange. Round 3's one signature decision is the one most worth a board. The board's
   brief is the decision: the slot, the concept's metaphor and voice, and how the options differ in
   structure. The option rule still binds — artboards that differ in decoration are a fake choice.
@@ -90,7 +91,7 @@ board or checks that its pick reached the ledger.
 - **Stop at the pick.** The board's own next-step offer (render it in the codebase, build it now)
   belongs to a standalone design run. Here the next step is the next decision, and the build reads
   the ledger.
-- **The cap still counts.** A board revision is one of the two revisions a pick allows, every board
+- **The cap still counts.** A board revision is one of the three revisions a staged pick allows, every board
   exchange counts toward the six, and "Decide the rest for me" stays beside the pick question.
 
 ## Headless / non-interactive runs

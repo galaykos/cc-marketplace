@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.61.2 — 2026-11-15
+
+- `section-decisions` says why a question round offers two or three options (the question dialog holds four beside your own answer, and each must be a structurally different page). A round staged on a drawing page (taskmaster's mockup page, a design-kit board) may hold up to 5 options, never more than 6, and a staged pick allows up to three revisions: that page's own limits, which taskmaster 0.62.0 and design-kit 0.18.0 raised. A pick asked in the dialog still stops after two revisions. Standing: recorded.
+
 ## 0.61.1 — 2026-11-14
 
 - `section-ledger.md` gives the ledger's path, `.cc-artifacts/taskmaster/craft/` (an older `taskmaster-docs/craft/`), the one `/craft-layer:audit` lists. It said "in that task's directory, beside the spec", a folder taskmaster does not create.

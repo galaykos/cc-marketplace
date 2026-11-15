@@ -57,8 +57,9 @@ batching rule, the cap, and the degradation paths live in
 
 ## Options must be structurally different
 
-Two or three options per decision, and they must differ in STRUCTURE — what the
-section is, how it argues — not in decoration. Three shades of the same stacked
+Two or three options per decision: the question dialog holds at most four options beside the
+user's own free-text answer, and each one must be a page a reader could tell apart in words.
+They must differ in STRUCTURE — what the section is, how it argues — not in decoration. Three shades of the same stacked
 block is a fake choice that costs the user a decision and returns nothing.
 
 Each option carries: a one-line description of the shape, the one-line tradeoff,
