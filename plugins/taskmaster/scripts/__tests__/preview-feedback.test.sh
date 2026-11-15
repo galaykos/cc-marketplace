@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; a pick repeated after its hand-out; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure; a PNG of the row's viewport size over http and from the file with a real one).
-# Misses: whether the PNG shows the outlined element (looked at by eye, not here); a browser that is found but cannot start; the shell's own controls (no browser runs the page here).
+# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; a pick repeated after its hand-out; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure, and for the row's look in that URL: palette, style, type and the scheme after the theme's last space, a name with URL syntax in it kept one value, a refused name, a number and a cut theme left out, a row from before the look fields; with a real one, a PNG of the row's viewport size over http and from the file, the paper colour beside the outline under the row's palette, under the first and under one the page lacks, and the look the shell applies from that URL: all four kinds, over a look authored on the html tag, and none without static=1 on the live page).
+# Misses: whether the outline sits on the noted element (its colour is found in the PNG, its place is not checked); a style, type or scheme in the PNG itself (read off the html tag); a look row shot from the file; a browser that is found but cannot start; the shell's own controls (nothing is clicked here). With no Chromium-family browser the real-browser cases print SKIP, and fail under PREVIEW_REQUIRE_BROWSER=1, as a missing python3 or curl does.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 R="$here/../preview-feedback.sh"
@@ -13,13 +13,14 @@ bad() { echo "FAIL $1: $2"; fail=$((fail+1)); }
 if ! command -v python3 >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
   echo "SKIP: python3 or curl not found"
   echo "preview-feedback.sh tests: 0 passed, 0 failed"
+  [ "${PREVIEW_REQUIRE_BROWSER:-}" = 1 ] && exit 1
   exit 0
 fi
 
 T="$(mktemp -d)"
 pids=""
 cleanup() {
-  [ -d "$T/live" ] && bash "$here/../preview.sh" --docroot "$T/live" --stop >/dev/null 2>&1
+  for d in live look; do [ -d "$T/$d" ] && bash "$here/../preview.sh" --docroot "$T/$d" --stop >/dev/null 2>&1; done
   for p in $pids; do kill "$p" 2>/dev/null; done
   for p in $pids; do wait "$p" 2>/dev/null; done
   rm -rf "$T"
@@ -259,9 +260,14 @@ out="$(shoot 2>&1)"; rc=$?
 u="$(tail -n 1 "$T/fake.log")"
 case "$u" in "http://127.0.0.1:$sport/current.html?"*static=1*_outline=*) ok ;; *) bad "shot, server running: http" "want http://127.0.0.1:$sport/current.html?static=1&_outline=…, got $rc: $u" ;; esac
 
+# no_browser <what>: the SKIP line for cases that need a real browser; a failure under PREVIEW_REQUIRE_BROWSER=1.
+no_browser() {
+  echo "SKIP: no Chromium-family browser here (PREVIEW_BROWSER, PATH, Playwright's cache): $1 is not exercised"
+  [ "${PREVIEW_REQUIRE_BROWSER:-}" != 1 ] || bad "$1" "PREVIEW_REQUIRE_BROWSER=1 and no browser was found"
+}
 shoot_real() {
   out="$(bash "$R" shot --docroot "$E" --id "$note_id" 2>&1)"; rc=$?
-  if [ "$rc" = 4 ]; then echo "SKIP: no Chromium-family browser here — the PNG half of shot ($1) is not exercised ($out)"; return; fi
+  if [ "$rc" = 4 ]; then no_browser "the PNG half of shot ($1)"; return; fi
   png="$(printf '%s\n' "$out" | tail -n 1)"
   [ "$rc" = 0 ] && [ "$png" = "$E/.feedback-shots/$note_id.png" ] && ok || bad "shot path ($1)" "want exit 0 and $E/.feedback-shots/$note_id.png, got $rc: $out"
   python3 - "$png" <<'EOF' 2>&1 | grep . && bad "shot PNG ($1)" "see above" || ok
@@ -274,6 +280,133 @@ EOF
 shoot_real "over http"
 bash "$here/../preview.sh" --docroot "$E" --stop >/dev/null 2>&1
 shoot_real "from the file"
+
+# ---- shot in the row's look -------------------------------------------------------
+# shot_url <docroot> <id>: the URL shot hands the stand-in browser for that row.
+shot_url() { : > "$T/fake.log"; FAKE_LOG="$T/fake.log" PREVIEW_BROWSER="$fake" bash "$R" shot --docroot "$1" --id "$2" >/dev/null 2>&1; tail -n 1 "$T/fake.log"; }
+# query <url>: its query string as JSON, every value of a repeated key kept.
+query() { python3 -c 'import json, sys
+from urllib.parse import parse_qs, urlsplit
+print(json.dumps(parse_qs(urlsplit(sys.argv[1]).query, keep_blank_values=True), sort_keys=True))' "$1"; }
+python3 - "$E/.feedback.jsonl" <<'EOF'
+import json, sys
+def note(i, **kw):
+    r = {"id": i, "page": "current.html", "kind": "note", "variant": "A", "text": "x", "anchor": {"selector": "p", "tag": "p", "text": "", "rect": {}},
+         "context": {}, "status": "open", "reply": "", "handed_out": True}
+    r.update(kw)
+    return json.dumps(r) + "\n"
+with open(sys.argv[1], "a") as h:
+    h.write(note("lk01", switchers={"palette": "Moss and stone", "style": "Soft", "type": "Serif"}, context={"theme": "Moss and stone dark"}))
+    h.write(note("lk02", switchers={"palette": "Berry&_scheme=dark&static=0#x"}, context={"theme": "x light"}))
+    h.write(note("lk03", switchers={"palette": None, "style": 7}, context={"theme": "Harbour morning at dawn in win"}))
+    h.write(note("lk04", context={"theme": "project dark"}))
+EOF
+got="$(query "$(shot_url "$E" lk01)")"
+[ "$got" = '{"_outline": ["p"], "_palette": ["Moss and stone"], "_scheme": ["dark"], "_style": ["Soft"], "_type": ["Serif"], "static": ["1"]}' ] && ok \
+  || bad "shot URL carries the row's look" "want the palette, style and type, and the scheme after the theme's last space, got $got"
+got="$(query "$(shot_url "$E" lk02)")"
+[ "$got" = '{"_outline": ["p"], "_palette": ["Berry&_scheme=dark&static=0#x"], "_scheme": ["light"], "static": ["1"]}' ] && ok \
+  || bad "shot URL keeps a name with URL syntax in it one value" "want the whole name under _palette, _scheme light and static 1, got $got"
+# serve.py stores a name it refuses as null: passed on as text, it would select an option named None.
+got="$(query "$(shot_url "$E" lk03)")"
+[ "$got" = '{"_outline": ["p"], "static": ["1"]}' ] && ok || bad "shot URL leaves out a refused name, a number and a cut theme" "want static and _outline alone, got $got"
+got="$(query "$(shot_url "$E" lk04)")"
+[ "$got" = '{"_outline": ["p"], "_scheme": ["dark"], "static": ["1"]}' ] && ok || bad "shot URL for a row from before the look fields" "want its scheme and no look name, got $got"
+
+. "$here/../find-browser.sh"
+if browser="$(find_browser)"; then
+  K="$T/look"; mkdir -p "$K"
+  bash "$here/shell-controls.test.sh" --emit "$T/pages" >/dev/null 2>&1 && cp "$T/pages/look-5.html" "$T/pages/look-authored.html" "$K/" \
+    || bad "look fixtures" "shell-controls.test.sh --emit did not write look-5.html and look-authored.html"
+  kport="$(free_port)"
+  bash "$here/../preview.sh" --docroot "$K" --port "$kport" >/dev/null 2>&1
+  # noted <page> <palette> <style> <type> <scheme>: a note on frame A's table posted to serve.py under that look, as the shell posts it; prints the stored row's id.
+  noted() {
+    curl -s --max-time 5 -X POST -H 'X-Preview-Feedback: 1' -H 'Expect:' "http://127.0.0.1:$kport/_feedback" --data '{"page":"'"$1"'","kind":"note","variant":"A","text":"look",
+      "switchers":{"palette":"'"$2"'","style":"'"$3"'","type":"'"$4"'"},"anchor":{"selector":"#vd-a > .vd-content > table","tag":"table","text":"","rect":{}},
+      "context":{"viewport":{"w":900,"h":700},"theme":"'"$2 $5"'"}}' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'
+  }
+  # paper <png>: the colour 3 px left of the red outline's left edge, halfway down it. The outlined table starts at the frame content's padding, so that pixel is the content's paper.
+  paper() {
+    python3 - "$1" <<'EOF' 2>&1 | tail -n 1
+import struct, sys, zlib
+data = open(sys.argv[1], "rb").read()
+pos, packed = 8, b""
+while pos < len(data):
+    size, kind = struct.unpack(">I4s", data[pos:pos + 8])
+    if kind == b"IHDR":
+        w, h, depth, colour, _, _, interlace = struct.unpack(">IIBBBBB", data[pos + 8:pos + 21])
+    if kind == b"IDAT":
+        packed += data[pos + 8:pos + 8 + size]
+    pos += size + 12
+assert depth == 8 and colour in (2, 6) and not interlace, "a PNG this reader does not decode: depth %d, colour type %d, interlace %d" % (depth, colour, interlace)
+bpp = 3 if colour == 2 else 4
+raw, stride, rows, prev = zlib.decompress(packed), w * bpp + 1, [], bytearray(w * bpp)
+for y in range(h):
+    kind, line = raw[y * stride], bytearray(raw[y * stride + 1:(y + 1) * stride])
+    if kind == 2:
+        line = bytearray((x + up) & 255 for x, up in zip(line, prev))
+    elif kind:
+        for i in range(len(line)):
+            left, corner, up = (line[i - bpp], prev[i - bpp], prev[i]) if i >= bpp else (0, 0, prev[i])
+            if kind == 4:
+                a, b, c = abs(up - corner), abs(left - corner), abs(left + up - 2 * corner)
+                add = left if a <= b and a <= c else up if b <= c else corner
+            else:
+                add = left if kind == 1 else (left + up) // 2
+            line[i] = (line[i] + add) & 255
+    rows.append(line)
+    prev = line
+outline, edge = bytes((225, 29, 72)), {}
+for y, line in enumerate(rows):
+    i = line.find(outline)
+    while i > 0 and i % bpp:
+        i = line.find(outline, i + 1)
+    if i >= 0:
+        edge[y] = i // bpp
+assert edge, "no pixel of the outline's colour in the PNG"
+x = min(edge.values())
+assert x >= 3, "the outline starts at the PNG's left edge"
+ys = [y for y in edge if edge[y] == x]
+print(*rows[ys[len(ys) // 2]][(x - 3) * bpp:(x - 3) * bpp + 3])
+EOF
+  }
+  # shot_paper <id>: paper of the row's real screenshot, or what shot printed when it failed.
+  shot_paper() { local png; png="$(bash "$R" shot --docroot "$K" --id "$1" 2>&1)" && paper "$png" || echo "shot exited $?: $png"; }
+  # dom_look <url>: the look a real browser leaves on the page's html tag, as "palette style type scheme".
+  dom_look() {
+    local profile sandbox="" limit=""
+    profile="$(mktemp -d "$T/profile.XXXXXX")"
+    { [ "$(id -u)" = 0 ] || [ "${PREVIEW_BROWSER_NO_SANDBOX:-}" = 1 ]; } && sandbox="--no-sandbox"
+    command -v timeout >/dev/null 2>&1 && limit="timeout 30"
+    $limit "$browser" --headless=new --disable-gpu $sandbox --no-first-run --no-default-browser-check --user-data-dir="$profile" --dump-dom "$1" 2>/dev/null | python3 -c 'import re, sys
+tag = re.search(r"<html[^>]*>", sys.stdin.read())
+tag = tag.group(0) if tag else ""
+print(" ".join((re.findall(r"data-vd-%s=\"([^\"]*)\"" % kind, tag) or ["-"])[0] for kind in ("palette", "style", "type", "scheme")))'
+    rm -rf "$profile"
+  }
+
+  berry="$(shot_paper "$(noted look-5.html Berry Soft Sans light)")"
+  first="$(shot_paper "$(noted look-5.html Neutral Soft Sans light)")"
+  [ "$berry" = "255 245 248" ] && [ "$first" = "255 255 255" ] && ok \
+    || bad "shot renders the row palette (pixel sample)" "want Berry's paper 255 245 248 beside the outline, and the first palette's 255 255 255 for a row under it, got '$berry' and '$first'"
+  gone="$(shot_paper "$(noted look-5.html Plum Soft Sans light)")"
+  [ "$gone" = "255 255 255" ] && ok || bad "shot, a palette the page lacks" "want exit 0 and the first palette's paper 255 255 255, got '$gone'"
+
+  u="$(shot_url "$K" "$(noted look-5.html Berry Sharp Serif dark)")"
+  got="$(dom_look "$u")"
+  [ "$got" = "Berry Sharp Serif dark" ] && ok || bad "shot URL selects the row's palette, style, type and scheme" "want Berry Sharp Serif dark on the html tag, got '$got' for $u"
+  # The same link without static=1, on the live page a person picks on.
+  live="${u/static=1&/}"
+  got="$(dom_look "$live")"
+  [ "$live" != "$u" ] && [ "$got" = "Neutral Soft Sans light" ] && ok || bad "look parameters without static=1" "want the page's own Neutral Soft Sans light, got '$got' for $live"
+  u="$(shot_url "$K" "$(noted look-authored.html Neutral Soft Sans light)")"
+  got="$(dom_look "$u")"
+  [ "$got" = "Neutral Soft Sans light" ] && ok || bad "row look over a look authored on the html tag" "want Neutral Soft Sans light on a page that authors Berry Sharp Serif dark, got '$got' for $u"
+  bash "$here/../preview.sh" --docroot "$K" --stop >/dev/null 2>&1
+else
+  no_browser "shot in the row's look (the pixel sample, the look the shell applies from the URL)"
+fi
 
 echo "preview-feedback.sh tests: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

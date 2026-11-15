@@ -2103,7 +2103,8 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 
   // Kept for this tab only, under the page's path and decision title: every preview on the port shares one origin. ?static=1 keeps nothing.
   const lookKey = 'vd-look\n' + location.pathname + '\n' + document.title;
-  const keeps = new URLSearchParams(location.search).get('static') !== '1';
+  const search = new URLSearchParams(location.search);
+  const keeps = search.get('static') !== '1';
   let kept = {};
   try {
     if (keeps) kept = JSON.parse(sessionStorage.getItem(lookKey)) || {};
@@ -2114,9 +2115,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       if (keeps) sessionStorage.setItem(lookKey, JSON.stringify(kept));
     } catch { /* storage refused: the choice lasts until the next load */ }
   }
+  // ?static=1&_palette=&_style=&_type=&_scheme= (preview-feedback.sh shot): a stored row's look. Read beside static=1 only, where nothing can be picked: a link cannot restyle the page a person picks on.
+  const asked = {};
+  if (!keeps) ['palette', 'style', 'type', 'scheme'].forEach(control => { asked[control] = search.get('_' + control); });
   function opening(control, attr, options) {
     const authored = document.documentElement.getAttribute(attr);
-    return options.includes(kept[control]) ? kept[control] : options.includes(authored) ? authored : options[0];
+    return options.includes(asked[control]) ? asked[control] : options.includes(kept[control]) ? kept[control] : options.includes(authored) ? authored : options[0];
   }
 
   const presets = document.getElementById('vd-presets');
