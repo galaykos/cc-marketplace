@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, or on a page at every limit), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
-# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; of E8, a see-through colour that is not rgba(), most of the soft-text primitives, a palette on a page with no frame, a state whose check throws, and a state loop that runs out of time; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, or on a page at every limit), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), layout at 375 px under each style and each type option (E2: a heading a Mono type widens and a row a Roomy style widens, each named with its option, with none in the look at load; at 375 when another width comes first and at no other width; under the first option when the page authors the second; a finding the look at load draws printed once beside one an option adds; a clipping box an option moves; six frames with four palettes, four styles and four types in 14 states, and no state on a page with no switcher), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; of E8, a see-through colour that is not rgba(), most of the soft-text primitives, a palette on a page with no frame, a state whose check throws, and a state loop that runs out of time; of E2 under an option, the limit a state adds being granted or passed (exit 5 and 6), and a style or type name used twice; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 R="$here/../preview-check.sh"
@@ -288,6 +288,34 @@ four = four.replace(HTML_TAG, HTML_TAG[:-len('"light">')] + '"dark" data-vd-pale
 write("2026-11-10-looks-a.html", four, age=500)
 write("2026-11-10-looks-b.html", four.replace("</body>", "<!-- second draft -->\n</body>"), age=400)
 
+# E2 under an option: a type or style that breaks a frame at 375 px through the tokens an option may set, the page clean in the look it loads with.
+def dressed(text, styles=(), types=()):
+    """The page with these (name, tokens) options in the shell's style and type slots."""
+    for kind, options in (("style", styles), ("type", types)):
+        slot = "/* SLOT: %ss */" % kind
+        assert slot in text, "the shell has no slot %ss" % kind
+        text = text.replace(slot, "\n".join('html[data-vd-%s="%s"] .vd-content { %s }' % (kind, name, tokens) for name, tokens in options))
+    return text
+
+SANS, MONO = ("Sans", ""), ("Mono", '--vd-font: "DejaVu Sans Mono", "Liberation Mono", "Courier New", monospace;')
+COMPACT, ROOMY = ("Compact", ""), ("Roomy", "--vd-space: 32px;")
+HEAD = '<h3 class="vd-t2 fx-head">Utility bills still in dispute</h3> '
+NAV = '<div class="vd-nav"><span class="vd-brand">Ledgerly</span> <a href="#">Invoices</a> <a href="#">Customers</a></div> '
+headed = lambda b, css="": page(a=HEAD + LINES[0], b=b, css=".fx-head{white-space:nowrap}" + css)
+write("f/type-wide.html", dressed(headed(LINES[1]), types=[SANS, MONO]))
+write("f/style-wide.html", dressed(page(a=NAV + LINES[0], b=LINES[0]), styles=[COMPACT, ROOMY]))
+# The same heading on a page that lists Mono first and authors Sans on the html tag: the look at load is the second option.
+write("f/type-wide-authored.html", dressed(headed(LINES[1]), types=[MONO, SANS]).replace(HTML_TAG, HTML_TAG[:-1] + ' data-vd-type="Sans">'))
+# Frame B too wide in the look at load, on a page whose Mono type also breaks frame A's heading and whose Sharp style changes no width.
+write("f/type-wide-twice.html", dressed(headed(FAR + LINES[1], ".fx-far{width:900px}"), styles=[COMPACT, ("Sharp", "--vd-radius: 0;")], types=[SANS, MONO]))
+# A box that clips a bar and none of its text, in a frame the Roomy style pushes down and inwards by more than the box's height.
+write("f/style-moved.html", dressed(page(a='<div class="fx-plan"><p>Paid in full</p> <div class="fx-bar"></div></div> ' + LINES[0], b=LINES[0],
+                                         css=".fx-plan{height:48px;overflow:hidden}.fx-plan p{margin:0}.fx-bar{height:120px;background:var(--vd-surface)}"), styles=[COMPACT, ROOMY]))
+# Every limit at once with options that restyle the page: six frames, four palettes, four styles, four types.
+write("f/looks-444.html", dressed(painted(six, NEUTRAL, BERRY, MOSS, SLATE),
+                                  styles=[("Soft", ""), ("Sharp", "--vd-radius: 0; --vd-shadow: none;"), ("Round", "--vd-radius: 16px;"), ("Airy", "--vd-space: 12px;")],
+                                  types=[SANS, ("Serif", '--vd-font: Georgia, "Times New Roman", serif;'), MONO, ("Humanist", '--vd-font: Optima, Candara, "Noto Sans", sans-serif;')]))
+
 # E6: a ledger with a renders-the-same pair (b differs from a by a comment only) and a changed current.html.
 write("2026-11-12-a.html", page(), age=300)
 write("2026-11-12-b.html", page().replace("</body>", "<!-- second draft -->\n</body>"), age=200)
@@ -385,10 +413,16 @@ for l in open(sys.argv[1], encoding="utf-8"):
     if [f.get("check"), f.get("text")] == sys.argv[2:4]: print(f["detail"])' "$T/out" "$2" "$3" 2>&1)"
   printf '%s\n' "$have" | grep -q -- "$4" && ok || bad "$1" "want a $2 \"$3\" detail matching \"$4\", got $rc: ${have//$'\n'/ | } $(head -c 300 "$T/err")"
 }
+# visited <name> <n>: the summary counts n states run.
+visited() {
+  python3 -c 'import json,sys;s=json.loads(open(sys.argv[1]).read().splitlines()[-1])["summary"];assert s["states"]==int(sys.argv[2]),s' "$T/out" "$2" 2>/dev/null \
+    && ok || bad "$1" "want $2 state(s) in the summary: $(tail -n 1 "$T/out")"
+}
 ALL=375,768,1280
 
 want "clean shell page" 0
 [ "$secs" -lt 30 ] && ok || bad "three widths in time" "took $secs s"
+visited "a page with no switchers runs no state" 0
 python3 - "$T/out" "$D" <<'EOF' 2>&1 | grep . && bad "clean run: summary and shots" "see above" || ok
 import json, struct, sys
 s = [json.loads(l) for l in open(sys.argv[1])][-1]["summary"]
@@ -497,6 +531,29 @@ names "a see-through background is laid over what is behind it: the ratio and th
 run f/light-only.html --widths 375; want "a palette with no dark set is checked in light only, one with an empty rule in dark too" 1 "E8|soft text under 4.5:1|375"
 names "a palette with an empty rule is checked in dark: the palette and the scheme" E8 "soft text under 4.5:1" '^palette "Neutral", dark: soft text is 2\.39:1 (#57575e on #1b1b1f), on p '
 count "a palette with no dark set is checked in light only: no finding under it" 1
+
+# E2 at 375 px under each style and each type option on its own: a finding names its option, and one the look at load draws is not printed again per option.
+run f/type-wide.html;  want "overflow under second type option reported" 1 "E2|variant scrolls sideways|375"
+names "overflow under second type option reported: the option, the frame and the heading" E2 "variant scrolls sideways" \
+  '^type "Mono": variant A is [0-9]*px wide in [0-9]*px; first element past the edge: h3 "Utility bills still in dispute"$'
+count "overflow under second type option reported: none under the default, once across three widths" 1
+run f/style-wide.html; want "overflow under second style option reported" 1 "E2|variant scrolls sideways|375"
+names "overflow under second style option reported: the option, the frame and the row's last link" E2 "variant scrolls sideways" \
+  '^style "Roomy": variant A is [0-9]*px wide in [0-9]*px; first element past the edge: a "Customers"$'
+count "overflow under second style option reported: none under the default" 1
+run f/type-wide.html --widths 1280,375; want "an option is checked at 375 px when another width comes first" 1 "E2|variant scrolls sideways|375"
+visited "an option is checked at 375 px when another width comes first: once, not at 1280 too" 1
+run f/type-wide.html --widths 768,1280; want "an option is checked at 375 px only: no finding at 768 and 1280" 0
+visited "an option is checked at 375 px only: no state run at 768 and 1280" 0
+run f/type-wide-authored.html --widths 375; want "the look at load is the option the page authors, and the first option is checked under its name" 1 "E2|variant scrolls sideways|375"
+names "the look at load is the option the page authors: the first option named" E2 "variant scrolls sideways" '^type "Mono": variant A is '
+run f/type-wide-twice.html --widths 375
+count "a finding the look at load draws is printed once, not again under each option" 2
+names "a finding the look at load draws is printed once: with no option named" E2 "variant scrolls sideways" '^variant B is '
+names "a finding the look at load draws is printed once: the other frame's is still reported under its option" E2 "variant scrolls sideways" '^type "Mono": variant A is '
+run f/style-moved.html --widths 375; want "a clipping box an option moves is measured where the option puts it" 0
+run f/looks-444.html; want "4 by 4 by 4 page checked inside the limit" 0
+visited "4 by 4 by 4 page checked inside the limit: 8 palette states, 3 styles and 3 types, never a style with a second type" 14
 
 # A page's own script: a global it sets is not the check's answer, a post it makes is not a record.
 run f/forge-answer.html; want "a page-set __vdCheck is not the answer" 0

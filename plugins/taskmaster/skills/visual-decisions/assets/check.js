@@ -1,6 +1,6 @@
-// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun(), then in its first width's load __vdState() for each state __vdStates() lists, and reads the findings back over DevTools.
-// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses; E8 for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert, nav or primary-coloured text under 4.5:1 against the colour behind it, on the shell primitives a frame draws, else on a probe.
-// Misses: what each check misses is listed in its derivation (of E8: text over a background image or dimmed by opacity, a pair on any background but those the page draws it on, text that is no shell primitive, a page with no palette); nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
+// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun(), then __vdState() for each state __vdStates() lists that is due at that width, and reads the findings back over DevTools.
+// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px, and at 375 px the same under each style option and each type option on its own, a finding naming its option and one the look at load already drew left out; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses; E8 for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert, nav or primary-coloured text under 4.5:1 against the colour behind it, on the shell primitives a frame draws, else on a probe.
+// Misses: what each check misses is listed in its derivation (of E8: text over a background image or dimmed by opacity, a pair on any background but those the page draws it on, text that is no shell primitive, a page with no palette; of E2 under an option: a style together with a type the page did not load with, an option at any other width, an element only an option shows); nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
 // Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 (() => {
   'use strict';
@@ -24,8 +24,14 @@
 
   const findings = [];
   const counts = new Map();
+  const atLoad = new Map(); // check|text -> the elements the look at load drew that finding on
+  let under = null; // while a state's layout check runs: its option, as a finding names it
   function add(check, el, text, detail) {
     const key = check + '|' + text;
+    const drawn = atLoad.get(key) || atLoad.set(key, new Set()).get(key);
+    if (!under) drawn.add(el);
+    else if (drawn.has(el)) return;
+    else detail = under + ': ' + detail;
     counts.set(key, (counts.get(key) || 0) + 1);
     if (counts.get(key) > CAP) return;
     findings.push({ check, selector: typeof el === 'string' ? cut(el, 300) : el ? selectorOf(el) : null, text, detail: cut(detail, 300) });
@@ -161,6 +167,7 @@
     + '[role="checkbox"], [role="switch"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"]';
 
   function checkLayout() {
+    clipCache.clear();
     scrollTo(0, 0);
     const root = document.documentElement;
     const vw = root.clientWidth;
@@ -482,13 +489,20 @@
       else document.documentElement.removeAttribute('data-vd-' + kind);
     }
   }
-  const STATE_CHECKS = { E8: checkContrast };
-  // The states preview-check.sh's loop visits after __vdRun(), each a look and the check to run under it: every palette in light and, unless it is light only, in dark. A kind's one option has no switcher and is read from <html>.
+  function checkLayoutUnder(look) {
+    const [kind, name] = Object.entries(look)[0];
+    under = kind + ' "' + cut(name, 40) + '"';
+    try { checkLayout(); } finally { under = null; }
+  }
+  const STATE_CHECKS = { E2: checkLayoutUnder, E8: checkContrast };
+  const optionsOf = kind => { const switcher = document.querySelector('[data-vd-switcher="' + kind + '"]'); return switcher && Array.from(switcher.querySelectorAll('button[data-vd-option]'), b => b.getAttribute('data-vd-option')); };
+  // The states preview-check.sh's loop visits after __vdRun(): E8 under every palette in light and, unless it is light only, in dark (a lone palette has no switcher and is read from <html>); E2 under each style, then each type, the page did not load with, one at a time.
   window.__vdStates = () => {
-    const switcher = document.querySelector('[data-vd-switcher="palette"]');
-    const lone = document.documentElement.getAttribute('data-vd-palette');
-    const names = switcher ? Array.from(switcher.querySelectorAll('button[data-vd-option]'), b => b.getAttribute('data-vd-option')) : lone === null ? [] : [lone];
-    return names.flatMap(palette => (lightOnly(palette) ? ['light'] : ['light', 'dark']).map(scheme => ({ check: 'E8', look: { palette, scheme } })));
+    const now = lookNow();
+    const palettes = optionsOf('palette') || (now.palette === null ? [] : [now.palette]);
+    const contrast = palettes.flatMap(palette => (lightOnly(palette) ? ['light'] : ['light', 'dark']).map(scheme => ({ check: 'E8', look: { palette, scheme } })));
+    const layout = ['style', 'type'].flatMap(kind => Array.from(new Set(optionsOf(kind) || [])).filter(name => name !== now[kind]).map(name => ({ check: 'E2', look: { [kind]: name } })));
+    return contrast.concat(layout);
   };
   // One state: its look laid over the look the page has, its check run, the page's look put back; answers the findings that check added.
   window.__vdState = async state => {
