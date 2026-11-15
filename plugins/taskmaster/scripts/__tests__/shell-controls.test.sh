@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a Theme toggle or a State bar (each adds a line); a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line, surface and primary), Moss's dark set, and print; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500; on a themed project's page (palettes Project, which has no dark rule, and Neutral), Project listed first and active in each switcher with no Theme control in the header, the Scheme toggle disabled with its note beside it under Project and working under Neutral, a dark scheme chosen under Neutral held light while Project is active, and the palette and scheme a pick stores as its context theme (baseline on a page with no palette); under emulated print media on the dark scheme, a frame's paper, ink, nav bar, primary button and info alert in the active palette's light set, for a palette with a dark rule and for Neutral. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets; print on paper (page breaks, dropped backgrounds, any frame but those the print case reads); a note's stored row beyond its pass number; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a State bar or the Scheme note (each adds a line; a themed page of six frames is not measured); the Scheme note at 375, and one too long for its line; a State bar's place in the header; a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line and surface, and primary off the print case), and Moss's dark set; a dark rule whose attribute selectors are written in the other order (read as no dark set); a palette on the html tag of a page of another pass kind; a context theme past the 16 characters serve.py keeps; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -15,7 +15,7 @@ if [ "${1:-}" = --emit ]; then
 fi
 command -v python3 >/dev/null 2>&1 || skip "python3 not found"  # skip: nothing here runs without python3; PREVIEW_REQUIRE_BROWSER=1 exits 1 instead
 
-# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-6.html (six, the same presets), look-long.html (three, four palettes whose names do not fit a 375 px screen side by side), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), and kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), from the shipped shell.
+# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-6.html (six, the same presets), look-long.html (three, four palettes whose names do not fit a 375 px screen side by side), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), and themed.html (three, a themed project's page: palettes Project, which has no dark set, and Neutral; styles and types Project and Neutral), from the shipped shell.
 build_pages() {
   python3 - "$SHELL_HTML" "$1" <<'EOF'
 import os, re, sys
@@ -95,7 +95,7 @@ def page(n, drop=""):
 
 MARKS = ' data-vd-pass-kind="layout" data-vd-pass="1"'
 PASS_2 = ' data-vd-pass-kind="layout" data-vd-pass="2"'
-ROOT = '<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="light">'
+ROOT = '<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-scheme="light">'
 
 
 def marked(text, marks):
@@ -133,6 +133,10 @@ SOFT = 'html[data-vd-style="Soft"] .vd-content { --vd-radius: 12px; --vd-space: 
 SHARP = 'html[data-vd-style="Sharp"] .vd-content { --vd-radius: 0; --vd-space: 6px; --vd-shadow: none; }'
 SANS = 'html[data-vd-type="Sans"] .vd-content {}'
 SERIF = 'html[data-vd-type="Serif"] .vd-content { --vd-font: Georgia, "Times New Roman", serif; }'
+# A project's own theme as its author declares it: the three colours it defines and no dark rule, its radius and spacing, its font. The runner's PROJECT holds the palette as the browser reports it.
+PROJECT = 'html[data-vd-palette="Project"] .vd-content { --vd-primary: #0f766e; --vd-surface: #f0fdfa; --vd-ink: #134e4a; }'
+PROJECT_STYLE = 'html[data-vd-style="Project"] .vd-content { --vd-radius: 4px; --vd-space: 6px; }'
+PROJECT_TYPE = 'html[data-vd-type="Project"] .vd-content { --vd-font: Verdana, Geneva, sans-serif; }'
 
 
 def look(n, palettes=(), styles=(), types=(), css=""):
@@ -160,7 +164,7 @@ write("look-one.html", look(3, [BERRY], [SHARP], [SERIF]))
 write("look-creative.html", marked(look(3, [NEUTRAL, BERRY]), ' data-vd-pass-kind="creative" data-vd-pass="1"'))
 write("look-other.html", marked(look(3, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF], css="#vd-b .vd-content{--vd-radius:0}"), ""))
 # Only dir is turned: data-vd-dir is the shell's own mirror, which an author does not write.
-write("look-authored.html", rooted(look_5, '<html lang="en" dir="rtl" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="dark"'
+write("look-authored.html", rooted(look_5, '<html lang="en" dir="rtl" data-vd-dir="ltr" data-vd-scheme="dark"'
                                            ' data-vd-palette="Berry" data-vd-style="Sharp" data-vd-type="Serif">'))
 write("look-authored-gone.html", rooted(look_5, ROOT[:-1] + ' data-vd-palette="Plum">'))
 # Written before serve.py starts: a page that appeared under it would be announced as changed, and reload the tab that has it open.
@@ -170,6 +174,9 @@ write("kept-next.html", marked(look_5, PASS_2))
 write("fewer-next.html", marked(look(5, [NEUTRAL, BERRY], [SOFT, SHARP], [SANS, SERIF]), PASS_2))
 assert look_5.count("<title>How should the invoice list read?</title>") == 1, "the page's title is not its question"
 write("retitled-next.html", look_5.replace("<title>How should the invoice list read?</title>", "<title>Which invoice list ships?</title>"))
+themed = look(3, [PROJECT, NEUTRAL], [PROJECT_STYLE, 'html[data-vd-style="Neutral"] .vd-content {}'], [PROJECT_TYPE, 'html[data-vd-type="Neutral"] .vd-content {}'])
+assert themed.count("baseline theme") == 1, "the page's theme note is not the one page() fills"
+write("themed.html", themed.replace("baseline theme", "project theme"))
 EOF
 }
 
@@ -885,6 +892,103 @@ def storage_refused():
          % (refused, AS_ACTIVE, opened, got[0], got[1], got[2]))
 
 
+THEMED = "themed.html"
+THEMED_OPTIONS = [[kind, ["Project", "Neutral"]] for kind in ("palette", "style", "type")]
+# A frame's content under the Project palette build_pages writes (its own ink, the shell's paper and nav bar), and under the shell's dark neutrals.
+PROJECT = ["rgb(255, 255, 255)", "rgb(19, 78, 74)", "rgb(24, 24, 27)", "rgb(255, 255, 255)"]
+NEUTRAL_DARK = ["rgb(27, 27, 31)", "rgb(244, 244, 245)", "rgb(44, 44, 51)", "rgb(244, 244, 245)"]
+NO_DARK_SET = "Project has no dark set"
+# The Scheme toggle as [disabled, label]; the note it is described by as [text, role], and whether that note is drawn on the toggle's line, after it; html's scheme.
+SCHEME = """(() => { const t = document.getElementById('vd-scheme-toggle'), n = document.getElementById(t.getAttribute('aria-describedby'));
+  const a = t.getBoundingClientRect(), b = n ? n.getBoundingClientRect() : null;
+  return { toggle: [t.disabled, t.textContent], note: n ? [n.textContent, n.getAttribute('role')] : null,
+           beside: !!b && b.width > 0 && b.left >= a.right && b.top < a.bottom && b.bottom > a.top,
+           scheme: document.documentElement.getAttribute('data-vd-scheme') }; })()"""
+
+
+def scheme_is(disabled, value, note=""):
+    """What SCHEME answers for a toggle in this state on this scheme, with this note beside it or an empty one that is not drawn."""
+    return {"toggle": [disabled, "Scheme, " + value], "note": [note, "status"], "beside": bool(note), "scheme": value}
+
+
+def themed_project():
+    open_page(THEMED, 1280)
+    got = [listed(), js(ACTIVE), colours(js(LOOK_PROBE)),
+           js("Array.from(document.querySelectorAll('#vd-header button')).map(b => b.textContent).filter(t => /^Theme/.test(t))"),
+           js("document.documentElement.getAttribute('data-vd-theme')")]
+    case("Project is the first palette and no Theme toggle", got == [THEMED_OPTIONS, showing("Project", "Project", "Project"), [PROJECT] * 3, [], None],
+         "switchers %s; %s %s; per frame [paper, ink, nav bar, nav text] %s (want %s); header buttons whose text starts with Theme, drawn or hidden: %s;"
+         " html's data-vd-theme: %s" % (got[0], AS_ACTIVE, got[1], got[2], PROJECT, got[3], got[4]))
+
+
+def scheme_without_dark_set():
+    open_page(THEMED, 1280)
+    project = js(SCHEME)
+    switch("palette", "Neutral")
+    neutral = js(SCHEME)
+    click("#vd-scheme-toggle")
+    dark = [js(SCHEME), colours(js(LOOK_PROBE))]
+    case("Scheme disabled without a dark set",
+         project == scheme_is(True, "light", NO_DARK_SET) and neutral == scheme_is(False, "light") and dark == [scheme_is(False, "dark"), [NEUTRAL_DARK] * 3],
+         "the Project palette has no dark rule: the Scheme toggle under it %s, under Neutral %s, then after a click %s with frames %s (want the shell's dark neutrals)"
+         % (project, neutral, dark[0], dark[1]))
+    switch("palette", "Project")
+    probe = js(LOOK_PROBE)
+    held = [js(SCHEME), colours(probe), probe["shell"][0]]
+    switch("palette", "Neutral")
+    back = js(SCHEME)
+    case("the dark scheme gives way to light while Project is active and returns under Neutral",
+         held == [scheme_is(True, "light", NO_DARK_SET), [PROJECT] * 3, "rgb(255, 255, 255)"] and back == scheme_is(False, "dark"),
+         "dark was chosen under Neutral, then Project: the Scheme toggle %s, frames %s (want %s), the header's paper %s; then Neutral again: %s"
+         % (held[0], held[1], PROJECT, held[2], back))
+
+
+def theme_in_context():
+    pick_a = '#vd-a button[aria-label^="Pick variant"]'
+    open_page(THEMED, 1280)
+    click(PICK_B)
+    first = wait("document.querySelector(%s).getAttribute('aria-pressed') === 'true'" % json.dumps(PICK_B))
+    switch("palette", "Neutral")
+    click("#vd-scheme-toggle")
+    click(pick_a)
+    second = wait("document.querySelector(%s).getAttribute('aria-pressed') === 'true'" % json.dumps(pick_a))
+    themes = [[r["variant"], r["context"]["theme"]] for r in rows(THEMED) if r["kind"] == "pick"][-2:]
+    case("a pick stores the active palette and scheme as its context theme", first and second and themes == [["B", "Project light"], ["A", "Neutral dark"]],
+         "B was picked under Project, then A under Neutral on the dark scheme: stored picks as [letter, context theme] %s; each read Picked: %s, %s"
+         % (themes, first, second))
+    open_page("layout-3.html", 1280)
+    shown, _ = pick_b("layout-3.html")
+    theme = [r["context"]["theme"] for r in rows("layout-3.html") if r["kind"] == "pick"][-1:]
+    case("a pick on a page with no palette stores baseline as its theme", shown and theme == ["baseline light"],
+         "the page declares no palette: its newest pick's context theme %s, B reads Picked: %s" % (theme, shown))
+
+
+# The first frame's primary button as [fill, text], then the bar of its info alert.
+ACCENTS = """(() => { const css = (el, p) => getComputedStyle(el).getPropertyValue(p), c = document.querySelector('.vd-content'), b = c.querySelector('.vd-btn.vd-primary');
+  return [css(b, 'background-color'), css(b, 'color'), css(c.querySelector('.vd-alert'), 'border-inline-start-color')]; })()"""
+BERRY_ACCENTS = ["rgb(190, 24, 93)", "rgb(255, 255, 255)", "rgb(190, 24, 93)"]
+NEUTRAL_ACCENTS = ["rgb(37, 99, 235)", "rgb(255, 255, 255)", "rgb(37, 99, 235)"]
+
+
+def print_in_light():
+    open_page(LOOK, 1280)
+    # No fixture frame holds an alert, whose info bar follows the primary colour.
+    js("(() => { const a = document.createElement('div'); a.className = 'vd-alert'; a.textContent = 'Two invoices are overdue.';"
+       " document.querySelector('.vd-content').append(a); })()")
+    click("#vd-scheme-toggle")
+    seen = []
+    for palette in ("Berry", "Neutral"):
+        switch("palette", palette)
+        on_screen = colours(js(LOOK_PROBE))
+        cdp.call("Emulation.setEmulatedMedia", {"media": "print"})
+        seen.append([on_screen, colours(js(LOOK_PROBE)), js(ACCENTS)])
+        cdp.call("Emulation.setEmulatedMedia", {"media": ""})
+    case("print renders frame content in the light set under the dark scheme",
+         seen == [[[BERRY_DARK] * 5, [BERRY] * 5, BERRY_ACCENTS], [[NEUTRAL_DARK] * 5, [NEUTRAL] * 5, NEUTRAL_ACCENTS]],
+         "on the dark scheme, under Berry then Neutral, as [frames on screen, frames under print media, the first frame's primary button fill and text and its info alert's bar]:"
+         " %s (want Berry's dark set then its light set and %s; the shell's dark neutrals then its light ones and %s)" % (seen, BERRY_ACCENTS, NEUTRAL_ACCENTS))
+
+
 # The header's drawn disclosure controls as [text, aria-expanded] and whether one has focus; each drawn switcher's kind, top and right edge, [scrollWidth, clientWidth, scrollLeft] and option names; the header's height, the viewport as [width, height], the page as [scrollWidth, clientWidth, scrollX].
 FOLD = """(() => { const drawn = el => el.getClientRects().length > 0, header = document.getElementById('vd-header'), root = document.documentElement;
   const controls = Array.from(header.querySelectorAll('button[aria-expanded]')).filter(drawn);
@@ -1054,6 +1158,10 @@ try:
     group("a kept look stays with its path and title", another_path_or_title)
     group("a page loaded with ?static=1 after choices", static_after_choices)
     group("storage that throws", storage_refused)
+    group("a themed project's page", themed_project)
+    group("Scheme without a dark set", scheme_without_dark_set)
+    group("a pick's context theme", theme_in_context)
+    group("print under the dark scheme", print_in_light)
     group("Look disclosure opens and closes by click at 375", look_by_click)
     group("open Look stacks its groups one per line at 430", groups_stack)
     group("Look disclosure opens by Enter at 375", look_by_enter)

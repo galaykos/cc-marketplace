@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="light">
+<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-scheme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,23 +48,10 @@
    A second COMPLETE per-scheme neutral set: the toggle flips the whole page
    uniformly across every frame. Deliberately NOT wired to the OS colour-scheme
    media query — the preview stays explicit so screenshot comparisons are
-   deterministic.
-   Split around the project slot so the cascade honours both contracts:
-   the brighter-primary DEFAULT and its paired on-primary ink sit BEFORE the
-   slot, so an injected project brand primary AND a re-paired on-primary can
-   both still win together (project accents apply in BOTH schemes — a project
-   pass sets both in the same rule, never a mismatched pair split across the
-   slot boundary); the neutral set sits AFTER the slot, so dark
-   paper/ink/line/surface always win and the page flips fully with no
-   leftover light patches. */
+   deterministic. */
 html[data-vd-scheme="dark"] {
   --vd-primary: #60a5fa;         /* brighter blue reads on dark surfaces (default) */
   --vd-on-primary: #10131a;      /* dark ink reads on the bright dark primary (default) */
-}
-html[data-vd-theme="project"] {
-  /* SLOT: theme-project */
-}
-html[data-vd-scheme="dark"] {
   --vd-surface: #26262b;
   --vd-ink: #f4f4f5;
   --vd-ink-soft: #a1a1aa;
@@ -187,7 +174,7 @@ body {
   background: var(--vd-primary);
   color: var(--vd-on-primary);
 }
-#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle, #vd-look-toggle,
+#vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle, #vd-look-toggle,
 #vd-ver-select, #vd-ver-restore {
   border: 1px solid var(--vd-line);
   background: var(--vd-paper);
@@ -198,12 +185,17 @@ body {
   border-radius: var(--vd-radius);
   cursor: pointer;
 }
-#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover, #vd-look-toggle:hover,
+#vd-diff-toggle:hover, #vd-scheme-toggle:not(:disabled):hover, #vd-dir-toggle:hover, #vd-look-toggle:hover,
 #vd-ver-select:hover, #vd-ver-restore:not(:disabled):hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 /* Restore stays visible-but-inert while "Current (live)" is selected: hiding
    it would reflow the header on every pick, and a disabled control still says
    the action exists once a past pass is chosen. */
 #vd-ver-restore:disabled { opacity: .45; cursor: default; }
+#vd-scheme-toggle:disabled { opacity: .45; cursor: default; }
+/* A note too long for its line folds its own text beside the toggle, which keeps its width. */
+.vd-scheme { display: inline-flex; align-items: center; }
+#vd-scheme-toggle { flex: none; }
+#vd-scheme-note:not(:empty) { margin-inline-start: var(--vd-space); }
 #vd-ver-select { max-width: 15rem; }
 #vd-diff-toggle[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 .vd-note {
@@ -1260,19 +1252,15 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
     --vd-line: #9ca3af;
   }
 
-  /* Force the light NEUTRAL set: re-declare every dark neutral back to its
+  /* Force the light NEUTRAL set: re-declare every dark value back to its
      light equivalent. Token consumers (paper/ink/surface/nav/shadows) flip
      automatically; the chip/dialog/switch/alert rules use literal colors or
-     point at now-reset tokens, so they are restored too. Deliberately does
-     NOT re-declare --vd-primary/--vd-on-primary: those two are set once
-     BEFORE the project slot (the default dark accent) and re-set BY the
-     project slot when a project brand color is active, and this print
-     block is later in source order than the slot at the same 0-1-1
-     specificity — re-declaring them here would win and clobber a project's
-     brand accent back to baseline blue on every dark+project print.
-     Leaving them alone lets whichever accent is actually active, default
-     or project, flow through unchanged. */
+     point at now-reset tokens, so they are restored too. A palette's own
+     dark rule never reaches print: the script makes it screen-only, so a
+     frame prints in its palette's light set. */
   html[data-vd-scheme="dark"] {
+    --vd-primary: #2563eb;
+    --vd-on-primary: #ffffff;
     --vd-surface: #fafafa;
     --vd-ink: #18181b;
     --vd-ink-soft: #52525b;
@@ -1294,10 +1282,7 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   html[data-vd-scheme="dark"] .vd-switch::after { background: var(--vd-paper); }
   /* --vd-alert-accent reset to the LIGHT severity hues; it drives both the
      border and the glyph prefix, so both revert together for a was-dark print.
-     The base (info) accent is --vd-primary, which the print block deliberately
-     leaves un-reset, so pin it to the light primary here too — otherwise the
-     small "i" glyph prints as pale #60a5fa on white (~2.8:1, illegible). */
-  html[data-vd-scheme="dark"] .vd-alert { --vd-alert-accent: #2563eb; }
+     The base (info) accent is --vd-primary, reset above. */
   html[data-vd-scheme="dark"] .vd-alert.vd-warn { --vd-alert-accent: #eab308; }
   html[data-vd-scheme="dark"] .vd-alert.vd-err { --vd-alert-accent: #dc2626; }
 
@@ -1339,7 +1324,7 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   }
 
   /* Drop every interactive affordance: the header controls (segmented
-     mode/width groups + Diffs/Theme/Scheme toggles + the injected global
+     mode/width groups + Diffs/Scheme toggles + the injected global
      state bar, which lives inside .vd-controls), the per-frame Focus and
      Replay buttons, and the per-frame state toggle bars. Whatever state is
      currently selected on screen is what prints. `.vd-state-global` is
@@ -1582,8 +1567,14 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
    header, captions and tradeoff lists keep the neutrals. */
 /* A palette may set --vd-paper, --vd-surface, --vd-ink, --vd-ink-soft,
    --vd-line, --vd-primary, --vd-on-primary, --vd-nav-bg, --vd-nav-ink and
-   --vd-nav-ink-soft. Its dark set is a second rule:
-   `html[data-vd-palette="Name"][data-vd-scheme="dark"] .vd-content { }`. */
+   --vd-nav-ink-soft. Its dark set is a second rule, exactly
+   `html[data-vd-palette="Name"][data-vd-scheme="dark"] .vd-content { }`.
+   A palette that sets a value and has no such rule has no dark set: while it
+   is active the page stays light and the Scheme toggle is off, with a note.
+   A project's own theme is the first palette, named Project, with Neutral
+   (an empty rule) second: set the colours the project defines, the rest stay
+   Neutral's. Its radius and spacing are a first style named Project, its
+   font a first type named Project. */
 /* SLOT: palettes */
 /* A style may set --vd-radius, --vd-space and --vd-shadow. */
 /* SLOT: styles */
@@ -1646,8 +1637,10 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       <button type="button" data-vd-set-vw="full" aria-pressed="true">Full</button>
     </div>
     <button type="button" id="vd-diff-toggle" aria-pressed="false" hidden>Diffs</button>
-    <button type="button" id="vd-theme-toggle" hidden>Theme</button>
-    <button type="button" id="vd-scheme-toggle">Scheme, light</button>
+    <span class="vd-scheme">
+      <button type="button" id="vd-scheme-toggle" aria-describedby="vd-scheme-note">Scheme, light</button>
+      <span id="vd-scheme-note" class="vd-note" role="status"></span>
+    </span>
     <button type="button" id="vd-dir-toggle">Direction, LTR</button>
     <!-- Version picker: populated from serve.py's /_versions.json, so it stays
          hidden on a static rung or over file:// where that route 404s. -->
@@ -1847,7 +1840,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         b.setAttribute('aria-pressed', 'false'));
     };
     const controls = document.querySelector('#vd-header .vd-controls');
-    controls.insertBefore(gbar, document.getElementById('vd-theme-toggle'));
+    controls.insertBefore(gbar, controls.querySelector('.vd-scheme'));
     showAll(gStates.includes('populated') ? 'populated' : gStates[0]);
   }
 
@@ -2099,19 +2092,6 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     frame.querySelector('h2').appendChild(btn);
   });
 
-  // Theme toggle (un-hidden by the skill when project tokens are injected)
-  const toggle = document.getElementById('vd-theme-toggle');
-  function labelToggle() {
-    const cur = document.documentElement.dataset.vdTheme;
-    toggle.textContent = cur === 'project' ? 'Theme, project' : 'Theme, baseline';
-  }
-  toggle.addEventListener('click', () => {
-    const root = document.documentElement;
-    root.dataset.vdTheme = root.dataset.vdTheme === 'project' ? 'baseline' : 'project';
-    labelToggle();
-  });
-  labelToggle();
-
   // Kept for this tab only, under the page's path and decision title: every preview on the port shares one origin. ?static=1 keeps nothing.
   const lookKey = 'vd-look\n' + location.pathname + '\n' + document.title;
   const keeps = new URLSearchParams(location.search).get('static') !== '1';
@@ -2130,22 +2110,43 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     return options.includes(kept[control]) ? kept[control] : options.includes(authored) ? authored : options[0];
   }
 
-  // Scheme toggle: preview every frame on the dark neutral set. Explicit
-  // control only — no OS colour-scheme auto-switch, so screenshot and
-  // side-by-side comparisons stay deterministic regardless of the OS setting.
+  const presets = document.getElementById('vd-presets');
+  const sheet = presets && presets.sheet;
+  const selectors = Array.from((sheet && sheet.cssRules) || []).map(r => r.selectorText || '');
+  // A palette's dark rule is made screen-only: print lays a frame out in its palette's light set, whatever the scheme.
+  const withDark = [];
+  selectors.forEach((selector, i) => {
+    const dark = /^html\[data-vd-palette="([^"\\]*)"\]\[data-vd-scheme="dark"\] \.vd-content$/.exec(selector);
+    if (!dark) return;
+    withDark.push(dark[1]);
+    const rule = sheet.cssRules[i].cssText;
+    sheet.deleteRule(i);
+    sheet.insertRule('@media screen {' + rule + '}', i);
+  });
+  // An empty palette rule keeps the shell's values, dark ones included; one that sets a value has a dark set only as its dark rule.
+  function lightOnly(palette) {
+    const own = palette === null ? -1 : selectors.indexOf('html[data-vd-palette="' + palette + '"] .vd-content');
+    return own >= 0 && sheet.cssRules[own].style.length > 0 && !withDark.includes(palette);
+  }
+
+  // Scheme toggle: the shell's dark neutrals and, inside each frame, the active palette's dark set. Explicit only, no OS colour-scheme auto-switch: screenshots compare alike on any machine.
   const schemeToggle = document.getElementById('vd-scheme-toggle');
-  function labelScheme() {
-    const cur = document.documentElement.dataset.vdScheme;
-    schemeToggle.textContent = cur === 'dark' ? 'Scheme, dark' : 'Scheme, light';
+  const schemeNote = document.getElementById('vd-scheme-note');
+  let scheme = opening('scheme', 'data-vd-scheme', ['light', 'dark']);
+  function showScheme() {
+    const root = document.documentElement;
+    const palette = root.getAttribute('data-vd-palette');
+    const held = lightOnly(palette);
+    root.dataset.vdScheme = held ? 'light' : scheme;
+    schemeToggle.disabled = held;
+    schemeToggle.textContent = 'Scheme, ' + root.dataset.vdScheme;
+    schemeNote.textContent = held ? palette + ' has no dark set' : '';
   }
   schemeToggle.addEventListener('click', () => {
-    const root = document.documentElement;
-    root.dataset.vdScheme = root.dataset.vdScheme === 'dark' ? 'light' : 'dark';
-    keep('scheme', root.dataset.vdScheme);
-    labelScheme();
+    scheme = scheme === 'dark' ? 'light' : 'dark';
+    keep('scheme', scheme);
+    showScheme();
   });
-  document.documentElement.dataset.vdScheme = opening('scheme', 'data-vd-scheme', ['light', 'dark']);
-  labelScheme();
 
   // Direction toggle: preview every frame in RTL. Mirrors the scheme toggle —
   // explicit control only, no auto-detection — and writes BOTH the real `dir`
@@ -2172,8 +2173,6 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   // An option is one #vd-presets rule whose whole selector is `html[data-vd-<kind>="Name"] .vd-content`: a dark-scheme rule declares none.
   const passKind = document.body.dataset.vdPassKind;
   if (passKind === 'layout' || passKind === 'creative') {
-    const presets = document.getElementById('vd-presets');
-    const selectors = Array.from((presets && presets.sheet && presets.sheet.cssRules) || []).map(r => r.selectorText || '');
     const row = document.createElement('div');
     row.className = 'vd-controls vd-look';
     [['palette', 'Palette'], ['style', 'Style'], ['type', 'Type']].forEach(([kind, label]) => {
@@ -2195,7 +2194,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         b.type = 'button';
         b.dataset.vdOption = name;
         b.textContent = name;
-        b.addEventListener('click', () => { choose(name); keep(kind, name); });
+        b.addEventListener('click', () => { choose(name); keep(kind, name); showScheme(); });
         group.appendChild(b);
       });
       choose(opening(kind, 'data-vd-' + kind, names));
@@ -2225,6 +2224,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       header.appendChild(row);
     }
   }
+  showScheme();
 })();
 </script>
 
@@ -2310,7 +2310,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     });
     return {
       viewport: { w: innerWidth, h: innerHeight },
-      theme: (root.dataset.vdTheme || 'baseline') + ' ' + (root.dataset.vdScheme || 'light'),
+      theme: (root.getAttribute('data-vd-palette') || 'baseline') + ' ' + (root.dataset.vdScheme || 'light'),
       states: states,
       console: errors.slice()
     };
