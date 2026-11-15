@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# preview-check.sh [--docroot DIR] [--page PATH] [--widths 375,768,1280] (defaults .cc-artifacts/taskmaster/mockups, current.html): loads the page from this docroot's serve.py (started through preview.sh when none answers, said on stderr) in a headless Chromium-family browser driven over its DevTools pipe, one exact width at a time; check.js and axe-core run in an isolated world page script cannot reach (E1 load, E2 layout, E3 axe-core, E4 stand-in content, E5 variants, E7 the frame, switcher, option and option-name limits of a layout or creative pass; console and uncaught errors read from the browser), and this script writes each width's record and a full-page PNG to DIR/.checks/<page>-<hash>/; E6 compares the widest PNG with the newest ledger pass that differs from the page. Every stdout line is one escaped JSON object: a finding (seen at several widths once, with "widths"), an E6 "advisory" that counts as no finding, a {"not_reported": width, "reason": ...}, then one {"summary": ...}.
+# preview-check.sh [--docroot DIR] [--page PATH] [--widths 375,768,1280] (defaults .cc-artifacts/taskmaster/mockups, current.html): loads the page from this docroot's serve.py (started through preview.sh when none answers, said on stderr) in a headless Chromium-family browser driven over its DevTools pipe, one exact width at a time; check.js and axe-core run in an isolated world page script cannot reach (E1 load, E2 layout, E3 axe-core, E4 stand-in content, E5 variants, E7 the frame, switcher, option and option-name limits of a layout or creative pass, E8 each palette's text contrast in light and in dark, from the first width's load only; console and uncaught errors read from the browser), and this script writes each width's record and a full-page PNG to DIR/.checks/<page>-<hash>/; E6 compares the widest PNG with the newest ledger pass that differs from the page. Every stdout line is one escaped JSON object: a finding (seen at several widths once, with "widths"), an E6 "advisory" that counts as no finding, a {"not_reported": width, "reason": ...}, then one {"summary": ...}.
 # Exit: 0 no findings; 1 findings; 2 bad argument, or --page names no .html file inside DIR; 3 no serve.py with the /_checks route (preview.sh could not start one, or one from before this version runs: --stop, then rerun); 4 no Chromium-family browser (PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 some width not reported (the check timed out or failed, or no screenshot), the rest still printed; 6 python3 missing, the browser failed, a signal, or the run passed 60 s, with what was collected still printed.
-# Misses: what each check misses (see the derivation); whether the model acts on a finding; page script still runs and can change what is measured, so a clean check is not proof the page is fine; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page leaning on a CDN reads as broken, yet loopback stays reachable; E6 is pixels at one width against the newest differing ledger pass, which can belong to another decision.
+# Misses: what each check misses (see the derivation; E8's are in check.js's header); whether the model acts on a finding; page script still runs and can change what is measured, so a clean check is not proof the page is fine; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page leaning on a CDN reads as broken, yet loopback stays reachable; E6 is pixels at one width against the newest differing ledger pass, which can belong to another decision.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -59,7 +59,7 @@ MAX_SHOT = 8000
 WORLD = "vd-check"  # the isolated world check.js and axe-core run in
 KEEP = 60  # findings kept per width; the rest are counted as dropped
 EVENTS = 200  # console and exception events kept per page; the rest are counted
-CHECK_IDS = ("E1", "E2", "E3", "E4", "E5", "E7")
+CHECK_IDS = ("E1", "E2", "E3", "E4", "E5", "E7", "E8")
 opener = build_opener(ProxyHandler({}))
 # preview-feedback.sh's output rule: variation selectors and blank-rendering letters escape too, though not C*.
 BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
@@ -299,16 +299,23 @@ class Browser:
         self.event("Page.loadEventFired", timeout)
         return nav.get("frameId")
 
-    def check(self, frame):
-        """check.js's answer from its isolated world, and that world's context id; axe-core is evaluated there first."""
-        until = time.monotonic() + PER_WIDTH
-        ctx = self.call("Page.createIsolatedWorld", {"frameId": frame, "worldName": WORLD}, until=until)["executionContextId"]
-        self.call("Runtime.evaluate", {"expression": AXE_JS, "contextId": ctx}, until=until)
-        res = self.call("Runtime.evaluate", {"expression": "window.__vdRun()", "contextId": ctx, "awaitPromise": True, "returnByValue": True},
-                        until=until)
+    def ask(self, ctx, expression, until):
+        """What check.js answers to expression in its isolated world."""
+        res = self.call("Runtime.evaluate", {"expression": expression, "contextId": ctx, "awaitPromise": True, "returnByValue": True}, until=until)
         if res.get("exceptionDetails"):
             raise RuntimeError("the check script stopped (%s)" % clip(res["exceptionDetails"].get("text"), 100))
-        return res.get("result", {}).get("value"), ctx
+        return res.get("result", {}).get("value")
+
+    def check(self, frame, until):
+        """check.js's answer from its isolated world, and that world's context id; axe-core is evaluated there first."""
+        ctx = self.call("Page.createIsolatedWorld", {"frameId": frame, "worldName": WORLD}, until=until)["executionContextId"]
+        self.call("Runtime.evaluate", {"expression": AXE_JS, "contextId": ctx}, until=until)
+        return self.ask(ctx, "window.__vdRun()", until), ctx
+
+    def states(self, ctx, until, found):
+        """Adds to found the findings of every state check.js lists for the loaded page: for each, check.js sets its look, runs the check it names and puts the page's look back."""
+        for state in self.ask(ctx, "window.__vdStates()", until) or []:
+            found += self.ask(ctx, "window.__vdState(%s)" % json.dumps(state), until) or []
 
     def errors(self, ctx):
         """E1 console errors and uncaught errors of the page's own script, as check.js reported them before it moved to its own world."""
@@ -436,9 +443,12 @@ try:
         reason, answer, ctx = None, None, None
         try:
             frame = cdp.go(base + quote(page) + "?static=1", w)
-            answer, ctx = cdp.check(frame)
+            until = time.monotonic() + PER_WIDTH
+            answer, ctx = cdp.check(frame, until)
             if not isinstance(answer, dict):
                 reason = "the check returned nothing usable"
+            elif w == widths[0]:
+                cdp.states(ctx, until, answer.setdefault("findings", []))
         except TimeoutError as exc:
             if time.monotonic() >= DEADLINE:
                 raise

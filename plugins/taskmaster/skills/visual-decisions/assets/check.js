@@ -1,6 +1,6 @@
-// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun() and reads the findings back over DevTools.
-// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses.
-// Misses: what each check misses is listed in its derivation; nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
+// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun(), then in its first width's load __vdState() for each state __vdStates() lists, and reads the findings back over DevTools.
+// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses; E8 for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert, nav or primary-coloured text under 4.5:1 against the colour behind it, on the shell primitives a frame draws, else on a probe.
+// Misses: what each check misses is listed in its derivation (of E8: text over a background image or dimmed by opacity, a pair on any background but those the page draws it on, text that is no shell primitive, a page with no palette); nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
 // Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 (() => {
   'use strict';
@@ -390,6 +390,119 @@
       }
     }
   }
+
+  let pixel = null;
+  const parsed = new Map();
+  // A computed colour as [r, g, b, alpha]: rgb() and rgba() as written; any other form (oklch(), color(), color-mix()) drawn on a canvas and read back as sRGB, alpha to 1/255.
+  function rgba(css) {
+    if (!parsed.has(css)) {
+      const m = /^rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)$/.exec(css);
+      if (m) parsed.set(css, [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]]);
+      else {
+        pixel = pixel || document.createElement('canvas').getContext('2d');
+        pixel.clearRect(0, 0, 1, 1);
+        pixel.fillStyle = css;
+        pixel.fillRect(0, 0, 1, 1);
+        const d = pixel.getImageData(0, 0, 1, 1).data;
+        parsed.set(css, [d[0], d[1], d[2], d[3] / 255]);
+      }
+    }
+    return parsed.get(css);
+  }
+  const over = (top, under) => [0, 1, 2].map(i => top[i] * top[3] + under[i] * (1 - top[3]));
+  // The colour behind el's text: its own and its ancestors' background colours, laid over each other from the nearest opaque one, white under them all. A background image is not read.
+  function backdrop(el) {
+    const layers = [];
+    for (let n = el; n; n = n.parentElement) {
+      const c = rgba(style(n).backgroundColor);
+      if (c[3] > 0) layers.unshift(c);
+      if (c[3] === 1) break;
+    }
+    return layers.reduce((under, layer) => over(layer, under), [255, 255, 255]);
+  }
+  // WCAG 2 relative luminance and contrast ratio.
+  const luminance = c => [0.2126, 0.7152, 0.0722].reduce((sum, k, i) => { const v = c[i] / 255; return sum + k * (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); }, 0);
+  const contrast = (a, b) => { const la = luminance(a), lb = luminance(b); return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); };
+  const hex = c => '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+  const make = (tag, cls, ...kids) => { const el = document.createElement(tag); el.className = cls; el.append(...kids); return el; };
+  // E8's pairs: name, the shell primitives that draw it inside a frame, and the probe measured when no frame holds one of them.
+  const PAIRS = [
+    ['body text', '.vd-frame > .vd-content', () => []],
+    ['soft text', '.vd-small, .vd-tagline, .vd-lede, .vd-table th, .vd-card .vd-meta, .vd-kpi span, .vd-crumbs, .vd-pager, .vd-empty, .vd-field small, .vd-input, .vd-tab:not([aria-current]), .vd-step, .vd-acc-body, '
+      + '.vd-sidenav a:not([aria-current]), .vd-feature p, .vd-tier-price span, .vd-prose blockquote, .vd-footer', () => [make('p', 'vd-small')]],
+    ['button text', '.vd-btn.vd-primary', () => [make('span', 'vd-btn vd-primary')]],
+    ['chip text', '.vd-chip', () => ['ok', 'warn', 'err', 'info', 'neutral'].map(kind => make('span', 'vd-chip vd-' + kind))],
+    ['alert text', '.vd-alert', () => [make('div', 'vd-alert')]],
+    ['nav text', '.vd-nav, .vd-nav a', () => [make('div', 'vd-nav', make('a', ''))]],
+    ['primary used as text', '.vd-tab[aria-current], .vd-sidenav a[aria-current], .vd-code .vd-k', () => { const tab = make('span', 'vd-tab'); tab.setAttribute('aria-current', 'page'); return [tab]; }],
+  ];
+  function checkContrast(look) {
+    const host = document.querySelector('.vd-frame > .vd-content');
+    if (!host) return;
+    const probe = document.createElement('div');
+    probe.style.display = 'none';
+    try {
+      for (const [pair, selector, standIn] of PAIRS) {
+        let els = Array.prototype.filter.call(document.querySelectorAll(selector), el => el.closest('.vd-frame > .vd-content'));
+        const drawn = els.length > 0;
+        if (!drawn) {
+          probe.replaceChildren(...standIn());
+          host.appendChild(probe);
+          els = Array.from(probe.querySelectorAll(selector));
+        }
+        let worst = null;
+        for (const el of els) {
+          const bg = backdrop(el), fg = over(rgba(style(el).color), bg), ratio = contrast(fg, bg);
+          if (!worst || ratio < worst.ratio) worst = { el, fg, bg, ratio };
+        }
+        probe.remove();
+        if (!worst || worst.ratio >= 4.5) continue;
+        // Cut, not rounded: 4.499 must not print as 4.50.
+        add('E8', drawn ? worst.el : null, pair + ' under 4.5:1', 'palette "' + cut(look.palette, 40) + '", ' + look.scheme + ': ' + pair + ' is '
+          + (Math.floor(worst.ratio * 100) / 100).toFixed(2) + ':1 (' + hex(worst.fg) + ' on ' + hex(worst.bg) + '), on ' + (drawn ? label(worst.el) : 'a probe: no frame draws it'));
+      }
+    } finally {
+      probe.remove();
+    }
+  }
+
+  // The shell's rule, read from the same sheet: a palette whose rule sets a value has a dark set only as its own dark rule, which the shell moves inside @media screen.
+  function lightOnly(palette) {
+    const sheet = (document.getElementById('vd-presets') || {}).sheet;
+    const rules = Array.from((sheet && sheet.cssRules) || []).flatMap(r => (r.selectorText ? [r] : Array.from(r.cssRules || [])));
+    const own = 'html[data-vd-palette="' + palette + '"]', tail = ' .vd-content';
+    return rules.some(r => r.selectorText === own + tail && r.style.length > 0) && !rules.some(r => r.selectorText === own + '[data-vd-scheme="dark"]' + tail);
+  }
+  const LOOK = ['palette', 'style', 'type', 'scheme'];
+  const lookNow = () => Object.fromEntries(LOOK.map(kind => [kind, document.documentElement.getAttribute('data-vd-' + kind)]));
+  function setLook(look) {
+    for (const kind of LOOK) {
+      if (typeof look[kind] === 'string') document.documentElement.setAttribute('data-vd-' + kind, look[kind]);
+      else document.documentElement.removeAttribute('data-vd-' + kind);
+    }
+  }
+  const STATE_CHECKS = { E8: checkContrast };
+  // The states preview-check.sh's loop visits after __vdRun(), each a look and the check to run under it: every palette in light and, unless it is light only, in dark. A kind's one option has no switcher and is read from <html>.
+  window.__vdStates = () => {
+    const switcher = document.querySelector('[data-vd-switcher="palette"]');
+    const lone = document.documentElement.getAttribute('data-vd-palette');
+    const names = switcher ? Array.from(switcher.querySelectorAll('button[data-vd-option]'), b => b.getAttribute('data-vd-option')) : lone === null ? [] : [lone];
+    return names.flatMap(palette => (lightOnly(palette) ? ['light'] : ['light', 'dark']).map(scheme => ({ check: 'E8', look: { palette, scheme } })));
+  };
+  // One state: its look laid over the look the page has, its check run, the page's look put back; answers the findings that check added.
+  window.__vdState = async state => {
+    const from = findings.length, start = lookNow();
+    try {
+      setLook({ ...start, ...state.look });
+      await STATE_CHECKS[state.check](state.look);
+    } catch (err) {
+      add(String(state && state.check), null, 'check failed to run', String((err && err.message) || err));
+    } finally {
+      setLook(start);
+    }
+    return findings.slice(from);
+  };
 
   async function run() {
     const total = document.body.getElementsByTagName('*').length;

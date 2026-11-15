@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, or on a page at every limit), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
-# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, or on a page at every limit), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; of E8, a see-through colour that is not rgba(), most of the soft-text primitives, a palette on a page with no frame, a state whose check throws, and a state loop that runs out of time; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 R="$here/../preview-check.sh"
@@ -214,6 +214,80 @@ assert len(LONGEST) == 24 and len(TOO_LONG) == 25
 write("f/limit-most.html", presets(six, ["Neutral", "Sand", LONGEST, "Moss"], ["Soft", "Sharp", "Round", "Flat"], ["Sans", "Serif", "Mono", "Slab"]))
 write("f/limit-lone.html", presets(page(), [TOO_LONG]))
 
+# E8: a palette's seven pairs, each lowered by the smallest rule that lowers it alone, on a page that draws every primitive and on one that draws none.
+def ratio(fg, bg):
+    """WCAG 2 contrast of two #rrggbb colours, cut to two decimals as a finding prints it."""
+    lum = lambda c: sum(k * (v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4)
+                        for k, v in zip((0.2126, 0.7152, 0.0722), (int(c[i:i + 2], 16) / 255 for i in (1, 3, 5))))
+    lo, hi = sorted((lum(fg), lum(bg)))
+    return "%.2f" % (int((hi + 0.05) / (lo + 0.05) * 100) / 100)
+
+def palette(name, light="", dark=None):
+    """A palette's rule, and its dark rule when it has a dark set."""
+    rule = 'html[data-vd-palette="%s"] .vd-content { %s }' % (name, light)
+    return rule if dark is None else rule + '\nhtml[data-vd-palette="%s"][data-vd-scheme="dark"] .vd-content { %s }' % (name, dark)
+
+def painted(text, *rules):
+    """The page with these rules in the shell's palette slot."""
+    assert "/* SLOT: palettes */" in text, "the shell has no slot palettes"
+    return text.replace("/* SLOT: palettes */", "\n".join(rules))
+
+APP = ('<div class="vd-nav"><span class="vd-brand">Ledgerly</span> <a href="#" aria-current="page">Invoices</a> <a href="#">Customers</a></div> '
+       '<p class="vd-small">Last synced 4 minutes ago</p> '
+       '<div class="vd-tabs"><span class="vd-tab" aria-current="page">Open</span> <span class="vd-tab">Settled</span></div> '
+       '<div class="vd-alert">Two invoices are overdue</div> <p><span class="vd-btn vd-primary">New invoice</span></p> ')
+ROWS = ('<div class="vd-row"><span>Harbor Freight</span> <span class="vd-chip vd-ok">Paid</span></div> '
+        '<div class="vd-row"><span>Lumen Dental</span> <span class="vd-chip vd-warn">Due Friday</span></div> '
+        '<div class="vd-row"><span>Okafor Builders</span> <span class="vd-chip vd-err">Overdue</span></div>')
+drawn = page(a=APP + CARDS, b=APP + ROWS)
+# No primitive in a frame; the chip above the frames is the page's own, outside what a palette paints.
+bare = page(a=LINES[0], b=LINES[1], top='<p><span class="vd-chip vd-info">Beta</span></p>')
+NEUTRAL = palette("Neutral")
+DUSK_LIGHT, DUSK_DARK = "--vd-primary: #4f46e5;", "--vd-paper: #101014; --vd-surface: #1a1a20; --vd-ink: #f4f4f5; --vd-ink-soft: %s; --vd-primary: #a5b4fc; --vd-on-primary: #101014;"
+assert ratio("#5f5f68", "#101014") == "3.00" and float(ratio("#a1a1aa", "#101014")) > 4.5
+write("f/soft-dark.html", painted(drawn, NEUTRAL, palette("Dusk", DUSK_LIGHT, DUSK_DARK % "#5f5f68")))
+write("f/soft-dark-fixed.html", painted(drawn, NEUTRAL, palette("Dusk", DUSK_LIGHT, DUSK_DARK % "#a1a1aa")))
+write("f/soft-dark-lone.html", painted(drawn, palette("Dusk", DUSK_LIGHT, DUSK_DARK % "#5f5f68")))
+# Each rule sets a value and has no dark rule, so its palette is light only (the chip one restates the shell's line colour for that); body text is lowered with the surface darkened, so the alert's ink still reads.
+LOW = {
+    "body": ("--vd-ink: #8c8c8c; --vd-surface: #000000;", ""),
+    "soft": ("--vd-ink-soft: #9a9a9a;", ""),
+    "button": ("--vd-on-primary: #9db8f2;", ""),
+    "chip": ("--vd-line: #e4e4e7;", 'html[data-vd-palette="Low"] .vd-chip.vd-warn { color: #b8a13c; }'),
+    "alert": ("--vd-surface: #777777;", ""),
+    "nav": ("--vd-nav-ink-soft: rgba(255, 255, 255, .3);", ""),
+    "primary": ("--vd-primary: #7aa7f5; --vd-on-primary: #10131a;", ""),
+}
+for name, (tokens, css) in LOW.items():
+    write("f/pair-%s.html" % name, painted(drawn, NEUTRAL, palette("Low", tokens)).replace("</head>", "<style>" + css + "</style>\n</head>"))
+write("f/pairs-bare.html", painted(bare, NEUTRAL, palette("Low", "--vd-ink: #8c8c8c; --vd-ink-soft: oklch(0.7 0 0); --vd-primary: #7aa7f5; --vd-on-primary: #9db8f2;"
+                                                                " --vd-nav-ink: #6a6a6a; --vd-nav-ink-soft: rgba(255, 255, 255, .3);"))
+      .replace("</head>", '<style>html[data-vd-palette="Low"] .vd-chip.vd-info { color: #7f9fd8; }</style>\n</head>'))
+# A tint an author lays on the soft text: Low's soft ink reads on its paper (5.15:1) and not on that paper under the tint, #c4c8cc.
+assert float(ratio("#6a6a6a", "#f5faff")) > 4.5 and ratio("#6a6a6a", "#c4c8cc") == "3.21"
+write("f/tinted.html", painted(drawn, NEUTRAL, palette("Low", "--vd-ink-soft: #6a6a6a; --vd-paper: #f5faff;"))
+      .replace("</head>", "<style>.vd-small{background-color:rgba(0,0,0,.2)}</style>\n</head>"))
+# Daylight sets a value and has no dark rule: dark by hand would lay its ink on the shell's dark paper, a look the shell never shows. Neutral's empty rule keeps the shell's dark set, where the soft ink this page hard-codes does not read.
+assert float(ratio("#57575e", "#ffffff")) > 4.5 and ratio("#57575e", "#1b1b1f") == "2.39"
+write("f/light-only.html", painted(drawn, palette("Daylight", "--vd-ink: #1f2937;"), NEUTRAL).replace("</head>", "<style>.vd-small{color:#57575e}</style>\n</head>"))
+# Four palettes that pass, the second one and the dark scheme authored on the html tag; as a ledger pair that renders the same, so E6 compares the checked page with a load nothing switched.
+BERRY = palette("Berry", "--vd-paper: #fff5f8; --vd-surface: #fde7ee; --vd-ink: #3b0a1f; --vd-ink-soft: #7a2e4a; --vd-line: #f3c4d3; --vd-primary: #be185d;"
+                         " --vd-on-primary: #ffffff; --vd-nav-bg: #831843; --vd-nav-ink: #fff5f8; --vd-nav-ink-soft: rgba(255, 245, 248, .8);",
+                "--vd-paper: #1f0a14; --vd-surface: #2b0f1c; --vd-ink: #fde7ee; --vd-ink-soft: #f0a6c0; --vd-line: #5c1f38; --vd-primary: #f472b6;"
+                " --vd-on-primary: #1f0a14; --vd-nav-bg: #4a0d28; --vd-nav-ink: #fde7ee; --vd-nav-ink-soft: rgba(253, 231, 238, .75);")
+MOSS = palette("Moss", "--vd-paper: #f7faf5; --vd-surface: #e9f2e4; --vd-ink: #14230f; --vd-ink-soft: #40573a; --vd-line: #c9dcc0; --vd-primary: #3f6212;"
+                       " --vd-on-primary: #ffffff; --vd-nav-bg: #1a2e14; --vd-nav-ink: #f7faf5; --vd-nav-ink-soft: rgba(247, 250, 245, .8);",
+               "--vd-paper: #10180d; --vd-surface: #1a2615; --vd-ink: #e9f2e4; --vd-ink-soft: #a9c29f; --vd-line: #2f4426; --vd-primary: #a3e635;"
+               " --vd-on-primary: #10180d; --vd-nav-bg: #223319; --vd-nav-ink: #e9f2e4; --vd-nav-ink-soft: rgba(233, 242, 228, .75);")
+SLATE = palette("Slate", "--vd-paper: #f8fafc; --vd-surface: #e2e8f0; --vd-ink: #0f172a; --vd-ink-soft: #475569; --vd-primary: #1d4ed8; --vd-nav-bg: #0f172a;",
+                "--vd-paper: #0f172a; --vd-surface: #1e293b; --vd-ink: #f1f5f9; --vd-ink-soft: #cbd5e1; --vd-primary: #93c5fd; --vd-on-primary: #0f172a; --vd-nav-bg: #1e293b;")
+HTML_TAG = '<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-scheme="light">'
+four = painted(page(a=APP + TABLE, b=APP + ROWS), NEUTRAL, BERRY, MOSS, SLATE)
+assert four.count(HTML_TAG) == 1, "the shell's html tag is not " + HTML_TAG
+four = four.replace(HTML_TAG, HTML_TAG[:-len('"light">')] + '"dark" data-vd-palette="Berry">')
+write("2026-11-10-looks-a.html", four, age=500)
+write("2026-11-10-looks-b.html", four.replace("</body>", "<!-- second draft -->\n</body>"), age=400)
+
 # E6: a ledger with a renders-the-same pair (b differs from a by a comment only) and a changed current.html.
 write("2026-11-12-a.html", page(), age=300)
 write("2026-11-12-b.html", page().replace("</body>", "<!-- second draft -->\n</body>"), age=200)
@@ -378,6 +452,52 @@ run f/limit-most.html;      want "six frames and three four-option switchers cle
 run f/limit-lone.html --widths 375; want "a 25-character name on a kind with one option, which has no switcher, reported" 1 "E7|option name the server refuses|375"
 names "a 25-character name on a kind with one option: where it is applied" E7 "option name the server refuses" '^the palette applied with no switcher has 1 name outside .*: "Harbour morning at sunset"; '
 
+# E8, each palette's contrast in light and in dark: one finding per pair under 4.5:1, naming the palette, the scheme, the ratio and what was measured, from the first width's load only.
+# count <name> <n>: the summary counts n findings.
+count() {
+  python3 -c 'import json,sys;s=json.loads(open(sys.argv[1]).read().splitlines()[-1])["summary"];assert s["findings"]==int(sys.argv[2]),s' "$T/out" "$2" 2>/dev/null \
+    && ok || bad "$1" "want $2 finding(s) in the summary: $(tail -n 1 "$T/out")"
+}
+run f/soft-dark.html;       want "dark soft text under 4.5 reported with palette name" 1 "E8|soft text under 4.5:1|375"
+names "dark soft text under 4.5 reported with palette name: the scheme, the ratio and the element" E8 "soft text under 4.5:1" \
+  '^palette "Dusk", dark: soft text is 3\.00:1 (#5f5f68 on #101014), on p "Last synced 4 minutes ago"$'
+count "dark soft text under 4.5 reported with palette name: once, though the page loads at three widths and passes in light" 1
+run f/soft-dark-fixed.html; want "dark soft text under 4.5 reported with palette name: none on the same page with the value fixed" 0
+run f/soft-dark-lone.html --widths 375; want "a palette that is its kind's one option, which has no switcher, is checked in dark too" 1 "E8|soft text under 4.5:1|375"
+names "a palette that is its kind's one option: the palette and the scheme" E8 "soft text under 4.5:1" '^palette "Dusk", dark: soft text is 3\.00:1 '
+while IFS='|' read -r fixture pair measured <&3; do
+  run "f/pair-$fixture.html" --widths 375; want "each of seven pairs reported ($pair)" 1 "E8|$pair under 4.5:1|375"
+  names "each of seven pairs reported ($pair): the palette, the scheme, the ratio and the element a frame draws" E8 "$pair under 4.5:1" "^palette \"Low\", light: $pair is $measured"
+  count "each of seven pairs reported ($pair): no other pair, and no dark finding for a palette with no dark set" 1
+done 3<<'EOF'
+body|body text|3\.36:1 (#8c8c8c on #ffffff), on div "Ledgerly Invoices
+soft|soft text|2\.81:1 (#9a9a9a on #ffffff), on p "Last synced 4 minutes ago"$
+button|button text|2\.60:1 (#9db8f2 on #2563eb), on span "New invoice"$
+chip|chip text|2\.38:1 (#b8a13c on #fef9c3), on span "Due Friday"$
+alert|alert text|3\.95:1 (#18181b on #777777), on div "Two invoices are overdue"$
+nav|nav text|2\.70:1 (#5d5d5f on #18181b), on a "Customers"$
+primary|primary used as text|2\.42:1 (#7aa7f5 on #ffffff), on span "Open"$
+EOF
+run f/pairs-bare.html --widths 375
+want "a pair no frame draws is measured on a probe" 1 "E8|body text under 4.5:1|375" "E8|soft text under 4.5:1|375" "E8|button text under 4.5:1|375" "E8|chip text under 4.5:1|375" \
+  "E8|alert text under 4.5:1|375" "E8|nav text under 4.5:1|375" "E8|primary used as text under 4.5:1|375"
+count "a pair no frame draws is measured on a probe: one finding a pair" 7
+while IFS='|' read -r pair measured <&3; do
+  names "a pair no frame draws is measured on a probe ($pair)" E8 "$pair under 4.5:1" "^palette \"Low\", light: $pair is $measured, on a probe: no frame draws it\$"
+done 3<<'EOF'
+soft text|2\.6[0-9]:1 (#9[def]9[def]9[def] on #ffffff)
+button text|1\.21:1 (#9db8f2 on #7aa7f5)
+chip text|2\.19:1 (#7f9fd8 on #dbeafe)
+alert text|3\.22:1 (#8c8c8c on #fafafa)
+nav text|2\.70:1 (#5d5d5f on #18181b)
+primary used as text|2\.42:1 (#7aa7f5 on #ffffff)
+EOF
+run f/tinted.html --widths 375; want "a see-through background is laid over what is behind it" 1 "E8|soft text under 4.5:1|375"
+names "a see-through background is laid over what is behind it: the ratio and the colours" E8 "soft text under 4.5:1" '^palette "Low", light: soft text is 3\.21:1 (#6a6a6a on #c4c8cc), on p '
+run f/light-only.html --widths 375; want "a palette with no dark set is checked in light only, one with an empty rule in dark too" 1 "E8|soft text under 4.5:1|375"
+names "a palette with an empty rule is checked in dark: the palette and the scheme" E8 "soft text under 4.5:1" '^palette "Neutral", dark: soft text is 2\.39:1 (#57575e on #1b1b1f), on p '
+count "a palette with no dark set is checked in light only: no finding under it" 1
+
 # A page's own script: a global it sets is not the check's answer, a post it makes is not a record.
 run f/forge-answer.html; want "a page-set __vdCheck is not the answer" 0
 cat "$T/out" "$T/err" | LC_ALL=C grep -q "$(printf '\033')" && bad "forged answer escaped" "a raw ESC reached the output: $(cat "$T/err")" || ok
@@ -485,6 +605,10 @@ run current.html
 grep -q '"detail": "[0-9.]*% of pixels' "$T/out" && ok || bad "E6 says how much" "$(grep E6 "$T/out")"
 run 2026-11-12-b.html
 [ "$rc" = 0 ] && [ "$(e6 2>&1)" = "no visible change since the previous pass|2026-11-12-a.html" ] && ok || bad "E6 unchanged" "want no visible change against a, got $rc: $(e6 2>&1) $(cat "$T/err")"
+# E8 on a ledger pair that renders the same: E6 holds the screenshot taken after every palette was switched through against a load of the older pass, where nothing was switched.
+run 2026-11-10-looks-b.html --widths 375; want "four passing palettes clean" 0
+[ "$(e6 2>&1)" = "no visible change since the previous pass|2026-11-10-looks-a.html" ] && ok \
+  || bad "four passing palettes clean: the look after the run is the look the page loaded with" "want no visible change against the pass it copies, got $rc: $(e6 2>&1) $(cat "$T/err")"
 
 # Nothing left running: no browser on this run's temp profiles, no profile left behind.
 pgrep -f -- "--user-data-dir=$T/tmp" >/dev/null && bad "no browser left" "$(pgrep -af -- "--user-data-dir=$T/tmp")" || ok
