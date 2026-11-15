@@ -260,8 +260,18 @@ body {
   font-size: .95rem;
   background: var(--vd-surface);
   border-bottom: 1px solid var(--vd-line);
-  display: flow-root; /* a floated title button that wraps to a second line stays inside the title */
+  display: flow-root; /* the floated box of title buttons stays inside the title when it drops to a second line */
 }
+/* The title's buttons in one box at the title's end: they read in the order Tab takes them, and take another line before one is squeezed. */
+.vd-title-btns {
+  float: right; /* physical, flipped by the [dir="rtl"] rule below: no logical `float` value is relied on for the preview browser */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 6px;
+  margin-inline-start: 6px;
+}
+[dir="rtl"] .vd-title-btns { float: left; }
 .vd-frame > h2 .vd-badge {
   display: inline-block;
   min-width: 1.6em;
@@ -313,15 +323,9 @@ body {
   font-size: .72rem;
   font-weight: 600;
   padding: 2px 8px;
-  margin-inline-start: 6px;
   border-radius: var(--vd-radius);
   cursor: pointer;
-  /* `float` has no widely-shipped logical value we rely on for the preview
-     browser, so the physical `right` stays (keeping LTR byte-identical) and
-     a single [dir="rtl"] override flips it — see the Direction axis note. */
-  float: right;
 }
-[dir="rtl"] .vd-zoom-btn { float: left; }
 .vd-zoom-btn:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 .vd-zoom-btn[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 #vd-frames.vd-zoom-active { grid-template-columns: 1fr; }
@@ -1129,9 +1133,7 @@ li.vd-hl { outline-offset: 0; }
   padding: 2px 8px;
   border-radius: var(--vd-radius);
   cursor: pointer;
-  float: right; /* physical + [dir="rtl"] flip below, same as .vd-zoom-btn */
 }
-[dir="rtl"] .vd-replay { float: left; }
 @media (prefers-reduced-motion: reduce) {
   /* TRANSITIONS. Every one of these is declared at 0-1-0 ("Content primitives"
      and the motion kit), so an equal-specificity reset at later source order
@@ -1502,8 +1504,7 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
 }
 #vd-fb-panel > summary { list-style: none; }
 #vd-fb-panel > summary::-webkit-details-marker { display: none; }
-.vd-fb-btn { font-size: .72rem; font-weight: 600; padding: 2px 8px; margin-inline-start: 6px; float: right; }
-[dir="rtl"] .vd-fb-btn { float: left; }
+.vd-fb-btn { font-size: .72rem; font-weight: 600; padding: 2px 8px; }
 #vd-fb-toggle:hover, #vd-fb-panel > summary:hover, .vd-fb-btn:hover, #vd-fb-box button:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 #vd-fb-toggle[aria-pressed="true"], .vd-fb-btn[aria-pressed="true"], #vd-fb-box button[type="submit"] {
   background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary);
@@ -1870,7 +1871,10 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     btn.textContent = 'Focus';
     btn.setAttribute('aria-pressed', 'false');
     btn.addEventListener('click', () => toggleZoom(frame));
-    frame.querySelector('h2').appendChild(btn);
+    const btns = document.createElement('span');
+    btns.className = 'vd-title-btns';
+    btns.appendChild(btn);
+    frame.querySelector('h2').appendChild(btns);
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -2089,7 +2093,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         el.classList.add('vd-anim');
       });
     });
-    frame.querySelector('h2').appendChild(btn);
+    frame.querySelector('.vd-title-btns').appendChild(btn);
   });
 
   // Kept for this tab only, under the page's path and decision title: every preview on the port shares one origin. ?static=1 keeps nothing.
@@ -2289,9 +2293,11 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const send = form.querySelector('button[type="submit"]');
   const hover = document.getElementById('vd-fb-hover');
   const live = document.getElementById('vd-fb-live');
+  const kinds = ['palette', 'style', 'type'];
   let picking = false;
   let target = null;
   let pending = null;
+  let newest = null;
 
   function announce(msg) { live.textContent = msg; }
   function textOf(el) { return cut((el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(), 200); }
@@ -2316,8 +2322,18 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     };
   }
 
+  // The active look: a name for each kind that has an attribute on <html>, whether or not a switcher shows it.
+  function look() {
+    const root = document.documentElement;
+    const out = {};
+    kinds.forEach(kind => {
+      if (root.hasAttribute('data-vd-' + kind)) out[kind] = root.getAttribute('data-vd-' + kind);
+    });
+    return out;
+  }
+
   function post(fields) {
-    const body = Object.assign({ page: page, pass: pass, context: context() }, fields);
+    const body = Object.assign({ page: page, pass: pass, switchers: look(), context: context() }, fields);
     if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
     return fetch('/_feedback', {
       method: 'POST',
@@ -2333,18 +2349,31 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       });
   }
 
-  function render(rows) {
-    const picks = rows.filter(r => r.kind === 'pick');
-    const last = picks[picks.length - 1];
-    // A row stored before rows carried a pass has no such key: it reads as no pass.
-    const picked = last && (last.pass || null) === pass ? last.variant : null;
+  function showPick() {
+    // A row stored before rows carried a pass or a look has no such key: it reads as no pass and no look.
+    const current = !!newest && (newest.pass || null) === pass;
+    const recorded = (current && newest.switchers) || {};
+    const active = look();
+    // serve.py stores a name it refuses as null: the active look is compared as a pick of it would be stored.
+    const stored = name => (typeof name === 'string' && /^[A-Za-z0-9 _-]{1,24}$/.test(name) ? name : null);
+    const same = kinds.every(kind => stored(recorded[kind]) === stored(active[kind]));
+    const names = kinds.map(kind => stored(recorded[kind])).filter(Boolean);
     frames.forEach(frame => {
       const btn = frame.querySelector('.vd-fb-pick');
       if (!btn) return;
-      const on = letterOf(frame) === picked;
-      btn.setAttribute('aria-pressed', String(on));
-      btn.textContent = on ? 'Picked' : 'Pick';
+      const letter = letterOf(frame);
+      const picked = current && letter === newest.variant;
+      const text = !picked ? 'Pick' : !same ? 'Pick with current look' : 'Picked' + (names.length ? ' with ' + names.join(', ') : '');
+      btn.textContent = text;
+      btn.setAttribute('aria-pressed', String(picked && same));
+      btn.setAttribute('aria-label', picked ? text + ', variant ' + letter : 'Pick variant ' + letter);
     });
+  }
+
+  function render(rows) {
+    const picks = rows.filter(r => r.kind === 'pick');
+    newest = picks[picks.length - 1] || null;
+    showPick();
     const notes = rows.filter(r => r.kind === 'note');
     const open = notes.filter(r => r.status === 'open').length;
     summary.textContent = notes.length ? 'Notes (' + notes.length + ', ' + open + ' open)' : 'Notes (0)';
@@ -2518,8 +2547,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       note.setAttribute('aria-label', 'Note on variant ' + letter);
       note.addEventListener('click', () =>
         openBox({ variant: letter, anchor: null, near: h2, label: 'Note on variant ' + letter, opener: note }));
-      h2.append(pick, note);
+      h2.querySelector('.vd-title-btns').append(pick, note);
     });
+    new MutationObserver(showPick).observe(document.documentElement, { attributeFilter: kinds.map(kind => 'data-vd-' + kind) });
 
     toggle.addEventListener('click', () => { if (box.hidden) setPicking(!picking); });
     panel.addEventListener('toggle', () => { if (panel.open) refresh(); });

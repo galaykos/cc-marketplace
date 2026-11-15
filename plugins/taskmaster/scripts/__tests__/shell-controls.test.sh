@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500; on a themed project's page (palettes Project, which has no dark rule, and Neutral), Project listed first and active in each switcher with no Theme control in the header, the Scheme toggle disabled with its note beside it under Project and working under Neutral, a dark scheme chosen under Neutral held light while Project is active, and the palette and scheme a pick stores as its context theme (baseline on a page with no palette); under emulated print media on the dark scheme, a frame's paper, ink, nav bar, primary button and info alert in the active palette's light set, for a palette with a dark rule and for Neutral. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets; print on paper (page breaks, dropped backgrounds, any frame but those the print case reads); a note's stored row beyond its pass number; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a State bar or the Scheme note (each adds a line; a themed page of six frames is not measured); the Scheme note at 375, and one too long for its line; a State bar's place in the header; a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line and surface, and primary off the print case), and Moss's dark set; a dark rule whose attribute selectors are written in the other order (read as no dark set); a palette on the html tag of a page of another pass kind; a context theme past the 16 characters serve.py keeps; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap, and the title's buttons reading Focus, Pick, Note on screen and by Tab on one row, on a wrapped row and around a picked frame's long label; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500; on a themed project's page (palettes Project, which has no dark rule, and Neutral), Project listed first and active in each switcher with no Theme control in the header, the Scheme toggle disabled with its note beside it under Project and working under Neutral, a dark scheme chosen under Neutral held light while Project is active, and the palette and scheme a pick stores as its context theme (baseline on a page with no palette); the palette, style and type names a pick and a note store (no key for a kind the page has no option for, the one option of a kind whose switcher is hidden, none for a name serve.py refuses), the picked frame's button as its text, the accessible name the browser computes and aria-pressed, under the recorded look and under another palette, style or type, the second pick that Pick with current look stores, and at 375 a picked frame's label that fits its title row alone, and one wider than that row; under emulated print media on the dark scheme, a frame's paper, ink, nav bar, primary button and info alert in the active palette's light set, for a palette with a dark rule and for Neutral. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says beyond the Pick button's computed name (a change of look is not announced, and no case reads the live region); Stacked mode, the width presets; print on paper (page breaks, dropped backgrounds, any frame but those the print case reads); a note's stored row beyond its pass number and look; a pick stored before rows carried a look, shown on a page that has one; a look changed while a post is on its way; the title's button order in RTL, in a zoomed frame and with a Replay button; a picked frame's label at any width but 375 and 2560; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a State bar or the Scheme note (each adds a line; a themed page of six frames is not measured); the Scheme note at 375, and one too long for its line; a State bar's place in the header; a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line and surface, and primary off the print case), and Moss's dark set; a dark rule whose attribute selectors are written in the other order (read as no dark set); a palette on the html tag of a page of another pass kind; a context theme past the 16 characters serve.py keeps; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -15,7 +15,7 @@ if [ "${1:-}" = --emit ]; then
 fi
 command -v python3 >/dev/null 2>&1 || skip "python3 not found"  # skip: nothing here runs without python3; PREVIEW_REQUIRE_BROWSER=1 exits 1 instead
 
-# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-6.html (six, the same presets), look-long.html (three, four palettes whose names do not fit a 375 px screen side by side), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), and themed.html (three, a themed project's page: palettes Project, which has no dark set, and Neutral; styles and types Project and Neutral), from the shipped shell.
+# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-6.html (six, the same presets), look-long.html (three, four palettes whose names do not fit a 375 px screen side by side), look-one.html (three, one palette, one style, one type), look-harbour.html and look-wordy.html (three, one option per kind: a picked frame's label fits a phone's title row alone but not beside Focus and Note, and is wider than that row), look-refused.html (three, palettes R&D, a name serve.py refuses, and Neutral), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), and themed.html (three, a themed project's page: palettes Project, which has no dark set, and Neutral; styles and types Project and Neutral), from the shipped shell.
 build_pages() {
   python3 - "$SHELL_HTML" "$1" <<'EOF'
 import os, re, sys
@@ -161,6 +161,10 @@ write("look-6.html", look(6, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF
 write("look-long.html", look(3, ['html[data-vd-palette="%s"] .vd-content {}' % name
                                  for name in ("Harbour morning", "Berry preserve", "Moss and stone", "Paper lantern")]))
 write("look-one.html", look(3, [BERRY], [SHARP], [SERIF]))
+write("look-harbour.html", look(3, ['html[data-vd-palette="Harbour morning"] .vd-content {}'], [SOFT], [SERIF]))
+write("look-wordy.html", look(3, ['html[data-vd-palette="Harbour morning at dawn"] .vd-content {}'],
+                              ['html[data-vd-style="Comfortable and rounded"] .vd-content {}'], ['html[data-vd-type="Humanist sans serif"] .vd-content {}']))
+write("look-refused.html", look(3, ['html[data-vd-palette="R&D"] .vd-content {}', NEUTRAL]))
 write("look-creative.html", marked(look(3, [NEUTRAL, BERRY]), ' data-vd-pass-kind="creative" data-vd-pass="1"'))
 write("look-other.html", marked(look(3, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF], css="#vd-b .vd-content{--vd-radius:0}"), ""))
 # Only dir is turned: data-vd-dir is the shell's own mirror, which an author does not write.
@@ -410,11 +414,11 @@ def seed_pick(name, letter, number):
         resp.read()
 
 
-# Per frame: its box and title box in page coordinates, its badge, and its title buttons by accessible name.
+# Per frame: its box, title box and badge box (the badge sits on the title's first line) in page coordinates, its badge, and its title buttons by accessible name.
 FRAMES = """(() => {
   const box = el => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top + scrollY, right: r.right, bottom: r.bottom + scrollY, width: r.width }; };
   return Array.from(document.querySelectorAll('.vd-frame')).map(f => ({
-    box: box(f), title: box(f.querySelector('h2')), badge: f.querySelector('.vd-badge').textContent,
+    box: box(f), title: box(f.querySelector('h2')), line: box(f.querySelector('.vd-badge')), badge: f.querySelector('.vd-badge').textContent,
     buttons: Array.from(f.querySelectorAll('h2 button')).map(b => ({
       name: b.getAttribute('aria-label') || b.textContent, text: b.textContent, pressed: b.getAttribute('aria-pressed'), box: box(b) })) }));
 })()"""
@@ -427,7 +431,8 @@ INNER = ("(() => { const m = document.getElementById('vd-frames'), c = getComput
 LETTERS = "ABCDEF"
 EACH = ["one frame has", "two frames each have", "three frames each have", "four frames each have", "five frames each have", "six frames each have"]
 NTH = ["first", "second", "third", "fourth", "fifth", "sixth"]
-PICK_B = '#vd-b button[aria-label^="Pick variant"]'
+# Every name a Pick button takes starts with Pick, whatever it reads.
+PICK_B = '#vd-b button[aria-label^="Pick"]'
 PICK, PICKED = ["Pick", "false"], ["Picked", "true"]
 
 
@@ -466,23 +471,43 @@ def rows_at_1280():
     case("six frames share rows at 1280", len(tops) == 6 and len(set(tops)) < 6, "frame tops: %s" % tops)
 
 
+def title_rows(frame):
+    """How many rows a frame's badge and title buttons take: 1 while every button shares the title's first line."""
+    rows, bottom = 0, float("-inf")
+    for box in sorted([frame["line"]] + [b["box"] for b in frame["buttons"]], key=lambda box: box["top"]):
+        if box["top"] >= bottom - 0.5:
+            rows += 1
+        bottom = max(bottom, box["bottom"])
+    return rows
+
+
+def inside_title(frame):
+    """Whether every title button of a frame lies inside its title's box."""
+    return all(b["box"]["bottom"] <= frame["title"]["bottom"] + 0.5 and b["box"]["left"] >= frame["title"]["left"] - 0.5
+               and b["box"]["right"] <= frame["title"]["right"] + 0.5 for b in frame["buttons"])
+
+
+def widths(frame):
+    return [round(b["box"]["width"], 1) for b in frame["buttons"]]
+
+
 def wrapped_title():
     # The third frame's label cannot fold (see build_pages), so its buttons have to wrap.
     open_page("layout-3.html", 375)
     frames = js(FRAMES)
     plain, tight = frames[0], frames[2]
-    lines = {round(b["box"]["top"]) for b in tight["buttons"]}
-    inside = all(b["box"]["bottom"] <= tight["title"]["bottom"] + 0.5 and b["box"]["left"] >= tight["title"]["left"] - 0.5
-                 and b["box"]["right"] <= tight["title"]["right"] + 0.5 for b in tight["buttons"])
-    widths = [[round(b["box"]["width"], 1) for b in f["buttons"]] for f in (tight, plain)]
-    case("title buttons that wrap stay inside the title at full width at 375", len(lines) > 1 and inside and widths[0] == widths[1],
-         "button lines %d (want over 1), inside the title %s, widths %s against %s on one line; title bottom %.1f, button bottoms %s"
-         % (len(lines), inside, widths[0], widths[1], tight["title"]["bottom"], [round(b["box"]["bottom"], 1) for b in tight["buttons"]]))
+    rows = [title_rows(tight), title_rows(plain)]
+    case("title buttons that wrap stay inside the title at full width at 375",
+         rows[0] > 1 and rows[1] == 1 and inside_title(tight) and widths(tight) == widths(plain),
+         "rows the badge and buttons take %d (want over 1) against %d where the label is short (want 1), inside the title %s, widths %s against %s;"
+         " title bottom %.1f, button bottoms %s"
+         % (rows[0], rows[1], inside_title(tight), widths(tight), widths(plain), tight["title"]["bottom"],
+            [round(b["box"]["bottom"], 1) for b in tight["buttons"]]))
 
 
 def pick_states():
     """Each frame's Pick button as [text, aria-pressed], in frame order."""
-    return [[b["text"], b["pressed"]] for f in js(FRAMES) for b in f["buttons"] if b["name"].startswith("Pick variant")]
+    return [[b["text"], b["pressed"]] for f in js(FRAMES) for b in f["buttons"] if b["name"].startswith("Pick")]
 
 
 def middle_frame_removed():
@@ -493,8 +518,8 @@ def middle_frame_removed():
     case("with a middle frame removed the frames still read A to E in order",
          seen == [[L, "Pick variant " + L, "Note on variant " + L] for L in "ABCDE"] and jumps == [[L, i] for i, L in enumerate("ABCDE")],
          "got [badge, Pick, Note] %s and jump links %s" % (seen, jumps))
-    click('#vd-e button[aria-label^="Pick variant"]')
-    marked = wait("document.querySelector('#vd-e button[aria-label^=\"Pick variant\"]').getAttribute('aria-pressed') === 'true'")
+    click('#vd-e button[aria-label^="Pick"]')
+    marked = wait("document.querySelector('#vd-e button[aria-label^=\"Pick\"]').getAttribute('aria-pressed') === 'true'")
     picks = [r["variant"] for r in rows("layout-gap.html") if r["kind"] == "pick"]
     state = pick_states()
     case("a pick on the fourth frame stores D and shows Picked there only",
@@ -944,7 +969,7 @@ def scheme_without_dark_set():
 
 
 def theme_in_context():
-    pick_a = '#vd-a button[aria-label^="Pick variant"]'
+    pick_a = '#vd-a button[aria-label^="Pick"]'
     open_page(THEMED, 1280)
     click(PICK_B)
     first = wait("document.querySelector(%s).getAttribute('aria-pressed') === 'true'" % json.dumps(PICK_B))
@@ -961,6 +986,182 @@ def theme_in_context():
     theme = [r["context"]["theme"] for r in rows("layout-3.html") if r["kind"] == "pick"][-1:]
     case("a pick on a page with no palette stores baseline as its theme", shown and theme == ["baseline light"],
          "the page declares no palette: its newest pick's context theme %s, B reads Picked: %s" % (theme, shown))
+
+
+PICK_D = '#vd-d button[aria-label^="Pick"]'
+# What a picked frame's button reads on look-wordy.html.
+WORDY = "Picked with Harbour morning at dawn, Comfortable and rounded, Humanist sans serif"
+AS_BUTTON = "as [text, accessible name, aria-pressed]"
+
+
+def reads(selector):
+    """A button as [text, the accessible name the browser computes for it, aria-pressed]."""
+    node = cdp.call("Runtime.evaluate", {"expression": "document.querySelector(%s)" % json.dumps(selector)})["result"]["objectId"]
+    name = cdp.call("Accessibility.getPartialAXTree", {"objectId": node, "fetchRelatives": False})["nodes"][0]["name"]["value"]
+    text, pressed = js("(b => [b.textContent, b.getAttribute('aria-pressed')])(document.querySelector(%s))" % json.dumps(selector))
+    return [text, name, pressed]
+
+
+def pick(selector):
+    """Click a Pick button; True once it reads as pressed."""
+    click(selector)
+    return wait("document.querySelector(%s).getAttribute('aria-pressed') === 'true'" % json.dumps(selector))
+
+
+def looks(name, kind="pick"):
+    """A page's stored picks (or notes) as [letter, switchers], oldest first; a row with no switchers key reads None."""
+    return [[r["variant"], r.get("switchers")] for r in rows(name) if r["kind"] == kind]
+
+
+def look_of(palette, style="Soft", kind="Serif"):
+    return {"palette": palette, "style": style, "type": kind}
+
+
+def recorded_look():
+    open_page(LOOK, 1280)
+    switch("palette", "Berry")
+    switch("type", "Serif")
+    shown = pick(PICK_D)
+    stored = looks(LOOK)
+    case("pick stores the active look", shown and stored == [["D", look_of("Berry")]],
+         "D was picked under Berry, Soft and Serif: stored picks as [letter, switchers] %s, D reads as pressed: %s" % (stored, shown))
+    picked, states = reads(PICK_D), pick_states()
+    case("the picked frame's button reads Picked with the recorded look",
+         picked == ["Picked with Berry, Soft, Serif", "Picked with Berry, Soft, Serif, variant D", "true"] and states == [PICK] * 3 + [picked[::2]] + [PICK],
+         "D's button %s %s; every Pick button as [text, aria-pressed] %s" % (AS_BUTTON, picked, states))
+    switch("palette", "Moss")
+    differs, states = reads(PICK_D), pick_states()
+    switch("palette", "Berry")
+    back = reads(PICK_D)
+    case("button reads Pick with current look after a palette change",
+         differs == ["Pick with current look", "Pick with current look, variant D", "false"] and states == [PICK] * 3 + [differs[::2]] + [PICK] and back == picked,
+         "D was picked under Berry: under Moss its button %s %s with every Pick button as [text, aria-pressed] %s; under Berry again %s (want %s)"
+         % (AS_BUTTON, differs, states, back, picked))
+    others = []
+    for kind, other, recorded in (("style", "Sharp", "Soft"), ("type", "Sans", "Serif")):
+        switch(kind, other)
+        others.append(reads(PICK_D)[::2])
+        switch(kind, recorded)
+    back = reads(PICK_D)
+    case("button reads Pick with current look after a style or a type change", others == [["Pick with current look", "false"]] * 2 and back == picked,
+         "D was picked under Berry, Soft and Serif: its button as [text, aria-pressed] under Sharp, then under Sans, %s; under the recorded look again %s %s"
+         % (others, AS_BUTTON, back))
+    switch("palette", "Moss")
+    again = pick(PICK_D)
+    stored, now = looks(LOOK), reads(PICK_D)
+    case("pressing Pick with current look stores a second pick with the new palette",
+         again and stored == [["D", look_of("Berry")], ["D", look_of("Moss")]] and now[0] == "Picked with Moss, Soft, Serif",
+         "D read Pick with current look under Moss and was pressed: stored picks as [letter, switchers] %s; its button now %s %s" % (stored, AS_BUTTON, now))
+
+
+def note_with_look():
+    open_page("look-6.html", 1280)
+    for kind, name in (("palette", "Moss"), ("style", "Sharp"), ("type", "Serif")):
+        switch(kind, name)
+    click('#vd-a button[aria-label^="Note on variant"]')
+    typing = wait("document.activeElement === document.getElementById('vd-fb-text')")
+    key("n")
+    click('#vd-fb-box button[type="submit"]')
+    sent = wait("document.getElementById('vd-fb-box').hidden")
+    notes = looks("look-6.html", "note")
+    case("note stores the active look", typing and sent and notes == [["A", look_of("Moss", "Sharp")]],
+         "a note on A was sent under Moss, Sharp and Serif: stored notes as [letter, switchers] %s; the note box took focus: %s, closed after Send: %s"
+         % (notes, typing, sent))
+
+
+def kinds_a_page_lacks_or_hides():
+    open_page("look-creative.html", 1280)
+    shown = pick(PICK_B)
+    stored = looks("look-creative.html")
+    case("a pick on a page with no type option stores no type key", shown and stored == [["B", {"palette": "Neutral"}]],
+         "the page declares two palettes, no style and no type: stored picks as [letter, switchers] %s, B reads as pressed: %s" % (stored, shown))
+    open_page("look-one.html", 1280)
+    shown = pick(PICK_B)
+    stored, drawn_switchers = looks("look-one.html"), listed()
+    case("a pick stores a kind's one option though no switcher shows it", shown and drawn_switchers == [] and stored == [["B", look_of("Berry", "Sharp")]],
+         "Berry, Sharp and Serif are each the one option of their kind: switchers shown %s, stored picks as [letter, switchers] %s, B reads as pressed: %s"
+         % (drawn_switchers, stored, shown))
+
+
+def refused_name():
+    # serve.py keeps the row and stores the name as none: a page that compared its own R&D with that would never read Picked.
+    open_page("look-refused.html", 1280)
+    shown = pick(PICK_B)
+    stored, under = looks("look-refused.html"), reads(PICK_B)
+    switch("palette", "Neutral")
+    away = reads(PICK_B)
+    case("a pick under an option name the server refuses still reads Picked",
+         shown and stored == [["B", {"palette": None}]] and under == ["Picked", "Picked, variant B", "true"] and away[::2] == ["Pick with current look", "false"],
+         "B was picked under the palette R&D: stored picks as [letter, switchers] %s; its button %s %s, then under Neutral %s" % (stored, AS_BUTTON, under, away))
+
+
+# Which title button has focus, as Focus, Pick or Note whatever the Pick button reads, or null when focus is anywhere else.
+TABBED = """(a => { if (!a || !a.closest('.vd-frame > h2')) return null; const name = a.getAttribute('aria-label') || a.textContent;
+  return name.startsWith('Pick') ? 'Pick' : name.split(' ')[0]; })(document.activeElement)"""
+
+
+def title_order_on(page, width, rows):
+    """One page's part of the title-order case: every frame's title buttons read Focus, Pick, Note on screen and by Tab, on one row where rows says 1 and on that many or more where it says more."""
+    frames = js(FRAMES)
+    on_screen = [["Pick" if b["name"].startswith("Pick") else b["name"].split(" ")[0]
+                  for b in sorted(f["buttons"], key=lambda b: (round(b["box"]["top"]), b["box"]["left"]))] for f in frames]
+    took = [title_rows(f) for f in frames]
+    by_tab = []
+    for n in range(1, len(frames) + 1):
+        # A number key lands on the frame itself, so the next three Tab stops are its title's.
+        key(str(n))
+        stops = []
+        for _ in range(3):
+            key("Tab")
+            stops.append(js(TABBED))
+        by_tab.append(stops)
+    want = [["Focus", "Pick", "Note"]] * len(frames)
+    case("title buttons read Focus, Pick, Note on screen and by Tab",
+         on_screen == want and by_tab == want and all(t == r if r == 1 else t >= r for t, r in zip(took, rows)),
+         "%s at %d: on screen, row by row and left to right, %s; by Tab %s; rows each title's badge and buttons take %s (want %s, or more where over 1)"
+         % (page, width, on_screen, by_tab, took, rows))
+
+
+def title_order():
+    open_page("layout-3.html", 1280)
+    title_order_on("layout-3.html", 1280, [1, 1, 1])
+    # The third frame's label cannot fold (see build_pages): its title wraps beside two that do not.
+    open_page("layout-3.html", 375)
+    title_order_on("layout-3.html", 375, [1, 1, 2])
+    # The picked frame's label is wider than its title row (see build_pages): Focus, the label and Note wrap among themselves.
+    open_page("look-wordy.html", 375)
+    pick('#vd-a button[aria-label^="Pick"]')
+    title_order_on("look-wordy.html", 375, [3, 1, 2])
+
+
+def picked_label_wraps():
+    # 2560 wide, a title has room for its label and every button on one row; at 375 the picked frame's label fits a row alone, not beside Focus and Note.
+    open_page("look-harbour.html", 2560)
+    shown = pick(PICK_B)
+    roomy = js(FRAMES)[1]
+    open_page("look-harbour.html", 375)
+    tight = js(FRAMES)[1]
+    page = js("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+    names = [b["text"] for b in tight["buttons"]]
+    case("a Picked label wraps the title's buttons to a second row at 375 before any shrinks",
+         shown and names == ["Focus", "Picked with Harbour morning, Soft, Serif", "Note"] and title_rows(roomy) == 1 and title_rows(tight) > 1
+         and widths(tight) == widths(roomy) and inside_title(tight) and page[0] <= page[1],
+         "B is picked and its buttons read %s: rows its badge and buttons take at 2560 %d (want 1), at 375 %d (want over 1); widths at 375 %s against %s at 2560;"
+         " inside the title %s; the page is %d px wide in a %d px viewport"
+         % (names, title_rows(roomy), title_rows(tight), widths(tight), widths(roomy), inside_title(tight), page[0], page[1]))
+    # The label is wider than its title row (see build_pages), so it has to fold inside its button.
+    open_page("look-wordy.html", 375)
+    shown = pick(PICK_B)
+    frame = js(FRAMES)[1]
+    page = js("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+    names = [b["text"] for b in frame["buttons"]]
+    heights = [round(b["box"]["bottom"] - b["box"]["top"], 1) for b in frame["buttons"]]
+    case("a Picked label longer than the title row folds inside its button at 375",
+         shown and names == ["Focus", WORDY, "Note"] and inside_title(frame) and heights[1] > heights[0] and page[0] <= page[1],
+         "B is picked and its buttons read %s: inside the title %s (the title spans %.1f to %.1f, the buttons %s), button heights %s (want the label's over Focus's);"
+         " the page is %d px wide in a %d px viewport"
+         % (names, inside_title(frame), frame["title"]["left"], frame["title"]["right"],
+            [[round(b["box"]["left"], 1), round(b["box"]["right"], 1)] for b in frame["buttons"]], heights, page[0], page[1]))
 
 
 # The first frame's primary button as [fill, text], then the bar of its info alert.
@@ -1161,6 +1362,12 @@ try:
     group("a themed project's page", themed_project)
     group("Scheme without a dark set", scheme_without_dark_set)
     group("a pick's context theme", theme_in_context)
+    group("a pick's recorded look", recorded_look)
+    group("a note's recorded look", note_with_look)
+    group("kinds a page lacks or hides", kinds_a_page_lacks_or_hides)
+    group("an option name the server refuses", refused_name)
+    group("title button order", title_order)
+    group("a Picked label at 375", picked_label_wraps)
     group("print under the dark scheme", print_in_light)
     group("Look disclosure opens and closes by click at 375", look_by_click)
     group("open Look stacks its groups one per line at 430", groups_stack)
