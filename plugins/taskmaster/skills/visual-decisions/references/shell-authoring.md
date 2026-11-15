@@ -234,6 +234,12 @@ value.
 - It is a second top-level rule whose whole selector is exactly
   `html[data-vd-palette="Name"][data-vd-scheme="dark"] .vd-content`, the two
   attributes in that order. It declares no option.
+- A dark rule written directly inside an `@media screen` block counts the
+  same, and one inside any other at-rule (`@media print`, `@supports`, a
+  narrower `@media screen and (…)`, a block nested in one) is not read, so
+  that palette has no dark set (gate: `scripts/__tests__/shell-controls.test.sh`
+  for the shell, `scripts/__tests__/preview-check.test.sh` for the render
+  check, which reads the same rule).
 - Set in it every token the palette's first rule sets. A token the dark rule
   leaves out keeps the first rule's light value on the dark scheme.
 - A palette whose own rule sets at least one token, and that has no dark rule,
@@ -256,6 +262,14 @@ value.
   `data-vd-style`, `data-vd-type`.
 - In a window 600 px wide or narrower the row folds behind a `Look` button,
   which sits after the Direction toggle.
+- Under that button a switcher's options wrap onto further lines, each at
+  least 24 px tall, so a long name is neither cut off nor scrolled out of reach
+  (gate: `scripts/__tests__/shell-controls.test.sh`, at 320 and 375 px with
+  four 24-character names per kind).
+- While the header is taller than half the window it stops sticking and
+  scrolls away with the page, so a frame reached by a number key or a jump
+  link is not under it (gate: the same harness, at 320 by 480 px with `Look`
+  open).
 - A preset reaches frame content only: everything inside `.vd-content`, the
   frame's own navigation bar included. The header, and each frame's title,
   caption and tradeoff list, keep the shell's neutral colours.

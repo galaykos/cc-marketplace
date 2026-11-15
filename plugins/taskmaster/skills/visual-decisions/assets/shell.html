@@ -116,6 +116,10 @@ body {
   align-items: center;
   gap: calc(var(--vd-space) * 2);
 }
+/* Set by the script while the header is over half the window's height: stuck, it would cover the frame a key or a jump link scrolls to. Screen only: print pins it per page. */
+@media screen {
+  #vd-header.vd-tall { position: relative; }
+}
 #vd-header .vd-q {
   flex: 1 1 320px;
   min-width: 240px;
@@ -233,8 +237,11 @@ body {
   .vd-controls:has(> #vd-look-toggle[aria-expanded="false"]) + .vd-look { display: none; }
   .vd-look { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
   .vd-look-label { min-width: 4em; }
-  .vd-switcher { overflow-x: auto; }
-  .vd-switcher button { flex: none; }
+  /* Options take further lines before any is cut off; the lines between them are the switcher's own fill showing through 1 px gaps. */
+  .vd-switcher { flex-wrap: wrap; gap: 1px; background: var(--vd-line); }
+  /* WCAG 2.5.8: wrapped lines sit 1 px apart, so each option is a 24 px target by itself. */
+  .vd-switcher button { flex: 1 1 auto; min-block-size: 24px; overflow-wrap: anywhere; }
+  .vd-switcher button + button { border-inline-start: 0; }
 }
 
 /* ---- Variant frames -------------------------------------------------- */
@@ -251,7 +258,7 @@ body {
   border-radius: var(--vd-radius);
   box-shadow: var(--vd-shadow);
   overflow: hidden;
-  /* --vd-header-h is the sticky header's height, kept current by the script: a frame scrolled to lands below it. */
+  /* --vd-header-h is the header's height while it sticks, else 0, kept current by the script: a frame scrolled to lands below it. */
   scroll-margin-top: calc(var(--vd-header-h, 0px) + var(--vd-space));
 }
 .vd-frame > h2 {
@@ -1986,8 +1993,17 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   }
 
   const header = document.getElementById('vd-header');
-  new ResizeObserver(() =>
-    document.documentElement.style.setProperty('--vd-header-h', header.offsetHeight + 'px')).observe(header);
+  // The header is as tall stuck as not, so marking it cannot change the answer: no loop.
+  function fitHeader() {
+    const tall = header.offsetHeight > innerHeight / 2;
+    const unstuck = tall && !header.classList.contains('vd-tall');
+    header.classList.toggle('vd-tall', tall);
+    document.documentElement.style.setProperty('--vd-header-h', (tall ? 0 : header.offsetHeight) + 'px');
+    // Look opened on a scrolled page: the header just left for the page's top, and the page follows the control in use there.
+    if (unstuck && header.contains(document.activeElement)) document.activeElement.scrollIntoView({ block: 'nearest' });
+  }
+  new ResizeObserver(fitHeader).observe(header);
+  window.addEventListener('resize', fitHeader);
 
   // Focus variant N: scroll in side/stack, show in flip
   function focusVariant(i) {
@@ -2129,19 +2145,20 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const sheet = presets && presets.sheet;
   const selectors = Array.from((sheet && sheet.cssRules) || []).map(r => r.selectorText || '');
   // A palette's dark rule is made screen-only: print lays a frame out in its palette's light set, whatever the scheme.
-  const withDark = [];
   selectors.forEach((selector, i) => {
-    const dark = /^html\[data-vd-palette="([^"\\]*)"\]\[data-vd-scheme="dark"\] \.vd-content$/.exec(selector);
-    if (!dark) return;
-    withDark.push(dark[1]);
+    if (!/^html\[data-vd-palette="[^"\\]*"\]\[data-vd-scheme="dark"\] \.vd-content$/.test(selector)) return;
     const rule = sheet.cssRules[i].cssText;
     sheet.deleteRule(i);
     sheet.insertRule('@media screen {' + rule + '}', i);
   });
-  // An empty palette rule keeps the shell's values, dark ones included; one that sets a value has a dark set only as its dark rule.
+  // The rule check.js reads too: among the top-level style rules and those directly inside an `@media screen` block, a palette is light only when its first rule sets a value (an empty one keeps the shell's values, dark ones included) and it has no dark rule.
   function lightOnly(palette) {
-    const own = palette === null ? -1 : selectors.indexOf('html[data-vd-palette="' + palette + '"] .vd-content');
-    return own >= 0 && sheet.cssRules[own].style.length > 0 && !withDark.includes(palette);
+    const styled = r => r instanceof CSSStyleRule;
+    const rules = Array.from((sheet && sheet.cssRules) || []).flatMap(r => (styled(r) ? [r]
+      : r instanceof CSSMediaRule && r.media.mediaText === 'screen' ? Array.from(r.cssRules).filter(styled) : []));
+    const own = 'html[data-vd-palette="' + palette + '"]', tail = ' .vd-content';
+    const first = rules.find(r => r.selectorText === own + tail);
+    return palette !== null && !!first && first.style.length > 0 && !rules.some(r => r.selectorText === own + '[data-vd-scheme="dark"]' + tail);
   }
 
   // Scheme toggle: the shell's dark neutrals and, inside each frame, the active palette's dark set. Explicit only, no OS colour-scheme auto-switch: screenshots compare alike on any machine.
@@ -2318,10 +2335,13 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const hover = document.getElementById('vd-fb-hover');
   const live = document.getElementById('vd-fb-live');
   const kinds = ['palette', 'style', 'type'];
+  const POST_WAIT_S = 10;
   let picking = false;
   let target = null;
   let pending = null;
   let newest = null;
+  // Whether the active look is the one a frame on this page was picked under; null with no such pick.
+  let matches = null;
 
   function announce(msg) { live.textContent = msg; }
   function textOf(el) { return cut((el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(), 200); }
@@ -2341,6 +2361,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     return {
       viewport: { w: innerWidth, h: innerHeight },
       theme: (root.getAttribute('data-vd-palette') || 'baseline') + ' ' + (root.dataset.vdScheme || 'light'),
+      scheme: root.dataset.vdScheme === 'dark' ? 'dark' : 'light',
       states: states,
       console: errors.slice()
     };
@@ -2360,20 +2381,27 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   function post(fields, refused) {
     const body = Object.assign({ page: page, pass: pass, switchers: look(), context: context() }, fields);
     if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
+    // serve.py takes a post and then waits for its lock: without a limit the control that sent it would stay as it is, with no message.
+    const wait = AbortSignal.timeout(POST_WAIT_S * 1000);
     return fetch('/_feedback', {
       method: 'POST',
       // The header is the server's CSRF gate, as on /_restore.
       headers: { 'Content-Type': 'application/json', 'X-Preview-Feedback': '1' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: wait
     })
       .catch(err => { throw new Error('the server did not answer', { cause: err }); })
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error('the server answered ' + r.status))))
+      .then(r => (r.ok ? r.json() : r.json().then(d => d.error).catch(() => null).then(said => {
+        // serve.py sends its reason as JSON's `error`; any other body leaves the status to say it.
+        const words = typeof said === 'string' ? cut(said.trim(), 200) : '';
+        throw new Error(words ? words + ' (' + r.status + ')' : 'the server answered ' + r.status);
+      })))
       .then(() => {
         refused.textContent = '';
         return refresh();
       })
       .catch(err => {
-        refused.textContent = 'Not recorded: ' + err.message;
+        refused.textContent = 'Not recorded: ' + (wait.aborted ? 'no answer from the server in ' + POST_WAIT_S + ' s' : err.message);
         announce(refused.textContent);
         throw err;
       });
@@ -2388,11 +2416,13 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     const stored = name => (typeof name === 'string' && /^[A-Za-z0-9 _-]{1,24}$/.test(name) ? name : null);
     const same = kinds.every(kind => stored(recorded[kind]) === stored(active[kind]));
     const names = kinds.map(kind => stored(recorded[kind])).filter(Boolean);
+    matches = null;
     frames.forEach(frame => {
       const btn = frame.querySelector('.vd-fb-pick');
       if (!btn) return;
       const letter = letterOf(frame);
       const picked = current && letter === newest.variant;
+      if (picked) matches = same;
       const text = !picked ? 'Pick' : !same ? 'Pick with current look' : 'Picked' + (names.length ? ' with ' + names.join(', ') : '');
       btn.textContent = text;
       btn.setAttribute('aria-pressed', String(picked && same));
@@ -2585,7 +2615,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       h2.querySelector('.vd-title-btns').append(pick, note);
       h2.append(refused);
     });
-    new MutationObserver(showPick).observe(document.documentElement, { attributeFilter: kinds.map(kind => 'data-vd-' + kind) });
+    // A look change rewrites the picked frame's button while focus stays on the switcher, so the flip is said in the status region.
+    new MutationObserver(() => {
+      const before = matches;
+      showPick();
+      if (matches !== before) announce('Variant ' + newest.variant + (matches ? ': the look matches your pick again' : ': the look no longer matches your pick'));
+    }).observe(document.documentElement, { attributeFilter: kinds.map(kind => 'data-vd-' + kind) });
 
     toggle.addEventListener('click', () => { if (box.hidden) setPicking(!picking); });
     panel.addEventListener('toggle', () => { if (panel.open) refresh(); });
