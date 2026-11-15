@@ -300,7 +300,7 @@ localStorage), pick an artboard, and "Copy edits as prompt" pastes the decision 
 session as plain requirements. `scripts/board-export.sh` writes a PNG per artboard or one PDF
 through a headless Chromium-family browser (exit 3 with the install hint when none is found).
 
-What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 4 artboards, an empty body,
+What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 6 artboards, an empty body,
 lorem ipsum, or any external asset — a board renders offline — **gate**. That the directions
 diverge structurally, that content is real, and the accessibility floor of a hand-written body
 are **agent-graded**. Nothing here measures contrast — **recorded**.

@@ -53,9 +53,10 @@ the cap, decide the remainder against the concept and the archetype defaults,
 report what was auto-decided, and proceed. A guided flow that outlives the user's
 patience has failed even if every answer was good.
 
-Iteration on a single pick asked in the dialog stops after two revisions. A pick staged on a
-drawing page (taskmaster's mockup page, a design-kit board) allows up to three, that page's own
-limit. Past that, take the closest option and note the reservation in the ledger.
+Iteration on a single pick stops after two revisions, asked in the dialog or staged on a drawing
+page. On taskmaster's mockup page that is the page's own limit: three passes for one decision, the
+first included. A design-kit board states no limit, so the two is this skill's. Past that, take the
+closest option and note the reservation in the ledger.
 
 ## Always-available exits
 
@@ -91,7 +92,7 @@ board or checks that its pick reached the ledger.
 - **Stop at the pick.** The board's own next-step offer (render it in the codebase, build it now)
   belongs to a standalone design run. Here the next step is the next decision, and the build reads
   the ledger.
-- **The cap still counts.** A board revision is one of the three revisions a staged pick allows, every board
+- **The cap still counts.** A board revision is one of the two revisions a pick allows, every board
   exchange counts toward the six, and "Decide the rest for me" stays beside the pick question.
 
 ## Headless / non-interactive runs

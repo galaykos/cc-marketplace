@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """board-build.py — render a design board (2–6 artboards on one canvas) from a spec.
 
-Reads a JSON or markdown spec (skills/design/references/spec-format.md), fills skills/design/assets/board-shell.html, writes .cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path; accent, spacing, radius and body font come from --tokens (default .cc-artifacts/design-kit/design-system/tokens.json, else a pre-2026-11-14 design-system/tokens.json) by path-name heuristic, else the shell's defaults. Exit 2 on fewer than 2 or more than 4 artboards, an empty body, "lorem ipsum", or any external reference in a body (the board renders with the network off).
+Reads a JSON or markdown spec (skills/design/references/spec-format.md), fills skills/design/assets/board-shell.html, writes .cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html and prints the path; accent, spacing, radius and body font come from --tokens (default .cc-artifacts/design-kit/design-system/tokens.json, else a pre-2026-11-14 design-system/tokens.json) by path-name heuristic, else the shell's defaults. Exit 2 on fewer than 2 or more than 6 artboards, an empty body, "lorem ipsum", or any external reference in a body (the board renders with the network off).
 Misses: realistic-looking but wrong content, an artboard that is a palette swap of its neighbour (agent-graded), and the bodies' accessibility (a hand-written body can undo the shell's floor).
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/board-build.py
 """
