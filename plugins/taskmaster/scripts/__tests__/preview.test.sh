@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview.sh: start serves the docroot and records pid/URL, a second start reuses it, --lan over a loopback server is refused, --stop ends only a pid that is serve.py on this docroot, a busy port fails cleanly, two starts at once leave one server, a live pid nothing can name is exit 6, --lan relays the loopback URL.
-# Misses: exit 3 (python3 absent) is not exercised; the LAN half needs a non-loopback address and skips without one.
+# Drives scripts/preview.sh: start serves the docroot and records pid/URL, a second start reuses it, --lan over a loopback server is refused, --stop ends only a pid that is serve.py on this docroot, a busy port fails cleanly, two starts at once leave one server, a live pid nothing can name is exit 6, --lan relays the loopback URL, a running server reporting a lower version, none, or nothing is replaced on its own port with its own --lan (exit 4, state kept, when it will not exit), the same version is reused, a newer one is left running with a warning.
+# Misses: exit 3 (python3 absent) is not exercised; the LAN half needs a non-loopback address and skips without one; the other-version servers are this serve.py with one line changed by sed, not a released older copy; a restart whose new server fails to start is not exercised.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 P="$here/../preview.sh"
@@ -16,8 +16,9 @@ fi
 
 T="$(mktemp -d)"
 D="$T/mockups"
-extra=""
+extra=""; frozen=""
 cleanup() {
+  [ -n "$frozen" ] && kill -CONT "$frozen" 2>/dev/null
   bash "$P" --docroot "$D" --stop >/dev/null 2>&1
   for p in $extra; do kill "$p" 2>/dev/null; done
   for p in $extra; do wait "$p" 2>/dev/null; done
@@ -165,6 +166,67 @@ for args in "--stop" "--port $port"; do
   [ "$rc" = 6 ] && [ "$(cat "$D/.preview.pid" 2>/dev/null)" = "$zpid" ] && ok || bad "unnamed live pid ($args)" "want exit 6 and the pid file kept, got $rc and $(cat "$D/.preview.pid" 2>/dev/null)"
 done
 rm -f "$D/.preview.pid"
+
+# ---- a server of another version: older, numberless or silent is replaced on its port with its options, same is reused, newer is left ----
+# plugin_copy <name> <sed script>: this launcher beside a serve.py changed by the sed script, laid out as preview.sh expects.
+plugin_copy() {
+  mkdir -p "$T/$1/scripts" "$T/$1/skills/visual-decisions/assets"
+  cp "$P" "$T/$1/scripts/preview.sh"
+  sed "$2" "$here/../../skills/visual-decisions/assets/serve.py" > "$T/$1/skills/visual-decisions/assets/serve.py"
+}
+# number <port>: the "server" value that port's feedback list route answers with; None when it gives none.
+number() { curl -s --max-time 3 "http://127.0.0.1:$1/_feedback?page=" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("server"))' 2>/dev/null; }
+args_of() { ps -ww -p "$1" -o args= 2>/dev/null; }
+recorded() { cat "$D/.preview.pid" 2>/dev/null; }
+absd="$(cd "$D" && pwd -P)"
+servers() { pgrep -f "serve.py --docroot $absd --port" | wc -l | tr -d ' '; }
+other="$(free_port)"
+
+plugin_copy numberless 's/, "server": SERVER_VERSION//'
+PREVIEW_LAN_MINUTES=2 bash "$T/numberless/scripts/preview.sh" --docroot "$D" --port "$port" --lan >/dev/null
+oldpid="$(recorded)"; key="$(tr -d '\n' < "$D/.preview.key" 2>/dev/null)"
+[ "$(number "$port")" = None ] && ok || bad "fixture: a server from before the number" "want no server field from port $port, got $(number "$port")"
+out="$(PREVIEW_LAN_MINUTES=2 bash "$P" --docroot "$D" --port "$other" 2>&1)"; rc=$?
+newpid="$(recorded)"
+[ "$rc" = 0 ] && [ -n "$newpid" ] && [ "$newpid" != "$oldpid" ] && ! kill -0 "$oldpid" 2>/dev/null && ok \
+  || bad "older server restarted on the same port" "want exit 0 and a new server in place of pid $oldpid, got $rc and pid $newpid: $out"
+case "$out" in *"preview: http://"*":$port/?key=$key"*) ok ;; *) bad "older server restarted on the same port: URL" "want port $port and the key it had, got: $out" ;; esac
+case "$(args_of "$newpid")" in *" --port $port --lan"*) ok ;; *) bad "older server restarted on the same port: options" "want --port $port --lan, got: $(args_of "$newpid")" ;; esac
+mine="$(number "$port")"
+case "$mine" in '' | *[!0-9]*) bad "older server restarted on the same port: version" "the server now on port $port reports $mine"; mine=1 ;; *) ok ;; esac
+up "$other" && bad "older server restarted on the same port: caller's --port" "a server answers on port $other" || ok
+[ "$(servers)" = 1 ] && ok || bad "older server restarted on the same port: servers" "want 1 serve.py on the docroot, got $(servers)"
+
+out="$(bash "$P" --docroot "$D" --port "$other" 2>&1)"; rc=$?
+[ "$rc" = 0 ] && [ "$(recorded)" = "$newpid" ] && kill -0 "$newpid" 2>/dev/null \
+  && case "$out" in *"may be refused"*) false ;; *"already running — http://"*":$port/?key=$key"*) true ;; *) false ;; esac && ok \
+  || bad "same version reused" "want exit 0, pid $newpid kept and only the already-running lines, got $rc and pid $(recorded): $out"
+bash "$P" --docroot "$D" --stop >/dev/null
+
+bash "$P" --docroot "$D" --port "$port" >/dev/null
+lowpid="$(recorded)"
+plugin_copy next "s/^SERVER_VERSION = .*/SERVER_VERSION = $((mine + 1))/"
+out="$(bash "$T/next/scripts/preview.sh" --docroot "$D" --port "$other" --lan 2>&1)"; rc=$?
+[ "$rc" = 5 ] && [ "$(recorded)" = "$lowpid" ] && kill -0 "$lowpid" 2>/dev/null && ok \
+  || bad "--lan over an older loopback server" "want exit 5 and pid $lowpid left running, got $rc and pid $(recorded): $out"
+out="$(bash "$T/next/scripts/preview.sh" --docroot "$D" --port "$other" 2>&1)"; rc=$?
+nextpid="$(recorded)"
+[ "$rc" = 0 ] && [ "$(number "$port")" = "$((mine + 1))" ] && ! kill -0 "$lowpid" 2>/dev/null && ok \
+  || bad "lower number restarted" "want exit 0 and port $port answering as $((mine + 1)), got $rc and $(number "$port"): $out"
+case "$(args_of "$nextpid")" in *" --lan"*) bad "loopback server restarted loopback-only" "got: $(args_of "$nextpid")" ;; *" --port $port"*) ok ;; *) bad "loopback server restarted loopback-only" "want --port $port, got: $(args_of "$nextpid")" ;; esac
+
+out="$(bash "$P" --docroot "$D" --port "$other" 2>&1)"; rc=$?
+[ "$rc" = 0 ] && [ "$(recorded)" = "$nextpid" ] && [ "$(number "$port")" = "$((mine + 1))" ] && [ "$(servers)" = 1 ] && ok \
+  || bad "newer server left running" "want exit 0 and pid $nextpid still answering as $((mine + 1)), got $rc, pid $(recorded), $(number "$port"), $(servers) server(s): $out"
+case "$out" in *"already running — http://127.0.0.1:$port/"*"may be refused"*) ok ;; *) bad "newer server left running: output" "want the URL and a line saying controls may be refused, got: $out" ;; esac
+
+# a stopped process answers nothing and outlives the stop signal: it is treated as older, and its pid and URL files stay for the next call
+frozen="$nextpid"; kill -STOP "$frozen" 2>/dev/null
+out="$(bash "$P" --docroot "$D" --port "$other" 2>&1)"; rc=$?
+[ "$rc" = 4 ] && [ "$(recorded)" = "$nextpid" ] && [ -s "$D/.preview.url" ] && ok \
+  || bad "silent server that outlives its stop" "want exit 4 with the pid and URL files kept, got $rc and pid $(recorded): $out"
+kill -CONT "$frozen" 2>/dev/null; frozen=""
+bash "$P" --docroot "$D" --stop >/dev/null
 
 # ---- bad arguments -------------------------------------------------------------
 bash "$P" --port abc >/dev/null 2>&1; rc=$?

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore, /_feedback and /_checks stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?, a pass outside 1..9 or a refused look name as null) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; a pick equal (letter, pass, look) to its page's newest pick while that one is unread appends nothing and answers 200 with that row's id; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?, a pass outside 1..9 or a refused look name as null) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; a pick equal (letter, pass, look) to its page's newest pick while that one is unread appends nothing and answers 200 with that row's id; GET /_feedback?page= returns that page's rows and "server": SERVER_VERSION, which scripts/preview.sh compares with its own serve.py's to replace an older running server. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
 # Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; without fcntl nothing locks, so two equal picks posted together can both be stored; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
@@ -74,6 +74,8 @@ PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
 VARIANTS = ("A", "B", "C", "D", "E", "F")
 SWITCHERS = ("palette", "style", "type")
 LOOK_NAME = re.compile(r"[A-Za-z0-9 _-]{1,24}")
+# Raise it when a server already running would refuse or mishandle what this plugin's pages and scripts now send: preview.sh replaces one reporting less.
+SERVER_VERSION = 2
 CHECKS_DIR = ".checks"  # dot-named, so never served: one folder per page, one record per width, written by scripts/preview-check.sh only
 CHECK_STAMP = "run.json"  # preview-check.sh writes it last in a page's folder: the watcher streams "checked" for that page
 
@@ -542,13 +544,13 @@ def build_handler(state):
             return peer_is_loopback(self.client_address[0]) and self.host_and_origin_local()
 
         def serve_feedback(self):
-            """The feedback rows for ?page=, as data, for the shell's status list."""
+            """The feedback rows for ?page=, as data, for the shell's status list; SERVER_VERSION for preview.sh."""
             if not self.is_loopback_local():
                 self.send_error(403, "Forbidden (feedback is loopback-only)")
                 return
             query = self.path.partition("?")[2]
             page = page_key(next((v for k, v in parse_qsl(query, keep_blank_values=True) if k == "page"), ""))
-            self._send_json({"rows": [r for r in read_feedback(state.docroot) if r.get("page") == page]})
+            self._send_json({"rows": [r for r in read_feedback(state.docroot) if r.get("page") == page], "server": SERVER_VERSION})
 
         def handle_feedback(self):
             """Append one pick or note row to .feedback.jsonl; the guards are /_restore's, the header its own."""

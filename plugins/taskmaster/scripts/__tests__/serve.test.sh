@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, letters A to F, pass and look, an unread pick repeated: once, also when two arrive behind a held lock, yet stored on the next pass, after another pick or once closed; clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
+# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, letters A to F, pass and look, an unread pick repeated: once, also when two arrive behind a held lock, yet stored on the next pass, after another pick or once closed; clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read and its server version, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
 # Misses: anything only a browser does (the shell's reload client never runs here); IPv6 peers.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -295,6 +295,9 @@ pages = {r["page"] for r in d["rows"]}
 assert pages == {"current.html"}, pages
 assert len(d["rows"]) == 5 and d["rows"][0]["id"] == sys.argv[2], [r["id"] for r in d["rows"]]
 EOF
+# preview.sh reads a server that gives no number as 1, so a server that gives one starts at 2
+server_number="$(python3 -c 'import json,sys;print(repr(json.load(open(sys.argv[1])).get("server")))' "$T/resp" 2>&1 | tail -n 1)"
+case "$server_number" in '' | 0 | 1 | *[!0-9]*) bad "feedback GET carries the server version" "want an integer of 2 or more beside the rows, got $server_number" ;; *) ok ;; esac
 expect "feedback rows, leading slash" 200 "$base/_feedback?page=%2Fother.html"
 python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert [r["text"] for r in d["rows"]]==["elsewhere"],d' "$T/resp" 2>/dev/null \
   && ok || bad "feedback GET filter" "$(cat "$T/resp")"

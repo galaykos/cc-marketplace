@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# preview.sh [--docroot DIR] [--port N] [--lan] | --stop [--docroot DIR] — starts visual-decisions' serve.py in the background unless this docroot's recorded server is alive (then prints the same URL and starts nothing); state in DIR/.preview.pid, .preview.url, .preview.log, private under serve.py's dot rule. --stop kills the recorded pid only when it is serve.py on DIR. One start or stop per DIR at a time (DIR/.preview.lock). With --lan it also relays serve.py's loopback URL, the one Restore accepts.
-# Exit: 0 started, already running, stopped or nothing to stop; 2 bad argument; 3 python3 or serve.py missing; 4 serve.py did not start (port busy?) or the lock stayed held 15 s; 5 --lan asked while a loopback-only server runs for DIR (--stop first); 6 the recorded pid is alive and neither ps nor /proc names it (nothing signalled, no state removed).
-# Misses: a server started without this launcher holds the port and gets exit 4, not reuse; two starts that find a stale lock (owner killed -9) at the same moment can both take it; nothing proves a browser rendered a page.
+# preview.sh [--docroot DIR] [--port N] [--lan] | --stop [--docroot DIR] — starts visual-decisions' serve.py in the background unless this docroot's recorded server is alive: one reporting this serve.py's SERVER_VERSION is reused (same URL, nothing started), one reporting less, no number, or nothing in 2 s is stopped and started again from this serve.py on its own port with its own --lan, a newer one is left running with a warning; state in DIR/.preview.pid, .preview.url, .preview.log, private under serve.py's dot rule. --stop kills the recorded pid only when it is serve.py on DIR. One start or stop per DIR at a time (DIR/.preview.lock). With --lan it also relays serve.py's loopback URL, the one Restore accepts.
+# Exit: 0 started, restarted, already running, stopped or nothing to stop; 2 bad argument; 3 python3 or serve.py missing; 4 serve.py did not start (port busy?), the lock stayed held 15 s, or an older server was still running 3 s after its stop signal (state kept); 5 --lan asked while a loopback-only server runs for DIR (--stop first); 6 the recorded pid is alive and neither ps nor /proc names it (nothing signalled, no state removed).
+# Misses: a restart closes open event streams and starts the idle and LAN limits again, read from the caller's environment; a current server slower than 2 s is restarted as older; a server started without this launcher holds the port and gets exit 4, not reuse; two starts that find a stale lock (owner killed -9) at the same moment can both take it; nothing proves a browser rendered a page.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview.sh
 set -u
 
@@ -31,6 +31,21 @@ ours() {
   case "$running_args" in *serve.py" --docroot $abs --port "*) return 0 ;; esac
   return 1
 }
+# end_server <pid>: TERM, then up to 3 s for it to exit.
+end_server() { kill "$1" 2>/dev/null; for _ in $(seq 1 30); do kill -0 "$1" 2>/dev/null || break; sleep 0.1; done; }
+# server_age <port>: "<older|same|newer> <its number> <this serve.py's>" for the server on 127.0.0.1:<port>, the only address the list route answers. Nothing in 2 s is older (0); an answer without an integer counts as 1.
+server_age() {
+  python3 -c 'import http.client, json, runpy, sys
+mine = runpy.run_path(sys.argv[1])["SERVER_VERSION"]
+try:
+    conn = http.client.HTTPConnection("127.0.0.1", int(sys.argv[2]), timeout=2)
+    conn.request("GET", "/_feedback?page=")
+    theirs = json.load(conn.getresponse()).get("server")
+    theirs = theirs if type(theirs) is int else 1
+except Exception:
+    theirs = 0
+print("older" if theirs < mine else "newer" if theirs > mine else "same", theirs, mine)' "$serve" "$1"
+}
 unnamed() { echo "preview.sh: pid $1 in $pidfile is alive and neither ps nor /proc says what it is; signalled nothing, kept the state files — check it, then delete $pidfile" >&2; exit 6; }
 
 # take_lock: one check-and-start (or stop) per docroot at a time. A lock whose owner is dead, or that names no owner for 2 s, is stale.
@@ -57,8 +72,7 @@ if [ "$stop" = 1 ]; then
   rc=0; ours "$pid" || rc=$?
   [ "$rc" = 6 ] && unnamed "$pid"
   if [ "$rc" = 0 ]; then
-    kill "$pid" 2>/dev/null
-    for _ in $(seq 1 30); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+    end_server "$pid"
     rm -f "$pidfile" "$urlfile"
     echo "preview: stopped"
   else
@@ -86,12 +100,24 @@ if [ "$rc" = 0 ]; then
     echo "preview.sh: a loopback-only server already runs for $abs at $url; run preview.sh --stop, then --lan" >&2
     exit 5
   fi
-  echo "preview: already running — $url"
-  if [ "$running_lan" = 1 ]; then
-    grep '^On this machine: ' "$logfile" 2>/dev/null | head -n 1 | sed 's/^/preview: /'
-    echo "preview: LAN mode is still on — any device on this network with the key can open it until the time limit or --stop"
+  running_port="${running_args##* --port }"; running_port="${running_port%% *}"
+  read -r age theirs mine <<<"$(server_age "$running_port")"
+  if [ "$age" != older ]; then
+    echo "preview: already running — $url"
+    [ "$age" = newer ] && echo "preview: that server is version $theirs, newer than this plugin's serve.py ($mine); left it running — controls on pages this copy writes may be refused"
+    if [ "$running_lan" = 1 ]; then
+      grep '^On this machine: ' "$logfile" 2>/dev/null | head -n 1 | sed 's/^/preview: /'
+      echo "preview: LAN mode is still on — any device on this network with the key can open it until the time limit or --stop"
+    fi
+    exit 0
   fi
-  exit 0
+  end_server "$pid"
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "preview.sh: the server for $abs (pid $pid) is older than this plugin's serve.py or gave no answer in 2 s, and still runs 3 s after its stop signal; kept its state files — check it, then run preview.sh again" >&2
+    exit 4
+  fi
+  echo "preview: the running server was older than this plugin's serve.py (version $theirs against $mine; 0 = no answer in 2 s); starting this one on port $running_port with the same options"
+  port=$running_port; lan=$running_lan
 fi
 rm -f "$pidfile" "$urlfile"
 
