@@ -125,11 +125,14 @@ already answered (shell = "Full mockups", ASCII = "Quick ASCII only", never
 | Design, runnable Vite/Laravel host with components | visual-decisions, real-component rung |
 | Design, structure/density/flow only | visual-decisions shell |
 | Design, trivial layout | ASCII wireframe |
-| Creative/concept | interactive tier only, else describe-only |
+| Creative/concept | visual-decisions shell as a creative pass; describe-only when the user declined mockups |
 
-Creative never routes to the shell (bans text-native options) or ASCII
-(structural); an interactive tier not installed drops to the next lower design
-fidelity (describe-only for creative) — and say which fidelity was lost.
+A creative decision is staged on a creative pass: a shell page whose `<body>` carries
+`data-vd-pass-kind="creative"`, where each frame is one direction and frames may differ in
+concept, copy and tone. The count rule (3 directions by default, up to 5, never more than 6)
+and the Palette, Style and Type switchers apply; the layout-only rule does not. Creative never
+routes to ASCII, which carries structure and not concept. When the user declined mockups,
+describe each direction in words and say which fidelity was lost.
 Sequencing holds one-question-at-a-time: the first visual/creative question
 carries the consent question, then each stages exactly ONE decision's options and
 the doc accretes only accepted picks — never a surface posing several at once.
