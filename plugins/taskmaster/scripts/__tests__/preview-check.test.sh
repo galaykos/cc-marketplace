@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, or on a page at every limit), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), layout at 375 px under each style and each type option (E2: a heading a Mono type widens and a row a Roomy style widens, each named with its option, with none in the look at load; at 375 when another width comes first and at no other width; under the first option when the page authors the second; a finding the look at load draws printed once beside one an option adds; a clipping box an option moves; six frames with four palettes, four styles and four types in 14 states, and no state on a page with no switcher), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
-# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; of E8, a see-through colour that is not rgba(), most of the soft-text primitives, a palette on a page with no frame, a state whose check throws, and a state loop that runs out of time; of E2 under an option, the limit a state adds being granted or passed (exit 5 and 6), and a style or type name used twice; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP.
+# Drives scripts/preview-check.sh and serve.py's check routes on a temp docroot: the axe-core pin, no route serving the check or taking findings, GET /_checks (checked, stale, a NUL), .checks never served, then with a real browser one fixture page per check (ids, texts, widths, exit codes), a clean shell page and a plain one, shell pages of one to six frames at 375, a finding in the fourth, fifth or sixth frame named by position, the limits of a layout or creative pass (E7: seven frames, five options, a fourth switcher written into the look row, a name used twice, a name serve.py refuses in a switcher and on a kind with one option; none on the same pages with no pass mark, under another pass-kind value, on a page at every limit, or for a control a frame draws with the switcher attributes), each palette's contrast in light and in dark (E8: soft text at 3:1 in a palette's dark set only, named with palette, scheme, ratio, colours and element, once across three widths, and none with the value fixed; each of the seven pairs lowered alone on a page that draws every primitive; all seven on a page that draws none, measured on a probe, one colour in oklch(), one see-through; a see-through background over a tinted paper; a palette with no dark set beside one with an empty rule; a palette whose first rule is empty and a later one filled; a dark rule inside @media screen, and inside @media print, @supports, a narrower @media screen or a block nested in one; a palette that is its kind's one option; four passing palettes on a ledger pair, whose screenshot after the run E6 finds equal to a load nothing switched), layout at 375 px under each style and each type option (E2: a heading a Mono type widens and a row a Roomy style widens, each named with its option, with none in the look at load; at 375 when another width comes first and at no other width; under the first option when the page authors the second; a finding the look at load draws printed once beside one an option adds; a clipping box an option moves; six frames with four palettes, four styles and four types in 14 states, and no state on a page with no switcher; 18 states of which 16 run; with the time the states share lowered, none of it, states too slow to all fit, states at two widths and one that outlasts it once started, each state not run named, the width recorded, exit 5), escaping, forged answers and posts, a proxy, a download, WebRTC, a hung font, a busy page, a signal, pruning, E6 against the ledger, the server auto-start, no process left behind.
+# Misses: whether the model runs the script or acts on a finding; of E7, a switcher written by hand on a page with no pass mark, an empty option name, a refused or repeated name in the style or type switcher, a fifth option there, and two limits broken on one page; of E8, a see-through colour that is not rgba(), most of the soft-text primitives, a palette on a page with no frame, and a state whose check throws; of the states' limits, the 16 s itself (lowered here, never waited out), the run ending at its own limit before the browser's, and a state that cannot be stopped; a style or type name used twice; macOS and Edge lookup paths; a browser that is found but cannot start; the PNGs' content (looked at by eye, not here). With no browser the browser half prints SKIP, and fails under PREVIEW_REQUIRE_BROWSER=1, as a missing python3 or curl does.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 R="$here/../preview-check.sh"
@@ -15,6 +15,7 @@ summary() { echo "preview-check.sh tests: $pass passed, $fail failed"; }
 if ! command -v python3 >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
   echo "SKIP: python3 or curl not found"
   summary
+  [ "${PREVIEW_REQUIRE_BROWSER:-}" = 1 ] && exit 1
   exit 0
 fi
 
@@ -50,7 +51,7 @@ sha="$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb"
 # ---- fixtures: shell pages under f/ (not ledger files), ledger passes at the top ----
 mkdir -p "$D/f"
 python3 - "$SHELL_HTML" "$D" "$udp_port" "$hang_port" <<'EOF'
-import os, re, sys, time
+import json, os, re, sys, time
 shell = open(sys.argv[1], encoding="utf-8").read()
 root, udp_port, hang_port = sys.argv[2], sys.argv[3], sys.argv[4]
 assert shell.count("</head>") == 1 and shell.count('<main id="vd-frames">') == 1
@@ -193,14 +194,16 @@ seven = six.replace("</main>", """<section class="vd-frame" id="vd-g" tabindex="
 <ul class="vd-tradeoffs"><li data-n="1">Reads as prose</li> <li data-n="2">No column to scan</li></ul>
 </section>
 </main>""")
-# The shell builds palette, style and type only: a fourth switcher is markup an author wrote by hand.
+# The shell builds palette, style and type only: a fourth switcher is markup an author wrote by hand, put into the shell's look row once the shell built it.
 DENSITY = ('<div class="vd-seg vd-switcher" role="group" aria-label="Density" data-vd-switcher="density">'
            '<button type="button" data-vd-option="Compact" aria-pressed="true">Compact</button> '
            '<button type="button" data-vd-option="Roomy" aria-pressed="false">Roomy</button></div>')
+IN_ROW = ("<script>addEventListener('load', () => { const row = document.getElementById('vd-look-row'); if (row) row.insertAdjacentHTML('beforeend', %s); });</script>"
+          % json.dumps(DENSITY))
 limits = {
     "frames": seven,
     "options": presets(page(), ["Neutral", "Sand", "Slate", "Moss", "Berry"]),
-    "switchers": presets(page(top=DENSITY), ["Neutral", "Sand"], ["Soft", "Sharp"], ["Sans", "Serif"]),
+    "switchers": presets(page(top=IN_ROW), ["Neutral", "Sand"], ["Soft", "Sharp"], ["Sans", "Serif"]),
     "duplicate": presets(page(), ["Neutral", "Berry", "Berry"]),
     "name": presets(page(), ["Cocoa & cream", "Neutral"]),
 }
@@ -213,6 +216,10 @@ LONGEST, TOO_LONG = "Slate_2 - harbor at dusk", "Harbour morning at sunset"
 assert len(LONGEST) == 24 and len(TOO_LONG) == 25
 write("f/limit-most.html", presets(six, ["Neutral", "Sand", LONGEST, "Moss"], ["Soft", "Sharp", "Round", "Flat"], ["Sans", "Serif", "Mono", "Slab"]))
 write("f/limit-lone.html", presets(page(), [TOO_LONG]))
+# A control a frame draws as its own content, with the shell's switcher attributes: five options, one name twice and one serve.py would refuse, beside three real switchers.
+RANGE = ('<div class="vd-seg" role="group" aria-label="Range" data-vd-switcher="range">'
+         + " ".join('<button type="button" data-vd-option="%s" aria-pressed="false">%s</button>' % (n, n) for n in ("Day", "Week", "Month", "Month", "Year (YTD)")) + "</div> ")
+write("f/limit-content.html", presets(page(a=RANGE + LINES[0], b=RANGE + LINES[1]), ["Neutral", "Sand"], ["Soft", "Sharp"], ["Sans", "Serif"]))
 
 # E8: a palette's seven pairs, each lowered by the smallest rule that lowers it alone, on a page that draws every primitive and on one that draws none.
 def ratio(fg, bg):
@@ -270,6 +277,13 @@ write("f/tinted.html", painted(drawn, NEUTRAL, palette("Low", "--vd-ink-soft: #6
 # Daylight sets a value and has no dark rule: dark by hand would lay its ink on the shell's dark paper, a look the shell never shows. Neutral's empty rule keeps the shell's dark set, where the soft ink this page hard-codes does not read.
 assert float(ratio("#57575e", "#ffffff")) > 4.5 and ratio("#57575e", "#1b1b1f") == "2.39"
 write("f/light-only.html", painted(drawn, palette("Daylight", "--vd-ink: #1f2937;"), NEUTRAL).replace("</head>", "<style>.vd-small{color:#57575e}</style>\n</head>"))
+# "No dark set" by the rule the shell reads too: the first palette rule and a dark rule, among the top-level rules and those directly inside @media screen. The soft ink these pages hard-code reads on light paper only, so a dark state that runs draws a finding.
+SOFT = "<style>.vd-small{color:#57575e}</style>\n</head>"
+DAY, DAY_DARK = palette("Day", "--vd-line: #e4e4e7;"), 'html[data-vd-palette="Day"][data-vd-scheme="dark"] .vd-content { --vd-line: #3f3f46; }'
+write("f/dark-first-empty.html", painted(drawn, palette("Twice"), palette("Twice", "--vd-line: #e4e4e7;")).replace("</head>", SOFT))
+for name, block in (("screen", "@media screen { %s }"), ("print", "@media print { %s }"), ("supports", "@supports (display: grid) { %s }"),
+                    ("screen-wide", "@media screen and (min-width: 1px) { %s }"), ("nested", "@media screen { @supports (display: grid) { %s } }")):
+    write("f/dark-%s.html" % name, painted(drawn, DAY, block % DAY_DARK).replace("</head>", SOFT))
 # Four palettes that pass, the second one and the dark scheme authored on the html tag; as a ledger pair that renders the same, so E6 compares the checked page with a load nothing switched.
 BERRY = palette("Berry", "--vd-paper: #fff5f8; --vd-surface: #fde7ee; --vd-ink: #3b0a1f; --vd-ink-soft: #7a2e4a; --vd-line: #f3c4d3; --vd-primary: #be185d;"
                          " --vd-on-primary: #ffffff; --vd-nav-bg: #831843; --vd-nav-ink: #fff5f8; --vd-nav-ink-soft: rgba(255, 245, 248, .8);",
@@ -312,9 +326,25 @@ write("f/type-wide-twice.html", dressed(headed(FAR + LINES[1], ".fx-far{width:90
 write("f/style-moved.html", dressed(page(a='<div class="fx-plan"><p>Paid in full</p> <div class="fx-bar"></div></div> ' + LINES[0], b=LINES[0],
                                          css=".fx-plan{height:48px;overflow:hidden}.fx-plan p{margin:0}.fx-bar{height:120px;background:var(--vd-surface)}"), styles=[COMPACT, ROOMY]))
 # Every limit at once with options that restyle the page: six frames, four palettes, four styles, four types.
-write("f/looks-444.html", dressed(painted(six, NEUTRAL, BERRY, MOSS, SLATE),
-                                  styles=[("Soft", ""), ("Sharp", "--vd-radius: 0; --vd-shadow: none;"), ("Round", "--vd-radius: 16px;"), ("Airy", "--vd-space: 12px;")],
-                                  types=[SANS, ("Serif", '--vd-font: Georgia, "Times New Roman", serif;'), MONO, ("Humanist", '--vd-font: Optima, Candara, "Noto Sans", sans-serif;')]))
+STYLES = [("Soft", ""), ("Sharp", "--vd-radius: 0; --vd-shadow: none;"), ("Round", "--vd-radius: 16px;"), ("Airy", "--vd-space: 12px;")]
+TYPES = [SANS, ("Serif", '--vd-font: Georgia, "Times New Roman", serif;'), MONO, ("Humanist", '--vd-font: Optima, Candara, "Noto Sans", sans-serif;')]
+write("f/looks-444.html", dressed(painted(six, NEUTRAL, BERRY, MOSS, SLATE), styles=STYLES, types=TYPES))
+# Past the 16 states a run visits: five palettes in two schemes, then three styles and five types the page did not load with.
+write("f/states-18.html", dressed(painted(page(a=LINES[0], b=LINES[1]), *[palette(n) for n in ("Neutral", "Sand", "Slate", "Moss", "Berry")]),
+                                  styles=STYLES, types=TYPES + [("Grotesk", ""), ("Slab", "")]))
+# States slower than the time a run's states share: page script that holds the main thread each time the palette, style or type on the html tag becomes one of these names, as a slow page would.
+def held(ms, *names):
+    return ("<script>new MutationObserver(() => { const look = document.documentElement.dataset; if (%s.some(n => n === look.vdPalette || n === look.vdStyle || n === look.vdType)) {"
+            " const t = Date.now(); while (Date.now() - t < %d); } }).observe(document.documentElement, {attributeFilter: ['data-vd-palette', 'data-vd-style', 'data-vd-type']});</script>"
+            % (json.dumps(names), ms))
+LOREM = "<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>"
+write("f/states-slow.html", dressed(page(a=LINES[0] + LOREM, b=LINES[1], top=held(300, "Sharp", "Round", "Airy", "Serif", "Mono", "Humanist")), styles=STYLES, types=TYPES))
+# States due at two widths: a palette whose two schemes, checked at the first width, and a type, checked at 375, each hold the page 400 ms.
+write("f/states-two-widths.html", dressed(painted(page(a=LINES[0], b=LINES[1], top=held(400, "Slow", "Serif")), NEUTRAL, palette("Slow")), types=[SANS, TYPES[1]]))
+# One state, the first, holds the page 8 s. As a ledger pair that renders the same, so E6 compares the screenshot taken after that state was stopped with a load nothing switched.
+stuck = dressed(page(a=LINES[0] + LOREM, b=LINES[1], top=held(8000, "Mono")), types=[SANS, MONO, TYPES[1]])
+write("2026-11-09-stuck-a.html", stuck, age=700)
+write("2026-11-09-stuck-b.html", stuck.replace("</body>", "<!-- second draft -->\n</body>"), age=600)
 
 # E6: a ledger with a renders-the-same pair (b differs from a by a comment only) and a changed current.html.
 write("2026-11-12-a.html", page(), age=300)
@@ -382,6 +412,7 @@ run() { local s=$SECONDS; bash "$R" --docroot "$D" --page "$@" >"$T/out" 2>"$T/e
 run f/clean.html
 if [ "$rc" = 4 ]; then
   echo "SKIP: no Chromium-family browser here — the render checks are not exercised ($(cat "$T/err"))"
+  [ "${PREVIEW_REQUIRE_BROWSER:-}" != 1 ] || bad "the browser half" "PREVIEW_REQUIRE_BROWSER=1 and no browser was found"
   summary
   [ "$fail" -eq 0 ]
   exit
@@ -417,6 +448,18 @@ for l in open(sys.argv[1], encoding="utf-8"):
 visited() {
   python3 -c 'import json,sys;s=json.loads(open(sys.argv[1]).read().splitlines()[-1])["summary"];assert s["states"]==int(sys.argv[2]),s' "$T/out" "$2" 2>/dev/null \
     && ok || bad "$1" "want $2 state(s) in the summary: $(tail -n 1 "$T/out")"
+}
+# probe <name> <python>: the python asserts on s (the summary), lines (every line before it), left (the [state, reason] of each state line, in order) and rec (the 375 px record, None when none was written).
+probe() {
+  python3 - "$T/out" "$2" >"$T/probe" 2>&1 <<'EOF' && ok || bad "$1" "got $rc: $(tail -n 1 "$T/probe") $(tail -n 4 "$T/out" | head -c 700) $(head -c 300 "$T/err")"
+import json, os, sys
+lines = [json.loads(l) for l in open(sys.argv[1], encoding="utf-8") if l.strip()]
+s, lines = lines[-1]["summary"], lines[:-1]
+left = [[l["state"], l["reason"]] for l in lines if "state" in l]
+rec = os.path.join(os.path.dirname(s["shots"][0]), "375.json") if s["shots"] else ""
+rec = json.load(open(rec, encoding="utf-8")) if os.path.isfile(rec) else None
+exec(sys.argv[2])
+EOF
 }
 ALL=375,768,1280
 
@@ -485,6 +528,7 @@ run f/limit-other.html --widths 375; want "seven frames under a pass-kind value 
 run f/limit-most.html;      want "six frames and three four-option switchers clean, one name 24 characters of every kind a name may hold" 0
 run f/limit-lone.html --widths 375; want "a 25-character name on a kind with one option, which has no switcher, reported" 1 "E7|option name the server refuses|375"
 names "a 25-character name on a kind with one option: where it is applied" E7 "option name the server refuses" '^the palette applied with no switcher has 1 name outside .*: "Harbour morning at sunset"; '
+run f/limit-content.html;   want "a frame's own control with the switcher attributes, five options, a name twice and a refused one, draws no limit finding" 0
 
 # E8, each palette's contrast in light and in dark: one finding per pair under 4.5:1, naming the palette, the scheme, the ratio and what was measured, from the first width's load only.
 # count <name> <n>: the summary counts n findings.
@@ -531,6 +575,17 @@ names "a see-through background is laid over what is behind it: the ratio and th
 run f/light-only.html --widths 375; want "a palette with no dark set is checked in light only, one with an empty rule in dark too" 1 "E8|soft text under 4.5:1|375"
 names "a palette with an empty rule is checked in dark: the palette and the scheme" E8 "soft text under 4.5:1" '^palette "Neutral", dark: soft text is 2\.39:1 (#57575e on #1b1b1f), on p '
 count "a palette with no dark set is checked in light only: no finding under it" 1
+# "No dark set" is read by one rule, the shell's too: the dark state runs unless the palette's first rule sets a value and no dark rule stands at the top level or directly inside @media screen.
+run f/dark-first-empty.html --widths 375
+names "a palette whose first rule is empty is checked in dark, though a later rule of its name sets a value" E8 "soft text under 4.5:1" '^palette "Twice", dark: soft text is 2\.39:1 (#57575e on #1b1b1f), on p '
+count "a palette whose first rule is empty is checked in dark: that finding and the repeated name, no other" 2
+run f/dark-screen.html --widths 375; want "a dark rule authored inside @media screen is a dark set" 1 "E8|soft text under 4.5:1|375"
+names "a dark rule authored inside @media screen is a dark set: the palette and the scheme" E8 "soft text under 4.5:1" '^palette "Day", dark: soft text is 2\.39:1 '
+visited "a dark rule authored inside @media screen is a dark set: light and dark" 2
+for at in print supports screen-wide nested; do
+  run "f/dark-$at.html" --widths 375; want "a dark rule inside any other block is no dark set ($at)" 0
+  visited "a dark rule inside any other block is no dark set ($at): light only" 1
+done
 
 # E2 at 375 px under each style and each type option on its own: a finding names its option, and one the look at load draws is not printed again per option.
 run f/type-wide.html;  want "overflow under second type option reported" 1 "E2|variant scrolls sideways|375"
@@ -554,6 +609,29 @@ names "a finding the look at load draws is printed once: the other frame's is st
 run f/style-moved.html --widths 375; want "a clipping box an option moves is measured where the option puts it" 0
 run f/looks-444.html; want "4 by 4 by 4 page checked inside the limit" 0
 visited "4 by 4 by 4 page checked inside the limit: 8 palette states, 3 styles and 3 types, never a style with a second type" 14
+# States a run cannot fit are named and not run, and their width keeps its record: past the 16th, or past the time a run's states share, lowered here and never waited out.
+run f/states-18.html --widths 375; want "more than 16 states: exit 5, the findings at load printed" 5 "E7|more than 4 options in a switcher|375"
+visited "more than 16 states: the first 16 run" 16
+probe "more than 16 states: the two past the 16th are named, each with its check, option kind and name" '
+assert s["states_not_run"] == 2 and s["widths"] == [375] and s["not_reported"] == [], s
+assert [x[0] for x in left] == [{"check": "E2", "type": "Grotesk"}, {"check": "E2", "type": "Slab"}] and all(x[1].startswith("not run: ") and "16" in x[1] for x in left), left'
+PREVIEW_STATE_BUDGET=0 run f/soft-dark.html --widths 375; want "no time for any state: exit 5 on a page with no finding at load, never 0" 5
+probe "no time for any state: none runs, and each palette state is named with its scheme" '
+assert s["states"] == 0 and s["states_not_run"] == 4 and s["findings"] == 0 and s["widths"] == [375], s
+assert [x[0] for x in left] == [{"check": "E8", "palette": p, "scheme": m} for p in ("Neutral", "Dusk") for m in ("light", "dark")], left'
+PREVIEW_STATE_BUDGET=1.2 run f/states-two-widths.html --widths 1280,375; want "states due at two widths share the time: exit 5" 5
+probe "states due at two widths share the time: the palette states at 1280 leave the type state at 375 too little, and both widths are recorded" '
+assert s["states"] == 4 and s["states_not_run"] == 1 and s["widths"] == [375, 1280] and s["not_reported"] == [], s
+assert [[l["not_reported"], l["state"]] for l in lines if "state" in l] == [[375, {"check": "E2", "type": "Serif"}]], lines'
+PREVIEW_STATE_BUDGET=1.5 run f/states-slow.html --widths 375
+want "states slower than the time they share: exit 5, the finding at load printed" 5 "E4|lorem ipsum|375"
+probe "states slower than the time they share: the width is recorded, its finding at load included" '
+assert s["widths"] == [375] and s["not_reported"] == [] and [f["text"] for f in rec["findings"]] == ["lorem ipsum"], (s, rec)'
+probe "states slower than the time they share: the first runs, no more start than the slowest so far leaves room for, and each one left is named in plan order" '
+plan = [{"check": "E2", "style": n} for n in ("Sharp", "Round", "Airy")] + [{"check": "E2", "type": n} for n in ("Serif", "Mono", "Humanist")]
+assert 1 <= s["states"] <= 4 and s["states_not_run"] == 6 - s["states"], s
+assert [x[0] for x in left] == plan[s["states"]:] and all(x[1].startswith("not run: ") for x in left), left
+assert [l["not_reported"] for l in lines if "state" in l] == [375] * len(left), lines'
 
 # A page's own script: a global it sets is not the check's answer, a post it makes is not a record.
 run f/forge-answer.html; want "a page-set __vdCheck is not the answer" 0
@@ -654,7 +732,7 @@ run f/clean.html --widths 375
 e6() { python3 -c '
 import json,sys
 a=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]
-e=[f for f in a[:-1] if f["check"]=="E6"]
+e=[f for f in a[:-1] if f.get("check")=="E6"]
 assert len(e)==1 and e[0]["advisory"] is True, a
 print(e[0]["text"]+"|"+a[-1]["summary"]["previous"])' "$T/out"; }
 run current.html
@@ -666,6 +744,17 @@ run 2026-11-12-b.html
 run 2026-11-10-looks-b.html --widths 375; want "four passing palettes clean" 0
 [ "$(e6 2>&1)" = "no visible change since the previous pass|2026-11-10-looks-a.html" ] && ok \
   || bad "four passing palettes clean: the look after the run is the look the page loaded with" "want no visible change against the pass it copies, got $rc: $(e6 2>&1) $(cat "$T/err")"
+# A state that outlasts the time left once started (the page holds it 8 s) is stopped in the page: named, the one behind it not run, the width recorded, and the screenshot taken from a fresh load.
+PREVIEW_STATE_BUDGET=0.5 run 2026-11-09-stuck-b.html --widths 375
+want "a state that outlasts the time left: exit 5, the finding at load printed" 5 "E4|lorem ipsum|375"
+probe "a state that outlasts the time left: named as not finished, the one behind it as not run, the width recorded" '
+assert s["states"] == 0 and s["states_not_run"] == 2 and s["widths"] == [375] and s["not_reported"] == [], s
+assert [x[0] for x in left] == [{"check": "E2", "type": "Mono"}, {"check": "E2", "type": "Serif"}], left
+assert left[0][1].startswith("did not finish") and left[1][1].startswith("not run: "), left
+assert [f["text"] for f in rec["findings"]] == ["lorem ipsum"], rec'
+probe "a state that outlasts the time left: stopped in the page, not waited out for its 8 s" 'assert s["seconds"] < 6, s'
+[ "$(e6 2>&1)" = "no visible change since the previous pass|2026-11-09-stuck-a.html" ] && ok \
+  || bad "a state that outlasts the time left: the screenshot shows the look the page loaded with" "want no visible change against the pass it copies, got $rc: $(e6 2>&1) $(cat "$T/err")"
 
 # Nothing left running: no browser on this run's temp profiles, no profile left behind.
 pgrep -f -- "--user-data-dir=$T/tmp" >/dev/null && bad "no browser left" "$(pgrep -af -- "--user-data-dir=$T/tmp")" || ok

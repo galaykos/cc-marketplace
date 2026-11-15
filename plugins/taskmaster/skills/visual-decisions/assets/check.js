@@ -1,6 +1,6 @@
-// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun(), then __vdState() for each state __vdStates() lists that is due at that width, and reads the findings back over DevTools.
-// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px, and at 375 px the same under each style option and each type option on its own, a finding naming its option and one the look at load already drew left out; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses; E8 for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert, nav or primary-coloured text under 4.5:1 against the colour behind it, on the shell primitives a frame draws, else on a probe.
-// Misses: what each check misses is listed in its derivation (of E8: text over a background image or dimmed by opacity, a pair on any background but those the page draws it on, text that is no shell primitive, a page with no palette; of E2 under an option: a style together with a type the page did not load with, an option at any other width, an element only an option shows); nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
+// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun(), then __vdState() for the states __vdStates() lists that are due at that width and that the run has room for, and reads the findings back over DevTools.
+// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px, and at 375 px the same under each style option and each type option on its own, a finding naming its option and one the look at load already drew left out; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, and in the header's look row more than 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses; E8 for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert, nav or primary-coloured text under 4.5:1 against the colour behind it, on the shell primitives a frame draws, else on a probe.
+// Misses: what each check misses is listed in its derivation (of E8: text over a background image or dimmed by opacity, a pair on any background but those the page draws it on, text that is no shell primitive, a page with no palette; of E7: a switcher anywhere but the header's look row; of E2 under an option: a style together with a type the page did not load with, an option at any other width, an element only an option shows); nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
 // Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 (() => {
   'use strict';
@@ -370,7 +370,8 @@
     if (!passKind()) return;
     const frames = document.querySelectorAll('.vd-frame');
     if (frames.length > 6) add('E7', frames[6], 'more than 6 frames', frames.length + ' frames; a layout or creative pass holds at most 6');
-    const groups = Array.from(document.querySelectorAll('[data-vd-switcher]')).map(el => {
+    // The header's look row only: a frame may draw a control of its own with the same attributes.
+    const groups = Array.from(document.querySelectorAll('#vd-header > .vd-look [data-vd-switcher]')).map(el => {
       const kind = cut(el.getAttribute('data-vd-switcher'), 24);
       return { el, kind, where: 'the ' + kind + ' switcher', names: Array.from(el.querySelectorAll('[data-vd-option]'), b => b.getAttribute('data-vd-option')) };
     });
@@ -474,12 +475,15 @@
     }
   }
 
-  // The shell's rule, read from the same sheet: a palette whose rule sets a value has a dark set only as its own dark rule, which the shell moves inside @media screen.
+  // The shell's rule, the same in both files: among the top-level style rules and those directly inside an `@media screen` block (where the shell moves a dark rule), a palette is light only when its first rule sets a value and it has no dark rule.
   function lightOnly(palette) {
     const sheet = (document.getElementById('vd-presets') || {}).sheet;
-    const rules = Array.from((sheet && sheet.cssRules) || []).flatMap(r => (r.selectorText ? [r] : Array.from(r.cssRules || [])));
+    const styled = r => r instanceof CSSStyleRule;
+    const rules = Array.from((sheet && sheet.cssRules) || []).flatMap(r => (styled(r) ? [r]
+      : r instanceof CSSMediaRule && r.media.mediaText === 'screen' ? Array.from(r.cssRules).filter(styled) : []));
     const own = 'html[data-vd-palette="' + palette + '"]', tail = ' .vd-content';
-    return rules.some(r => r.selectorText === own + tail && r.style.length > 0) && !rules.some(r => r.selectorText === own + '[data-vd-scheme="dark"]' + tail);
+    const first = rules.find(r => r.selectorText === own + tail);
+    return !!first && first.style.length > 0 && !rules.some(r => r.selectorText === own + '[data-vd-scheme="dark"]' + tail);
   }
   const LOOK = ['palette', 'style', 'type', 'scheme'];
   const lookNow = () => Object.fromEntries(LOOK.map(kind => [kind, document.documentElement.getAttribute('data-vd-' + kind)]));
