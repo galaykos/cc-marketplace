@@ -70,6 +70,7 @@ FEEDBACK_FILE = ".feedback.jsonl"
 FEEDBACK_LOCK = ".feedback.lock"
 MAX_FEEDBACK_BODY = 8192
 MAX_FEEDBACK_FILE = 2 * 1024 * 1024  # appends stop here (507): a page looping posts must not fill the disk
+TAIL_BLOCK = 64 * 1024  # bytes per read when the feedback file is walked from its end
 PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
 VARIANTS = ("A", "B", "C", "D", "E", "F")
 SWITCHERS = ("palette", "style", "type")
@@ -235,6 +236,7 @@ def feedback_row(body):
         "context": {
             "viewport": {k: _number(viewport.get(k)) for k in ("w", "h")},
             "theme": _clip(context.get("theme"), 30),  # a 24-character palette name, a space, "light" or "dark"
+            "scheme": context.get("scheme") if context.get("scheme") in ("light", "dark") else None,
             "states": dict([(_clip(k, 32), _clip(v, 32)) for k, v in states.items() if isinstance(v, str)][:16]),
             "console": [_clip(s, 300) for s in console if isinstance(s, str)][-5:],
         },
@@ -259,7 +261,7 @@ def unread_repeat(docroot, row):
     """The stored pick a posted pick repeats, else None: its page's newest pick, equal in variant, pass and switchers, still unread as preview-feedback.sh wait reads it."""
     if row["kind"] != "pick":
         return None
-    newest = next((r for r in reversed(read_feedback(docroot)) if r.get("kind") == "pick" and r.get("page") == row["page"]), None)
+    newest = newest_pick(docroot, row["page"])
     if (newest and newest.get("status") == "open" and not newest.get("handed_out")
             and all(newest.get(k) == row[k] for k in ("variant", "pass", "switchers"))):
         return newest
@@ -300,6 +302,37 @@ def read_feedback(docroot):
             if isinstance(row, dict):
                 rows.append(row)
     return rows
+
+
+def lines_from_end(handle):
+    """A binary file's lines, last first, cut at each \\n and \\r, where a text-mode read ends a line; empty ones included."""
+    pos, rest = handle.seek(0, os.SEEK_END), b""
+    while pos:
+        step = min(TAIL_BLOCK, pos)
+        pos -= step
+        handle.seek(pos)
+        lines = re.split(rb"[\r\n]", handle.read(step))
+        lines[-1] += rest
+        rest = lines[0]
+        yield from reversed(lines[1:])
+    yield rest
+
+
+def newest_pick(docroot, page):
+    """The page's last pick among read_feedback's rows, or None, parsing from the file's end and no line before that row."""
+    try:
+        fd = os.open(str(docroot / FEEDBACK_FILE), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return None
+    with os.fdopen(fd, "rb") as handle:
+        for line in lines_from_end(handle):
+            try:
+                row = json.loads(line.decode("utf-8", "replace"))
+            except ValueError:
+                continue
+            if isinstance(row, dict) and row.get("kind") == "pick" and row.get("page") == page:
+                return row
+    return None
 
 
 def check_page(docroot, value):

@@ -189,8 +189,8 @@ assert set(a) == {"selector", "tag", "text", "rect"}, sorted(a)
 assert (len(a["selector"]), len(a["tag"]), len(a["text"])) == (512, 32, 200), a
 assert a["rect"] == {"x": 1.5, "y": 0, "w": 10, "h": 20}, a["rect"]
 c = r["context"]
-assert set(c) == {"viewport", "theme", "states", "console"}, sorted(c)
-assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 30, c
+assert set(c) == {"viewport", "theme", "scheme", "states", "console"}, sorted(c)
+assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 30 and c["scheme"] is None, c
 assert len(c["states"]) == 16 and all(len(v) <= 32 for v in c["states"].values()), c["states"]
 assert len(c["console"]) == 5 and all(len(s) == 300 for s in c["console"]), [len(s) for s in c["console"]]
 EOF
@@ -204,6 +204,17 @@ done
 got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"$(printf 'x%.0s' $(seq 40))\"}}")"
 [ "$got" = 200 ] && [ "$(theme_of)" = "$(printf 'x%.0s' $(seq 30))" ] && ok \
   || bad "theme longer than 30 characters is clipped" "want 200 and 30 characters, got $got and '$(theme_of)'"
+scheme_of() { tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.dumps(json.load(sys.stdin)["context"].get("scheme", "no such key")))' 2>&1 | tail -n 1; }
+# stores_scheme <posted JSON value> <stored JSON value>: a note posted with that context.scheme under the theme "Berry light"; the newest row's scheme and theme.
+stores_scheme() {
+  local got
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"Berry light\",\"scheme\":$1}}")"
+  [ "$got" = 200 ] && [ "$(scheme_of)" = "$2" ] && [ "$(theme_of)" = "Berry light" ] && ok \
+    || bad "scheme $1 stored as $2" "want 200, scheme $2 and theme 'Berry light', got $got, $(scheme_of) and '$(theme_of)'"
+}
+stores_scheme '"dark"' '"dark"'
+stores_scheme '"light"' '"light"'
+for v in '"Dark"' 1 '["dark"]'; do stores_scheme "$v" null; done
 huge="$(python3 -c 'print("{\"kind\":\"note\",\"text\":\"n\",\"anchor\":{\"selector\":\"p\",\"rect\":{\"x\":" + "9"*400 + ",\"y\":1e999,\"w\":-1e308,\"h\":1e308}},\"context\":{\"viewport\":{\"w\":NaN,\"h\":3e9}}}")')"
 got="$(fb -H 'X-Preview-Feedback: 1' --data "$huge")"
 [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["anchor"]["rect"], r["context"]["viewport"])')" = "{'x': 10000000, 'y': 0, 'w': -10000000, 'h': 10000000} {'w': 0, 'h': 10000000}" ] && ok \
@@ -339,7 +350,80 @@ got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"current.html","kind":"pick
 [ "$got" = 507 ] && python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["recorded"] is False and "MiB" in d["error"],d' "$T/resp" 2>/dev/null && ok \
   || bad "feedback file full" "want 507 and a JSON reason naming the cap, got $got: $(head -c 200 "$T/resp")"
 [ "$(wc -c < "$FB" | tr -d ' ')" = "$size_before" ] && ok || bad "feedback file full: no append" "the file grew past the cap"
+# the repeat comparison reads the file from its end: the answer and the stored rows are a whole read's, whatever follows the page's newest pick
+# stored_pick <id> <page> <letter> <pass>: an unread pick as serve.py stores it, written by hand.
+stored_pick() { printf '{"id":"%s","page":"%s","kind":"pick","variant":"%s","pass":%s,"switchers":{"palette":"Ocean"},"status":"open","reply":"","handed_out":false}\n' "$@"; }
+{ stored_pick tl01 tail.html A 1; printf '{"id":"tl02","page":"tail.html","kind":"pi\n\n   \ngarbage, not json\n[1, 2]\n{"id":"tl03","page":"tail.html","kind":"pick","vari'; } > "$FB"
+sum_before="$(cksum < "$FB")"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean tail.html A 1)")"
+[ "$got" = 200 ] && [ "$(resp_id)" = tl01 ] && [ "$(cksum < "$FB")" = "$sum_before" ] && ok \
+  || bad "repeat found behind corrupt lines" "a torn row, blank lines, garbage, a list and a last line with no newline follow pick tl01: want 200 with its id and the file untouched, got $got ($(resp_id))"
+: > "$FB"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean first.html A 1)")"; id1="$(resp_id)"
+[ "$got" = 200 ] && [ -n "$id1" ] && [ "$(rows)" = 1 ] && ok || bad "pick into an empty feedback file stored" "want 200, an id and one row, got $got ($id1) and $(rows) rows"
+fb -H 'X-Preview-Feedback: 1' --data "$(ocean second.html A 1)" >/dev/null
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean first.html A 1)")"
+[ "$got" = 200 ] && [ "$(resp_id)" = "$id1" ] && [ "$(picks_on first.html) / $(picks_on second.html)" = "A:1 / A:1" ] && ok \
+  || bad "repeat behind another page's newer pick dropped" "want 200 with the first row's id $id1 and one pick per page, got $got ($(resp_id)): $(picks_on first.html) / $(picks_on second.html)"
 mv "$T/fb.keep" "$FB"
+unit="$(python3 - "$(dirname "$SERVE")" "$T/tail" <<'EOF' 2>&1
+import json, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import serve
+root = Path(sys.argv[2]); root.mkdir()
+file = root / serve.FEEDBACK_FILE
+def pick(i, page, **kw):
+    row = {"id": i, "page": page, "kind": "pick", "variant": "A", "pass": 1, "switchers": {}, "status": "open", "reply": "", "handed_out": False}
+    row.update(kw)
+    return json.dumps(row, ensure_ascii=False).encode("utf-8")
+# 300 picks of another page (over one 64 KiB read), this page's newest pick, then three lines.
+lines = [pick("old%d" % i, "elsewhere", reply="r" * 200) for i in range(300)] + [pick("new", "p"), pick("o1", "q"), b"garbage", pick("o2", "q")]
+file.write_bytes(b"\n".join(lines) + b"\n")
+parsed, loads = [], json.loads
+json.loads = lambda text, *a, **kw: (parsed.append(1), loads(text, *a, **kw))[1]
+try:
+    found = serve.unread_repeat(root, {"kind": "pick", "page": "p", "variant": "A", "pass": 1, "switchers": {}})
+finally:
+    json.loads = loads
+print("stops: ok" if found and found.get("id") == "new" and len(parsed) <= 10
+      else "stops: found %r after parsing %d of the file's %d lines; the page's newest pick is its fourth line from the end" % ((found or {}).get("id"), len(parsed), len(lines)))
+def whole_read(page):
+    return next((r for r in reversed(serve.read_feedback(root)) if r.get("kind") == "pick" and r.get("page") == page), None)
+P, Q, MARK = pick("p1", "p"), pick("q1", "q"), b"MARK"
+files = {
+    "empty": b"",
+    "blank lines only": b"\n \n\t\n",
+    "one pick, no newline at the end": P,
+    "another page's pick is newer": P + b"\n" + Q + b"\n",
+    "garbage, a torn row and blank lines after the pick": P + b"\ngarbage\n\n" + P[:40] + b"\n   \n" + Q[:25],
+    "lines that are no object": P + b'\n[1]\n"pick"\n7\nnull\n',
+    "a pick with no page, a page that is a number": P + b'\n{"kind": "pick"}\n{"kind": "pick", "page": 7}\n',
+    "CRLF line ends": P + b"\r\n" + Q + b"\r\n",
+    "a lone CR between two rows": Q + b"\r" + P + b"\n",
+    "a CR inside a row": pick("p0", "p") + b"\n" + pick("p2", "p").replace(b', "kind"', b',\r"kind"') + b"\n",
+    "a byte that is not UTF-8 inside a value": pick("p0", "p") + b"\n" + pick("p2", "p", reply="MARK").replace(MARK, b"\xff") + b"\n",
+    "a byte that is not UTF-8 inside the page name": pick("x1", "pMARK").replace(MARK, b"\xff") + b"\n" + Q + b"\n",
+    "a character cut short before the newline": P + b'\n{"kind": "pick", "page": "p", "reply": "\xc3\n',
+    "a byte order mark": b"\xef\xbb\xbf" + P + b"\n" + Q + b"\n",
+    "U+2028 and U+0085 inside a value": pick("p0", "p") + b"\n" + pick("p2", "p", reply="a\u2028b\u0085c") + b"\n",
+    "a page name of multi-byte characters": pick("u1", "\u00e9\u6f22\U0001f600") + b"\n" + pick("u2", "\u00e9\u6f22\U0001f600", reply="\u00e9\u6f22\U0001f600") + b"\n" + Q,
+    "the long file above": b"\n".join(lines) + b"\n",
+}
+differ, default = [], serve.TAIL_BLOCK
+for name, data in files.items():
+    file.write_bytes(data)
+    for block in ((default, 4096) if len(data) > 4096 else (1, 2, 3, 7, 64, default)):
+        serve.TAIL_BLOCK = block
+        for page in ("p", "q", "p\ufffd", "\u00e9\u6f22\U0001f600", "elsewhere", "", "none"):
+            got, want = serve.newest_pick(root, page), whole_read(page)
+            if got != want:
+                differ.append("%s, %d-byte reads, page %r: got %r, a whole read gives %r" % (name, block, page, (got or {}).get("id"), (want or {}).get("id")))
+print("same: ok" if not differ else "same: " + "; ".join(differ[:5]))
+EOF
+)"
+[ "$(printf '%s\n' "$unit" | sed -n 1p)" = "stops: ok" ] && ok || bad "repeat comparison stops parsing at the page's newest pick" "$(printf '%s\n' "$unit" | sed -n 1p)"
+[ "$(printf '%s\n' "$unit" | sed -n '2,$p')" = "same: ok" ] && ok || bad "pick read from the file's end is the one a whole read gives" "$(printf '%s\n' "$unit" | sed -n '2,$p' | tail -n 3)"
 
 # ---- Host/Origin guard on the guarded routes ----------------------------------
 for route in /events /_versions.json / /gallery/; do

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; a pick repeated after its hand-out; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure, and for the row's look in that URL: palette, style, type and the scheme after the theme's last space, a name with URL syntax in it kept one value, a refused name, a number and a cut theme left out, a row from before the look fields; with a real one, a PNG of the row's viewport size over http and from the file, the paper colour beside the outline under the row's palette, under the first and under one the page lacks, the header on the PNG's first row with frame A's whole outline below it at 1280 by 800, 900 by 700, 640 by 480 and 375 by 800, frame C's at 375 by 800, the top edge alone of an element taller than the room under the header, and the look the shell applies from that URL: all four kinds, over a look authored on the html tag, and none without static=1 on the live page).
+# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; a pick repeated after its hand-out; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure, and for the row's look in that URL: palette, style, type and the scheme field, else the theme's last word, a name with URL syntax in it kept one value, a refused name, a number and a cut theme left out, a row from before the look fields; with a real one, a PNG of the row's viewport size over http and from the file, the paper colour beside the outline under the row's palette, under the first and under one the page lacks, the header on the PNG's first row with frame A's whole outline below it at 1280 by 800, 900 by 700, 640 by 480 and 375 by 800, frame C's at 375 by 800, the top edge alone of an element taller than the room under the header, and the look the shell applies from that URL: all four kinds, over a look authored on the html tag, and none without static=1 on the live page).
 # Misses: whether the outline sits on the noted element and not on another (its edges are found below the header, not matched to the selector); an element inside a frame content that scrolls by itself, a page that scrolls sideways, ?_outline= without static=1 and a browser whose capture does not resize the window (none is shot here); a blank band the colour of the header's paper; a style, type or scheme in the PNG itself (read off the html tag); a look row shot from the file; a browser that is found but cannot start; the shell's own controls (nothing is clicked here). With no Chromium-family browser the real-browser cases print SKIP, and fail under PREVIEW_REQUIRE_BROWSER=1, as a missing python3 or curl does.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -200,12 +200,16 @@ import json,sys
 with open(sys.argv[1],"a") as h:
     for i in range(3000):
         h.write(json.dumps({"id":"pad%d"%i,"page":"old.html","kind":"note","variant":None,"anchor":None,"text":"p"*400,"context":{},"status":"dismissed","reply":"","handed_out":True})+"\n")' "$E/.feedback.jsonl"
+n_before="$(bash "$R" list --docroot "$E" --all | wc -l | tr -d ' ')"
 ( for i in $(seq 1 60); do post "{\"page\":\"current.html\",\"kind\":\"pick\",\"variant\":\"A\",\"pass\":$((i % 9 + 1)),\"text\":\"r$i\"}" >/dev/null; done ) &
 poster=$!; pids="$pids $poster"
 i=0; while kill -0 "$poster" 2>/dev/null; do i=$((i+1)); bash "$R" reply --docroot "$E" --id "$note_id" --status addressed --text "pass $i" >/dev/null; done
 wait "$poster"
 n="$(bash "$R" list --docroot "$E" --all | wc -l | tr -d ' ')"
-[ "$n" = 3063 ] && ok || bad "posts racing rewrites ($i rewrites)" "want 3063 rows, got $n"
+[ "$n_before" -ge 3000 ] && [ "$n" = $((n_before + 60)) ] && ok || bad "posts racing rewrites ($i rewrites)" "want the $n_before rows from before the 60 posts plus 60, got $n"
+# serve.py keeps 30 characters of this 31-character theme, so its last word is cut: the scheme field is what shot reads below
+cut_id="$(curl -s --max-time 5 -X POST -H 'X-Preview-Feedback: 1' -H 'Expect:' "$base/_feedback" --data '{"page":"current.html","kind":"note","variant":"A","text":"cut",
+  "anchor":{"selector":"p","tag":"p","text":"","rect":{}},"context":{"theme":"'"$(printf 'n%.0s' $(seq 26))"' dark","scheme":"dark"}}' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])')"
 kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
 
 # ---- shot -------------------------------------------------------------------------
@@ -300,6 +304,9 @@ with open(sys.argv[1], "a") as h:
     h.write(note("lk02", switchers={"palette": "Berry&_scheme=dark&static=0#x"}, context={"theme": "x light"}))
     h.write(note("lk03", switchers={"palette": None, "style": 7}, context={"theme": "Harbour morning at dawn in win"}))
     h.write(note("lk04", context={"theme": "project dark"}))
+    h.write(note("lk05", context={"theme": "Morning light", "scheme": "dark"}))
+    h.write(note("lk06", context={"theme": "x dark", "scheme": None}))
+    h.write(note("lk07", context={"theme": "x dark", "scheme": "Dark"}))
 EOF
 got="$(query "$(shot_url "$E" lk01)")"
 [ "$got" = '{"_outline": ["p"], "_palette": ["Moss and stone"], "_scheme": ["dark"], "_style": ["Soft"], "_type": ["Serif"], "static": ["1"]}' ] && ok \
@@ -312,6 +319,17 @@ got="$(query "$(shot_url "$E" lk03)")"
 [ "$got" = '{"_outline": ["p"], "static": ["1"]}' ] && ok || bad "shot URL leaves out a refused name, a number and a cut theme" "want static and _outline alone, got $got"
 got="$(query "$(shot_url "$E" lk04)")"
 [ "$got" = '{"_outline": ["p"], "_scheme": ["dark"], "static": ["1"]}' ] && ok || bad "shot URL for a row from before the look fields" "want its scheme and no look name, got $got"
+got="$(query "$(shot_url "$E" lk05)")"
+[ "$got" = '{"_outline": ["p"], "_scheme": ["dark"], "static": ["1"]}' ] && ok || bad "shot URL takes the scheme from the row's own field" "the row holds scheme dark under a theme ending in light: want _scheme dark, got $got"
+# serve.py stores null for a post that sends no scheme, as a page copied from an older shell does.
+got="$(query "$(shot_url "$E" lk06)")"
+[ "$got" = '{"_outline": ["p"], "_scheme": ["dark"], "static": ["1"]}' ] && ok || bad "shot URL for a row whose scheme is null" "want the theme's last word, dark, got $got"
+got="$(query "$(shot_url "$E" lk07)")"
+[ "$got" = '{"_outline": ["p"], "static": ["1"]}' ] && ok || bad "shot URL for a scheme that is neither light nor dark" "the theme is read only for a row with no scheme: want no _scheme, got $got"
+got="$(query "$(shot_url "$E" "$cut_id")")"
+cut_theme="$(field "$E/.feedback.jsonl" "$cut_id" context | python3 -c 'import json, sys; t = json.load(sys.stdin)["theme"]; print(len(t), t[-4:])' 2>&1 | tail -n 1)"
+[ "$cut_theme" = "30  dar" ] && [ "$got" = '{"_outline": ["p"], "_scheme": ["dark"], "static": ["1"]}' ] && ok \
+  || bad "shot URL for a posted row whose theme was cut" "want a stored theme of 30 characters ending in ' dar' and _scheme dark, got '$cut_theme' and $got"
 
 . "$here/../find-browser.sh"
 if browser="$(find_browser)"; then
@@ -320,11 +338,11 @@ if browser="$(find_browser)"; then
     || bad "look fixtures" "shell-controls.test.sh --emit did not write look-5.html and look-authored.html"
   kport="$(free_port)"
   bash "$here/../preview.sh" --docroot "$K" --port "$kport" >/dev/null 2>&1
-  # noted <page> <palette> <style> <type> <scheme> [<width> <height> [<selector>]]: a note posted to serve.py under that look, as the shell posts it, on frame A's table in a 900 by 700 window unless told otherwise; prints the stored row's id.
+  # noted <page> <palette> <style> <type> <scheme> [<width> <height> [<selector> [<scheme field>]]]: a note posted to serve.py under that look, as the shell posts it, on frame A's table in a 900 by 700 window unless told otherwise, context.scheme sent only when given; prints the stored row's id.
   noted() {
     curl -s --max-time 5 -X POST -H 'X-Preview-Feedback: 1' -H 'Expect:' "http://127.0.0.1:$kport/_feedback" --data '{"page":"'"$1"'","kind":"note","variant":"A","text":"look",
       "switchers":{"palette":"'"$2"'","style":"'"$3"'","type":"'"$4"'"},"anchor":{"selector":"'"${8:-#vd-a > .vd-content > table}"'","tag":"table","text":"","rect":{}},
-      "context":{"viewport":{"w":'"${6:-900}"',"h":'"${7:-700}"'},"theme":"'"$2 $5"'"}}' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'
+      "context":{"viewport":{"w":'"${6:-900}"',"h":'"${7:-700}"'},"theme":"'"$2 $5"'"'"${9:+,\"scheme\":\"$9\"}"'}}' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'
   }
   # png_facts <png> paper|placed. paper: the colour 3 px left of the red outline's left edge, halfway down it; the outlined table starts at the frame content's padding, so that pixel is the content's paper. placed: "<width> <height> <rows above the header that are one flat colour, not its paper> <whole|top|bottom|sides|none: which of the outline's edges the PNG holds> <below|not-below the header's last row> (the rows)".
   png_facts() {
@@ -433,6 +451,9 @@ print(" ".join((re.findall(r"data-vd-%s=\"([^\"]*)\"" % kind, tag) or ["-"])[0] 
   u="$(shot_url "$K" "$(noted look-authored.html Neutral Soft Sans light)")"
   got="$(dom_look "$u")"
   [ "$got" = "Neutral Soft Sans light" ] && ok || bad "row look over a look authored on the html tag" "want Neutral Soft Sans light on a page that authors Berry Sharp Serif dark, got '$got' for $u"
+  u="$(shot_url "$K" "$(noted look-5.html Berry Soft Sans light 900 700 '' dark)")"
+  got="$(dom_look "$u")"
+  [ "$got" = "Berry Soft Sans dark" ] && ok || bad "shot draws the row's scheme field over the theme's last word" "posted with theme 'Berry light' and scheme dark: want Berry Soft Sans dark on the html tag, got '$got' for $u"
   bash "$here/../preview.sh" --docroot "$K" --stop >/dev/null 2>&1
 else
   no_browser "shot in the row's look (the pixel sample, the look the shell applies from the URL)"
