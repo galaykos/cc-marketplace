@@ -17,7 +17,8 @@
 /* ---- Theme tokens -------------------------------------------------- */
 /* Baseline: cool neutral + blue accent. Tokens style chrome and accents
    ONLY; content text and surfaces use the fixed neutrals below so a
-   broken project palette can never make the page unreadable. */
+   broken project palette can never make the page unreadable. Only a
+   palette in #vd-presets re-declares them, inside frame content. */
 :root {
   --vd-primary: #2563eb;
   --vd-surface: #fafafa;
@@ -210,6 +211,20 @@ body {
   color: var(--vd-ink-soft);
   font-style: italic;
 }
+.vd-look {
+  flex: 1 0 100%;
+  gap: var(--vd-space) calc(var(--vd-space) * 2);
+}
+.vd-look-item {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--vd-space) * .75);
+}
+.vd-look-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--vd-ink-soft);
+}
 
 /* ---- Variant frames -------------------------------------------------- */
 #vd-frames {
@@ -255,6 +270,9 @@ body {
 .vd-frame .vd-content {
   padding: calc(var(--vd-space) * 2);
   font-family: var(--vd-font);
+  /* Set here, not left to the frame and the body: a preset re-declares these tokens on .vd-content, below both. */
+  background-color: var(--vd-paper);
+  color: var(--vd-ink);
   min-height: 120px;
   /* Cap height so dense/realistic data in one frame cannot outgrow its
      siblings; overflow scrolls inside the frame, keeping tops aligned. */
@@ -1531,6 +1549,24 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   #vd-check-badge { display: none; }
 }
 </style>
+<style id="vd-presets">
+/* Page-wide looks for a layout or creative pass. One rule per option, exactly
+   `html[data-vd-palette="Name"] .vd-content { }` (or data-vd-style,
+   data-vd-type); an empty rule is an option that keeps the shell's own values.
+   A kind with two or more options gets a switcher in the header: options in
+   rule order, the first active, the active name written to that attribute on
+   <html>. With fewer it gets none and its rule stays unused. Scope every rule
+   to .vd-content: the header, captions and tradeoff lists keep the neutrals. */
+/* A palette may set --vd-paper, --vd-surface, --vd-ink, --vd-ink-soft,
+   --vd-line, --vd-primary, --vd-on-primary, --vd-nav-bg, --vd-nav-ink and
+   --vd-nav-ink-soft. Its dark set is a second rule:
+   `html[data-vd-palette="Name"][data-vd-scheme="dark"] .vd-content { }`. */
+/* SLOT: palettes */
+/* A style may set --vd-radius, --vd-space and --vd-shadow. */
+/* SLOT: styles */
+/* A type may set --vd-font, to a system stack only: no web font. */
+/* SLOT: types */
+</style>
 <style id="vd-custom">
 /* SLOT: custom-css — shared classes when no primitive fits; never style one
    variant differently from its rivals, EXCEPT the sanctioned theme-axis token
@@ -2081,6 +2117,48 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     labelDir();
   });
   labelDir();
+
+  // An option is one #vd-presets rule whose whole selector is `html[data-vd-<kind>="Name"] .vd-content`: a dark-scheme rule declares none.
+  const passKind = document.body.dataset.vdPassKind;
+  if (passKind === 'layout' || passKind === 'creative') {
+    const presets = document.getElementById('vd-presets');
+    const selectors = Array.from((presets && presets.sheet && presets.sheet.cssRules) || []).map(r => r.selectorText || '');
+    const row = document.createElement('div');
+    row.className = 'vd-controls vd-look';
+    [['palette', 'Palette'], ['style', 'Style'], ['type', 'Type']].forEach(([kind, label]) => {
+      const declares = new RegExp('^html\\[data-vd-' + kind + '="([^"\\\\]*)"\\] \\.vd-content$');
+      const names = selectors.map(s => declares.exec(s)).filter(Boolean).map(m => m[1]);
+      if (names.length < 2) return;
+      const group = document.createElement('div');
+      group.className = 'vd-seg vd-switcher';
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', label);
+      group.dataset.vdSwitcher = kind;
+      function choose(name) {
+        document.documentElement.setAttribute('data-vd-' + kind, name);
+        Array.from(group.querySelectorAll('button')).forEach(b =>
+          b.setAttribute('aria-pressed', String(b.dataset.vdOption === name)));
+      }
+      names.forEach(name => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.vdOption = name;
+        b.textContent = name;
+        b.addEventListener('click', () => choose(name));
+        group.appendChild(b);
+      });
+      choose(names[0]);
+      const item = document.createElement('div');
+      item.className = 'vd-look-item';
+      const title = document.createElement('span');
+      title.className = 'vd-look-label';
+      title.setAttribute('aria-hidden', 'true');
+      title.textContent = label;
+      item.append(title, group);
+      row.appendChild(item);
+    });
+    if (row.children.length) document.getElementById('vd-header').appendChild(row);
+  }
 })();
 </script>
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; a page rewritten in place to its next pass (the earlier round's pick is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; a page rewritten in place to its next pass (the earlier round's pick is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the switcher row at 375 (walked by eye); of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line, surface and primary), Moss's dark set, and print; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand; a shell rule keyed on a look attribute being there, whatever its value. With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -15,7 +15,7 @@ if [ "${1:-}" = --emit ]; then
 fi
 command -v python3 >/dev/null 2>&1 || skip "python3 not found"  # skip: nothing here runs without python3; PREVIEW_REQUIRE_BROWSER=1 exits 1 instead
 
-# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12) and pass-none.html (three, no pass marks), from the shipped shell.
+# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes) and look-other.html (three, no pass marks, look-5's presets and one frame's own radius), from the shipped shell.
 build_pages() {
   python3 - "$SHELL_HTML" "$1" <<'EOF'
 import os, re, sys
@@ -107,12 +107,46 @@ def write(name, text):
         h.write(text)
 
 
+# Opens every frame of a look page: the nav bar a palette repaints and a button whose corners a style turns.
+APP_BAR = """<div class="vd-nav"><span class="vd-brand">Ledgerly</span> <a href="#" aria-current="page">Invoices</a> <a href="#">Customers</a></div>
+<div class="vd-toolbar"><span class="vd-input">Search invoices</span> <span class="vd-btn vd-primary">New invoice</span></div>
+"""
+# The runner's NEUTRAL, BERRY, BERRY_DARK, MOSS and SERIF hold these values as the browser reports them.
+NEUTRAL = 'html[data-vd-palette="Neutral"] .vd-content {}'
+BERRY = """html[data-vd-palette="Berry"] .vd-content { --vd-paper: #fff5f8; --vd-surface: #fde7ee; --vd-ink: #3b0a1f; --vd-ink-soft: #7a2e4a; --vd-line: #f3c4d3;
+  --vd-primary: #be185d; --vd-on-primary: #ffffff; --vd-nav-bg: #831843; --vd-nav-ink: #fff5f8; --vd-nav-ink-soft: rgba(255, 245, 248, .8); }
+html[data-vd-palette="Berry"][data-vd-scheme="dark"] .vd-content { --vd-paper: #1f0a14; --vd-surface: #2b0f1c; --vd-ink: #fde7ee; --vd-ink-soft: #f0a6c0; --vd-line: #5c1f38;
+  --vd-primary: #f472b6; --vd-on-primary: #1f0a14; --vd-nav-bg: #4a0d28; --vd-nav-ink: #fde7ee; --vd-nav-ink-soft: rgba(253, 231, 238, .75); }"""
+MOSS = """html[data-vd-palette="Moss"] .vd-content { --vd-paper: #f7faf5; --vd-surface: #e9f2e4; --vd-ink: #14230f; --vd-ink-soft: #40573a; --vd-line: #c9dcc0;
+  --vd-primary: #3f6212; --vd-on-primary: #ffffff; --vd-nav-bg: #1a2e14; --vd-nav-ink: #f7faf5; --vd-nav-ink-soft: rgba(247, 250, 245, .8); }
+html[data-vd-palette="Moss"][data-vd-scheme="dark"] .vd-content { --vd-paper: #10180d; --vd-surface: #1a2615; --vd-ink: #e9f2e4; --vd-ink-soft: #a9c29f; --vd-line: #2f4426;
+  --vd-primary: #a3e635; --vd-on-primary: #10180d; --vd-nav-bg: #223319; --vd-nav-ink: #e9f2e4; --vd-nav-ink-soft: rgba(233, 242, 228, .75); }"""
+SOFT = 'html[data-vd-style="Soft"] .vd-content { --vd-radius: 12px; --vd-space: 8px; --vd-shadow: 0 2px 6px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 0, 0, .08); }'
+SHARP = 'html[data-vd-style="Sharp"] .vd-content { --vd-radius: 0; --vd-space: 6px; --vd-shadow: none; }'
+SANS = 'html[data-vd-type="Sans"] .vd-content {}'
+SERIF = 'html[data-vd-type="Serif"] .vd-content { --vd-font: Georgia, "Times New Roman", serif; }'
+
+
+def look(n, palettes=(), styles=(), types=(), css=""):
+    """page(n) with the app bar opening every frame, these rules in the shell's palette, style and type slots, and css closing its custom block."""
+    s = page(n).replace('<div class="vd-content">', '<div class="vd-content">' + APP_BAR)
+    for slot, rules in (("palettes", palettes), ("styles", styles), ("types", types)):
+        assert "/* SLOT: %s */" % slot in s, "the shell has no slot %s" % slot
+        s = s.replace("/* SLOT: %s */" % slot, "\n".join(rules))
+    assert s.count("</style>\n</head>") == 1, "the shell's custom block does not close the head"
+    return s.replace("</style>\n</head>", css + "\n</style>\n</head>")
+
+
 for n in range(1, 7):
     write("layout-%d.html" % n, page(n))
 write("layout-gap.html", page(6, drop="C"))
 write("pass-2.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="2"'))
 write("pass-none.html", marked(page(3), ""))
 write("pass-12.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="12"'))
+write("look-5.html", look(5, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF]))
+write("look-one.html", look(3, [BERRY], [SHARP], [SERIF]))
+write("look-creative.html", marked(look(3, [NEUTRAL, BERRY]), ' data-vd-pass-kind="creative" data-vd-pass="1"'))
+write("look-other.html", marked(look(3, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF], css="#vd-b .vd-content{--vd-radius:0}"), ""))
 EOF
 }
 
@@ -258,19 +292,19 @@ def wait(condition, ms=5000):
               " else setTimeout(poll, 20); })(); })" % (condition, ms))
 
 
-def open_page(name, width):
-    """Load a docroot page live in a fresh tab at this viewport width; returns once its Pick and Note buttons and its check badge are in place."""
+def open_page(name, width, static=False):
+    """Load a docroot page in a fresh tab at this viewport width: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded."""
     cdp.tab()
     cdp.call("Emulation.setDeviceMetricsOverride", {"width": width, "height": 800, "deviceScaleFactor": 1, "mobile": False})
     cdp.loaded = False
-    nav = cdp.call("Page.navigate", {"url": base + quote(name)})
+    nav = cdp.call("Page.navigate", {"url": base + quote(name) + ("?static=1" if static else "")})
     if nav.get("errorText"):
         raise RuntimeError("could not load %s: %s" % (name, nav["errorText"]))
     until = time.monotonic() + 15
     while not cdp.loaded:
         cdp.recv(until)
     cdp.call("Page.bringToFront")
-    if not wait("!document.getElementById('vd-fb').hidden && !document.getElementById('vd-check-badge').hidden"):
+    if not static and not wait("!document.getElementById('vd-fb').hidden && !document.getElementById('vd-check-badge').hidden"):
         raise RuntimeError("%s: the feedback controls or the check badge never appeared" % name)
 
 
@@ -290,10 +324,17 @@ def click(selector):
         cdp.call("Input.dispatchMouseEvent", {"type": kind, "x": at["x"], "y": at["y"], "button": "left", "clickCount": 1})
 
 
+NAMED_KEYS = {"Tab": ("Tab", 9, ""), "Enter": ("Enter", 13, "\r"), "Space": (" ", 32, " ")}
+
+
 def key(char):
-    """A real press of one letter or digit key, sent to whatever has focus."""
-    ev = {"key": char, "code": ("Digit" if char.isdigit() else "Key") + char.upper(), "windowsVirtualKeyCode": ord(char.upper())}
-    cdp.call("Input.dispatchKeyEvent", dict(ev, type="keyDown", text=char))
+    """A real press of one letter or digit key, or of Tab, Enter or Space by name, sent to whatever has focus."""
+    if char in NAMED_KEYS:
+        value, vk, text = NAMED_KEYS[char]
+        ev = {"key": value, "code": char, "windowsVirtualKeyCode": vk}
+    else:
+        ev, text = {"key": char, "code": ("Digit" if char.isdigit() else "Key") + char.upper(), "windowsVirtualKeyCode": ord(char.upper())}, char
+    cdp.call("Input.dispatchKeyEvent", dict(ev, type="keyDown", text=text))
     cdp.call("Input.dispatchKeyEvent", dict(ev, type="keyUp"))
 
 
@@ -493,6 +534,186 @@ def flip_mode():
          "frames shown %s, focus on frame position %d" % (shown, focused))
 
 
+LOOK = "look-5.html"
+# Per frame: its content's paper and ink, its nav bar's fill and text, its button's corner, its font. Then the shell's own parts: the header's paper, ink, rule, font and a control's corner, and per frame its paper, title, badge, caption, tradeoff list and corner.
+LOOK_PROBE = """(() => {
+  const css = (el, p) => getComputedStyle(el).getPropertyValue(p);
+  const frames = Array.from(document.querySelectorAll('.vd-frame')), header = document.getElementById('vd-header');
+  return {
+    look: ['palette', 'style', 'type'].map(k => document.documentElement.getAttribute('data-vd-' + k)),
+    frames: frames.map(f => { const c = f.querySelector('.vd-content'), nav = c.querySelector('.vd-nav');
+      return { colours: [css(c, 'background-color'), css(c, 'color'), css(nav, 'background-color'), css(nav, 'color')],
+               corner: css(c.querySelector('.vd-btn'), 'border-top-left-radius'), font: css(c, 'font-family') }; }),
+    shell: [css(header, 'background-color'), css(header, 'color'), css(header, 'border-bottom-color'), css(header, 'font-family'),
+            css(header.querySelector('.vd-seg'), 'border-top-left-radius')].concat(frames.flatMap(f => {
+      const h = f.querySelector('h2'), cap = f.querySelector('.vd-caption'), t = f.querySelector('.vd-tradeoffs');
+      return [css(f, 'background-color'), css(f, 'border-top-left-radius'), css(h, 'background-color'), css(h.querySelector('.vd-badge'), 'background-color'),
+              css(cap, 'color'), css(cap, 'font-family'), css(t, 'background-color'), css(t, 'color'), css(t, 'font-family')]; }))
+  };
+})()"""
+# Each switcher in page order: its kind, role, accessible name, the text drawn just left of it, its box, and its options as [name, text, aria-pressed].
+SWITCHERS = """Array.from(document.querySelectorAll('[data-vd-switcher]')).map(g => { const r = g.getBoundingClientRect();
+  return { kind: g.dataset.vdSwitcher, role: g.getAttribute('role'), name: g.getAttribute('aria-label'),
+           label: document.elementFromPoint(r.left - 14, r.top + r.height / 2).textContent, left: r.left, top: r.top,
+           options: Array.from(g.querySelectorAll('button')).map(b => [b.dataset.vdOption, b.textContent, b.getAttribute('aria-pressed')]) }; })"""
+# The switcher button that has focus as [kind, option], or null when focus is anywhere else.
+AT_OPTION = """(() => { const a = document.activeElement, g = a && a.closest('[data-vd-switcher]');
+  return g && a.localName === 'button' ? [g.dataset.vdSwitcher, a.dataset.vdOption] : null; })()"""
+# A frame's content paper, ink, nav bar and nav text under the shell's neutrals and under the palettes build_pages writes.
+NEUTRAL = ["rgb(255, 255, 255)", "rgb(24, 24, 27)", "rgb(24, 24, 27)", "rgb(255, 255, 255)"]
+BERRY = ["rgb(255, 245, 248)", "rgb(59, 10, 31)", "rgb(131, 24, 67)", "rgb(255, 245, 248)"]
+BERRY_DARK = ["rgb(31, 10, 20)", "rgb(253, 231, 238)", "rgb(74, 13, 40)", "rgb(253, 231, 238)"]
+MOSS = ["rgb(247, 250, 245)", "rgb(20, 35, 15)", "rgb(26, 46, 20)", "rgb(247, 250, 245)"]
+SERIF = 'Georgia, "Times New Roman", serif'
+OPTIONS = [["palette", ["Neutral", "Berry", "Moss"]], ["style", ["Soft", "Sharp"]], ["type", ["Sans", "Serif"]]]
+
+
+def switch(kind, name):
+    """Click one option of one switcher."""
+    click('[data-vd-switcher="%s"] [data-vd-option="%s"]' % (kind, name))
+
+
+def listed(switchers=None):
+    """Switchers as [kind, option names] in page order: the open page's, or those of a SWITCHERS answer already read."""
+    return [[s["kind"], [o[0] for o in s["options"]]] for s in (js(SWITCHERS) if switchers is None else switchers)]
+
+
+def colours(probe):
+    return [f["colours"] for f in probe["frames"]]
+
+
+def moved(before, after):
+    """The positions of the shell's own values that differ between two probes."""
+    return [i for i, (a, b) in enumerate(zip(before["shell"], after["shell"])) if a != b]
+
+
+def palette_restyles():
+    open_page(LOOK, 1280)
+    before = js(LOOK_PROBE)
+    switch("palette", "Berry")
+    after = js(LOOK_PROBE)
+    pressed = [o[2] for o in js(SWITCHERS)[0]["options"]]
+    case("palette restyles every frame and not the header",
+         colours(before) == [NEUTRAL] * 5 and colours(after) == [BERRY] * 5 and not moved(before, after)
+         and after["look"][0] == "Berry" and pressed == ["false", "true", "false"],
+         "per frame [paper, ink, nav bar, nav text] was %s, under Berry %s (want %s); shell values that moved: %s; html says %s, options pressed %s"
+         % (colours(before), colours(after), BERRY, moved(before, after), after["look"], pressed))
+    click("#vd-scheme-toggle")
+    dark = js(LOOK_PROBE)
+    case("a palette's dark set paints the frames under the dark scheme", colours(dark) == [BERRY_DARK] * 5 and dark["shell"][0] == "rgb(27, 27, 31)",
+         "per frame %s (want %s); the header's paper is %s (want the shell's dark neutral)" % (colours(dark), BERRY_DARK, dark["shell"][0]))
+
+
+def style_and_type():
+    open_page(LOOK, 1280)
+    soft = js(LOOK_PROBE)
+    switch("style", "Sharp")
+    sharp = js(LOOK_PROBE)
+    switch("type", "Serif")
+    serif = js(LOOK_PROBE)
+    corners = [[f["corner"] for f in p["frames"]] for p in (soft, sharp)]
+    fonts = [[f["font"] for f in p["frames"]] for p in (sharp, serif)]
+    own = soft["shell"][3]
+    case("style and type restyle frames only",
+         corners == [["12px"] * 5, ["0px"] * 5] and fonts == [[own] * 5, [SERIF] * 5] and own != SERIF
+         and not moved(soft, sharp) and not moved(soft, serif) and serif["look"] == ["Neutral", "Sharp", "Serif"],
+         "button corners per frame under Soft then Sharp %s; content fonts under Sans then Serif %s against the header's %s; shell values that moved: %s under Sharp, %s under Serif; html says %s"
+         % (corners, fonts, own, moved(soft, sharp), moved(soft, serif), serif["look"]))
+
+
+def labelled_in_order():
+    # 2560 wide: a row with no line of its own would fit beside the first row's controls here.
+    open_page(LOOK, 2560)
+    got = js(SWITCHERS)
+    look = js(LOOK_PROBE)["look"]
+    first_row = js("document.querySelector('[data-vd-set-mode]').getBoundingClientRect().bottom")
+    shown = [[s["kind"], s["role"], s["name"], s["label"]] for s in got]
+    lefts, tops = [s["left"] for s in got], [s["top"] for s in got]
+    first = [[o[2] for o in s["options"]] for s in got]
+    case("switchers are labelled groups in a second row in the order Palette, Style, Type with the first option active",
+         shown == [["palette", "group", "Palette", "Palette"], ["style", "group", "Style", "Style"], ["type", "group", "Type", "Type"]]
+         and lefts == sorted(lefts) and len(set(tops)) == 1 and tops[0] >= first_row and listed(got) == OPTIONS
+         and all(o[0] == o[1] for s in got for o in s["options"])
+         and first == [["true", "false", "false"], ["true", "false"], ["true", "false"]] and look == ["Neutral", "Soft", "Sans"],
+         "[kind, role, name, text beside it] %s at left edges %s and tops %s, the first row's controls end at %s; options %s; html says %s"
+         % (shown, lefts, tops, first_row, [s["options"] for s in got], look))
+
+
+def by_keyboard():
+    open_page(LOOK, 1280)
+    stops, kept = [], []
+    for _ in range(60):
+        key("Tab")
+        at = js(AT_OPTION)
+        if not at:
+            if stops:
+                break
+            continue
+        stops.append(at)
+        how = {"Berry": "Enter", "Moss": "Space"}.get(at[1])
+        if how:
+            js("void (window.vdHeld = document.activeElement)")
+            key(how)
+            kept.append([how] + js("[document.documentElement.getAttribute('data-vd-palette'), document.activeElement.getAttribute('aria-pressed'),"
+                                   " document.activeElement === window.vdHeld]"))
+    case("switcher operated by keyboard keeps focus",
+         stops == [[kind, name] for kind, names in OPTIONS for name in names]
+         and kept == [["Enter", "Berry", "true", True], ["Space", "Moss", "true", True]],
+         "Tab stopped on %s; each press as [key, html palette after it, the focused button's aria-pressed, focus still on that button] %s" % (stops, kept))
+
+
+def no_reload():
+    open_page(LOOK, 1280)
+    js("void (window.vdStayed = true)")
+    was = js("[location.href, history.length]")
+    cdp.loaded = False
+    for kind, name in (("palette", "Berry"), ("style", "Sharp"), ("type", "Serif")):
+        switch(kind, name)
+    # A reload asked for by a click replaces the document a few milliseconds later, so the mark is read after that window.
+    gone = wait("window.vdStayed !== true", 300)
+    now = js("[location.href, history.length]")
+    look = js(LOOK_PROBE)["look"]
+    case("option change does not reload", look == ["Berry", "Sharp", "Serif"] and not gone and not cdp.loaded and now == was,
+         "html says %s; the mark set before the clicks is gone: %s; a load event fired: %s; [address, history length] was %s, is %s"
+         % (look, gone, cdp.loaded, was, now))
+
+
+def one_option():
+    open_page("look-one.html", 1280)
+    got = [listed(), js(LOOK_PROBE)["look"]]
+    case("one-option switcher hidden", got == [[], [None, None, None]],
+         "one palette, one style and one type are authored: switchers shown %s, html says %s" % tuple(got))
+
+
+def creative_pass():
+    open_page("look-creative.html", 1280)
+    got = listed()
+    case("a creative pass shows the switcher with two options and none for a kind with no options", got == [["palette", ["Neutral", "Berry"]]],
+         "two palettes, no style and no type are authored: switchers shown %s" % got)
+
+
+def another_pass_kind():
+    # The page carries look-5's presets and no pass marks, and its second frame alone sets its own radius, as a theme-axis pass does.
+    open_page("look-other.html", 1280)
+    probe = js(LOOK_PROBE)
+    got = [listed(), probe["look"]]
+    case("a page of another pass kind shows no switcher row", got == [[], [None, None, None]], "switchers shown %s, html says %s" % tuple(got))
+    corners = [f["corner"] for f in probe["frames"]]
+    case("a per-frame preset still turns one frame only", corners == ["8px", "0px", "8px"], "button corners per frame %s" % corners)
+
+
+def static_page():
+    open_page(LOOK, 1280, static=True)
+    got = listed()
+    case("a page loaded with ?static=1 lists its switchers", got == OPTIONS, "switchers shown %s" % got)
+    before = js(LOOK_PROBE)
+    js("document.documentElement.setAttribute('data-vd-palette', 'Moss')")
+    after = js(LOOK_PROBE)
+    case("static page honours the palette attribute", colours(before) == [NEUTRAL] * 5 and colours(after) == [MOSS] * 5 and not moved(before, after),
+         "per frame [paper, ink, nav bar, nav text] was %s, with data-vd-palette set to Moss %s (want %s); shell values that moved: %s"
+         % (colours(before), colours(after), MOSS, moved(before, after)))
+
+
 cdp = None
 try:
     cdp = Browser()
@@ -509,6 +730,15 @@ try:
     group("number keys", number_keys)
     group("a key past the last frame", key_past_the_last)
     group("Flip mode", flip_mode)
+    group("palette restyles every frame and not the header", palette_restyles)
+    group("style and type restyle frames only", style_and_type)
+    group("switchers are labelled groups in order", labelled_in_order)
+    group("switcher operated by keyboard keeps focus", by_keyboard)
+    group("option change does not reload", no_reload)
+    group("one-option switcher hidden", one_option)
+    group("a creative pass", creative_pass)
+    group("a page of another pass kind", another_pass_kind)
+    group("static page honours the palette attribute", static_page)
 except Exception as exc:
     case("browser start", False, "%s: %s" % (type(exc).__name__, exc))
 finally:
