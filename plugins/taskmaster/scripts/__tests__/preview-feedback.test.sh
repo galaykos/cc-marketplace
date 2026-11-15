@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; a pick repeated after its hand-out; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure, and for the row's look in that URL: palette, style, type and the scheme after the theme's last space, a name with URL syntax in it kept one value, a refused name, a number and a cut theme left out, a row from before the look fields; with a real one, a PNG of the row's viewport size over http and from the file, the paper colour beside the outline under the row's palette, under the first and under one the page lacks, and the look the shell applies from that URL: all four kinds, over a look authored on the html tag, and none without static=1 on the live page).
-# Misses: whether the outline sits on the noted element (its colour is found in the PNG, its place is not checked); a style, type or scheme in the PNG itself (read off the html tag); a look row shot from the file; a browser that is found but cannot start; the shell's own controls (nothing is clicked here). With no Chromium-family browser the real-browser cases print SKIP, and fail under PREVIEW_REQUIRE_BROWSER=1, as a missing python3 or curl does.
+# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; a pick repeated after its hand-out; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure, and for the row's look in that URL: palette, style, type and the scheme after the theme's last space, a name with URL syntax in it kept one value, a refused name, a number and a cut theme left out, a row from before the look fields; with a real one, a PNG of the row's viewport size over http and from the file, the paper colour beside the outline under the row's palette, under the first and under one the page lacks, the header on the PNG's first row with frame A's whole outline below it at 1280 by 800, 900 by 700, 640 by 480 and 375 by 800, frame C's at 375 by 800, the top edge alone of an element taller than the room under the header, and the look the shell applies from that URL: all four kinds, over a look authored on the html tag, and none without static=1 on the live page).
+# Misses: whether the outline sits on the noted element and not on another (its edges are found below the header, not matched to the selector); an element inside a frame content that scrolls by itself, a page that scrolls sideways, ?_outline= without static=1 and a browser whose capture does not resize the window (none is shot here); a blank band the colour of the header's paper; a style, type or scheme in the PNG itself (read off the html tag); a look row shot from the file; a browser that is found but cannot start; the shell's own controls (nothing is clicked here). With no Chromium-family browser the real-browser cases print SKIP, and fail under PREVIEW_REQUIRE_BROWSER=1, as a missing python3 or curl does.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 R="$here/../preview-feedback.sh"
@@ -320,15 +320,15 @@ if browser="$(find_browser)"; then
     || bad "look fixtures" "shell-controls.test.sh --emit did not write look-5.html and look-authored.html"
   kport="$(free_port)"
   bash "$here/../preview.sh" --docroot "$K" --port "$kport" >/dev/null 2>&1
-  # noted <page> <palette> <style> <type> <scheme>: a note on frame A's table posted to serve.py under that look, as the shell posts it; prints the stored row's id.
+  # noted <page> <palette> <style> <type> <scheme> [<width> <height> [<selector>]]: a note posted to serve.py under that look, as the shell posts it, on frame A's table in a 900 by 700 window unless told otherwise; prints the stored row's id.
   noted() {
     curl -s --max-time 5 -X POST -H 'X-Preview-Feedback: 1' -H 'Expect:' "http://127.0.0.1:$kport/_feedback" --data '{"page":"'"$1"'","kind":"note","variant":"A","text":"look",
-      "switchers":{"palette":"'"$2"'","style":"'"$3"'","type":"'"$4"'"},"anchor":{"selector":"#vd-a > .vd-content > table","tag":"table","text":"","rect":{}},
-      "context":{"viewport":{"w":900,"h":700},"theme":"'"$2 $5"'"}}' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'
+      "switchers":{"palette":"'"$2"'","style":"'"$3"'","type":"'"$4"'"},"anchor":{"selector":"'"${8:-#vd-a > .vd-content > table}"'","tag":"table","text":"","rect":{}},
+      "context":{"viewport":{"w":'"${6:-900}"',"h":'"${7:-700}"'},"theme":"'"$2 $5"'"}}' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])'
   }
-  # paper <png>: the colour 3 px left of the red outline's left edge, halfway down it. The outlined table starts at the frame content's padding, so that pixel is the content's paper.
-  paper() {
-    python3 - "$1" <<'EOF' 2>&1 | tail -n 1
+  # png_facts <png> paper|placed. paper: the colour 3 px left of the red outline's left edge, halfway down it; the outlined table starts at the frame content's padding, so that pixel is the content's paper. placed: "<width> <height> <rows above the header that are one flat colour, not its paper> <whole|top|bottom|sides|none: which of the outline's edges the PNG holds> <below|not-below the header's last row> (the rows)".
+  png_facts() {
+    python3 - "$@" <<'EOF' 2>&1 | tail -n 1
 import struct, sys, zlib
 data = open(sys.argv[1], "rb").read()
 pos, packed = 8, b""
@@ -357,7 +357,24 @@ for y in range(h):
             line[i] = (line[i] + add) & 255
     rows.append(line)
     prev = line
-outline, edge = bytes((225, 29, 72)), {}
+outline = bytes((225, 29, 72))
+if sys.argv[2] == "placed":
+    flat = [bytes(line[:3]) if line == line[:bpp] * w else None for line in rows]
+    # The header ends in its bottom border, the first flat row that is not a grey; the flat row above the border is the header's paper.
+    border = next((y for y, c in enumerate(flat) if c and max(c) - min(c) > 40), -1)
+    paper = flat[border - 1] if border > 0 else None
+    blank = 0 if flat[0] in (None, paper) else next((y for y, c in enumerate(flat) if c != flat[0]), h)
+    while 0 <= border < h - 1 and flat[border + 1] == flat[border]:
+        border += 1
+    cols = {y: [x for x in range(w) if line[x * bpp:x * bpp + 3] == outline] for y, line in enumerate(rows) if outline in line}
+    ys = [y for y in cols if cols[y]]
+    xs = [x for y in ys for x in cols[y]]
+    # An edge fills its row; where the header or the PNG's end cuts the outline, the row holds its two sides alone.
+    top, bottom = (2 * len(cols[y]) > max(xs) - min(xs) for y in (min(ys), max(ys))) if ys else (False, False)
+    print(w, h, blank, ("sides", "bottom", "top", "whole")[2 * top + bottom] if ys else "none", "below" if ys and min(ys) > border >= 0 else "not-below",
+          "(the header's last row is %d, the outline's rows are %s)" % (border, "%d to %d" % (min(ys), max(ys)) if ys else "none"))
+    sys.exit()
+edge = {}
 for y, line in enumerate(rows):
     i = line.find(outline)
     while i > 0 and i % bpp:
@@ -371,8 +388,8 @@ ys = [y for y in edge if edge[y] == x]
 print(*rows[ys[len(ys) // 2]][(x - 3) * bpp:(x - 3) * bpp + 3])
 EOF
   }
-  # shot_paper <id>: paper of the row's real screenshot, or what shot printed when it failed.
-  shot_paper() { local png; png="$(bash "$R" shot --docroot "$K" --id "$1" 2>&1)" && paper "$png" || echo "shot exited $?: $png"; }
+  # shot_facts <id> paper|placed: png_facts of the row's real screenshot, or what shot printed when it failed.
+  shot_facts() { local png; png="$(bash "$R" shot --docroot "$K" --id "$1" 2>&1)" && png_facts "$png" "$2" || echo "shot exited $?: $png"; }
   # dom_look <url>: the look a real browser leaves on the page's html tag, as "palette style type scheme".
   dom_look() {
     local profile sandbox="" limit=""
@@ -386,12 +403,25 @@ print(" ".join((re.findall(r"data-vd-%s=\"([^\"]*)\"" % kind, tag) or ["-"])[0] 
     rm -rf "$profile"
   }
 
-  berry="$(shot_paper "$(noted look-5.html Berry Soft Sans light)")"
-  first="$(shot_paper "$(noted look-5.html Neutral Soft Sans light)")"
+  berry="$(shot_facts "$(noted look-5.html Berry Soft Sans light)" paper)"
+  first="$(shot_facts "$(noted look-5.html Neutral Soft Sans light)" paper)"
   [ "$berry" = "255 245 248" ] && [ "$first" = "255 255 255" ] && ok \
     || bad "shot renders the row palette (pixel sample)" "want Berry's paper 255 245 248 beside the outline, and the first palette's 255 255 255 for a row under it, got '$berry' and '$first'"
-  gone="$(shot_paper "$(noted look-5.html Plum Soft Sans light)")"
+  gone="$(shot_facts "$(noted look-5.html Plum Soft Sans light)" paper)"
   [ "$gone" = "255 255 255" ] && ok || bad "shot, a palette the page lacks" "want exit 0 and the first palette's paper 255 255 255, got '$gone'"
+
+  # Chrome's --screenshot writes the document's first screen wherever the window is scrolled, after resizing the window to the row's viewport.
+  for size in "1280 800" "900 700" "640 480" "375 800"; do
+    vw=${size% *}; vh=${size#* }
+    got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light "$vw" "$vh")" placed)"
+    case "$got" in "$vw $vh 0 "*) ok ;; *) bad "shot has no blank band above the header" "at $vw by $vh: want a $vw by $vh PNG with no blank row above the header, got $got" ;; esac
+    case "$got" in "$vw $vh "*" whole below "*) ok ;; *) bad "shot keeps the noted element in the picture at $vw by $vh" "want a $vw by $vh PNG with the whole outline below the header, got $got" ;; esac
+  done
+  # Laid out 500 wide until the capture: a shift worked out before the resize is wrong for the 375 px page.
+  got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 375 800 "#vd-c > .vd-content .vd-detail")" placed)"
+  case "$got" in "375 800 0 whole below "*) ok ;; *) bad "shot keeps an element further down the page in the picture at 375 by 800" "want the header on the first row and frame C's whole outline below it, got $got" ;; esac
+  got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 640 400)" placed)"
+  case "$got" in "640 400 0 top below "*) ok ;; *) bad "shot shows the top of an element taller than the room under the header" "want the outline's top edge below the header and its bottom edge past the PNG's end, got $got" ;; esac
 
   u="$(shot_url "$K" "$(noted look-5.html Berry Sharp Serif dark)")"
   got="$(dom_look "$u")"

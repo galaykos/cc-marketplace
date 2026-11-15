@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # preview-feedback.sh list [--all] | wait [--timeout S] | reply --id ID --status addressed|dismissed [--text LINE] | shot --id ID, each with [--docroot DIR] (default .cc-artifacts/taskmaster/mockups): reads DIR/.feedback.jsonl, the rows serve.py's POST /_feedback appends; prints rows as JSON, one per line, control, format and blank-rendering characters escaped; a handed-out row still open is unread again after 15 min; wait (stats every 0.5 s, parses on a change, default 600 s) and reply rewrite under DIR/.feedback.lock (serve.py's flock) through a dot temp file and a rename.
 # Exit: 0 done (list/wait print rows, wait then marks them handed_out with the time, reply prints the row, shot prints the PNG path); 2 bad argument; 3 wait timed out, nothing printed; 4 shot found no Chromium-family browser ($PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 no row with that id, or shot's row has no anchor or a page outside DIR; 1 python3 or find-browser.sh (beside this script) missing, wait could not print, the browser failed or ran past 30 s, or no PNG written.
-# Misses: row text is whatever the page posted, third-party script on it included; shot loads the page from 127.0.0.1 when preview.sh's server answers, else from disk (file://, where page script has file-scheme reach), in the row's palette, style, type and scheme only where the row holds the name (serve.py stores a refused one as null; the scheme is the last word of context.theme) and the page still has that option, else in the page's own, and with the default states, direction and width preset, never the row's; a viewport under 500 px is laid out 500 wide, its PNG cut to the row's width (headless Chrome's --window-size floor; preview-check.sh emulates exact widths); a row appended by anything other than serve.py skips the lock.
+# Misses: row text is whatever the page posted, third-party script on it included; shot loads the page from 127.0.0.1 when preview.sh's server answers, else from disk (file://, where page script has file-scheme reach), in the row's palette, style, type and scheme only where the row holds the name (serve.py stores a refused one as null; the scheme is the last word of context.theme) and the page still has that option, else in the page's own, and with the default states, direction and width preset, never the row's; page script first sees a window at least 500 px wide and shorter than the row's viewport (headless Chrome's --window-size; preview-check.sh emulates exact widths), then a resize event when the capture sets that viewport; the PNG is the document from its top, drawn only where the scrolled window is, so shell.html shifts the page under ?static=1 instead of scrolling: a page copied from an older shell shows blank rows above its header and may not show the element; a row appended by anything other than serve.py skips the lock.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-feedback.sh
 set -u
 
@@ -201,7 +201,7 @@ if cmd == "reply":
     print(show(entry[0]))
     sys.exit(0)
 
-# shot: resolve the row to a URL, the PNG path and the viewport; the shell outlines ?_outline= and scrolls to it.
+# shot: resolve the row to a URL, the PNG path and the viewport; the shell outlines ?_outline= and brings it below its header.
 entry = find(load())
 row = entry[0] if entry else None
 anchor = row.get("anchor") if row else None

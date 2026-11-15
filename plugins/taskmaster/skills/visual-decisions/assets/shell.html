@@ -2274,8 +2274,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
   function letterOf(frame) { return (frame && frame.dataset.vdLetter) || null; }
 
-  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted
-  // element and scrolls to it before the headless screenshot.
+  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted element and brings it below the sticky header, centred in the room there when it fits, else by its top.
   const outline = params.get('_outline');
   if (outline) {
     let el = null;
@@ -2283,7 +2282,20 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     if (el) {
       el.style.outline = '3px solid #e11d48';
       el.style.outlineOffset = '2px';
-      el.scrollIntoView({ block: 'center', inline: 'nearest' });
+      const still = params.get('static') === '1';
+      const reveal = () => {
+        document.body.style.marginTop = '';
+        const clear = document.getElementById('vd-header').offsetHeight + 24;
+        el.style.scrollMargin = clear + 'px 24px 24px';
+        el.scrollIntoView({ block: el.getBoundingClientRect().height + clear + 24 > innerHeight ? 'start' : 'center', inline: 'nearest' });
+        if (!still) return;
+        // Headless --screenshot writes the document from its top and draws only what the scrolled window holds, so the scroll becomes a shift of the body.
+        document.body.style.marginTop = -scrollY + 'px';
+        window.scrollTo(0, 0);
+      };
+      reveal();
+      // The capture first resizes the window to the row's viewport, which can change the header's height and move the element.
+      if (still) window.addEventListener('resize', reveal);
     }
   }
   if (params.get('static') === '1') return;
