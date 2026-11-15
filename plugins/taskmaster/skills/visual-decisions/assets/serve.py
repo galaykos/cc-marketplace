@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore, /_feedback and /_checks stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?, a pass outside 1..9 or a refused look name as null) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
 # Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
@@ -71,7 +71,9 @@ FEEDBACK_LOCK = ".feedback.lock"
 MAX_FEEDBACK_BODY = 8192
 MAX_FEEDBACK_FILE = 2 * 1024 * 1024  # appends stop here (507): a page looping posts must not fill the disk
 PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
-VARIANTS = ("A", "B", "C")
+VARIANTS = ("A", "B", "C", "D", "E", "F")
+SWITCHERS = ("palette", "style", "type")
+LOOK_NAME = re.compile(r"[A-Za-z0-9 _-]{1,24}")
 CHECKS_DIR = ".checks"  # dot-named, so never served: one folder per page, one record per width, written by scripts/preview-check.sh only
 CHECK_STAMP = "run.json"  # preview-check.sh writes it last in a page's folder: the watcher streams "checked" for that page
 
@@ -180,6 +182,14 @@ def _number(value):
     return value if isinstance(value, int) else round(value, 1)
 
 
+def _pass_number(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 9 else None
+
+
+def _look_name(value):
+    return value if isinstance(value, str) and LOOK_NAME.fullmatch(value) else None
+
+
 def page_key(value):
     """A docroot-relative page path: leading slashes dropped, at most 256 characters."""
     return _clean(value.lstrip("/")[:256]) if isinstance(value, str) else ""
@@ -209,12 +219,15 @@ def feedback_row(body):
     viewport = context.get("viewport") if isinstance(context.get("viewport"), dict) else {}
     states = context.get("states") if isinstance(context.get("states"), dict) else {}
     console = context.get("console") if isinstance(context.get("console"), list) else []
+    switchers = body.get("switchers") if isinstance(body.get("switchers"), dict) else {}
     return {
         "id": secrets.token_hex(4),
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "page": page_key(body.get("page")),
         "kind": kind,
         "variant": variant,
+        "pass": _pass_number(body.get("pass")),
+        "switchers": {k: _look_name(switchers[k]) for k in SWITCHERS if k in switchers},
         "anchor": anchor,
         "text": text,
         "context": {

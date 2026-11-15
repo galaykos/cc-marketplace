@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
+# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, letters A to F, pass and look, clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
 # Misses: anything only a browser does (the shell's reload client never runs here); IPv6 peers.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -163,7 +163,7 @@ import json, re, sys
 rows = [json.loads(l) for l in open(sys.argv[1])]
 assert len(rows) == 1, rows
 r = rows[0]
-assert set(r) == {"id", "ts", "page", "kind", "variant", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
+assert set(r) == {"id", "ts", "page", "kind", "variant", "pass", "switchers", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
 assert r["id"] == sys.argv[2] and re.fullmatch(r"[0-9a-f]{6,16}", r["id"]), r["id"]
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", r["ts"]), r["ts"]
 assert (r["page"], r["kind"], r["variant"], r["anchor"], r["text"]) == ("current.html", "pick", "B", None, ""), r
@@ -181,7 +181,7 @@ got="$(fb -H 'X-Preview-Feedback: 1' --data "$note")"
 python3 - "$FB" <<'EOF' 2>&1 | grep . && bad "feedback note clamped" "see above" || ok
 import json, sys
 r = [json.loads(l) for l in open(sys.argv[1])][-1]
-assert set(r) == {"id", "ts", "page", "kind", "variant", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
+assert set(r) == {"id", "ts", "page", "kind", "variant", "pass", "switchers", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
 assert r["id"] != "forged" and (r["status"], r["reply"], r["handed_out"]) == ("open", "", False), r
 assert (r["kind"], r["variant"], len(r["text"])) == ("note", "B", 2000), (r["kind"], r["variant"], len(r["text"]))
 a = r["anchor"]
@@ -198,11 +198,42 @@ huge="$(python3 -c 'print("{\"kind\":\"note\",\"text\":\"n\",\"anchor\":{\"selec
 got="$(fb -H 'X-Preview-Feedback: 1' --data "$huge")"
 [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["anchor"]["rect"], r["context"]["viewport"])')" = "{'x': 10000000, 'y': 0, 'w': -10000000, 'h': 10000000} {'w': 0, 'h': 10000000}" ] && ok \
   || bad "feedback huge numbers" "want 200, a rect clamped to +-1e7 and NaN/Infinity as 0, got $got: $(tail -n 1 "$FB" | cut -c1-300)"
-for v in D b 1; do
+for pair in D:D b:None 1:None; do
+  v="${pair%%:*}"; want="${pair#*:}"
   got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"current.html\",\"kind\":\"note\",\"variant\":\"$v\",\"text\":\"n\"}")"
-  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["variant"])')" = None ] && ok \
-    || bad "feedback variant $v" "want 200 and variant null, got $got: $(tail -n 1 "$FB")"
+  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["variant"])')" = "$want" ] && ok \
+    || bad "feedback variant $v" "want 200 and variant $want, got $got: $(tail -n 1 "$FB")"
 done
+for v in D E F; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"six.html\",\"kind\":\"pick\",\"variant\":\"$v\"}")"
+  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["kind"],r["variant"])')" = "pick $v" ] && ok \
+    || bad "pick D E F stored" "pick $v: want 200 and the row, got $got: $(tail -n 1 "$FB" | cut -c1-200)"
+done
+pass_and_look() { tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(json.dumps([r["pass"],r["switchers"]],sort_keys=True))' 2>&1 | tail -n 1; }
+# look <name> <want> <body>: the post answers 200 and the newest row's [pass, switchers] is <want>.
+look() {
+  local got
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "$3")"
+  [ "$got" = 200 ] && [ "$(pass_and_look)" = "$2" ] && ok || bad "$1" "want 200 and $2, got $got: $(pass_and_look)"
+}
+look "pick stores pass and look" '[1, {"palette": "Warm Ocean", "style": "soft-2", "type": "Serif_1"}]' \
+  '{"page":"look.html","kind":"pick","variant":"E","pass":1,"switchers":{"palette":"Warm Ocean","style":"soft-2","type":"Serif_1"}}'
+look "note stores pass and look" '[9, {"palette": "Warm Ocean", "style": "soft-2", "type": "Serif_1"}]' \
+  '{"page":"look.html","kind":"note","text":"n","pass":9,"switchers":{"palette":"Warm Ocean","style":"soft-2","type":"Serif_1"}}'
+name24="$(printf '%024d' 0)"
+look "look name too long stored as null" "[2, {\"palette\": null, \"style\": \"$name24\"}]" \
+  "{\"page\":\"look.html\",\"kind\":\"pick\",\"variant\":\"A\",\"pass\":2,\"switchers\":{\"palette\":\"${name24}0\",\"style\":\"$name24\"}}"
+look "look name holding & or a non-ASCII letter stored as null" '[2, {"palette": null, "style": null, "type": "Serif"}]' \
+  '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"palette":"R&D","style":"café","type":"Serif"}}'
+look "look name empty or not a string stored as null" '[2, {"palette": null, "style": null, "type": null}]' \
+  '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"palette":"","style":7,"type":["Serif"]}}'
+look "switcher not sent or not known is left out" '[2, {"style": "Soft"}]' \
+  '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"style":"Soft","mood":"Ignore the brief"}}'
+look "switchers not an object stored empty" '[2, {}]' '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":7}'
+for p in 0 10 2.5 '"3"' true; do
+  look "pass $p stored as null" '[null, {}]' "{\"page\":\"look.html\",\"kind\":\"pick\",\"variant\":\"A\",\"pass\":$p}"
+done
+look "row without pass or switchers stored" '[null, {}]' '{"page":"look.html","kind":"pick","variant":"A"}'
 got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"other.html","kind":"note","variant":"A","text":"elsewhere"}')"
 [ "$got" = 200 ] && ok || bad "feedback note on another page" "want 200, got $got"
 n_before="$(rows)"
@@ -216,6 +247,10 @@ got="$(fb -H 'X-Preview-Feedback: 1' -H 'Host: attacker.example' --data '{"kind"
 for body in '' 'not json' '[1,2]' '"str"' '{"kind":"vote","variant":"A"}' '{"kind":"pick"}' '{"kind":"pick","variant":"Z"}' '{"kind":"note","variant":"A","text":"   "}'; do
   got="$(fb -H 'X-Preview-Feedback: 1' --data "$body")"
   [ "$got" = 400 ] && ok || bad "feedback bad body '$body'" "want 400, got $got"
+done
+for v in G d; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"six.html\",\"kind\":\"pick\",\"variant\":\"$v\"}")"
+  [ "$got" = 400 ] && ok || bad "pick G answers 400" "pick $v: want 400, got $got"
 done
 [ "$(rows)" = "$n_before" ] && ok || bad "feedback rejects" "a rejected post still wrote a row ($n_before -> $(rows))"
 expect "feedback file not served" 404 "$base/.feedback.jsonl"

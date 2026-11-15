@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure; a PNG of the row's viewport size over http and from the file with a real one).
+# Drives scripts/preview-feedback.sh against temp docroots and a live serve.py: list (unread, --all, escaping), wait (a row posted during the wait ends it; a posted pick's pass and look; timeout; the 15-minute lease; print before mark; parse only on a change), reply (atomic rewrite, one line, bad args), posts racing rewrites, shot (exit 4 on stderr without a browser; a stand-in browser for the URL, sandbox, profile, time limit and failure; a PNG of the row's viewport size over http and from the file with a real one).
 # Misses: whether the PNG shows the outlined element (looked at by eye, not here); a browser that is found but cannot start; the shell's own controls (no browser runs the page here).
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -180,6 +180,10 @@ wait "$waiter"; rc=$?
 [ $((SECONDS - start)) -lt 5 ] && ok || bad "e2e wait latency" "took $((SECONDS - start)) s after the post"
 note_id="$(ids < "$T/wait.out")"
 [ -z "$(bash "$R" list --docroot "$E")" ] && ok || bad "e2e list after wait" "the handed-out note is still unread"
+got="$(post '{"page":"current.html","kind":"pick","variant":"E","pass":2,"switchers":{"palette":"Ocean","style":"Soft","type":"Serif"}}')"
+out="$(bash "$R" wait --docroot "$E" --timeout 5)"; rc=$?
+[ "$got" = 200 ] && [ "$rc" = 0 ] && [ "$(printf '%s\n' "$out" | python3 -c 'import json,sys;r=json.loads(sys.stdin.readline());print(json.dumps([r["variant"],r["pass"],r["switchers"]],sort_keys=True))' 2>/dev/null)" = '["E", 2, {"palette": "Ocean", "style": "Soft", "type": "Serif"}]' ] && ok \
+  || bad "wait prints pass and switchers" "want pick E with pass 2 and its look, got post $got, wait $rc: $out"
 
 # ---- posts racing rewrites: no row is lost (padding makes each rewrite slow enough to be hit; 3000 rows stay under serve.py's 2 MiB cap) ----
 python3 -c '
@@ -192,7 +196,7 @@ poster=$!; pids="$pids $poster"
 i=0; while kill -0 "$poster" 2>/dev/null; do i=$((i+1)); bash "$R" reply --docroot "$E" --id "$note_id" --status addressed --text "pass $i" >/dev/null; done
 wait "$poster"
 n="$(bash "$R" list --docroot "$E" --all | wc -l | tr -d ' ')"
-[ "$n" = 3061 ] && ok || bad "posts racing rewrites ($i rewrites)" "want 3061 rows, got $n"
+[ "$n" = 3062 ] && ok || bad "posts racing rewrites ($i rewrites)" "want 3062 rows, got $n"
 kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null
 
 # ---- shot -------------------------------------------------------------------------
