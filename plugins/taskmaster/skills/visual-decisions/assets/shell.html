@@ -1545,8 +1545,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 }
 #vd-fb-box .vd-fb-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
 .vd-fb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.vd-fb-refused { display: block; font-size: .72rem; font-weight: 600; line-height: 1.3; }
+.vd-fb-refused:empty { display: none; }
+.vd-frame > h2 .vd-fb-refused { clear: both; padding-top: 4px; text-align: end; }
+#vd-fb-box .vd-fb-refused { flex: 1 1 0; align-self: center; }
 @media print {
-  #vd-fb, .vd-fb-btn, #vd-fb-box, #vd-fb-hover { display: none; }
+  #vd-fb, .vd-fb-btn, .vd-fb-refused, #vd-fb-box, #vd-fb-hover { display: none; }
 }
 
 /* Check badge: shown only when serve.py answers GET /_checks for this page. */
@@ -1721,8 +1725,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     <p id="vd-fb-box-title"></p>
     <textarea id="vd-fb-text" maxlength="2000" required aria-labelledby="vd-fb-box-title"></textarea>
     <div class="vd-fb-actions">
+      <span id="vd-fb-box-refused" class="vd-fb-refused"></span>
       <button type="button" id="vd-fb-cancel">Cancel</button>
-      <button type="submit">Send note</button>
+      <button type="submit" aria-describedby="vd-fb-box-refused">Send note</button>
     </div>
   </form>
 </div>
@@ -2291,6 +2296,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const boxTitle = document.getElementById('vd-fb-box-title');
   const text = document.getElementById('vd-fb-text');
   const send = form.querySelector('button[type="submit"]');
+  const noteRefused = document.getElementById('vd-fb-box-refused');
   const hover = document.getElementById('vd-fb-hover');
   const live = document.getElementById('vd-fb-live');
   const kinds = ['palette', 'style', 'type'];
@@ -2332,7 +2338,8 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     return out;
   }
 
-  function post(fields) {
+  // `refused` is the message element beside the control that sent the post. A refused post is never sent again from here: serve.py drops or doubles a repeat pick by its own rules.
+  function post(fields, refused) {
     const body = Object.assign({ page: page, pass: pass, switchers: look(), context: context() }, fields);
     if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
     return fetch('/_feedback', {
@@ -2341,10 +2348,15 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       headers: { 'Content-Type': 'application/json', 'X-Preview-Feedback': '1' },
       body: JSON.stringify(body)
     })
+      .catch(err => { throw new Error('the server did not answer', { cause: err }); })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error('the server answered ' + r.status))))
-      .then(refresh)
+      .then(() => {
+        refused.textContent = '';
+        return refresh();
+      })
       .catch(err => {
-        announce('Not recorded: ' + err.message);
+        refused.textContent = 'Not recorded: ' + err.message;
+        announce(refused.textContent);
         throw err;
       });
   }
@@ -2492,6 +2504,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     pending = opts;
     boxTitle.textContent = opts.label;
     text.value = '';
+    noteRefused.textContent = '';
     box.hidden = false;
     place(opts.near.getBoundingClientRect());
     text.focus();
@@ -2535,8 +2548,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       pick.textContent = 'Pick';
       pick.setAttribute('aria-pressed', 'false');
       pick.setAttribute('aria-label', 'Pick variant ' + letter);
+      const refused = document.createElement('span');
+      refused.className = 'vd-fb-refused';
+      refused.id = 'vd-fb-refused-' + letter.toLowerCase();
+      pick.setAttribute('aria-describedby', refused.id);
       pick.addEventListener('click', () => {
-        post({ kind: 'pick', variant: letter })
+        post({ kind: 'pick', variant: letter }, refused)
           .then(() => announce('Variant ' + letter + ' picked.'))
           .catch(() => {});
       });
@@ -2548,6 +2565,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       note.addEventListener('click', () =>
         openBox({ variant: letter, anchor: null, near: h2, label: 'Note on variant ' + letter, opener: note }));
       h2.querySelector('.vd-title-btns').append(pick, note);
+      h2.append(refused);
     });
     new MutationObserver(showPick).observe(document.documentElement, { attributeFilter: kinds.map(kind => 'data-vd-' + kind) });
 
@@ -2559,7 +2577,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       const note = text.value.trim();
       if (!note || !pending) return;
       send.disabled = true;
-      post({ kind: 'note', variant: pending.variant, anchor: pending.anchor, text: note })
+      post({ kind: 'note', variant: pending.variant, anchor: pending.anchor, text: note }, noteRefused)
         .then(() => { announce('Note recorded.'); closeBox(); })
         .catch(() => {})
         .finally(() => { send.disabled = false; });

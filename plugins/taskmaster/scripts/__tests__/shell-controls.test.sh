@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap, and the title's buttons reading Focus, Pick, Note on screen and by Tab on one row, on a wrapped row and around a picked frame's long label; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500; on a themed project's page (palettes Project, which has no dark rule, and Neutral), Project listed first and active in each switcher with no Theme control in the header, the Scheme toggle disabled with its note beside it under Project and working under Neutral, a dark scheme chosen under Neutral held light while Project is active, and the palette and scheme a pick stores as its context theme (baseline on a page with no palette); the palette, style and type names a pick and a note store (no key for a kind the page has no option for, the one option of a kind whose switcher is hidden, none for a name serve.py refuses), the picked frame's button as its text, the accessible name the browser computes and aria-pressed, under the recorded look and under another palette, style or type, the second pick that Pick with current look stores, and at 375 a picked frame's label that fits its title row alone, and one wider than that row; under emulated print media on the dark scheme, a frame's paper, ink, nav bar, primary button and info alert in the active palette's light set, for a palette with a dark rule and for Neutral. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says beyond the Pick button's computed name (a change of look is not announced, and no case reads the live region); Stacked mode, the width presets; print on paper (page breaks, dropped backgrounds, any frame but those the print case reads); a note's stored row beyond its pass number and look; a pick stored before rows carried a look, shown on a page that has one; a look changed while a post is on its way; the title's button order in RTL, in a zoomed frame and with a Replay button; a picked frame's label at any width but 375 and 2560; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a State bar or the Scheme note (each adds a line; a themed page of six frames is not measured); the Scheme note at 375, and one too long for its line; a State bar's place in the header; a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line and surface, and primary off the print case), and Moss's dark set; a dark rule whose attribute selectors are written in the other order (read as no dark set); a palette on the html tag of a page of another pass kind; a context theme past the 16 characters serve.py keeps; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap, and the title's buttons reading Focus, Pick, Note on screen and by Tab on one row, on a wrapped row and around a picked frame's long label; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500; on a themed project's page (palettes Project, which has no dark rule, and Neutral), Project listed first and active in each switcher with no Theme control in the header, the Scheme toggle disabled with its note beside it under Project and working under Neutral, a dark scheme chosen under Neutral held light while Project is active, and the palette and scheme a pick stores as its context theme (baseline on a page with no palette); the palette, style and type names a pick and a note store (no key for a kind the page has no option for, the one option of a kind whose switcher is hidden, none for a name serve.py refuses), the picked frame's button as its text, the accessible name the browser computes and aria-pressed, under the recorded look and under another palette, style or type, the second pick that Pick with current look stores, and at 375 a picked frame's label that fits its title row alone, and one wider than that row; under emulated print media on the dark scheme, a frame's paper, ink, nav bar, primary button and info alert in the active palette's light set, for a palette with a dark rule and for Neutral; against a second server of its own that answers a post with 400, a refused pick's message drawn in words on the line under its Pick button (the frame not marked Picked, one post sent, the live region reading the same words, the button's computed description, nothing drawn under print media, gone once the next pick from that button is stored), a refused note's on Send note's row from a frame's Note button and from Point & note (none in a box opened afterwards), at 375 the title's buttons at full width above the message with no sideways scroll, and the message of a pick sent after that server stopped. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says beyond the Pick button's computed name (a change of look is not announced, and the live region is read after a refused pick only); a refusal other than a 400 or a stopped server (403, 413, 500 and 507 take the 400's path), a 200 whose body is no JSON, and the words another browser gives a failed request; a refusal message on the dark scheme, in RTL, in a zoomed frame, under a Picked label or title buttons that take two rows, wider than its title row, or in the note box at 375, and its contrast; a message left beside one control when another's post is stored; Stacked mode, the width presets; print on paper (page breaks, dropped backgrounds, any frame but those the print case reads); a note's stored row beyond its pass number and look; a pick stored before rows carried a look, shown on a page that has one; a look changed while a post is on its way; the title's button order in RTL, in a zoomed frame and with a Replay button; a picked frame's label at any width but 375 and 2560; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a State bar or the Scheme note (each adds a line; a themed page of six frames is not measured); the Scheme note at 375, and one too long for its line; a State bar's place in the header; a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line and surface, and primary off the print case), and Moss's dark set; a dark rule whose attribute selectors are written in the other order (read as no dark set); a palette on the html tag of a page of another pass kind; a context theme past the 16 characters serve.py keeps; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -218,8 +218,9 @@ done
 grep -q '^Serving ' "$T/serve.log" 2>/dev/null || { echo "FAIL server start: serve.py did not start: $(tail -n 1 "$T/serve.log")"; summary 0 1; exit 1; }
 
 python3 - "http://127.0.0.1:$port/" "$browser" "$sandbox" "$T/docroot" <<'PY'
-import fcntl, json, os, select, shutil, signal, subprocess, sys, tempfile, time
-from urllib.parse import quote
+import fcntl, json, os, select, shutil, signal, subprocess, sys, tempfile, threading, time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, quote
 from urllib.request import ProxyHandler, Request, build_opener
 
 base, browser, sandbox, docroot = sys.argv[1:5]
@@ -336,8 +337,8 @@ def settle(static=False):
         raise RuntimeError("%s: the feedback controls or the check badge never appeared" % js("location.pathname"))
 
 
-def open_page(name, width, static=False, fresh=True, stream=True, height=800):
-    """Load a docroot page at this viewport width (and height), in a fresh tab or, with fresh=False, in the tab already open: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded. stream=False refuses the fresh tab's pages their event stream."""
+def open_page(name, width, static=False, fresh=True, stream=True, height=800, at=None):
+    """Load a docroot page at this viewport width (and height), in a fresh tab or, with fresh=False, in the tab already open: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded. stream=False refuses the fresh tab's pages their event stream. at is another server's address to load it from in place of serve.py's."""
     if fresh:
         cdp.tab()
         if not stream:
@@ -345,7 +346,7 @@ def open_page(name, width, static=False, fresh=True, stream=True, height=800):
             cdp.call("Network.setBlockedURLs", {"urls": ["*/events"]})
     cdp.call("Emulation.setDeviceMetricsOverride", {"width": width, "height": height, "deviceScaleFactor": 1, "mobile": False})
     cdp.loaded = False
-    nav = cdp.call("Page.navigate", {"url": base + quote(name) + ("?static=1" if static else "")})
+    nav = cdp.call("Page.navigate", {"url": (at or base) + quote(name) + ("?static=1" if static else "")})
     if nav.get("errorText"):
         raise RuntimeError("could not load %s: %s" % (name, nav["errorText"]))
     settle(static)
@@ -994,12 +995,16 @@ WORDY = "Picked with Harbour morning at dawn, Comfortable and rounded, Humanist 
 AS_BUTTON = "as [text, accessible name, aria-pressed]"
 
 
+def computed(selector, what):
+    """The accessible name or description the browser computes for the first element matching the selector; "" when it has none."""
+    node = cdp.call("Runtime.evaluate", {"expression": "document.querySelector(%s)" % json.dumps(selector)})["result"]["objectId"]
+    return cdp.call("Accessibility.getPartialAXTree", {"objectId": node, "fetchRelatives": False})["nodes"][0].get(what, {}).get("value", "")
+
+
 def reads(selector):
     """A button as [text, the accessible name the browser computes for it, aria-pressed]."""
-    node = cdp.call("Runtime.evaluate", {"expression": "document.querySelector(%s)" % json.dumps(selector)})["result"]["objectId"]
-    name = cdp.call("Accessibility.getPartialAXTree", {"objectId": node, "fetchRelatives": False})["nodes"][0]["name"]["value"]
     text, pressed = js("(b => [b.textContent, b.getAttribute('aria-pressed')])(document.querySelector(%s))" % json.dumps(selector))
-    return [text, name, pressed]
+    return [text, computed(selector, "name"), pressed]
 
 
 def pick(selector):
@@ -1327,6 +1332,176 @@ def clears_header():
                  % (width, height, how, arrived, at["header"], [round(v, 1) for v in at["title"]], at["viewport"], at["room"]))
 
 
+class Refuser:
+    """A second server for the docroot's pages, on a free port. POST /_feedback answers self.status and keeps the row only when that is 200; GET /_feedback answers the rows kept, and GET /_checks an unchecked page, in the shapes the shell reads from serve.py."""
+
+    def __init__(self):
+        stub = self
+        self.status, self.rows, self.posts = 400, [], 0
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def answer(self, status, body, kind="application/json"):
+                self.send_response(status)
+                self.send_header("Content-Type", kind)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_GET(self):
+                path, _, query = self.path.partition("?")
+                file = os.path.join(docroot, os.path.basename(path))
+                if path == "/_feedback":
+                    page = parse_qs(query).get("page", [""])[0]
+                    self.answer(200, json.dumps({"rows": [r for r in stub.rows if r["page"] == page]}).encode("utf-8"))
+                elif path == "/_checks":
+                    self.answer(200, b'{"checked": false, "findings": 0}')
+                elif path.endswith(".html") and os.path.isfile(file):
+                    with open(file, "rb") as handle:
+                        self.answer(200, handle.read(), "text/html; charset=utf-8")
+                else:
+                    self.answer(404, b"")
+
+            def do_POST(self):
+                row = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                stub.posts += 1
+                if stub.status == 200:
+                    stub.rows.append(dict(row, status="open"))
+                self.answer(stub.status, json.dumps({"recorded": stub.status == 200}).encode("utf-8"))
+
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.base = "http://127.0.0.1:%d/" % self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def stop(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+def refusing(body):
+    """A group's body run against a Refuser of its own, stopped afterwards."""
+    def run():
+        stub = Refuser()
+        try:
+            body(stub)
+        finally:
+            stub.stop()
+    return run
+
+
+REFUSED = "Not recorded: the server answered 400"
+STOPPED = "Not recorded: the server did not answer"
+SEND = '#vd-fb-box button[type="submit"]'
+# Each text on the page that starts "Not recorded" and is drawn where a pointer reaches it, as [text, px its words lie beside the control, px above or below it, inside the container]; 0 px where the two overlap on that axis. The live region holds such a text and is not drawn.
+MESSAGES = """((control, within) => { const c = document.querySelector(control).getBoundingClientRect(), w = document.querySelector(within).getBoundingClientRect();
+  const words = el => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect(); };
+  return Array.from(document.querySelectorAll('body *')).filter(el => !el.children.length && el.textContent.startsWith('Not recorded'))
+    .map(el => [el, words(el)])
+    .filter(([el, r]) => r.width > 1 && r.height > 1 && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === el)
+    .map(([el, r]) => [el.textContent, Math.round(Math.max(r.left - c.right, c.left - r.right, 0)), Math.round(Math.max(r.top - c.bottom, c.top - r.bottom, 0)),
+                       r.left >= w.left && r.right <= w.right && r.top >= w.top && r.bottom <= w.bottom]); })(%s, %s)"""
+AS_MESSAGES = "as [text, px beside the control, px above or below it, inside %s]"
+
+
+def messages(control, within, ms=0):
+    """The refusal messages drawn on the open page, placed against a control and a container; with ms, after waiting that long at most for one to show."""
+    probe = MESSAGES % (json.dumps(control), json.dumps(within))
+    if ms:
+        wait(probe + ".length > 0", ms)
+    return js(probe)
+
+
+def under_pick(got, text):
+    """Whether got is one message reading text inside its title, its words on the line under the Pick button: no px to either side of it, 12 at most below."""
+    return len(got) == 1 and got[0][0] == text and got[0][1] == 0 and got[0][2] <= 12 and got[0][3]
+
+
+def on_send_row(got, text):
+    """Whether got is one message reading text inside the note box, its words on Send note's row."""
+    return len(got) == 1 and got[0][0] == text and got[0][2] == 0 and got[0][3]
+
+
+def refused_pick(stub):
+    title = "#vd-b > h2"
+    open_page("layout-5.html", 1280, at=stub.base)
+    js("void (window.vdRegions = Array.from(document.querySelectorAll('[role=\"status\"], [role=\"alert\"], [aria-live]')))")
+    click(PICK_B)
+    got, states = messages(PICK_B, title, 3000), pick_states()
+    case("refused pick shows a visible message and is not marked Picked", under_pick(got, REFUSED) and states == [PICK] * 5,
+         "B's pick was answered 400: messages drawn %s %s (want one reading %s under the Pick button, 12 px below at most); Pick buttons %s"
+         % (AS_MESSAGES % "B's title", got, REFUSED, states))
+    regions = js("window.vdRegions.filter(el => el.isConnected).map(el => el.textContent)")
+    case("refused post is announced", REFUSED in regions,
+         "B's pick was answered 400: the live regions the page had before the pick read %s (want one reading %s)" % (regions, REFUSED))
+    case("a refused pick is posted once", stub.posts == 1, "the server refused B's pick and was sent %d posts" % stub.posts)
+    said = computed(PICK_B, "description")
+    case("a refused post's message is its control's accessible description", said == REFUSED,
+         "the browser computes B's Pick button the description %r (want %r)" % (said, REFUSED))
+    cdp.call("Emulation.setEmulatedMedia", {"media": "print"})
+    printed = messages(PICK_B, title)
+    cdp.call("Emulation.setEmulatedMedia", {"media": ""})
+    case("a refused pick's message is not printed", printed == [], "under print media, where no Pick button is drawn, messages drawn %s" % printed)
+    stub.status = 200
+    stored = pick(PICK_B)
+    got, states = messages(PICK_B, title), pick_states()
+    case("a refused pick's message is gone once the next pick from that control is stored", stored and got == [] and states == [PICK, PICKED] + [PICK] * 3,
+         "B's pick was answered 400, then 200: messages drawn %s (want none); Pick buttons %s" % (got, states))
+
+
+def refused_note(stub):
+    open_page("layout-5.html", 1280, at=stub.base)
+    seen = []
+    # Both ways into the one note box: the frame's own Note button, then Point & note on an element of that frame.
+    for opened_by in ("Note on variant B", "Point & note"):
+        if opened_by == "Point & note":
+            click("#vd-fb-toggle")
+            click("#vd-b .vd-content h3")
+        else:
+            click('#vd-b button[aria-label="Note on variant B"]')
+        typing = wait("document.activeElement === document.getElementById('vd-fb-text')")
+        on_open = messages(SEND, "#vd-fb-box")
+        key("n")
+        click(SEND)
+        seen.append([typing, on_open, messages(SEND, "#vd-fb-box", 3000), js("document.getElementById('vd-fb-box').hidden"), computed(SEND, "description")])
+        click("#vd-fb-cancel")
+    (typing, _, got, closed, said), (pointing, on_open, pointed, pointed_closed, _) = seen
+    detail = "a note on B was answered 400: the note box took focus: %s, closed: %s; messages drawn %s %s (want one reading %s on Send note's row)"
+    case("refused note shows a visible message", typing and not closed and on_send_row(got, REFUSED),
+         detail % (typing, closed, AS_MESSAGES % "the note box", got, REFUSED))
+    case("a refused note sent from Point & note shows a visible message", pointing and not pointed_closed and on_send_row(pointed, REFUSED),
+         "from Point & note, " + detail % (pointing, pointed_closed, AS_MESSAGES % "the note box", pointed, REFUSED))
+    case("a refused post's message is its control's accessible description", said == REFUSED,
+         "the browser computes Send note the description %r (want %r)" % (said, REFUSED))
+    case("a note box opened after a refused note starts with no message", on_open == [],
+         "the first note was refused and its box cancelled: the next box opened with messages drawn %s" % on_open)
+
+
+def refused_pick_at_375(stub):
+    pick_c, title = '#vd-c button[aria-label^="Pick"]', "#vd-c > h2"
+    # The third frame's label cannot fold (see build_pages): its title's buttons wrap before the message joins them.
+    open_page("layout-3.html", 375, at=stub.base)
+    before = js(FRAMES)[2]
+    click(pick_c)
+    got, after = messages(pick_c, title, 3000), js(FRAMES)[2]
+    page = js("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+    case("a refused pick's message at 375 leaves the title's buttons at full width with no sideways scroll",
+         under_pick(got, REFUSED) and widths(after) == widths(before) and inside_title(after) and page[0] <= page[1],
+         "C's pick was answered 400: messages drawn %s %s; button widths %s against %s before the pick; buttons inside the title %s;"
+         " the page is %d px wide in a %d px viewport" % (AS_MESSAGES % "C's title", got, widths(after), widths(before), inside_title(after), page[0], page[1]))
+
+
+def server_stopped(stub):
+    open_page("layout-5.html", 1280, at=stub.base)
+    stub.stop()
+    click(PICK_B)
+    got, states = messages(PICK_B, "#vd-b > h2", 3000), pick_states()
+    case("a pick sent to a stopped server shows a visible message and is not marked Picked", under_pick(got, STOPPED) and states == [PICK] * 5,
+         "the server stopped before B's pick: messages drawn %s %s (want one reading %s under the Pick button, 12 px below at most); Pick buttons %s"
+         % (AS_MESSAGES % "B's title", got, STOPPED, states))
+
+
 cdp = None
 try:
     cdp = Browser()
@@ -1376,6 +1551,10 @@ try:
     group("no Look control and the switchers inline at 768 and 1280", no_look_when_wide)
     group("a switcher too wide for 375 scrolls inside itself", wide_switcher)
     group("a frame reached by key or jump link clears the sticky header", clears_header)
+    group("a refused pick", refusing(refused_pick))
+    group("a refused note", refusing(refused_note))
+    group("a refused pick at 375", refusing(refused_pick_at_375))
+    group("a pick sent to a stopped server", refusing(server_stopped))
 except Exception as exc:
     case("browser start", False, "%s: %s" % (type(exc).__name__, exc))
 finally:
