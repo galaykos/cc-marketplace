@@ -1,6 +1,6 @@
 ---
 name: design
-description: Use when drafting UI directions for a screen, flow, landing page or feature before any code — 3 artboards by default, up to 5, never more than 6, on one local canvas with editable text and adjustment knobs, the pick and edits pasted back as a prompt. Structural divergence, real content, one signature element, a11y floor. Reached by /design-kit:design.
+description: Use when drafting UI directions for a screen, flow, landing page or feature before any code — 3-5 artboards on one local canvas with editable text and adjustment knobs, the pick and edits pasted back as a prompt. Structural divergence, real content, one signature element, a11y floor. Reached by /design-kit:design.
 argument-hint: "[brief] [--screens 2-6] [--device phone|tablet|desktop] [--theme FILE]"
 ---
 
