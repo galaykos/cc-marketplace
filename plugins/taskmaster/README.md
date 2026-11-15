@@ -45,8 +45,11 @@ Without arguments it asks for a description first. The pipeline then:
    shell-based mockups on a live preview URL — built from a shipped template with
    a sticky decision header, side-by-side/stacked/flip compare modes, and numbered
    callouts pairing tradeoff bullets to mockup regions, rendered in the project's
-   own theme tokens when context-scout detects them (toggleable against a neutral
-   baseline). Context-scout's visual-surface report decides what counts as visual,
+   own theme tokens when context-scout detects them (the first option, `Project`,
+   of the page's Palette switcher, beside `Neutral`). A layout choice shows 3
+   directions by default, all restyled at once by the page's palette, style and
+   type switchers (see The mockup page below). Context-scout's visual-surface
+   report decides what counts as visual,
    and a one-time fidelity question (full mockups / ASCII only / none) runs before
    any mockup is built; whole-experience tasks get sliced into screens/flows first
    and grilled slice by slice
@@ -246,7 +249,9 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
 
 - **Skills**: grill (interrogation + ambiguity ledger + big-task slicing),
   visual-decisions (theme-aware shell mockups — `assets/shell.html` — with
-  compare modes, callouts, and motion passes on a live preview URL; variety across
+  compare modes, callouts, and motion passes on a live preview URL; 3 to 5 layout
+  directions on one page with palette, style and type switchers, described under
+  The mockup page below; variety across
   theme/density/type axes and dark/viewport/RTL/print modes, a
   chart/media/type/prose/marketing/code/stepper/icon primitive library, 8 starter
   layouts, and dedicated preview pages), experience-walkthrough
@@ -272,6 +277,8 @@ Credit: grill's frontier rule adapts one from an earlier (2026-09-02) read of [m
   `preview-feedback.sh`, `preview-check.sh`, `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
   (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
   drives both its writers and its reader; `serve.test.sh` drives the preview server itself;
+  `shell-controls.test.sh` drives the mockup page's controls in a headless browser;
+  `shape-guard.test.sh` drives the brainstorm write guard, a hook;
   `find-browser.sh` is the browser lookup both preview scripts source)
 - **Vendored**: `vendor/axe-core/` — axe-core 4.14.0, which the render checks run (see below)
 
@@ -284,6 +291,43 @@ observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
 The clarify gate is additionally off
 unless `CC_CLARIFY_GATE=block`. `PREVIEW_PORT` moves the preview server off 8123.
 
+### The mockup page
+
+One page per decision, copied from `skills/visual-decisions/assets/shell.html` and filled in. A frame is one
+lettered option on it; a pass is one round of frames. The rules live in the `visual-decisions` skill; this is
+what they produce.
+
+- **Frames.** A layout pass (the frames are layout directions) or a creative pass (concept, copy, tone) shows
+  3 directions by default, up to 5, never fewer than 2 and never more than 6; a sixth frame appears only as
+  one frame kept from the pass before plus five new ones. Frames are lettered A to F by their position on the
+  page. Every other pass kind (data shape, theme axis, motion) keeps at most 3 frames and has no switchers.
+  Gate where the render check runs: a seventh frame (check E7, below). Agent-graded: the default of 3, the
+  floor, the condition on a sixth frame, the other kinds' limit of 3, and that layout frames differ on layout
+  only.
+- **Switchers.** On those two pass kinds the header carries up to three switchers, in the order Palette
+  (colours), Style (corner radius, spacing, shadow) and Type (a system font stack), with at most 4 named
+  options each. Choosing an option restyles the content of every frame at once and nothing else on the page;
+  the active option of each switcher is the look. A switcher with fewer than two options is not shown, and in
+  a window 600 px wide or narrower the row folds behind a `Look` button. A browser tab keeps its look across
+  reloads. Gate: `scripts/__tests__/shell-controls.test.sh`, which drives the page in a headless browser (it
+  prints SKIP and passes on a machine without one); the limits are check E7.
+- **The project's theme.** A project with a theme of its own gets it as the first Palette option, `Project`,
+  with `Neutral` second; no separate theme toggle exists. A palette with no dark colours holds the page light
+  and disables the Scheme toggle while it is active. Each palette's text contrast is read in light and, where
+  it has dark colours, in dark (check E8, below). Gate: the same harness for `Project` and the Scheme toggle.
+  Agent-graded: filling `Project` from the project's own values, and saying in the header note when palettes
+  are proposals.
+- **Colour.** Colour on your own content is explored here, on the Palette switcher of a layout or creative
+  pass. The picked palette seeds `/ui-ux:theme` when ui-ux is installed; that command still decides and
+  writes the theme, and stays the command for a colour decision with no mockup. Standing: recorded.
+- **A pick.** Pick on a frame records the frame's letter, the pass number and the look (the row is under The
+  preview server, below). The agent writes the letter and the look to the ledger and quotes both in the spec,
+  and the gallery copy of the winning frame opens in the picked look. Gate for the stored row: `serve.test.sh`
+  and `shell-controls.test.sh`. What the agent does with it is agent-graded.
+- **Not built yet.** Buttons on the page that ask for another pass (you ask in chat, for up to 3 passes on
+  one decision), and binding the picked look: today it is recorded and quoted in the spec, and nothing holds
+  the implementation to it or writes it into a theme.
+
 ### The preview server
 
 `skills/visual-decisions/assets/serve.py`, started through `scripts/preview.sh`. Each rule below
@@ -293,7 +337,10 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   directory listings answer 404; dot files never appear on the session map, in the version list or in
   a reload event. Gate: `serve.test.sh`. Misses: a symlink in the docroot is followed out of it.
 - **Launcher.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh" [--docroot DIR] [--port N] [--lan]`
-  starts the server only when this docroot's server is not running and prints its URL either way;
+  prints the server's URL whatever it finds. With no server running for this docroot it starts one. A running
+  one that reports this plugin's `serve.py` version is reused. An older one, or one that gives no answer in
+  2 s, is stopped and started again from this `serve.py` on the same port with the same `--lan` setting, which
+  closes open event streams. A newer one is left running, with a line saying its controls may be refused.
   `--stop` ends it after checking the recorded pid really is serve.py on that docroot (by `ps`, else
   `/proc`; a live pid neither can name is exit 6 and left alone). Two starts at once take turns on
   `.preview.lock`, so they leave one server and print one URL. Exit codes are in its header. Gate:
@@ -313,23 +360,35 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   seconds.
 - **Reconnect.** A page built from the shell shows a "Preview server stopped" bar when serve.py's
   event stream drops, and reloads once the server answers again; on the lower rungs it polls as
-  before. Recorded: driven once in Chromium on 2026-11-12, and no harness runs a browser. Pages not
+  before. Recorded: driven once in Chromium on 2026-11-12, and no harness drives the bar. Pages not
   built from the shell (`diagram.html`, `walkthrough.html` and the like) carry no reload client.
 - **Feedback: picks and notes from the page.** `POST /_feedback` appends one row to the docroot's
-  `.feedback.jsonl` (a dot file, so never served): a pick of variant A–C, or a note with its text, the
-  variant, the element it points at (CSS selector, tag, text, bounding box), the viewport, theme, width and
-  state toggles in effect and the last five console errors. Every field is clamped (numbers to ±10,000,000)
+  `.feedback.jsonl` (a dot file, so never served): a pick of a frame, A to F, or a note with its text, the
+  frame, the element it points at (CSS selector, tag, text, bounding box), the viewport, theme, width and
+  state toggles in effect and the last five console errors. Either row also holds `pass`, the page's pass
+  number (1 to 9, anything else stored as null), and `switchers`, the look: the palette, style and type option
+  active at that moment (a name that is not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores is
+  stored as null). A pick equal in letter, pass and look to its page's newest pick, while that one is unread,
+  stores nothing and still answers 200. Every field is clamped (numbers to ±10,000,000)
   and unknown keys are dropped; a pick keeps no text and no element; a lone surrogate is stored as `?`. The
   route takes the same guards as Restore: a loopback peer (a LAN key does not help), a local Host and Origin,
   the `X-Preview-Feedback` header, 1 to 8192 bytes of a JSON object; else 403, 413 or 400. Once
   `.feedback.jsonl` would pass 2 MiB a post gets 507 until the file is moved aside. `GET /_feedback?page=`
-  returns that page's rows, loopback only. Gate: `serve.test.sh`.
+  returns that page's rows and the server's version number, the one the launcher compares, loopback only.
+  Gate: `serve.test.sh`.
 - **Feedback: the page's controls.** When that GET answers with JSON, a page built from the shell shows
-  Pick and Note on each variant, a "Point & note" toggle (Alt+Shift+P) that outlines the element under the
-  pointer or the arrow keys, and a Notes list with each note's status and reply. On a lower rung, over
+  Pick and Note on each frame, a "Point & note" toggle (Alt+Shift+P) that outlines the element under the
+  pointer or the arrow keys, and a Notes list with each note's status and reply. A picked frame's button reads
+  `Picked with <palette>, <style>, <type>` (plain `Picked` on a page with no look), and `Pick with current
+  look` once the active look differs from the recorded one; pressing that stores a new pick. A frame reads
+  as picked only while the newest pick carries the page's own pass number. A post the server refuses shows
+  `Not recorded: the server answered <status>` by its control. On a lower rung, over
   `file://` and with `?static=1` none of it appears, and `?static=1` also turns the reload client off.
-  Recorded: driven in Playwright Chromium on 2026-11-13, and again after the review fixes (a data attribute
-  holding a newline, a console object with no `toString`, cuts by code point); no harness runs a browser.
+  Gate: `shell-controls.test.sh`, in a headless Chromium (it prints SKIP and passes on a machine without
+  one), for Pick and Note on pages of one to six frames, the row a pick stores, the button's three texts and
+  the refusal message. Recorded: Point & note's outline, shortcut and arrow keys, and the Notes list, driven in
+  Playwright Chromium on 2026-11-13, and again after the review fixes (a data attribute
+  holding a newline, a console object with no `toString`, cuts by code point); no harness drives those.
 - **Feedback: the reader.** `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview-feedback.sh"` with `list [--all]`
   (unread open rows), `wait [--timeout S]` (blocks until one exists, prints it, then marks it handed out
   with the time; exit 3 after 600 s), `reply --id ID --status addressed|dismissed [--text LINE]`, and
@@ -342,8 +401,11 @@ names its standing; "gate" means a harness under `scripts/__tests__/` that CI ru
   Rewrites go through a temp file and a rename under the server's lock, so a note posted meanwhile is kept. Gate: `preview-feedback.test.sh`; that the model
   starts `wait` and acts on what it reads is agent-graded.
   Misses: any script on a served page, third-party script included, can post a pick or note; note text is
-  whatever was typed and nothing verifies it; the screenshot uses the default theme and states, not the
-  row's; console errors thrown before the shell's own script runs are not captured; a lower rung serves
+  whatever was typed and nothing verifies it; the screenshot is drawn in the row's palette, style, type and
+  scheme only where the row holds the name and the page still has that option, else in the page's own, and
+  always with the default states, direction and width preset, never the row's; a page copied from an older
+  shell may not show the noted element; console errors thrown before the shell's own script runs are not
+  captured; a lower rung serves
   `.feedback.jsonl` (`python3 -m http.server` serves dot files).
 
 ### Render checks
@@ -361,11 +423,13 @@ each pass before asking for the pick, fixes what it shows, re-runs once and name
 | Check | Reports | Misses |
 | --- | --- | --- |
 | E1 load | a body with no text or media; console errors, uncaught errors and rejections, read from the browser from the first script on (ten, the rest counted as dropped); a resource that failed (an error event, or a 4xx/5xx in the resource timing; not the browser's own `/favicon.ico` probe) | a failed cross-origin CSS background or font; a page that renders the wrong thing |
-| E2 layout | the page, or a shell variant box, scrolling sideways, naming the outermost element past the edge or the one whose unbroken text runs past it; a box wider than the viewport that is cut off; text cut by `overflow: hidden` or `clip` (an ellipsis whose full text is in a `title` or `aria-label` passes); text of in-flow block siblings whose lines' 0.8 em glyph bands overlap by 4 px each way and 35% of the smaller band (design-kit's rule, so the shell's `.vd-display` above `.vd-t1` passes); a focusable target under 24 by 24 px with another target within 12 px of its centre (the WCAG 2.5.8 spacing, inline and native-control exceptions) | overlap caused by absolute or fixed positioning, floats or inline runs; another scroll box that scrolls sideways by accident; clipping within 2 px; the off-screen slides of a carousel read as clipped |
+| E2 layout | the page, or a shell variant box, scrolling sideways, naming the outermost element past the edge or the one whose unbroken text runs past it; a box wider than the viewport that is cut off; text cut by `overflow: hidden` or `clip` (an ellipsis whose full text is in a `title` or `aria-label` passes); text of in-flow block siblings whose lines' 0.8 em glyph bands overlap by 4 px each way and 35% of the smaller band (design-kit's rule, so the shell's `.vd-display` above `.vd-t1` passes); a focusable target under 24 by 24 px with another target within 12 px of its centre (the WCAG 2.5.8 spacing, inline and native-control exceptions); at 375 px all of it again under each style option and each type option the page did not load with, one option at a time, a finding naming its option (`type "Mono": …`) | overlap caused by absolute or fixed positioning, floats or inline runs; another scroll box that scrolls sideways by accident; clipping within 2 px; the off-screen slides of a carousel read as clipped; under options: a style together with a type, an option at any width but 375, an element only an option shows |
 | E3 accessibility | axe-core's WCAG 2.0 to 2.2 A and AA rules at impact serious or critical: rule id, first element, help text, element count (`target-size` is off, E2 measures it) | moderate and minor impacts; best-practice rules; what axe marks incomplete; data-state blocks the page does not show by default |
 | E4 stand-in content | lorem ipsum, "placeholder", TODO, TBD or FIXME, "your text here" and the like, a whole text that is a generic word plus a number ("Item 3", "Row N"); three or more sibling rows or cards (`tr`, `li`, `article`, or blocks of two or more elements) with the same text outside a `data-state="loading"` block; a table with no filled cell or a list with no filled item outside a `data-state="empty"` block | realistic-looking wrong data; stand-ins in attributes such as `alt`; such a word used on purpose |
 | E5 variants, advisory | two variants with the same text, markup (tags, classes, attributes), colours and fonts; two variants sharing less than half of their words, of their parent-child tag pairs and of their colour and font values | two axes changed while a third stays close; the axis the header names; anything outside `.vd-frame > .vd-content` |
 | E6 change, advisory | for `current.html` or a ledger pass: the share of pixels that differ from the newest older ledger pass whose bytes differ, at the widest width, and the box around them; printed with `"advisory": true`, not counted as a finding | whether the change was the one asked for; a page that grew or shrank shifts everything below it, so the box covers it all; that pass can belong to another decision |
+| E7 limits | on a layout or creative pass only: more than 6 frames; more than 3 switchers; more than 4 options in one switcher; an option name used twice in its switcher; an option name the server refuses (not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores). Findings, not advisory | a page of any other pass kind, which is held to no limit; the default of 3 frames, the floor of 2 and the condition on a sixth; whether the frames differ on layout only |
+| E8 palette contrast | on any page with a palette, for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert or nav text, or the primary colour used as text, under 4.5:1 against the colour behind it, naming the palette and the scheme; read once, in the first width's load | text over a background image or dimmed by opacity; text that is no shell primitive; a pair on any background but those the page draws it on; a page with no palette |
 
 Thresholds and the reasons for them: `rationale/derivations/plugin-taskmaster.md`, section
 `plugins/taskmaster/scripts/preview-check.sh`.

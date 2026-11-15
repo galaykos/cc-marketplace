@@ -119,8 +119,8 @@ Two more, every run, settled in round 1 (agent-graded; no lint sees the walk):
   text-native tradeoffs, even on UI tasks. Use context-scout's Visual surface
   section as the prior. The skill asks its own fidelity consent on first use —
   never build a mockup before that gate; on a "no mockups" answer, present the
-  choice as plain multiple-choice instead. Colour/theme IS the decision →
-  `/ui-ux:theme`. Either way the options render on the local preview server —
+  choice as plain multiple-choice instead. Colour on the user's own content is explored on a layout or creative pass's Palette switcher; the picked palette seeds
+  `/ui-ux:theme`, which still decides and writes the theme and stays the command for a colour decision with no mockup. Either way the options render on the local preview server —
   never stand one up with the built-in Artifact tool, which skips both skills.
 - Data models — switch to the `erd` skill when the ledger touches persistent data (two-plus
   entities, any relation change); the approved model lands in the spec's Data Model section.

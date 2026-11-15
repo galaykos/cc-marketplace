@@ -65,8 +65,10 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    choice is between options that look or flow differently (layout, flow,
    architecture shape, data shape) — the skill asks fidelity consent (full mockups
    / ASCII only / none) on first use per session, with context-scout's Visual
-   surface section as the prior. When colour or theme is itself the decision,
-   switch to `/ui-ux:theme` instead. Every visual option renders on the local
+   surface section as the prior. Colour on the user's own content is explored on
+   the Palette switcher of a layout or creative pass; the picked palette seeds
+   `/ui-ux:theme`, which still decides and writes the theme and stays the command
+   for a colour decision with no mockup. Every visual option renders on the local
    preview server at `${PREVIEW_PORT:-8123}` — never publish one as a remote
    artifact, which bypasses the consent gate, the ledger, and the viewport and
    push-reload controls those previews carry.
