@@ -30,10 +30,19 @@ owned by the `ultra` skill's Goal mode, not here.
 
    **The reason is asked, not guessed.** When the prompt gives no reason and the scout
    report does not settle one, do not derive the first facet. Ask it before anything
-   else, in plain text with no options to pick from — a list of reasons gets the nearest
-   one picked, not the true one — and wait for the answer before round 1. A reason the
-   prompt states is never re-asked. With no user (headless, Goal) derive it and mark its
-   ledger row ASSUMED. Standing: agent-graded.
+   else, in one AskUserQuestion, and wait for the answer before round 1:
+   - the question says what the answer changes (sections, scope, tone, the success
+     shape), so the user sees why it is asked;
+   - two to four suggested reasons, each built from the prompt and the scout report,
+     each with one line on what it would lead to;
+   - the user's own wording always stays possible through the dialog's free-text
+     choice, and the question says so;
+   - no suggestion carries "(Recommended)": a suggested reason is a guess, and a
+     marked one gets picked over the true one.
+   A bare question with no suggestions is the failure this rule had in its first
+   test run. A reason the prompt states is never re-asked. With no user (headless,
+   Goal) derive it and mark its ledger row ASSUMED; a user who picks "no real
+   reason" gets the same ASSUMED row. Standing: agent-graded.
 3. **Show it with the first ledger print.** Print the upgraded statement together
    with the first ambiguity-ledger table so the user sees, from round one, the
    statement the interrogation is actually working from. In an interactive run this

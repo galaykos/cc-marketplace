@@ -185,6 +185,12 @@ has no test.
 **A9** was fixed by stating that the boost puts no tier on coverage; the unbound loop caps were
 removed from the radius table rather than bound.
 
+**R2 changed after its first test run (2026-11-14).** The rule shipped as a plain open question
+with no options, as the source describes it. Run on a real request it produced one bare line, and
+the owner rejected it: suggestions are wanted, with room for their own answer. The rule now asks in
+one dialog with two to four unranked suggested reasons and free text. This departs from the cited
+source, whose 33-of-33 figure is for the open form; the dialog form is unmeasured.
+
 **Left open:**
 
 | # | Why |
