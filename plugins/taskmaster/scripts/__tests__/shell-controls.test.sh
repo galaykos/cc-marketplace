@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown. --emit DIR only writes those pages into DIR.
-# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the switcher row at 375 (walked by eye); of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line, surface and primary), Moss's dark set, and print; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
+# Drives the shipped shell live through serve.py (no ?static=1, so Pick and Note are there) in a headless Chromium over its DevTools pipe, with real clicks and key presses, on pages of one to six frames: sideways scroll and frames per row at 375 and 1280, a jump link, Pick and Note per frame under its position letter, a pick's stored row and Picked state with a middle frame removed, number keys, Flip mode, title buttons that wrap; on pages marked pass 1, 2 and 12 and one with no pass mark, the pass number a pick and a note store and Picked only while the newest stored pick is on the page's own pass; on pages that author palette, style and type presets, the switcher row (its own line, order, labels, the first option active, a kind with one option or none, a creative pass, a page with no pass mark, Tab, Enter and Space, no reload, one such page loaded with ?static=1) and what a look restyles: every frame's content and nav bar, never the header, a title, a caption or a tradeoff list; and what a tab keeps of palette, style, type, Scheme and Direction: across a reload and the reload a pass written over the page causes, a kept option the next pass lacks, a second tab, another page path, another decision title, ?static=1, sessionStorage that throws; a look authored on the html tag, and one naming an option the page lacks; a kind's one option applied with no switcher shown; at 375 on such a page, the Look control that stands in for the switcher row (one control, closed on load, opened and closed by click and by Enter with focus kept, every switcher drawn and stacked once open, at 430 too, an option chosen inside it, a switcher too wide for the screen scrolling inside itself under a sideways wheel turn) and the closed header's share of the viewport on six frames with the version picker, the feedback controls and the check badge showing; no Look control and one line of switchers at 768 and 1280; a frame reached by a number key or a jump link landing with its title row below the sticky header, at 375 by 800 and at 1280 by 500. --emit DIR only writes those pages into DIR.
+# Misses: Firefox and Safari; touch and what a screen reader says; Stacked mode, the width presets, print; a note's stored row beyond its pass number; an earlier round's pick on a page rewritten in place to its next pass (it is posted under the pass 2 page's path instead); a pass mark that is no whole number; how a wrapped title looks (walked by eye); the width at which Look takes over (375, 430, 768 and 1280 are driven, nothing between) and a resize across it; Space on Look; how Look, its caret and its open groups look (walked by eye); the header's height with Look open, at any width but 375 (at 320 Look takes a line of its own), or closed on a page whose question wraps or that shows a Diffs toggle, a Theme toggle or a State bar (each adds a line); a frame reached with Look open, in Stacked mode or by a link to its id from another page; of a look, all but a frame's paper, ink, nav bar, one button's corner and font (so spacing, shadow, soft ink, line, surface and primary), Moss's dark set, and print; an option name that holds a double quote or a backslash; aria-pressed once the attribute is set by hand after load; a shell rule keyed on a look attribute being there, whatever its value; a tab duplicated or opened from the page, which the browser hands a copy of the kept look; a kept Scheme or Direction that is neither of its two values; a kept option the page lacks while its html tag authors another; a choice made under ?static=1; storage refused by a browser setting (the case makes window.sessionStorage throw); what paints before the script applies a kept look; the reload an event-stream announcement causes (a page overwritten here is refused its stream and reloads on its own one-second fetch). With no Chromium-family browser it prints SKIP and exits 0, or exits 1 under PREVIEW_REQUIRE_BROWSER=1.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 SHELL_HTML="$here/../../skills/visual-decisions/assets/shell.html"
@@ -15,7 +15,7 @@ if [ "${1:-}" = --emit ]; then
 fi
 command -v python3 >/dev/null 2>&1 || skip "python3 not found"  # skip: nothing here runs without python3; PREVIEW_REQUIRE_BROWSER=1 exits 1 instead
 
-# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), and kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), from the shipped shell.
+# build_pages <dir>: layout-1.html to layout-6.html (that many frames), layout-gap.html (six, the third block deleted), pass-2.html and pass-12.html (three, the body marked pass 2 and pass 12), pass-none.html (three, no pass marks), look-5.html (five, with palettes Neutral, Berry and Moss, styles Soft and Sharp, types Sans and Serif), look-6.html (six, the same presets), look-long.html (three, four palettes whose names do not fit a 375 px screen side by side), look-one.html (three, one palette, one style, one type), look-creative.html (three, a creative pass with two palettes), look-other.html (three, no pass marks, look-5's presets and one frame's own radius), look-authored.html (look-5 with Berry, Sharp, Serif, the dark scheme and dir rtl on its html tag), look-authored-gone.html (look-5 with a palette it lacks on its html tag), and kept.html, fewer.html and retitled.html (each look-5, for the runner to overwrite with its -next.html: look-5 on pass 2, the same without Moss, look-5 under another title), from the shipped shell.
 build_pages() {
   python3 - "$SHELL_HTML" "$1" <<'EOF'
 import os, re, sys
@@ -153,6 +153,9 @@ write("pass-none.html", marked(page(3), ""))
 write("pass-12.html", marked(page(3), ' data-vd-pass-kind="layout" data-vd-pass="12"'))
 look_5 = look(5, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF])
 write("look-5.html", look_5)
+write("look-6.html", look(6, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF]))
+write("look-long.html", look(3, ['html[data-vd-palette="%s"] .vd-content {}' % name
+                                 for name in ("Harbour morning", "Berry preserve", "Moss and stone", "Paper lantern")]))
 write("look-one.html", look(3, [BERRY], [SHARP], [SERIF]))
 write("look-creative.html", marked(look(3, [NEUTRAL, BERRY]), ' data-vd-pass-kind="creative" data-vd-pass="1"'))
 write("look-other.html", marked(look(3, [NEUTRAL, BERRY, MOSS], [SOFT, SHARP], [SANS, SERIF], css="#vd-b .vd-content{--vd-radius:0}"), ""))
@@ -322,14 +325,14 @@ def settle(static=False):
         raise RuntimeError("%s: the feedback controls or the check badge never appeared" % js("location.pathname"))
 
 
-def open_page(name, width, static=False, fresh=True, stream=True):
-    """Load a docroot page at this viewport width, in a fresh tab or, with fresh=False, in the tab already open: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded. stream=False refuses the fresh tab's pages their event stream."""
+def open_page(name, width, static=False, fresh=True, stream=True, height=800):
+    """Load a docroot page at this viewport width (and height), in a fresh tab or, with fresh=False, in the tab already open: live, returning once its Pick and Note buttons and its check badge are in place, or with ?static=1, once it has loaded. stream=False refuses the fresh tab's pages their event stream."""
     if fresh:
         cdp.tab()
         if not stream:
             cdp.call("Network.enable")
             cdp.call("Network.setBlockedURLs", {"urls": ["*/events"]})
-    cdp.call("Emulation.setDeviceMetricsOverride", {"width": width, "height": 800, "deviceScaleFactor": 1, "mobile": False})
+    cdp.call("Emulation.setDeviceMetricsOverride", {"width": width, "height": height, "deviceScaleFactor": 1, "mobile": False})
     cdp.loaded = False
     nav = cdp.call("Page.navigate", {"url": base + quote(name) + ("?static=1" if static else "")})
     if nav.get("errorText"):
@@ -882,6 +885,143 @@ def storage_refused():
          % (refused, AS_ACTIVE, opened, got[0], got[1], got[2]))
 
 
+# The header's drawn disclosure controls as [text, aria-expanded] and whether one has focus; each drawn switcher's kind, top and right edge, [scrollWidth, clientWidth, scrollLeft] and option names; the header's height, the viewport as [width, height], the page as [scrollWidth, clientWidth, scrollX].
+FOLD = """(() => { const drawn = el => el.getClientRects().length > 0, header = document.getElementById('vd-header'), root = document.documentElement;
+  const controls = Array.from(header.querySelectorAll('button[aria-expanded]')).filter(drawn);
+  return { controls: controls.map(b => [b.textContent, b.getAttribute('aria-expanded')]), focused: controls.includes(document.activeElement),
+           switchers: Array.from(document.querySelectorAll('[data-vd-switcher]')).filter(drawn).map(g => { const r = g.getBoundingClientRect();
+             return { kind: g.dataset.vdSwitcher, top: r.top, right: r.right, inner: [g.scrollWidth, g.clientWidth, g.scrollLeft],
+                      options: Array.from(g.querySelectorAll('button')).map(b => b.dataset.vdOption) }; }),
+           header: header.getBoundingClientRect().height, viewport: [innerWidth, innerHeight], page: [root.scrollWidth, root.clientWidth, scrollX] }; })()"""
+LOOK_CONTROL = "#vd-header button[aria-expanded]"
+CLOSED, OPEN = [["Look", "false"]], [["Look", "true"]]
+AS_FOLD = "as [disclosure controls drawn in the header as [text, aria-expanded]; switchers drawn]"
+
+
+def drawn(fold):
+    """What a FOLD answer shows: its disclosure controls, and its switchers as [kind, option names]."""
+    return [fold["controls"], [[s["kind"], s["options"]] for s in fold["switchers"]]]
+
+
+def look_by_click():
+    open_page(LOOK, 375)
+    closed = js(FOLD)
+    case("at 375 the switcher row is one closed Look control", drawn(closed) == [CLOSED, []], "%s %s" % (AS_FOLD, drawn(closed)))
+    click(LOOK_CONTROL)
+    opened = js(FOLD)
+    tops = [s["top"] for s in opened["switchers"]]
+    switch("palette", "Berry")
+    chosen = [colours(js(LOOK_PROBE)), drawn(js(FOLD))]
+    click(LOOK_CONTROL)
+    shut = js(FOLD)
+    case("Look disclosure opens and closes by click at 375 and shows every switcher stacked",
+         drawn(opened) == [OPEN, OPTIONS] and all(a < b for a, b in zip(tops, tops[1:])) and opened["page"][0] <= opened["page"][1]
+         and drawn(shut) == [CLOSED, []],
+         "%s after one click %s with switcher tops %s on a page %d px wide in a %d px viewport, after a second click %s"
+         % (AS_FOLD, drawn(opened), tops, opened["page"][0], opened["page"][1], drawn(shut)))
+    case("an option chosen inside Look at 375 restyles every frame and leaves Look open", chosen == [[BERRY] * 5, [OPEN, OPTIONS]],
+         "Berry was clicked with Look open: per frame [paper, ink, nav bar, nav text] %s (want %s), then %s %s" % (chosen[0], BERRY, AS_FOLD, chosen[1]))
+
+
+def groups_stack():
+    # At 375 these options take a line per group however the row is laid out; at 430 Style and Type would fit on one.
+    open_page(LOOK, 430)
+    click(LOOK_CONTROL)
+    got = js(FOLD)
+    tops = [s["top"] for s in got["switchers"]]
+    case("open Look stacks its groups one per line at 430", drawn(got) == [OPEN, OPTIONS] and all(a < b for a, b in zip(tops, tops[1:])),
+         "%s %s with switcher tops %s" % (AS_FOLD, drawn(got), tops))
+
+
+def look_by_enter():
+    open_page(LOOK, 375)
+    reached = False
+    for _ in range(40):
+        key("Tab")
+        if js(FOLD)["focused"]:
+            reached = True
+            break
+    states = []
+    # Enter on whatever else had focus would press that instead.
+    for _ in range(2 if reached else 0):
+        key("Enter")
+        got = js(FOLD)
+        states.append(drawn(got) + [got["focused"]])
+    case("Look disclosure opens by Enter at 375", states == [[OPEN, OPTIONS, True], [CLOSED, [], True]],
+         "Tab reached a disclosure control: %s; after each Enter %s and whether focus is still on the control: %s" % (reached, AS_FOLD, states))
+
+
+def version_picker():
+    """True once the version picker shows: it fills in after the feedback controls, and at 375 adds a line to the header."""
+    return wait("!document.getElementById('vd-versions').hidden")
+
+
+def closed_header():
+    open_page("look-6.html", 375)
+    listed_versions = version_picker()
+    got = js(FOLD)
+    frames = js("document.querySelectorAll('.vd-frame').length")
+    case("closed header under 40 percent at 375", listed_versions and frames == 6 and drawn(got) == [CLOSED, []] and got["header"] <= 0.4 * got["viewport"][1],
+         "the header is %.1f px in a viewport %d px tall (%.1f%%, want 40%% at most) on %d frames; the version picker is showing: %s; %s %s"
+         % (got["header"], got["viewport"][1], 100 * got["header"] / got["viewport"][1], frames, listed_versions, AS_FOLD, drawn(got)))
+
+
+def no_look_when_wide():
+    for width in (768, 1280):
+        open_page(LOOK, width)
+        got = js(FOLD)
+        tops = [s["top"] for s in got["switchers"]]
+        case("no Look control and the switchers inline at 768 and 1280", drawn(got) == [[], OPTIONS] and len(set(tops)) == 1,
+             "at %d: %s %s with switcher tops %s (want one line)" % (width, AS_FOLD, drawn(got), tops))
+
+
+def wide_switcher():
+    open_page("look-long.html", 375)
+    click(LOOK_CONTROL)
+    opened = js(FOLD)
+    palette = opened["switchers"][0]
+    # A sideways wheel turn over the group: a box that is only cut off moves for a script and not for its user.
+    at = js("(() => { const r = document.querySelector('[data-vd-switcher]').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()")
+    cdp.call("Input.dispatchMouseEvent", {"type": "mouseWheel", "x": at[0], "y": at[1], "deltaX": 120, "deltaY": 0})
+    wheeled = wait("document.querySelector('[data-vd-switcher]').scrollLeft > 0", 2000)
+    last = palette["options"][-1]
+    switch("palette", last)
+    after = js(FOLD)
+    active = js("document.documentElement.getAttribute('data-vd-palette')")
+    case("a switcher too wide for 375 scrolls inside itself",
+         len(palette["options"]) == 4 and palette["inner"][0] > palette["inner"][1] and palette["right"] <= opened["viewport"][0]
+         and opened["page"][0] <= opened["page"][1] and wheeled and active == last and after["page"][0] <= after["page"][1] and after["page"][2] == 0,
+         "open, the palette group's [scrollWidth, clientWidth, scrollLeft] is %s and its right edge %.1f in a %d px viewport, the page's [scrollWidth, clientWidth, scrollX] %s;"
+         " a sideways wheel turn over the group moved it: %s; after a click on its last option %s the group's is %s, the page's %s, html says %s"
+         % (palette["inner"], palette["right"], opened["viewport"][0], opened["page"], wheeled, last, after["switchers"][0]["inner"], after["page"], active))
+
+
+# For the frame at this position: the header's bottom edge, the frame's title row as [top, bottom], the viewport's height, and how much further the page could scroll once the frame's top met the viewport's top (under 0: it cannot get there, so nothing could cover it).
+REACHED = """(i => { const f = document.querySelectorAll('.vd-frame')[i], t = f.querySelector('h2').getBoundingClientRect(), root = document.documentElement;
+  return { header: document.getElementById('vd-header').getBoundingClientRect().bottom, title: [t.top, t.bottom], viewport: innerHeight,
+           room: root.scrollHeight - innerHeight - (f.getBoundingClientRect().top + scrollY) }; })(%d)"""
+
+
+def clears_header():
+    # 500 tall at 1280: at 800 the second row of frames cannot reach the top of the viewport.
+    for width, height, by_key, by_link in ((375, 800, 2, 4), (1280, 500, 5, 6)):
+        open_page("look-6.html", width, height=height)
+        version_picker()
+        # Two animation frames: whatever the header's last change of height set off has run.
+        js("new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))")
+        key(str(by_key))
+        seen = [["key %d" % by_key, js(FOCUSED) == by_key - 1, js(REACHED % (by_key - 1))]]
+        js("scrollTo(0, 0)")
+        click('nav[aria-label="Jump to variant"] a:nth-of-type(%d)' % by_link)
+        seen.append(["jump link %s" % LETTERS[by_link - 1], js("location.hash") == "#vd-" + LETTERS[by_link - 1].lower(), js(REACHED % (by_link - 1))])
+        for how, arrived, at in seen:
+            case("a frame reached by key or jump link clears the sticky header",
+                 arrived and at["room"] >= 0 and at["header"] <= at["title"][0] and at["title"][1] <= at["viewport"],
+                 "at %d by %d, %s: it got there: %s; the header ends at %.1f and the frame's title row spans %s in a viewport %d tall;"
+                 " the page could scroll %.1f px past the frame's top (under 0: this page cannot prove it)"
+                 % (width, height, how, arrived, at["header"], [round(v, 1) for v in at["title"]], at["viewport"], at["room"]))
+
+
 cdp = None
 try:
     cdp = Browser()
@@ -914,6 +1054,13 @@ try:
     group("a kept look stays with its path and title", another_path_or_title)
     group("a page loaded with ?static=1 after choices", static_after_choices)
     group("storage that throws", storage_refused)
+    group("Look disclosure opens and closes by click at 375", look_by_click)
+    group("open Look stacks its groups one per line at 430", groups_stack)
+    group("Look disclosure opens by Enter at 375", look_by_enter)
+    group("closed header under 40 percent at 375", closed_header)
+    group("no Look control and the switchers inline at 768 and 1280", no_look_when_wide)
+    group("a switcher too wide for 375 scrolls inside itself", wide_switcher)
+    group("a frame reached by key or jump link clears the sticky header", clears_header)
 except Exception as exc:
     case("browser start", False, "%s: %s" % (type(exc).__name__, exc))
 finally:

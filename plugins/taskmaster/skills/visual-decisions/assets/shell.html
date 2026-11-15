@@ -187,7 +187,7 @@ body {
   background: var(--vd-primary);
   color: var(--vd-on-primary);
 }
-#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle,
+#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle, #vd-look-toggle,
 #vd-ver-select, #vd-ver-restore {
   border: 1px solid var(--vd-line);
   background: var(--vd-paper);
@@ -198,7 +198,7 @@ body {
   border-radius: var(--vd-radius);
   cursor: pointer;
 }
-#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover,
+#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover, #vd-look-toggle:hover,
 #vd-ver-select:hover, #vd-ver-restore:not(:disabled):hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 /* Restore stays visible-but-inert while "Current (live)" is selected: hiding
    it would reflow the header on every pick, and a disabled control still says
@@ -225,6 +225,25 @@ body {
   font-weight: 600;
   color: var(--vd-ink-soft);
 }
+#vd-look-toggle { display: none; }
+#vd-look-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 6px; height: 6px;
+  margin-inline-start: 8px;
+  border-right: 2px solid;
+  border-bottom: 2px solid;
+  transform: translateY(-2px) rotate(45deg);
+}
+#vd-look-toggle[aria-expanded="true"]::after { transform: translateY(2px) rotate(-135deg); }
+@media (max-width: 600px) {
+  #vd-look-toggle { display: inline-block; }
+  .vd-controls:has(> #vd-look-toggle[aria-expanded="false"]) + .vd-look { display: none; }
+  .vd-look { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .vd-look-label { min-width: 4em; }
+  .vd-switcher { overflow-x: auto; }
+  .vd-switcher button { flex: none; }
+}
 
 /* ---- Variant frames -------------------------------------------------- */
 #vd-frames {
@@ -240,6 +259,8 @@ body {
   border-radius: var(--vd-radius);
   box-shadow: var(--vd-shadow);
   overflow: hidden;
+  /* --vd-header-h is the sticky header's height, kept current by the script: a frame scrolled to lands below it. */
+  scroll-margin-top: calc(var(--vd-header-h, 0px) + var(--vd-space));
 }
 .vd-frame > h2 {
   margin: 0;
@@ -1960,6 +1981,10 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     });
   }
 
+  const header = document.getElementById('vd-header');
+  new ResizeObserver(() =>
+    document.documentElement.style.setProperty('--vd-header-h', header.offsetHeight + 'px')).observe(header);
+
   // Focus variant N: scroll in side/stack, show in flip
   function focusVariant(i) {
     const frame = frames[i];
@@ -2185,7 +2210,20 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       item.append(title, group);
       row.appendChild(item);
     });
-    if (row.children.length) document.getElementById('vd-header').appendChild(row);
+    if (row.children.length) {
+      row.id = 'vd-look-row';
+      const fold = document.createElement('button');
+      fold.type = 'button';
+      fold.id = 'vd-look-toggle';
+      fold.textContent = 'Look';
+      fold.setAttribute('aria-expanded', 'false');
+      fold.setAttribute('aria-controls', row.id);
+      fold.addEventListener('click', () =>
+        fold.setAttribute('aria-expanded', String(fold.getAttribute('aria-expanded') !== 'true')));
+      // Beside Direction, not in the row it opens: on a line of its own it would add that line to the closed header.
+      document.getElementById('vd-dir-toggle').after(fold);
+      header.appendChild(row);
+    }
   }
 })();
 </script>
