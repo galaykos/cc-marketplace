@@ -64,7 +64,8 @@ mkdir -p "$MIRROR/$SK"
   echo '---'; echo
   echo "Resolve card 07 before continuing."
   echo "Then install the vue2 plugin for the legacy apps."
-  for i in $(seq 3 220); do echo "line $i"; done
+  pad=$(head -c 80 /dev/zero | tr '\0' 'x')
+  for i in $(seq 3 220); do echo "line $i $pad"; done
 } > "$MIRROR/$SK/SKILL.md"
 echo "# stray" > "$MIRROR/$DOC"
 {
@@ -113,7 +114,7 @@ rc=0
 [ "$vrc" -ne 0 ] \
   && echo "PASS: e2e planted mirror fails the build (validate.sh rc=$vrc)" \
   || { echo "FAIL: e2e validate.sh exited 0 on the planted mirror (want non-zero)"; rc=1; }
-printf '%s\n' "$out" | grep -qF "$SK/SKILL.md: body is 221 lines, over the 200-line ceiling" \
+printf '%s\n' "$out" | grep -F "$SK/SKILL.md: body is " | grep -qE ' [0-9]+ bytes, over the 16,000-byte ceiling' \
   && echo "PASS: budget FAIL fires" || { echo "FAIL: budget check did not fire"; rc=1; }
 printf '%s\n' "$out" | grep -qF "$DOC: non-functional doc inside a plugin" \
   && echo "PASS: doc-location FAIL fires" || { echo "FAIL: doc-location check did not fire"; rc=1; }

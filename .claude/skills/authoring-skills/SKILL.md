@@ -69,18 +69,19 @@ Scope a skill to a single capability with a single trigger.
 - Split when the body needs headings for unrelated behaviors: a reader who came
   for section A and never needs section B is two skills fighting one trigger.
 
-## The body budget — three measures, no floor
+## The body budget — bytes and line length, no line cap, no floor
 
-A body fails the build over **200 lines, 14,000 bytes, or 300 characters on one
-line**. The last two were added after a skill sat at a frozen 154 lines for 20
-commits while its bytes grew 31%: content stops adding lines and starts jamming
-them. Lines and bytes were raised from 150/10,000 on 2026-08-27 because the
-ceiling had become a target — 24 of 116 bodies sat at EXACTLY 150. The
-line-length measure was deliberately NOT raised: jamming is the symptom, and
-relaxing the symptom check would have hidden the evidence. Pressure now sits in
-`pc_budget_crowding`, a ratchet at the new ceiling (**gate**). There is **no floor** — 60 lines that say their piece is finished, not
-thin. Over any measure means two skills, or a `references/` file: point to a
-path and state only the rule the reader needs right now.
+A body fails the build over **16,000 bytes, or 300 characters on one line**
+(`pc_skill_budget`, **gate**). Bytes are what a load costs, and a body must
+survive compaction whole: Claude Code re-attaches the first 5,000 tokens of a
+skill, and 16,000 B is about 4,000–4,600. Lines are not counted. A line cap is
+what made authors jam rules onto existing lines and cut reasons to stay
+line-neutral, twice (150 lines in August, 197 in November). Wrap prose at
+~90 characters; the 300-char check catches a jammed line. There is **no floor** —
+60 lines that say their piece is finished, not thin. Over a measure means two
+skills, or a `references/` file: a body keeps every rule that must hold for the
+whole task (Claude Code does not re-read the skill), and points to a path for
+detail read once. History: `rationale/derivations/scripts-lib.md` § pc_skill_budget.
 
 ## Body structure
 

@@ -475,6 +475,34 @@ Here-strings, not pipes: a `grep -q` that exits on its first match broke the wri
 "printf: write error: Broken pipe" on stderr (run 40210716420).
 ```
 
+Editor's note (2026-11-16): the 200-line cap and `pc_budget_crowding` are removed; the byte cap
+moves 14,000 -> 16,000; the 300-char line check stays. Standing of this note: `recorded`.
+
+Why. With the crowding baseline at 0 and a window of `>= 198`, the real line cap was 197. The pile
+the 2026-08-27 raise was meant to end re-formed one step lower: bodies at 190-197 lines went 0
+(2026-08-26) -> 4 (10-01) -> 8 (10-15) -> 13 (11-16), against 6 in the 180s. Bodies at the cap
+carried 6.3 lines over 120 chars each, against 0.41 for bodies under 150 lines (p99 body line:
+121 chars). Cases: `fabbf139` plugin-scout fix kept "line-neutral on purpose" because 198 fails;
+`b023c414` task-cards netted -4 lines to add a section and lost the clause "mechanical breadth is
+not complexity" and the definition of a prefactor; grill sat at 192-196 lines while its bytes grew
+12,703 -> 13,765; `pr/review-contracts` appended two task-execution rules to existing lines.
+
+Why bytes alone. Lines are not what a load costs; at a fixed byte count a body costs the same
+however it wraps, so a line cap only moves content onto longer lines. The binding host constraint
+is compaction: code.claude.com/docs/en/skills (read 2026-11-16) says Claude Code "re-attaches the
+most recent invocation of each skill after the summary, keeping the first 5,000 tokens of each".
+16,000 B is ~4,000 tok at this repo's bytes/4 and ~4,570 at 3.5 B/tok: whole after compaction with
+margin. 17,500 B would sit at 5,000 at 3.5 B/tok. The same page advises "Keep `SKILL.md` under
+500 lines"; at the corpus median 58 B/line, 16,000 B is ~275 lines.
+
+Residuals. Bodies will pile under 16,000 B as they did under 14,000 (overseer sat 5 B under it for
+two months); nothing ratchets bytes. A body may now cost ~570 more tokens per load, and the
+"combined budget of 25,000 tokens" for re-attached skills is already exceeded by a boosted
+taskmaster + task-runner run (~28k tok of bodies, § pc_plugin_corpus). No tokenizer was run; the
+bytes-per-token range is an estimate. Declined: a ratchet on body lines over 200 chars (37 in 17
+bodies) — with no line cap there is no incentive left to jam, and the 300-char check bounds the
+worst case.
+
 ### pc_budget_crowding
 
 ```text
@@ -531,6 +559,10 @@ baseline of 31, and passed on every input including a deliberately crowded
 fixture. Caught by scripts/smoke/hook-budget-tests.sh on the commit that added
 both — which is the whole argument for writing the failing case first.
 ```
+
+Editor's note (2026-11-16): removed, with `scripts/skill-crowding-baseline.json`. At baseline 0 it
+was a second, lower line cap (197), not a drift detector, and the pile formed at 190-197, just
+outside its window (residual 3 above). Why: § pc_skill_budget, editor's note of the same date.
 
 ### pc_plugin_corpus
 

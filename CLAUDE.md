@@ -125,8 +125,8 @@ check's header here. Add the story there, not here.
 
 Numbers and rules you need while writing:
 
-- **SKILL.md body ≤ 200 lines, ≤ 14,000 bytes, ≤ 300 chars per line** (`scripts/validate.sh`,
-  gate), with no floor. Frontmatter, fenced code and table rows skip the line-length check.
+- **SKILL.md body ≤ 16,000 bytes, ≤ 300 chars per line** (`scripts/validate.sh`, gate), with no
+  line cap and no floor. Frontmatter, fenced code and table rows skip the line-length check.
 - **Frontmatter `description` + `when_to_use` ≤ 500 chars, measured TOGETHER** (`scripts/validate.sh`,
   gate). The CLI lists the pair as one joined string, so the gate charges the pair and its FAIL
   names both keys. No "Trigger words:" list in either.

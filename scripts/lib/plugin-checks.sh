@@ -34,19 +34,14 @@ _pc_removed_lists() {
 _pc_removed_lists \
   || echo "plugin-checks.sh: removed-plugins ledger unreadable, empty or malformed: ${_PC_RR_BAD:-${PC_REMOVED_PLUGINS_TSV:-$_PC_REMOVED_TSV_DEFAULT}} — pc_removed_refs fails every file until it is restored" >&2
 
-# pc_skill_budget <skill_md> — a body over 200 lines or 14,000 bytes, or a line over 300 chars outside fences and tables: prints "budget <path> lines|bytes|line-length <n>".
-# Misses frontmatter (validate.sh's description linter), fences and table rows, value per byte and any floor; drift under the cap is pc_budget_crowding's.
+# pc_skill_budget <skill_md> — a body over 16,000 bytes, or a line over 300 chars outside fences and tables: prints "budget <path> bytes|line-length <n>".
+# Misses frontmatter (validate.sh's description linter), fences and table rows, value per byte, any floor, and the line count, which is not gated (bytes are what a load costs).
 # Why, limits, history: rationale/derivations/scripts-lib.md § pc_skill_budget
 pc_skill_budget() {
-  local f="$1" n bytes maxlen maxline
+  local f="$1" bytes maxlen maxline
   [ -f "$f" ] || return 0
-  n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
-  if [ "$n" -gt 200 ]; then
-    printf 'budget %s lines %s\n' "$f" "$n"
-    return 1
-  fi
   bytes=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -c | tr -d ' ')
-  if [ "$bytes" -gt 14000 ]; then
+  if [ "$bytes" -gt 16000 ]; then
     printf 'budget %s bytes %s\n' "$f" "$bytes"
     return 1
   fi
@@ -349,33 +344,6 @@ pc_command_arg_hint() {
     bad=1
   done
   return $bad
-}
-
-# pc_budget_crowding <plugins_root> <baseline_file> — more skill bodies at 198+ lines (3 under the 200 cap) than the committed ratchet: prints "crowding <n> > <baseline>" and each file.
-# Misses quality, moves that net zero, a body parked just outside the window, and byte crowding. Lower the baseline when skills are cut; never raise it to pass.
-# Why, limits, history: rationale/derivations/scripts-lib.md § pc_budget_crowding
-pc_budget_crowding() {
-  local root="${1:-plugins}" base_file="${2:-scripts/skill-crowding-baseline.json}"
-  local baseline count f n crowded=""
-  [ -f "$base_file" ] || return 0
-  baseline=$(sed -n 's/.*"within_3_of_line_cap"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' "$base_file")
-  case "$baseline" in ''|*[!0-9]*) return 0 ;; esac
-  count=0
-  while IFS= read -r f; do
-    [ -n "$f" ] || continue
-    n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
-    if [ "$n" -ge 198 ]; then
-      count=$((count + 1))
-      crowded="$crowded  $f ($n)
-"
-    fi
-  done < <(find "$root" -mindepth 4 -maxdepth 4 -type f -name 'SKILL.md' 2>/dev/null | sort)
-  if [ "$count" -gt "$baseline" ]; then
-    printf 'crowding %s > %s\n' "$count" "$baseline"
-    printf '%s' "$crowded"
-    return 1
-  fi
-  return 0
 }
 
 # pc_plugin_corpus <plugins_root> <baseline_file> — more plugins than the ratchet whose skills/*/SKILL.md files together pass 160,000 B: prints "corpus <n> > <baseline>" and each plugin.
