@@ -218,7 +218,7 @@ bash_deny  "printf > file"                            "printf '%s\\n' '$GH' > to
 bash_deny  "second heredoc names ITS file"            "$(printf "cat > a.txt <<'A'\nclean\nA\ncat > b.php <<'B'\nk = '%s'\nB" "$AWS")" b.php
 bash_allow "heredoc to stdout only"                   "$(printf "cat <<'EOF'\n%s\nEOF" "$AWS")"
 bash_allow "echo of a \$VAR into .env"                'echo "API_KEY=$API_KEY" >> .env'
-# A Higgsfield signed upload URL: the redaction mod leaves it in a media_upload result (0.16.0); written to a file it still denies.
+# A Higgsfield signed upload URL: the redaction mod left it in a media_upload result (0.16.0 to 0.18.0); written to a file it still denies.
 HF_URL="https://upload.higgsfield.ai/user_2abc/0b7e.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIA""QRSTUVWXYZ234567%2F20261029%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Security-Token=IQoJb3JpZ2lu""X2VjEKz7aCmV1LW5vcnRoLTEiRzBF&X-Amz-Signature=9f86d081"
 deny_as    "Higgsfield upload URL written to a file" "an AWS access key ID" "UPLOAD_URL=$HF_URL"
 bash_deny  "Higgsfield upload URL echoed into a log"  "echo '$HF_URL' >> upload.log" upload.log
@@ -226,18 +226,34 @@ bash_allow "the curl PUT a Higgsfield upload runs"    "curl -X PUT -H 'Content-T
 marker_deny() { # marker_deny <name> <command> <expected file>
   out=$(bash_run "$2")
   if grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF "redaction marker [REDACTED:…] to $3." <<<"$out" \
-     && grep -qF '. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. CC_SECRET_REDACT=off, set by the user, allows it and also turns redaction off.' <<<"$out"; then pass=$((pass+1));
-  else echo "FAIL $1: expected the marker deny naming $3 and CC_SECRET_REDACT=off, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+     && grep -qF '. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. CC_SECRET_PROMPT=off, set by the user, allows it and also turns prompt masking off.' <<<"$out"; then pass=$((pass+1));
+  else echo "FAIL $1: expected the marker deny naming $3 and CC_SECRET_PROMPT=off, got: ${out:-<empty>}"; fail=$((fail+1)); fi
 }
 MASKED='STRIPE_SECRET=[REDACTED:a Stripe live secret key]'
 marker_deny "redaction marker written back through a heredoc" "$(printf "cat > .env.example <<'EOF'\n%s\nEOF" "$MASKED")" .env.example
 marker_deny "redaction marker appended with echo >>"          "echo '$MASKED' >> .env.example" .env.example
 bash_allow  "redaction marker in a command that writes no file" "grep -rn '[REDACTED:' storage/logs"
 bash_allow  "redaction marker in a heredoc to stdout only"    "$(printf "cat <<'EOF'\n%s\nEOF" "$MASKED")"
-bash_allow  "redaction marker written with CC_SECRET_REDACT=off" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=off
-bash_allow  "redaction marker written with CC_SECRET_REDACT=False" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=False
-bash_allow  "redaction marker written with CC_SECRET_REDACT=0" "echo '$MASKED' >> notes.txt" CC_SECRET_REDACT=0
-bash_allow  "redaction marker written with cc_secret_redact off in /config" "echo '$MASKED' >> notes.txt" CLAUDE_PLUGIN_OPTION_CC_SECRET_REDACT=false
+bash_allow  "redaction marker written with CC_SECRET_PROMPT=off" "echo '$MASKED' >> notes.txt" CC_SECRET_PROMPT=off
+bash_allow  "redaction marker written with CC_SECRET_PROMPT=False" "echo '$MASKED' >> notes.txt" CC_SECRET_PROMPT=False
+bash_allow  "redaction marker written with CC_SECRET_PROMPT=0" "echo '$MASKED' >> notes.txt" CC_SECRET_PROMPT=0
+bash_allow  "redaction marker written with cc_secret_prompt off in /config" "echo '$MASKED' >> notes.txt" CLAUDE_PLUGIN_OPTION_CC_SECRET_PROMPT=false
+# The file tools: until 0.19.0 the redaction mod refused these; scan.sh holds the same refusal now (Code Mode loads no tool.call mod).
+file_marker() { # file_marker <name> <tool> <json tool_input> deny|allow [env...]
+  local n=$1 t=$2 ti=$3 want=$4; shift 4
+  out=$(jq -cn --arg t "$t" --argjson ti "$ti" '{tool_name:$t, tool_input:$ti}' | env "$@" bash "$HOOK")
+  if [ "$want" = allow ]; then [ -z "$out" ] && pass=$((pass+1)) || { echo "FAIL $n: expected silence, got: $out"; fail=$((fail+1)); }
+  elif grep -q '"permissionDecision":"deny"' <<<"$out" && grep -qF 'writes the redaction marker [REDACTED:…]' <<<"$out" \
+     && grep -qF 'ask the user: CC_SECRET_PROMPT=off, set by the user, allows it and also turns prompt masking off.' <<<"$out"; then pass=$((pass+1))
+  else echo "FAIL $n: expected the marker deny, got: ${out:-<empty>}"; fail=$((fail+1)); fi
+}
+file_marker "Write of the marker"     Write "$(jq -cn --arg c "$MASKED" '{file_path:"/tmp/.env", content:$c}')" deny
+file_marker "Edit of the marker"      Edit  "$(jq -cn --arg c "$MASKED" '{file_path:"/tmp/.env", old_string:"x", new_string:$c}')" deny
+file_marker "MultiEdit of the marker" MultiEdit "$(jq -cn --arg c "$MASKED" '{file_path:"/tmp/.env", edits:[{old_string:"x", new_string:"y"}, {old_string:"z", new_string:$c}]}')" deny
+file_marker "NotebookEdit of the marker" NotebookEdit "$(jq -cn --arg c "$MASKED" '{notebook_path:"/tmp/n.ipynb", new_source:$c}')" deny
+file_marker "Write of the marker under CC_SECRET_PROMPT=off" Write "$(jq -cn --arg c "$MASKED" '{file_path:"/tmp/.env", content:$c}')" allow CC_SECRET_PROMPT=off
+file_marker "Write of the marker under the retired CC_SECRET_REDACT=off still denies" Write "$(jq -cn --arg c "$MASKED" '{file_path:"/tmp/.env", content:$c}')" deny CC_SECRET_REDACT=off
+file_marker "Write of a REDACTED word without the bracket" Write '{"file_path":"/tmp/a.md","content":"The log line reads REDACTED here."}' allow
 if [ -z "$(find "$REPO" \( -name .claude -o -name .cc-artifacts \) 2>/dev/null)" ]; then pass=$((pass+1));
 else echo "FAIL no state: a .claude/ or .cc-artifacts/ dir appeared under $REPO"; fail=$((fail+1)); fi
 

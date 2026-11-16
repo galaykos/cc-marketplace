@@ -542,6 +542,34 @@ ranges. A range names its row by label, so relabelling the AWS or assigned row i
 is masked again; the test copies the rows and does not read that file. A path or value holding a character outside the alphabet
 masks the same way.
 
+### Removed in 0.19.0 (2026-11-16)
+
+Tool-output masking, the Higgsfield exception above, the withheld errors and the write-back refusal for the file tools
+left the module, with the `CC_SECRET_REDACT` switch, `redact-core.ts`'s `Kept` ranges and its object walk. Claude Code's
+experimental Code Mode (CLI 2.1.323+) refuses to start with an installed mod that checks tool calls, and this was one; the
+user chose on 2026-11-16 to keep prompt masking in the mod and flag tool output with a command hook instead
+(`hooks/output-scan.sh`, below). The write-back refusal moved to `scan.sh`, switched by `CC_SECRET_PROMPT`, since masks now
+come only from the prompt guard. The text above is the history of the removed path.
+
+## plugins/secret-scanning/hooks/output-scan.sh
+
+Added 2026-11-16 (0.19.0) in place of the mod's tool-output masking (see the redact.ts section). A command hook can add
+context after a call but cannot rewrite its result, so the value has already reached the model and the transcript; the hook
+names each label so the model treats the value as a secret, never repeats it, and can tell the user to rotate it. It reads
+`hooks/patterns.tsv` through `hooks/patterns.sh` like `scan.sh`, so `pattern-parity.test.sh` runs it as a third reader and
+holds its first label to `scan.sh`'s.
+
+Every string leaf of `tool_response` (or a failure's `error`) is joined and scanned, so a JSON text block's escaped quotes
+never hide an assigned value; `base64` fields are dropped first. A combined alternation per flag decides most calls before
+the validating load: on 2026-11-16 ten clean calls took 0.115 s together on this machine.
+
+The path exception has one source. On 2026-11-16 the mod masked an `ls`/`echo` line shaped `secret-…: <path>` as an
+assigned secret literal: the assigned row takes `secret` plus `-scanning`, then `: `, then a path, whose `/` and `-` are in
+its value class, so 24 characters of path match. A real value with a `/` is base64, whose segments are no directories, so
+an assigned value is read as a path when the part before its last `/` is a directory under the call's cwd (or absolute, or
+under `~`). Lowercase-only and dictionary tests were rejected: paths carry `README` and `Components`. The rule is this
+hook's only; `scan.sh` and the mod still flag that line, which is a write or a prompt, not something a command printed.
+
 ## plugins/secret-scanning/scripts/__tests__/scan-hook.test.sh
 
 ### Header

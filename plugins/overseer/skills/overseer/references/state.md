@@ -8,7 +8,7 @@ evidence is machine-local by nature. Write every file here, never under `.claude
 Code refuses a Write there.
 
 A program opened before 2026-11-14 lives in `.claude/overseer/`. Until the new directory
-exists the SessionStart hook and the status line read it there; the first `program.sh` call
+exists the SessionStart hook reads it there; the first `program.sh` call
 copies the whole directory over once and leaves the original untouched (**gate**,
 `scripts/__tests__/program.test.sh`). From then on only `.cc-artifacts/overseer/` counts.
 A Read before that first call is not ledgered: `hooks/track-read.sh` writes only the new

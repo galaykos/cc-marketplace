@@ -382,6 +382,17 @@ within budget and the team then finished most of them.
 - **A worker's forecast is sent back once.** A return that parks on a forecast is
   re-dispatched with "attempt the first step"; a second one brings the card back inline.
   A split may split once more; a third level parks the subtree as `needs-user`.
+- **`scripts/card-status.sh --index <00-INDEX.md> --card NN --to <status>`** writes one status
+  cell when it is set (`/task-runner:run` step 3), with `--reason`, `--detail` and, for a split,
+  `--children "14 15"`. It rewrites that cell and no other byte, and refuses (exit 1, nothing
+  written): a park with no reason or a reason outside the five (the refusal says a forecast is
+  not a reason), a reason other than `split` with no detail, a split naming no child, itself or a
+  card with no row, a split parent set to anything but parked while a child it names is not
+  done, an unknown card or status, and a detail holding a `|` or a line break. A second
+  `in_progress` card is noted on stderr and still written, since a delegated parallel group has
+  several. Exit 2 is a usage or I/O error. It replaced the `card_status` mod tool in 0.59.0, so
+  it no longer refuses a subagent caller. **Gate where run** —
+  `scripts/__tests__/card-status.test.sh`; nothing forces the call, so a hand edit still passes.
 - **`scripts/park-check.sh --index <00-INDEX.md>`** runs at close and prints every parked card
   with no reason, and every split naming a child card that does not exist. Exit 0 clean, 1
   findings, 3 no card table.
@@ -412,21 +423,20 @@ changed since: no tracked file edited or staged, no untracked file added or chan
 edited. Anything else, an unreadable receipt included, prints `stale: <why>` and exits 1. It
 never writes the git index.
 
-Who reads it: `/git-workflow:finish` skips a fresh suite, overseer's acceptance may cite its log,
-and the task board shows `checks passed at <commit>: suite (<command>)` or `checks stale: <why>`
-under its summary, and `suite ✓ <commit>` at the end of the status line while a run's suite is
-fresh. The board asks `check` at each turn end and when the receipt, HEAD or the git index moved,
-not on every tool call; one that takes over 2 s reads stale. Not seen: other gitignored files
+Who reads it: `/git-workflow:finish` skips a fresh suite, and overseer's acceptance may cite its
+log. Not seen: other gitignored files
 (build output), skip-worktree or assume-unchanged files, untracked files inside submodules, nested
 repos that are not submodules, a receipt written by hand; a suite that leaves new untracked files
-behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.sh`,
-`tests/board.test.ts`.
+behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.sh`.
 
 ## Mods (Claude Code ≥ 2.1.291)
 
 Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
-in `hooks/hooks.json` beside the classic hooks, which fire with or without it. It carries
-four features under three off switches.
+in `hooks/hooks.json` beside the classic hooks, which fire with or without it. Since 0.59.0 it
+carries one feature and hooks no tool call, so it does not stop Code Mode
+(`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`), which refuses an installed mod that checks tool calls.
+The run board, its status line, the `/task-board` pane and the `card_status` tool were removed
+in 0.59.0: the index is the run's one view, and `scripts/card-status.sh` writes a status cell.
 
 - **Subagent model floors** (`hooks/floors.ts`). A new spawn of an agent in
   `role-floors.md`'s registry runs at no less than its floor, and one naming no model (or
@@ -445,103 +455,11 @@ four features under three off switches.
   agent from a plugin your organization installed by policy skips this module,
   `allowManagedModsOnly` or not (per sec-default's docs, not measured). Off:
   `CC_SPAWN_FLOOR=off` or the `/config` option `cc_spawn_floor`; the variable wins.
-- **Status line** (`hooks/board.ts`). While a run is registered on the current branch, one
-  line is pinned under the prompt:
-  `task-runner  <phase> <k>/8  card <N>/<total>  <p> parked  <u> unrecognised  <ultra|goal>  check running <m>m`.
-  `<phase>` is this session's live phase file's (`.cc-artifacts/cc-phase/<session>.json`, else an older taskmaster's `.claude/cc-phase/` one), else `build`, and `<k>/8` its
-  place in understand, shape, decide, plan, build, verify, review, ship (a phase outside that
-  list shows alone). N counts done cards plus the one in progress, and empty parts are dropped.
-  A card's status is the first word of its status cell; a word
-  outside `pending`, `in_progress`, `done`, `parked`, `skipped` and `blocked` (a run that wrote
-  `committed <sha>`) is counted as `unrecognised`, never silently as pending, and stays open
-  for the session-start notice, which names how many there are. A plain run, or an index with no card table, shows `task-runner  <phase> <k>/8`.
-  `check running <m>m` shows while the behavioral gate runs in the background, read from
-  `.cc-artifacts/task-runner/bg/running.pid` by candor's Stop check rule: the deadline on its third
-  line not yet passed (with no deadline, the file under 240 minutes old), the commit it names
-  is the current one, and the process it names is the gate, or on Linux any gate `pgrep` finds
-  running from inside the project; without `/proc`, any live process with that number counts.
-  `<m>` is the minutes since the file was written; while the check runs the line refreshes on
-  its own at each new minute, with no tool call or turn end needed, and stops when it ends.
-  With no run registered, a live phase file naming understand, shape, decide or plan shows
-  `taskmaster  <phase> <k>/8` (`taskmaster  shape 2/8`); any other phase shows no line.
-  It refreshes at session start, at each main-loop turn end and, while a run is registered
-  or the pane is open, after every tool call, main loop and subagents, parsing the index
-  again only when its modification time moves (an index that cannot be statted, read or
-  parsed is read again at every refresh); only the newest of overlapping refreshes paints,
-  so a slow one cannot revive an ended run's line. The board's saved state is written only
-  when it changed (since 0.46.1). Subagent tool calls refresh it on purpose during a run: a
-  delegated executor marking its card done moves the line mid-turn. **Idle** (since
-  0.49.0): when the last refresh found no run and no open pane, a subagent's tool call
-  refreshes nothing and a main-loop call refreshes at most once every 2 s, so a run that
-  registers within 2 s of the last look shows at the next call after that, or at the turn
-  end. **Gate** — `tests/board.test.ts`, "an idle board looks again at most every 2 s, never
-  on a subagent call" and "a run started within the idle gap shows at the turn end". With no
-  run registered on this branch, the line clears unless the planning phase shows.
-- **Task board** (`hooks/board-view.tsx`, `/task-board`). A pane of the run's cards:
-  `Task board  <slug>  <marker>`, then `<phase>  <done>/<total> done  <p> parked  <u> unrecognised`,
-  then `waiting on: background check running <m>m` only while that check runs (as in the
-  status line), then a button row, then one row per card (id, title cut to the pane width,
-  parallel group, marker), with a header row before each milestone's cards. During a run each
-  row adds two columns under a one-line legend: **review**, whether the card's review is
-  recorded, and **check**, whether its test was shown to fail without the change. Each reads
-  `yes`, `skip` (skipped with a reason), `exempt` (no review owed: a leaf card, or no
-  reviewer installed) or `no`. They are the records candor's Stop check counts:
-  `.cc-artifacts/task-runner/rv/rv-seen-`, `rv-skip-` or `rv-exempt-<card>.json`, and
-  `.cc-artifacts/task-runner/nc/nc-pass-` or `nc-skip-<card>.json`, only those written after the run
-  was registered. A numeric card id matches without its leading zeros (`1` is card `01`), as candor counts any id. `/task-board` opens or closes
-  it; with no run it shows the newest `.cc-artifacts/taskmaster/tasks/*/00-INDEX.md` (or `taskmaster-docs/tasks/`), labelled
-  `not running`. It opens itself once per run in a session, the first time a refresh sees
-  that run, when the terminal can place it; a pane you close stays closed for that run
-  unless you pin it (next item).
-  `r: Run next` puts `/task-runner:run <index>` in the prompt box and `t: Red-team` puts
-  `/taskmaster:redteam <spec>` there, replacing what the box held; neither sends anything.
-  Red-team is hidden when taskmaster's red-team command is not installed or the index
-  names no spec. A plain run shows `plain run — no card index`, and an index that cannot
-  be parsed shows `index unreadable: <path>`, both without buttons.
-- **Pin (opt-in).** `/config` option `cc_task_board_pin`, off by default, or
-  `CC_TASK_BOARD_PIN=on` (`1`, `true`); the variable wins. While a run is active on this
-  branch, closing the board by hand lets it close, then opens it again 100 ms later.
-  `/task-board` still closes it for good. Below 144 terminal columns the reopened board
-  waits undrawn until the terminal is widened or you run `/task-board`, which then shows
-  it instead of closing it. The pin reopens rather than refuses because on CLI 2.1.294 a
-  hook that refuses a person's close does not keep the pane open. Standing: **recorded** —
-  the test kit cannot raise a person's close, so the reopen was measured only with a probe
-  plugin on CLI 2.1.294 (marketplace repository,
-  `rationale/2026-10-08-mods-ui-survey-and-pane-probe.md` §3), not with this one;
-  `tests/board.test.ts` gates the switch's default and override, that `/task-board` closes
-  a pinned board, and that it shows an undrawn one.
-- **Markers.** `[x]` done, `[>]` in progress, `[ ]` pending, `[-]` parked (a skipped card
-  too), `[!]` blocked, `[?]` a status outside the vocabulary. `<NN` names the first unmet dependency and `+N` how many more
-  (`<11+5`); only a done dependency is met, so a parked one counts as unmet.
-- **Off switch for the line and the pane.** `CC_TASK_BOARD=off` (or `0`, `false`), or the
-  `/config` option `cc_task_board` off; the variable wins. Off clears the line, the
-  planning-phase `taskmaster` line too, at the next refresh and keeps the pane from opening, and a session started with it off has no
-  `/task-board`.
-- **Card status tool** (`hooks/status.ts`, since 0.53.0). While a run with a card index is
-  registered on this branch, the model has one more tool, `mcp__task-runner__card_status`:
-  `card`, `status` (`pending`, `in_progress`, `done`, `parked`, `blocked`, `skipped`), and
-  for a park `reason` (`evidence`, `misspec`, `needs-user`, `split`, `guard`), `detail` and
-  `children`. It rewrites that card's status cell and nothing else in the index. It
-  refuses, and writes nothing, for: a parked status with no reason or a reason outside the
-  five (the refusal says a forecast is not a reason); a reason other than `split` with no
-  detail; a split naming no child, itself, or a card with no row; a split parent set to
-  anything but parked while a child it names is not done; an unknown card or status; a
-  detail holding a `|` or a line break; and any call from a subagent, since only the
-  orchestrator writes the index. This is the park rule of "A card is parked on evidence"
-  above, checked when the status is written, not at close. The tool is listed at session
-  start, or after the main loop's Bash runs `register-run.sh`, and in front of ToolSearch;
-  with no run, or a run with no index, it does not exist, so a session that runs no cards
-  pays nothing for it. It draws nothing, so it does not depend on the surface. Off:
-  `CC_CARD_STATUS=off` or the `/config` option `cc_card_status`; the variable wins.
 - **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
   2.1.288-2.1.290 the module passes every call through; either way the classic hooks work
   exactly as before. An organization that sets `allowManagedModsOnly` refuses the module
   and leaves only the classic hooks (per the CLI's built-in sec-default mod documentation,
-  not measured). On 2.1.287 with mods on the module still registers its hooks (the version
-  check runs inside them), and the board's `tool.call` hook matches every tool, not only
-  `Write`. So that CLI's own bug — a plugin's `tool.call` hook breaking Bash and file search
-  in worktree subagents, fixed in 2.1.288 — applies even with all three switches off:
-  upgrade the CLI or turn mods off.
+  not measured).
 
 - **Counts** (since 0.49.0). One is added, in this plugin's own `$.store` (key `outcomes`),
   to `floors.raised.<agent>` each time a spawn's tier is raised: counts only, never text, on
@@ -551,36 +469,13 @@ four features under three off switches.
 
 Residuals, stated:
 
-- **The status tool is optional.** Nothing stops the model editing the status cell by hand,
-  and with mods off it must; `scripts/park-check.sh` at close is the backstop. Verified
-  live once, in a headless `claude -p` session on CLI 2.1.322: a park with detail "too
-  large" and no reason was refused, the same card with `evidence` was written. The Desktop
-  app has not been verified. A run that ends leaves the tool listed until the session
-  ends; a call then is refused with "No task-runner run".
-- **Terminal only.** The pane was verified live in a terminal on CLI 2.1.292, driven
-  through pexpect. No other surface (desktop, web) has been verified.
-- **Fail-open.** A hook that errors passes the call through as if the module were absent:
-  a spawn runs unfloored, the line and the pane skip that refresh.
-- **Ambiguous width.** `…` (a cut title) and `—` (a milestone header, the plain-run note)
-  are ambiguous-width characters; a terminal that draws them double-width, as CJK-wide
-  setups do, misaligns that row.
-- **An open pane with no run** lists `.cc-artifacts/taskmaster/tasks` and `taskmaster-docs/tasks` and checks every index's
-  modification time on each tool call, to find the newest.
-- **A git call per tool call during a run.** While a run is registered or the pane is open,
-  every tool call waits for a refresh that runs `git` once or twice (twice while
-  `.cc-artifacts/task-runner/active-run.json` names a run on this branch) and reads that file;
-  idle, a main-loop call waits for one `git` call at most every 2 s. `CC_TASK_BOARD=off`
-  removes all of it. The idle gap is gated (above); the per-run count is not.
+- **Fail-open.** A hook that errors passes the spawn through as if the module were absent:
+  it runs unfloored.
+- **Code Mode is unverified.** That a mod with no `tool.call` hook lets Code Mode start is read
+  from the host's docs, not measured here.
 
-Standing: **gate** — `tests/floors.test.ts`, `tests/board.test.ts` and `tests/status.test.ts` run under `claude plugin test` in CI (the marketplace repository's
-`scripts/mod-tests.sh`), so a regression in a tested case fails the build, and the host's
-validator fails a `$.state` key that `types/index.d.ts` does not declare. A 2.1.291 test
-cannot read `$.state`, so the board state's `runActive` and `phase` are asserted only
-through the pane's rendered text. Untested here: the drawn screen (the test kit records
-text, so the `r:` and `t:` labels were seen only in the live run) and the board's error
-paths. The
-live-view exemption in task-execution's "No status theater", which lets a board exist, is
-**recorded**: nothing checks that a view keeps no status of its own.
+Standing: **gate** — `tests/floors.test.ts` runs under `claude plugin test` in CI (the
+marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build.
 
 ## Pairs well with
 

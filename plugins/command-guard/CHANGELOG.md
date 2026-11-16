@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 — 2026-11-16
+
+- **`scripts/settings-lint.sh` names `CC_SECRET_OUTPUT_SCAN` in place of the retired `CC_SECRET_REDACT`.** secret-scanning 0.19.0 removed tool-output masking (Code Mode refuses a mod that checks tool calls) and its switch; the lint now flags a project or user setting that turns off the PostToolUse flag that replaced it. Standing: gate — `settings-lint.test.sh` holds each name to the root README's off-switch table.
+
 ## 0.10.0 — 2026-11-10
 
 - **Asks before a git command that skips the repository's hooks or signing.** `--no-verify` on `git commit`, `push`, `merge`, `rebase`, `am`, `cherry-pick` or `pull` (abbreviations from `--no-veri`); `-n` on `commit` and `am` only, the two subcommands whose git 2.53 docs make it `--no-verify` (it is `--dry-run` on `push`, `--no-stat` on `merge`, `rebase` and `pull`, `--no-commit` on `cherry-pick` and `revert`, so those stay silent); `-c core.hooksPath=…` or `--config-env=core.hooksPath=…` before one of them or `revert`, and `git config` (`--global` too, or `set`/`unset`/`--unset`) writing `core.hooksPath`; `--no-gpg-sign`, `-c commit.gpgsign=false` and `git config commit.gpgsign false`; `HUSKY=0`, `SKIP=…` or `LEFTHOOK=0`/`false` in front of one of them. A later `--verify` or `-S` cancels the bypass, as in git. Words are read with the guard's existing quote removal, so a commit message naming `--no-verify` or `-n` passes, as do `grep -- --no-verify`, `git log --no-verify`, `git log -n 5`, `git commit -m -n` and `HUSKY=0 npm ci`; a shell's `-c` script and `eval`'s words are read too. Misses: an earlier `export HUSKY=0`, a git alias, `GIT_CONFIG_*`, a script that commits.

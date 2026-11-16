@@ -1,8 +1,8 @@
-import type { EngineInterface, HookFailure, On, PluginOptions } from 'claude-code'
+import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
 import { isSupported, switchOn } from './cc-kit'
 import { parsePatterns, redact, secretSpans } from './redact-core'
-import type { Kept, Pattern } from './redact-core'
+import type { Pattern } from './redact-core'
 
 const MASK = '[REDACTED:'
 
@@ -23,130 +23,16 @@ const DRAFT_STYLE = { color: 'error', underline: true } as const
 // A command name with no second slash: a path such as /tmp/x is sent as a plain prompt, an unknown /name raises no submit.
 const COMMAND = /^\/[^\s/]+(?:\s|$)/
 
-const BASE64 = /^[A-Za-z0-9+/]*={0,2}$/
-
-const TEXT_MIME = /^text\/|json|xml|pem/i
-
-// Higgsfield's media_upload returns an upload URL whose X-Amz-Credential and X-Amz-Security-Token values match the AWS and
-// assigned rows, and the masked URL cannot take the PUT.
-// Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/redact.ts
-const UPLOAD_TOOL = /^mcp__.+__media_upload$/
-const SIGNED_UPLOAD = /https:\/\/upload\.higgsfield\.ai\/[A-Za-z0-9%._~\/-]+\?[A-Za-z0-9%._~=&-]+/g
-const KEPT_PARAMS = [
-  { param: /[?&]X-Amz-Credential=(ASIA[0-9A-Z]{16})/g, label: 'an AWS access key ID' },
-  { param: /[?&]X-Amz-Security-Token=([A-Za-z0-9%._~-]+)/g, label: 'an assigned secret literal' },
-]
-
 const WRITE_BACK_BAN =
   'Never write a [REDACTED:…] placeholder back to a file: it would replace the real value, and Write, Edit, ' +
   'MultiEdit and NotebookEdit refuse it. Leave the value out of the edit instead.'
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-
-  const proto: unknown = Object.getPrototypeOf(value)
-
-  return proto === Object.prototype || proto === null
-}
-
-function writtenTexts(input: Readonly<Record<string, unknown>>): unknown[] {
-  switch (input.tool) {
-    case 'Write':
-      return [input.content]
-    case 'Edit':
-      return [input.new_string]
-    case 'NotebookEdit':
-      return [input.new_source]
-    case 'MultiEdit':
-      return Array.isArray(input.edits) ? input.edits.map(edit => (isPlainObject(edit) ? edit.new_string : null)) : []
-    default:
-      return []
-  }
-}
-
-function isMediaBytes(holder: Record<string, unknown>, key: string, data: string): boolean {
-  const mime = holder.media_type ?? holder.mimeType ?? holder.type
-  const isNamed = key === 'base64' || (key === 'data' && ('media_type' in holder || 'mimeType' in holder))
-
-  return isNamed && BASE64.test(data.replace(/[\r\n]/g, '')) && !(typeof mime === 'string' && TEXT_MIME.test(mime))
-}
-
-// Masking base64 bytes corrupts them; a mask is never base64-only, so the restore pass skips the same fields.
-function swappedMedia(value: unknown, swap: (data: string) => string): unknown {
-  if (Array.isArray(value)) {
-    return value.map(item => swappedMedia(item, swap))
-  }
-
-  if (!isPlainObject(value)) {
-    return value
-  }
-
-  const copy: Record<string, unknown> = Object.create(Object.getPrototypeOf(value))
-
-  for (const [key, item] of Object.entries(value)) {
-    const swapped = typeof item === 'string' && isMediaBytes(value, key, item) ? swap(item) : swappedMedia(item, swap)
-
-    Object.defineProperty(copy, key, { value: swapped, enumerable: true, writable: true, configurable: true })
-  }
-
-  return copy
-}
-
-const signedUploadValues: Kept = line => {
-  const ranges: ReturnType<Kept> = []
-
-  for (const url of line.matchAll(SIGNED_UPLOAD)) {
-    for (const { param, label } of KEPT_PARAMS) {
-      for (const found of url[0].matchAll(param)) {
-        const value = found[1] ?? ''
-        const from = url.index + found.index + found[0].length - value.length
-
-        ranges.push({ from, to: from + value.length, label })
-      }
-    }
-  }
-
-  return ranges
-}
-
-function maskCount(value: unknown): number {
-  return (JSON.stringify(value) ?? '').split(MASK).length - 1
+function maskCount(text: string): number {
+  return text.split(MASK).length - 1
 }
 
 function toastOf(count: number, tool: string, labels: string[]): string {
   return `Redacted ${count} secret${count === 1 ? '' : 's'} from ${tool}: ${labels.join(', ')}`
-}
-
-function noteOf(tool: string, labels: string[]): string {
-  return (
-    `secret-scanning redacted ${labels.join(', ')} from this ${tool} result; each reads [REDACTED:<label>] here and ` +
-    `is unchanged at its source. ${WRITE_BACK_BAN}`
-  )
-}
-
-function withheldNoteOf(tool: string, labels: string[]): string {
-  return (
-    `secret-scanning withheld this ${tool} result as an error: context another plugin attached to the call holds ` +
-    `${labels.join(', ')}, which cannot be redacted there. The text above is the result with its secrets masked. ` +
-    `CC_SECRET_REDACT=off turns redaction off. ${WRITE_BACK_BAN}`
-  )
-}
-
-export function failureReason(failure: HookFailure, pats: Pattern[] | null): string {
-  return pats && failure.message !== undefined
-    ? String(redact(failure.message, pats).value).replace(/\.$/, '')
-    : failure.kind
-}
-
-function refusalOf(tool: string): string {
-  return (
-    `${tool} refused: the new text contains the redaction marker ${MASK}…]. It may have come from a tool result ` +
-    'secret-scanning redacted; if so, writing it would replace the real value on disk, so leave the value out of the ' +
-    'edit. If the text quotes the marker on purpose, ask the user to set CC_SECRET_REDACT=off, which also stops ' +
-    'redacting secrets in tool output, then read again any file whose result was redacted before writing its values.'
-  )
 }
 
 // The lines a mention names (#L10-20), or the whole file; an offset below 1 or a limit below 1 widens the scan, never narrows it.
@@ -166,7 +52,7 @@ function attachedNoteOf(labels: string[]): string {
 }
 
 function mentionToastOf(mention: string, labels: string[]): string {
-  return `secret-scanning kept @${mention} out of your prompt: it holds ${labels.join(', ')}. Claude can still Read it, with secrets masked.`
+  return `secret-scanning kept @${mention} out of your prompt: it holds ${labels.join(', ')}. Claude can still Read it, unmasked; secret-scanning then flags the secret by its label.`
 }
 
 let patterns: Promise<Pattern[] | null> | undefined
@@ -175,7 +61,7 @@ let patterns: Promise<Pattern[] | null> | undefined
 let draftPatterns: Pattern[] | null = null
 
 async function isOn($: EngineInterface, options: PluginOptions): Promise<boolean> {
-  return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_SECRET_REDACT'), options.cc_secret_redact !== false)
+  return isSupported((await $.session.version()).version) && switchOn(await $.env.get('CC_SECRET_PROMPT'), options.cc_secret_prompt !== false)
 }
 
 function patternsOf($: EngineInterface): Promise<Pattern[] | null> {
@@ -186,9 +72,9 @@ function patternsOf($: EngineInterface): Promise<Pattern[] | null> {
     .then(parsePatterns)
     .catch((error: unknown) => {
       try {
-        $.ui.log(`Redaction and the prompt guard are off: ${path}: ${error instanceof Error ? error.message : String(error)}`)
+        $.ui.log(`The prompt guard is off: ${path}: ${error instanceof Error ? error.message : String(error)}`)
       } catch {
-        // A refused log line changes nothing: output already passes through.
+        // A refused log line changes nothing: prompts already pass through.
       }
 
       return null
@@ -198,11 +84,7 @@ function patternsOf($: EngineInterface): Promise<Pattern[] | null> {
 }
 
 async function promptPatterns($: EngineInterface, options: PluginOptions): Promise<Pattern[] | null> {
-  const isGuarded =
-    isSupported((await $.session.version()).version) &&
-    switchOn(await $.env.get('CC_SECRET_PROMPT'), options.cc_secret_prompt !== false)
-
-  draftPatterns = isGuarded ? await patternsOf($) : null
+  draftPatterns = (await isOn($, options)) ? await patternsOf($) : null
 
   return draftPatterns
 }
@@ -284,7 +166,7 @@ export function register(on: On, options: PluginOptions) {
       return { drop: keptBackOf(found.labels) }
     }
 
-    return next({ ...e, text: String(found.value) })
+    return next({ ...e, text: found.value })
   }).catch(async ($, e, next) => {
     // The draft cache is null when the session.start load failed; the shared load may still hold the patterns.
     const pats = draftPatterns ?? (patterns === undefined ? null : await patterns)
@@ -306,7 +188,7 @@ export function register(on: On, options: PluginOptions) {
       : { drop: `${keptBackOf(labels)} Its secret check failed (${next.error.kind}); CC_SECRET_PROMPT=off sends prompts unchecked.` }
   })
 
-  // An @-mention is read with no tool.call, so the tool.call redaction below never sees it: a secret in the file refuses the mention.
+  // An @-mention is read with no tool call, so no tool hook sees it: a secret in the file refuses the mention.
   on('prompt.mention', async ($, e, next) => {
     if (!(await isOn($, options))) {
       return next(e)
@@ -334,7 +216,7 @@ export function register(on: On, options: PluginOptions) {
       return next(e)
     }
 
-    toastQuietly($, () => `secret-scanning kept @${e.mention} out of your prompt: its scan failed. CC_SECRET_REDACT=off turns this off.`)
+    toastQuietly($, () => `secret-scanning kept @${e.mention} out of your prompt: its scan failed. CC_SECRET_PROMPT=off turns this off.`)
 
     return { deny: 'the secret scan failed' }
   })
@@ -354,112 +236,19 @@ export function register(on: On, options: PluginOptions) {
       return r
     }
 
-    toastQuietly($, () => toastOf(maskCount(found.value) - maskCount(r.text), 'an attached file', found.labels))
+    const count = maskCount(found.value) - maskCount(r.text)
 
-    return { text: `${String(found.value)}\n${attachedNoteOf(found.labels)}` }
+    toastQuietly($, () => toastOf(count, 'an attached file', found.labels))
+
+    return { text: `${found.value}\n${attachedNoteOf(found.labels)}` }
   }).catch(($, e, next) => {
     // Once the file was read, an unredacted attachment is worse than none.
     if (!next.called) {
       return next(e)
     }
 
-    toastQuietly($, () => 'secret-scanning left an attached file out: its redaction failed. CC_SECRET_REDACT=off turns this off.')
+    toastQuietly($, () => 'secret-scanning left an attached file out: its redaction failed. CC_SECRET_PROMPT=off turns this off.')
 
     return { text: null }
-  })
-
-  // Below CLI 2.1.299 a call the host cannot hand this hook (a value nested past its limit) skips it and passes unredacted;
-  // from 2.1.299 the host refuses the call, or withholds a result that already ran. Read also decodes a UTF-16LE file with a
-  // byte-order mark from 2.1.299; before, it arrives NUL-interleaved and no pattern matches it.
-  on('tool.call', async ($, e, next) => {
-    if (!(await isOn($, options))) {
-      return next(e)
-    }
-
-    if (writtenTexts(e).some(text => typeof text === 'string' && text.includes(MASK))) {
-      return { deny: refusalOf(e.tool) }
-    }
-
-    const r = await next(e)
-
-    if (r.deny !== undefined) {
-      return r
-    }
-
-    const pats = await patternsOf($)
-
-    if (!pats) {
-      return r
-    }
-
-    if (r.isError) {
-      const before = { text: r.text, result: r.result, context: r.context }
-      const failure = redact(before, pats)
-
-      if (failure.labels.length === 0) {
-        return r
-      }
-
-      const after = failure.value as typeof before
-      const maskedIn = (key: keyof typeof before) => maskCount(after[key]) - maskCount(before[key])
-
-      // text and result usually carry one error twice, so its masks count once.
-      toastQuietly($, () =>
-        toastOf(Math.max(maskedIn('text'), maskedIn('result')) + maskedIn('context'), e.tool, failure.labels),
-      )
-
-      const errorText = after.text ?? (typeof after.result === 'string' ? after.result : '')
-
-      return { deny: `${errorText}\n${noteOf(e.tool, failure.labels)}` }
-    }
-
-    const media: string[] = []
-
-    const before = swappedMedia(r.result, data => {
-      media.push(data)
-
-      return ''
-    })
-
-    // CLI 2.1.291 skips a hook that changes a context entry from a hook beneath, so a secret there withholds the result.
-    const below = redact(r.context ?? [], pats)
-
-    if (below.labels.length > 0) {
-      const text = r.text ?? (typeof before === 'string' ? before : (JSON.stringify(before) ?? ''))
-      const shown = { text, context: r.context }
-      const withheld = redact(shown, pats)
-
-      toastQuietly($, () => toastOf(maskCount(withheld.value) - maskCount(shown), e.tool, withheld.labels))
-
-      return { deny: `${(withheld.value as typeof shown).text}\n${withheldNoteOf(e.tool, below.labels)}` }
-    }
-
-    const found = redact(before, pats, UPLOAD_TOOL.test(e.tool) ? signedUploadValues : null)
-
-    if (found.labels.length === 0) {
-      return r
-    }
-
-    toastQuietly($, () => toastOf(maskCount(found.value) - maskCount(before), e.tool, found.labels))
-
-    return {
-      result: swappedMedia(found.value, () => media.shift() ?? ''),
-      context: [...(r.context ?? []), noteOf(e.tool, found.labels)],
-    }
-  }).catch(async ($, e, next) => {
-    if (!next.called) {
-      return next(e)
-    }
-
-    // The replay rejects as the call did when it failed beneath; only a failure in this hook's redaction withholds.
-    await next(e)
-
-    const reason = failureReason(next.error, patterns ? await patterns : null)
-
-    return {
-      deny:
-        `secret-scanning withheld this ${e.tool} output: redaction failed (${reason}). ` +
-        'CC_SECRET_REDACT=off turns redaction off.',
-    }
   })
 }

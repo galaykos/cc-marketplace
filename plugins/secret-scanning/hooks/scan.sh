@@ -1,5 +1,5 @@
 #!/bin/bash
-# PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash: denies new text, or a Bash heredoc or echo landing in a file, carrying a high-confidence non-placeholder secret, and a Bash write of redact.ts's marker unless CC_SECRET_REDACT is off. PostToolUse(Failure): warns on what an interpreter, cp, mv, install or patch run added.
+# PreToolUse on Write, Edit, MultiEdit, NotebookEdit, MCP apply_patch/create_new_file and Bash: denies new text, or a Bash heredoc or echo landing in a file, carrying a high-confidence non-placeholder secret, and new text or a Bash write holding redact.ts's [REDACTED: marker unless CC_SECRET_PROMPT is off. PostToolUse(Failure): warns on what an interpreter, cp, mv, install or patch run added.
 # Misses short or $-led URL passwords, unlisted schemes and webhooks, a real value holding a placeholder word, other MCP key names; on Bash, a command with no write target (a live key in curl -H …), interpreter and cp/mv writes before they land, sed/perl -i text, what cc_bash_write_chunks misses, a command that outruns the hook timeout; after the fact, changed files past the eighth or 1 MiB and the redaction marker, and a file anything else changed reads as the run's write. Fail-open, except a missing or malformed patterns.tsv or patterns.sh denies. Off: CC_SECRET_SCAN=off; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-secret-scanning.md § plugins/secret-scanning/hooks/scan.sh
 
@@ -355,6 +355,11 @@ Move each value to an environment variable or secret store before it is committe
   fi
 
   file=""
+  # redact.ts masks a prompt or an attached file as [REDACTED:<label>]; written back, the mask replaces the real value on disk.
+  # Off, 0 and false in any case, as redact.ts's switchOn reads the same variable. Until 0.19.0 the mod refused the file tools itself.
+  masking=$(cc_option CC_SECRET_PROMPT on | tr '[:upper:]' '[:lower:]')
+  case "$masking" in off | 0 | false) masking=0 ;; *) masking=1 ;; esac
+  MARKER_OFF="CC_SECRET_PROMPT=off, set by the user, allows it and also turns prompt masking off."
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$cmd" ] || exit 0
@@ -372,13 +377,11 @@ Move each value to an environment variable or secret store before it is committe
     done <<EOF_C
 $(cc_bash_write_chunks "$cmd")
 EOF_C
-    # A Bash write of redact.ts's mask would replace the real value on disk; off, 0 and false in any case, as redact.ts's switchOn reads the same variable.
-    redact=$(cc_option CC_SECRET_REDACT on | tr '[:upper:]' '[:lower:]')
-    if [ "$redact" != off ] && [ "$redact" != 0 ] && [ "$redact" != false ]; then
+    if [ "$masking" = 1 ]; then
       i=1
       while [ "$i" -le "$n" ]; do
         case "${ctext[$i]}" in
-          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. CC_SECRET_REDACT=off, set by the user, allows it and also turns redaction off." ;;
+          *'[REDACTED:'*) deny "secret-scanning: this command writes the redaction marker [REDACTED:…] to ${ctgt[$i]}. That would replace the real secret on disk: leave the value out, or edit only the lines around it with the Edit tool. $MARKER_OFF" ;;
         esac
         i=$((i + 1))
       done
@@ -398,6 +401,9 @@ EOF_C
         ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
       ] | join("\n")' 2>/dev/null) || exit 0
     file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // .tool_input.notebook_path // empty' 2>/dev/null)
+    case "$masking:$text" in
+      1:*'[REDACTED:'*) deny "secret-scanning: this $tool writes the redaction marker [REDACTED:…]${file:+ to $file}. It may have come from a prompt or attached file secret-scanning masked; written back, it replaces the real value on disk, so leave the value out of the edit. If the text quotes the marker on purpose, ask the user: $MARKER_OFF" ;;
+    esac
     scan_for_secret "$text"
   fi
   [ -n "$hit" ] || exit 0

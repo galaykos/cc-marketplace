@@ -3,6 +3,12 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.19.0 — 2026-11-16
+
+- **Tool output is flagged, no longer masked.** Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls, and the mod masked every tool result through one. `hooks/redact.ts` keeps only prompt masking (the prompt box, `@` mentions, attached files), now switched by `CC_SECRET_PROMPT` / `cc_secret_prompt` alone; the `tool.call` handler, the Higgsfield upload-URL exception, `redact-core.ts`'s `Kept` ranges and object walk, and the `cc_secret_redact` / `CC_SECRET_REDACT` option were removed. Standing: gate — `tests/redact.test.ts` now also asserts tool calls pass through untouched.
+- **New `hooks/output-scan.sh`, PostToolUse and PostToolUseFailure on every tool.** It adds one context line naming the label of each pattern a tool's output matches, never the value, and tells the model not to repeat or write it. The value is not masked. An assigned value whose directory part exists under the call's cwd is read as a path: an echoed `secret-…: <path>` line was masked as a secret on 2026-11-16. Off: `CC_SECRET_OUTPUT_SCAN=off` or the `/config` option `cc_secret_output_scan`. Standing: gate — `scripts/__tests__/output-scan.test.sh`, and `pattern-parity.test.sh` now runs it as a third reader.
+- **The write-back refusal moved to `scan.sh`.** A `Write`, `Edit`, `MultiEdit`, `NotebookEdit` or MCP write whose new text carries `[REDACTED:` is refused by the PreToolUse guard on any CLI, as a Bash heredoc or echo into a file already was; both name `CC_SECRET_PROMPT=off` in place of `CC_SECRET_REDACT=off`. Standing: gate — `scan-hook.test.sh`.
+
 ## 0.18.0 — 2026-11-14
 
 - **The bash-effects markers with no plugin data dir move to `.cc-artifacts/secret-scanning/`** (was `.claude/secret-scanning/`), through the shared plugin-state block in `hooks/scan.sh` and `hooks/unicode-scan.sh`. They start fresh: the first Bash call after the upgrade only sets the marker.

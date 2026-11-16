@@ -148,7 +148,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_BPY_CHECK` | blender | on | Run check_bpy_scripts.py on a written .py that imports bpy, and add the removed or deprecated calls it f … |
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
-| `CC_CARD_STATUS` | task-runner | on | During a run with a card index, give the model a card_status tool that writes a card's status and refuse … |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
 | `CC_COMMENT_GUARD` | code-review | on | Refuse a write whose comments restate the code or pass the density ceiling: on or off |
 | `CC_COMPACT_STEER` | skill-router | on | When a phase sentinel, task-runner run or taskmaster ledger is on disk, tell the compaction summarizer t … |
@@ -170,7 +169,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_HUD_TURN` | session-hud | off | Add a turn's output tokens, cost and context growth to the line that closes it: on or off |
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
 | `CC_MERGE_CHECKS` | git-workflow | on | Ask before gh pr merge while the pull request's checks are pending or failing: on or off |
-| `CC_OVERSEER_STATUS` | overseer | on | Pin the open program's next milestone under the prompt: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
 | `CC_PIXEL_CHECK` | pixel-art | on | Run check_sprite_sheet.py or check_tilemaps.py on a sprite sheet or Tiled/LDtk map a call changed, and a … |
 | `CC_PLUGIN_UPDATER_AUTO` | plugin-updater | on | At session start, when the folder's last completed run is older than the interval, run the updater detac … |
@@ -184,8 +182,8 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
 | `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
 | `CC_SECRET_COMMIT_SCAN` | secret-scanning | on | Refuse a git commit or push whose added lines hold a high-confidence secret: on or off |
-| `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box, and ask before sending it (mask, send as typed, or ca … |
-| `CC_SECRET_REDACT` | secret-scanning | on | Mask secrets in tool output before the model or the transcript sees them: on or off |
+| `CC_SECRET_OUTPUT_SCAN` | secret-scanning | on | Name, by its label and never its value, a secret found in a tool's output, after the call: on or off |
+| `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box and ask before sending it (mask, send as typed, or can … |
 | `CC_SECRET_SCAN` | secret-scanning | on | Refuse a write or shell command that puts a high-confidence secret on disk: on or off |
 | `CC_SECURITY_SCAN` | security | on | Warn when a write introduces a known-dangerous sink such as eval or shell-string exec: on or off |
 | `CC_SKILL_LOG` | hindsight | on | Log each skill invocation to a machine-local ledger under ~/.claude/hindsight: on or off |
@@ -193,10 +191,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_SPAWN_FLOOR` | task-runner | on | Run a role-floors.md agent at max(its floor, the dispatch's model or else the session's): on or off |
 | `CC_SUBAGENT_SKILLS` | skill-router | on | Hand a plugin subagent the paths of the best-practice skills its frontmatter declares, and a general-pur … |
 | `CC_SURFACED_LOG` | skill-router | on | Append the session's surfaced routing signals to a machine-local ledger at session end: on or off |
-| `CC_TASK_BOARD` | task-runner | on | The status line of a run's phase and card progress on this branch, and the /task-board pane: on or off |
-| `CC_TASK_BOARD_PIN` | task-runner | off | Reopen the task board after you close it while a run is active: on or off |
 | `CC_TERSE` | candor | off | Terse reply level: off, lite, full, ultra, wenyan-lite, wenyan-full, wenyan-ultra, or a reader name: new … |
-| `CC_TERSE_BADGE` | candor | on | Show the active terse level as [TERSE:LEVEL] at the end of the hint line under the prompt (terminal, CLI … |
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
@@ -610,7 +605,7 @@ Nothing here is measured against a control arm.
 | **[brain](plugins/brain)** | a `.cc-artifacts/brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 | **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but the opt-in game plugins at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
-| **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls | You want the status-line figures without wiring a status-line tool, or a pane that stays up |
+| **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls. The module hooks tool calls, so uninstall it before starting Code Mode | You want the status-line figures without wiring a status-line tool, or a pane that stays up |
 | **[plugin-updater](plugins/plugin-updater)** (`update-plugins`) | keeps the plugins of the folder you work in current, its project and local installs plus your user-scope ones: once a day per folder at session start it runs `claude plugin update` in the background, one install at a time, for each that is behind its marketplace clone, and the next session shows one line on what changed or needs you; `/plugin-updater:update-plugins` runs it on demand, `--all` covers every project folder, `--dry-run` lists only. Never passes `-y` or `--accept-command`; skips orphaned entries and git worktrees. Install it at user scope | Plugins installed locally across many projects, and updating them one by one in the app |
 
 ```bash

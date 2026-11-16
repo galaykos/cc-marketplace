@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# pattern-parity.test.sh — one fixture set through hooks/scan.sh (a PreToolUse Write) and hooks/redact-core.ts (redact, under node):
-#   scan.sh denies exactly when the core reports a label and names the core's first label, scan.sh passes the core's redacted
+# pattern-parity.test.sh — one fixture set through hooks/scan.sh (a PreToolUse Write), hooks/output-scan.sh (a PostToolUse Bash
+#   stdout) and hooks/redact-core.ts (redact, under node): scan.sh denies exactly when the core reports a label and names the core's
+#   first label, output-scan.sh flags exactly then and names that label first, scan.sh passes the core's redacted
 #   text, a fixture's exact redacted text holds, both reject a malformed patterns.tsv at the same line, and redact stays under
 #   a time bound on an adversarial line. A documented grep/JavaScript difference is a divergence fixture naming the side that
 #   flags and its label. Every failure counts in the parity line. Secret shapes are assembled at runtime: the guard would deny
 #   a write of this file.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-HOOK="$ROOT/hooks/scan.sh"; CORE="$ROOT/hooks/redact-core.ts"; PAT="$ROOT/hooks/patterns.tsv"
+HOOK="$ROOT/hooks/scan.sh"; OUT_HOOK="$ROOT/hooks/output-scan.sh"; CORE="$ROOT/hooks/redact-core.ts"; PAT="$ROOT/hooks/patterns.tsv"
 # A hook inherits the host's locale, usually UTF-8, which is where grep -i folds U+017F and U+0131 into s and i.
 export LC_ALL=C.UTF-8
-unset CC_SECRET_SCAN CLAUDE_PLUGIN_OPTION_CC_SECRET_SCAN
+unset CC_SECRET_SCAN CLAUDE_PLUGIN_OPTION_CC_SECRET_SCAN CC_SECRET_OUTPUT_SCAN CLAUDE_PLUGIN_OPTION_CC_SECRET_OUTPUT_SCAN
+# scan.sh refuses any write of the [REDACTED: marker while prompt masking is on; parity compares the patterns, not that refusal
+# (scan-hook.test.sh holds it), and the redacted text is written back below.
+export CC_SECRET_PROMPT=off
 command -v node >/dev/null && command -v jq >/dev/null || { echo "FAIL: node and jq are required"; exit 1; }
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 mismatch=0; offcase=0; slow=0; diverged=0
@@ -216,6 +220,13 @@ for i in "${!texts[@]}"; do
     fi
     continue
   fi
+  # output-scan.sh lists every label in pattern-file order, so its first is the one scan.sh names.
+  olabel=$(jq -cn --arg s "${texts[$i]}" '{hook_event_name:"PostToolUse", tool_name:"Bash", tool_response:{stdout:($s | gsub("<NUL>"; "\u0000"))}}' \
+    | bash "$OUT_HOOK" | jq -r '.hookSpecificOutput.additionalContext // empty' | sed -n 's/^.*holds what looks like \(.*\)\. It reached you unmasked.*$/\1/p')
+  ov=allow; [ -n "$olabel" ] && ov=deny
+  if [ "$ov" != "$sv" ] || { [ "$sv" = deny ] && [ "${olabel%%, *}" != "$slabel" ]; }; then
+    mismatch=$((mismatch + 1)); echo "FAIL $n: output-scan.sh $ov${olabel:+ ($olabel)}, scan.sh $sv${slabel:+ ($slabel)}"
+  fi
   if [ "$sv" != "$cv" ]; then
     mismatch=$((mismatch + 1)); echo "FAIL $n: scan.sh $sv${slabel:+ ($slabel)}, redact-core $cv${clabel:+ ($clabel)}"
   elif [ "$sv" = deny ] && [ "$slabel" != "$clabel" ]; then
@@ -231,59 +242,6 @@ for i in "${!texts[@]}"; do
     [ "$rv" = allow ] || { mismatch=$((mismatch + 1)); echo "FAIL $n: scan.sh denies redact-core's redacted text ($rlabel)"; }
   fi
 done
-
-CORE_WALK='
-import { readFileSync } from "node:fs"
-import { pathToFileURL } from "node:url"
-const { parsePatterns, redact } = await import(pathToFileURL(process.argv[1]).href)
-const pats = parsePatterns(readFileSync(process.argv[2], "utf8"))
-const key = process.argv[3]
-const mask = "[REDACTED:an AWS access key ID]"
-const error = new Error(`boom ${key}`, { cause: `cause ${key}` })
-error.stderr = `stderr ${key}`
-const map = new Map([["k", key]])
-const bare = Object.assign(Object.create(null), { note: key })
-const { value } = redact({ list: [key], error, map, bare, [key]: "kept" }, pats)
-const pem = "-----BEGIN RSA PRIVATE " + "KEY-----"
-const body = "MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu"
-const block = "[REDACTED:a private key block]"
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
-const blocks = texts => texts.map(text => ({ type: "text", text }))
-const checks = {
-  "array string masked": value.list[0] === mask,
-  "Error copy keeps its prototype": value.error instanceof Error,
-  "Error message masked": value.error.message === `boom ${mask}`,
-  "Error stack carried and masked": value.error.stack === error.stack.replaceAll(key, mask),
-  "Error cause masked": value.error.cause === `cause ${mask}`,
-  "Error own enumerable property masked": value.error.stderr === `stderr ${mask}` && Object.keys(value.error).includes("stderr"),
-  "input Error untouched": error.message === `boom ${key}`,
-  "Map passes through as received": value.map === map && map.get("k") === key,
-  "null-prototype object walked, prototype kept": Object.getPrototypeOf(value.bare) === null && value.bare.note === mask,
-  "keys stay unredacted": value[key] === "kept",
-  "key block split across array strings masked through its END":
-    same(redact([pem, body, "-----END RSA PRIVATE KEY----- tail", "after"], pats).value, [block, block, `${block} tail`, "after"]),
-  "an open block passes over a non-string element and closes at the first non-PEM string":
-    same(redact(["before", pem, body, 7, body, "Done.", body], pats).value, ["before", block, block, 7, block, "Done.", body]),
-  "MCP content blocks carry a key block through END at .text only":
-    same(redact(blocks([pem, body, "-----END RSA PRIVATE KEY-----"]), pats).value, blocks([block, block, block])),
-  "a carried block masks a space-flattened body through the END in the next element":
-    same(redact(blocks([pem, `${body} ${body} -----END RSA PRIVATE KEY----- done`]), pats).value, blocks([block, `${block} done`])),
-  "MCP content blocks with no END close at the first non-PEM text":
-    same(redact({ content: blocks([pem, body, body, "Rotated on Monday."]) }, pats).value,
-      { content: blocks([block, block, block, "Rotated on Monday."]) }),
-  "nbformat source lines carry a key block until the code line":
-    same(redact({ cell_type: "code", source: [`${pem}\n`, `${body}\n`, `${body}\n`, "print(1)\n"] }, pats).value,
-      { cell_type: "code", source: [`${block}\n`, `${block}\n`, `${block}\n`, "print(1)\n"] }),
-  "nested arrays carry a key block at the same [j] only":
-    same(redact([["x = 1;", pem], ["y = 2;", body], ["z = 3;", "Done."]], pats).value,
-      [["x = 1;", block], ["y = 2;", block], ["z = 3;", "Done."]]),
-  "a moved lastIndex on an exported Pattern skips no match":
-    (() => { pats.forEach(p => { p.re.lastIndex = 50 }); return redact(`${key} ${key}`, pats).value === `${mask} ${mask}` })(),
-}
-for (const [name, ok] of Object.entries(checks)) if (!ok) console.log(name)'
-while IFS= read -r broken; do
-  [ -n "$broken" ] && { offcase=$((offcase + 1)); echo "FAIL redact walk: $broken"; }
-done < <(node --input-type=module -e "$CORE_WALK" "$CORE" "$PAT" "$AWS" 2>&1)
 
 CORE_TIME='
 import { readFileSync } from "node:fs"

@@ -1,5 +1,4 @@
 {
-  "modules": ["./status-line.ts"],
   "hooks": {
     "SessionStart": [
       {

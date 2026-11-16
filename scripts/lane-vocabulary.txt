@@ -181,11 +181,13 @@ program-board
 program-level-delivery-ownership
 program-resume
 program-status-line
+prompt-secret-masking
 read-ledger-for-evidence
 registered-run-announcement
 reply-shape-contract
 reply-verbosity-level
 reply-verbosity-mode
+secret-output-flag
 secret-output-redaction
 secret-write-denial
 security-sink-write-warning

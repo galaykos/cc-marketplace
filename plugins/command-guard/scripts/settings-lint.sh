@@ -40,7 +40,7 @@ crontab -r'
 GUARD_SWITCHES='CLAUDE_DESTRUCTIVE_GUARD	command-guard'"'"'s destructive-command deny and ask
 CC_CONFIG_GUARD	command-guard'"'"'s ask before a config write
 CC_SECRET_SCAN	secret-scanning'"'"'s refusal of a secret written to disk
-CC_SECRET_REDACT	secret-scanning'"'"'s masking of secrets in tool output
+CC_SECRET_OUTPUT_SCAN	secret-scanning'"'"'s flag of a secret in tool output
 CC_SECRET_PROMPT	secret-scanning'"'"'s check of a secret typed into the prompt
 CC_UNICODE_SCAN	secret-scanning'"'"'s hidden-character warning
 CC_SECURITY_SCAN	security'"'"'s dangerous-sink warning

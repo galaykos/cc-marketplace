@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.3.1 — 2026-11-16
+
+- **Documented as Code Mode incompatible.** The README and the plugin description say the module hooks tool calls, which Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`) refuses to start with, so the plugin must be uninstalled for Code Mode; its options do not stop the module loading. No behaviour change. Standing: recorded.
+
 ## 0.3.0 — 2026-11-14
 
 - **The shared mod kit reads plugin state from `.cc-artifacts/` first.** `hooks/cc-kit.ts` `phaseFile` and `liveSentinel` read `.cc-artifacts/cc-phase/<session>.json`, and `activeRun` reads `.cc-artifacts/task-runner/active-run.json`; each falls back to the old `.claude/` path when the new one holds nothing, and never writes there. The HUD itself calls none of the three, so nothing it draws changes. Byte-identical to every other plugin's copy. Standing: gate (the marketplace repository's `templates/mods/kit-harness` tests).

@@ -1,7 +1,7 @@
 {
   "name": "secret-scanning",
-  "version": "0.18.0",
-  "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read.",
+  "version": "0.19.0",
+  "description": "Secret-leak prevention: a PreToolUse hook blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk; /secret-scanning:scan sweeps a path or diff. A PostToolUse hook names a secret in any tool's output by label, never the value; output is no longer masked, so Code Mode can start. A hooks module (CLI 2.1.291 or newer) masks a secret typed, pasted, @-mentioned or attached into the prompt. Fail-open, with a fixture escape and CC_SECRET_SCAN=off. unicode-scan warns on invisible and bidi characters in text just written or read.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -35,16 +35,16 @@
       "description": "Warn when written or read text carries zero-width or bidirectional-override characters: on or off. The environment variable CC_UNICODE_SCAN overrides this.",
       "default": true
     },
-    "cc_secret_redact": {
+    "cc_secret_output_scan": {
       "type": "boolean",
-      "title": "Output redaction (CC_SECRET_REDACT)",
-      "description": "Mask secrets in tool output before the model or the transcript sees them: on or off. The environment variable CC_SECRET_REDACT overrides this.",
+      "title": "Tool-output secret flag (CC_SECRET_OUTPUT_SCAN)",
+      "description": "Name, by its label and never its value, a secret found in a tool's output, after the call: on or off. The environment variable CC_SECRET_OUTPUT_SCAN overrides this.",
       "default": true
     },
     "cc_secret_prompt": {
       "type": "boolean",
       "title": "Prompt-box secret guard (CC_SECRET_PROMPT)",
-      "description": "Mark a secret typed or pasted into the prompt box, and ask before sending it (mask, send as typed, or cancel): on or off. The environment variable CC_SECRET_PROMPT overrides this.",
+      "description": "Mark a secret typed or pasted into the prompt box and ask before sending it (mask, send as typed, or cancel); keep out an @-mentioned file holding one, mask one in an attached file, and refuse a write of the [REDACTED:…] marker: on or off. The environment variable CC_SECRET_PROMPT overrides this.",
       "default": true
     }
   }

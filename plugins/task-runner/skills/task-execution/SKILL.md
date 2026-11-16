@@ -121,7 +121,7 @@ or parked, the run ENDS with a report, no self-restart.
 
 - Execute in index order, respecting `<depends-on>`; parallel groups (and disjoint
   same-worker S-card batches) may be delegated ONLY if file sets are disjoint — else serial.
-- Status lives in one place (the index `00-INDEX.md`; set it with `card_status` when listed): pending → in_progress (exactly one) → done | parked (reason: detail). Task definitions stay immutable during the run.
+- Status lives in one place (the index `00-INDEX.md`; set it with `scripts/card-status.sh`, run command step 3): pending → in_progress (exactly one) → done | parked (reason: detail). Task definitions stay immutable during the run.
   The cell starts with that word (`done (<sha>) — note`); readers parse only the first word.
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked blocked-by, not attempted anyway.
 - DEVIATION LEDGER: execution departing from the task/plan — different approach, extra
@@ -133,8 +133,7 @@ or parked, the run ENDS with a report, no self-restart.
 No status dashboards, run boards, or progress pages — the index is the single
 view; a run-board page goes stale. HTML artifacts are for content that earns
 the medium (mockups, walkthroughs); a table a message can carry is not a file.
-A live view that only re-draws the index on change (this plugin's status line and `/task-board`
-pane) is exempt: it is not a second record. Status is written only to the index. Standing: recorded.
+Status is written only to the index. Standing: recorded.
 
 ## Drift tripwires
 

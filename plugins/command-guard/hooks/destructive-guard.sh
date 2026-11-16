@@ -25,7 +25,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.10.0
+GUARD_VERSION=0.10.1
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
