@@ -50,7 +50,7 @@ from urllib.request import ProxyHandler, build_opener
 
 docroot, page, widths, browser, sandbox, limit, here = sys.argv[1:8]
 root, page = Path(docroot).resolve(), page.lstrip("/")
-widths = [int(w) for w in widths.split(",")]
+widths = list(dict.fromkeys(int(w) for w in widths.split(",")))  # a width given twice is loaded once
 started = time.monotonic()
 DEADLINE = started + 60
 PER_WIDTH = 20
@@ -227,7 +227,7 @@ class Browser:
                                      stderr=subprocess.DEVNULL, start_new_session=True)
         os.close(a)
         os.close(b)
-        self.buf, self.next_id, self.events, self.session, self.lost, self.visited, self.left, self.stuck = b"", 0, [], None, 0, 0, STATE_BUDGET, False
+        self.buf, self.next_id, self.events, self.session, self.lost, self.visited, self.left, self.slowest, self.stuck = b"", 0, [], None, 0, 0, STATE_BUDGET, 0.0, False
 
     def recv(self, until):
         while b"\0" not in self.buf:
@@ -321,10 +321,10 @@ class Browser:
         return self.ask(ctx, "window.__vdRun()", until), ctx
 
     def states(self, ctx, until, found, width):
-        """Adds to found the findings of the states check.js lists that are due at this width: for each, check.js sets its look, runs the check it names and puts the page's look back. Answers (state, why) for each one not run: past MAX_STATES in the plan, with less left of the run's STATE_BUDGET than the slowest state so far took, or behind one that did not finish in what was left, which is stopped in the page. The run's limit moves by the time used."""
+        """Adds to found the findings of the states check.js lists that are due at this width: for each, check.js sets its look, runs the check it names and puts the page's look back. Answers (state, why) for each one not run: past MAX_STATES in the plan, with less left of the run's STATE_BUDGET than the slowest state so far took at any width, or behind one that did not finish in what was left, which is stopped in the page. The run's limit moves by the time used."""
         global DEADLINE
         plan = [s for s in self.ask(ctx, "window.__vdStates()", until) or [] if isinstance(s, dict)]
-        began, share, slowest, unrun = time.monotonic(), self.left, 0.0, []
+        began, share, unrun = time.monotonic(), self.left, []
         DEADLINE += share
         try:
             for i, state in enumerate(plan):
@@ -335,17 +335,18 @@ class Browser:
                     why = "not run: a state before it did not finish"
                 elif i >= MAX_STATES:
                     why = "not run: a run visits %d states at most and the page lists %d" % (MAX_STATES, len(plan))
-                elif room <= slowest:
-                    why = "not run: %.1f s left of the %g s a run's states share" % (max(room, 0.0), STATE_BUDGET) + (", and one took %.1f s" % slowest if slowest else "")
+                elif room <= self.slowest:
+                    why = "not run: %.1f s left of the %g s a run's states share" % (max(room, 0.0), STATE_BUDGET) + (", and one took %.1f s" % self.slowest if self.slowest else "")
                 else:
                     asked = time.monotonic()
                     try:
                         found += self.ask(ctx, "window.__vdState(%s)" % json.dumps(state), began + share) or []
                     except TimeoutError:
                         why = "did not finish in the %.1f s left of the %g s a run's states share" % (room, STATE_BUDGET)
-                        self.halt(ctx)
+                        if not self.halt(ctx):
+                            why += ", and could not be stopped in 3 s"
                     else:
-                        slowest = max(slowest, time.monotonic() - asked)
+                        self.slowest = max(self.slowest, time.monotonic() - asked)
                         self.visited += 1
                         continue
                 unrun.append((state, why))
@@ -356,13 +357,16 @@ class Browser:
         return unrun
 
     def halt(self, ctx):
-        """Stops the state still running in the page, its look set: the caller loads the page again before the screenshot. The evaluate takes the stop when that state had just ended, so it cannot fall on the next load's script."""
+        """Stops the state still running in the page, its look set: the caller loads the page again before the screenshot. The evaluate takes the stop when that state had just ended, so it cannot fall on the next load's script. Answers False when the page gave no answer to it in 3 s."""
         self.stuck = True
         self.send("Runtime.terminateExecution", session=self.session)
         try:
             self.call("Runtime.evaluate", {"expression": "0", "contextId": ctx}, timeout=3)
-        except (RuntimeError, TimeoutError):
-            pass
+        except RuntimeError:
+            pass  # the stop fell on this evaluate, as meant
+        except TimeoutError:
+            return False
+        return True
 
     def errors(self, ctx):
         """E1 console errors and uncaught errors of the page's own script, as check.js reported them before it moved to its own world."""
