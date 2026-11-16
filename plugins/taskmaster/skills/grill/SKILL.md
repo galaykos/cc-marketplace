@@ -171,8 +171,8 @@ assumption list, or the user says "enough". Then:
    or when an upstream brainstorm design already recorded the approach.
 2. Write the spec to `.cc-artifacts/taskmaster/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
-   alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
-   as `## Ambiguity ledger (final)`; run `"${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh" --spec <file>` (blocks
+   alternatives and kill-trigger, non-goals, success criteria, `## Shared state & invariants` and `## Module map`
+   (`references/contracts.md`), and the converged ledger as `## Ambiguity ledger (final)`; run `"${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh" --spec <file>` (blocks
    UNKNOWN/missing/empty ledger, a sourceless CLEAR row, a spec with no success criteria)
    until exit 0. Every behavior-bearing CLEAR row must ALSO
    appear as a success criterion: coverage-check walks criteria only, so a decision left in

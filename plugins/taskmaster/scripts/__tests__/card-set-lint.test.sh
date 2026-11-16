@@ -84,6 +84,77 @@ err=$(bash "$L" --dir "$D" 2>&1 >/dev/null); rc=$?
 if [ "$rc" = 2 ] && printf '%s' "$err" | grep -q 'depends-cycle' && ! printf '%s' "$err" | grep -q 'interface-unordered'; then ok "a reach cut short by a cycle is not memoised as unreachable"
 else bad "a reach cut short by a cycle is not memoised as unreachable (rc=$rc err=$err)"; fi
 
+# --- invariants: each card's <invariant> must match the spec's Shared state & invariants row ---
+# Replay of a real miss: card 09 dispatched a fingerprint job unconditionally, card 10 polled
+# every 3 s, and together they queued a job per poll. The spec row I2 names the rule both cards must carry.
+spec_with() { # <dir> <rows...>: a spec under <dir>/specs and an index pointing at it
+  mkdir -p "$1/specs"; git -C "$1" init -q; local d=$1; shift
+  { printf '# Spec\n\n## Shared state & invariants\n\n| ID | Entity / flow | States & transitions | Writer(s) | Invariant | Error meaning |\n|---|---|---|---|---|---|\n'
+    printf '%s\n' "$@"; printf '\n## Success criteria\n- x\n'; } > "$d/specs/s.md"
+  printf '# index\nSpec: specs/s.md\n' > "$d/cards/00-INDEX.md"
+}
+I1='| I1 | Fingerprint | queued → done · queued → failed | FingerprintJob | dispatched once per repo per rules version | `RulesStale` = re-queue once |'
+I2='| I2 | Import status poll | GET /imports/{id} | none (read-only) | a GET or poll never enqueues work; polling stops at done/failed | 404 = stop polling |'
+D="$T/inv-ok"
+card "$D/cards" 09 '' '<invariant id="I1">dispatched once per repo per rules version</invariant>' 'npm test' 'none'
+card "$D/cards" 10 '' '<invariant id="I2">a GET or poll never enqueues work;  polling stops at done/failed</invariant>' 'npm test' '09'
+spec_with "$D" "$I1" "$I2"
+err=$(bash "$L" --dir "$D/cards" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 0 ] && [ -z "$err" ]; then ok "cards citing spec invariants verbatim pass silently (whitespace-normalised)"
+else bad "cards citing spec invariants verbatim pass silently (rc=$rc err=$err)"; fi
+
+D="$T/inv-drift"
+card "$D/cards" 09 '' '<invariant id="I1">dispatched once per repo per rules version</invariant>' 'npm test' 'none'
+card "$D/cards" 10 '' '<invariant id="I2">the poll refreshes the fingerprint</invariant>' 'npm test' '09'
+spec_with "$D" "$I1" "$I2"
+expect "poll-and-dispatch replay: card 10 paraphrasing I2 is invariant-drift" "$D/cards" 2 invariant-drift
+
+D="$T/inv-unknown"
+card "$D/cards" 01 '' '<invariant id="I9">x</invariant>' 'npm test' 'none'
+spec_with "$D" "$I1"
+expect "an invariant id the spec does not hold is invariant-unknown" "$D/cards" 2 invariant-unknown
+
+D="$T/inv-orphan"
+card "$D/cards" 09 '' '<invariant id="I1">dispatched once per repo per rules version</invariant>' 'npm test' 'none'
+spec_with "$D" "$I1" "$I2"
+err=$(bash "$L" --dir "$D/cards" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 0 ] && printf '%s' "$err" | grep -q 'WARN invariant-orphan: spec invariant I2'; then ok "a spec invariant no card cites warns, exit 0"
+else bad "a spec invariant no card cites warns, exit 0 (rc=$rc err=$err)"; fi
+
+D="$T/inv-nospec"
+card "$D" 01 '' '<invariant id="I1">x</invariant>' 'npm test' 'none'
+err=$(bash "$L" --dir "$D" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 0 ] && printf '%s' "$err" | grep -q 'NOTE cards cite <invariant> but no spec'; then ok "invariants with no findable spec NOTE and pass"
+else bad "invariants with no findable spec NOTE and pass (rc=$rc err=$err)"; fi
+
+D="$T/inv-flag"
+card "$D/cards" 01 '' '<invariant id="I1">wrong text</invariant>' 'npm test' 'none'
+spec_with "$D" "$I1"; rm "$D/cards/00-INDEX.md"
+err=$(bash "$L" --dir "$D/cards" --spec "$D/specs/s.md" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 2 ] && printf '%s' "$err" | grep -q 'invariant-drift'; then ok "--spec overrides the index lookup"
+else bad "--spec overrides the index lookup (rc=$rc err=$err)"; fi
+
+D="$T/inv-pipe"
+card "$D/cards" 01 '' '<invariant id="I1">`enabled \|\| forced` stays true while held</invariant>' 'npm test' 'none'
+spec_with "$D" '| I1 | Flag | on → off | FlagSvc | `enabled \|\| forced` stays true while held | none |'
+err=$(bash "$L" --dir "$D/cards" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 0 ] && [ -z "$err" ]; then ok "an escaped pipe inside the Invariant cell is one cell, not two"
+else bad "an escaped pipe inside the Invariant cell is one cell, not two (rc=$rc err=$err)"; fi
+
+D="$T/inv-case"
+card "$D/cards" 09 '' '<invariant id="I1">dispatched once per repo per rules version</invariant>' 'npm test' 'none'
+spec_with "$D" "$I1"; sed -i.bak 's/^## Shared state & invariants/## Shared State \& Invariants/' "$D/specs/s.md"
+err=$(bash "$L" --dir "$D/cards" 2>&1 >/dev/null); rc=$?
+if [ "$rc" = 0 ] && [ -z "$err" ]; then ok "the section heading matches in any case"
+else bad "the section heading matches in any case (rc=$rc err=$err)"; fi
+
+D="$T/inv-nocol"
+card "$D/cards" 01 '' '<invariant id="I1">x</invariant>' 'npm test' 'none'
+mkdir -p "$D/specs"; git -C "$D" init -q
+printf '# Spec\n## Shared state & invariants\n| ID | E | S | Writer(s) | Rule | Err |\n|---|---|---|---|---|---|\n| I1 | a | b | c | x | e |\n' > "$D/specs/s.md"
+printf 'Spec: specs/s.md\n' > "$D/cards/00-INDEX.md"
+expect "a table with no Invariant column names the header, not the cards" "$D/cards" 2 invariant-header
+
 D="$T/empty"; mkdir -p "$D"
 expect "a dir with no cards is a usage error" "$D" 3 ""
 expect "no --dir is a usage error" "$T/nope" 3 ""

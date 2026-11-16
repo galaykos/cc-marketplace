@@ -13,7 +13,7 @@ Orientation prior: if `.cc-artifacts/brain/INDEX.md` (older projects: `brain/IND
 map), Read it FIRST and use it to target your scan — it is a PRIOR, not truth. Verify
 every area the task touches with your own greps; when the injected map carried a
 staleness warning or a map claim contradicts what you read, trust the code and note
-the drift in your report. Output six compact sections:
+the drift in your report. Output seven compact sections:
 
 1. **Touched surface** — every file/module the task would plausibly touch, as
    `path:line` with a half-line reason each.
@@ -37,10 +37,16 @@ the drift in your report. Output six compact sections:
    tokens located), `partial` (missing rows say "not found"), or `none` (no
    theme signals — omit the table, state `Theme tokens: none`). Table only,
    no prose.
+7. **Reuse candidates** — existing code the task's cards should extend instead of
+   rewriting: helpers, predicates, status/state lists, services, components, test
+   factories and seeders that already cover part of the need. One line each as
+   `path:line symbol — what it already does`. Grep for the nouns and verbs of the task
+   (the entity, its states, the action) before concluding there is none; "None found"
+   names what you grepped. The plan check copies these into the spec's `## Module map`.
 
 Rules: no recommendations, no refactoring notes, no praise. If the repo is empty or
 the task is greenfield, say so in one line and fill section 5 only. The report is
 fuel for the main thread's questions, not a document: one line per fact with its
 `path:line`, no excerpts. Budget: at most 120 lines and 8,000 characters. Over it, keep
-sections 4 and 5 whole, collapse the others to directories with counts
+sections 4, 5 and 7 whole, collapse the others to directories with counts
 (`app/Models/ — 14 files`), and end with one line naming what you collapsed.

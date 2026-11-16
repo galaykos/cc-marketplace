@@ -36,6 +36,18 @@ case_ "neighbour: a verify target this card creates is fine" 0 "" \
 card 11 'vendor/bin/pest tests/Feature/Sibling.php' '<file path="tests/Feature/Sibling.php" mode="create"/>' >/dev/null
 case_ "neighbour: a verify target a sibling card creates is fine" 0 "" \
   "$(card 12 'vendor/bin/pest tests/Feature/Sibling.php' '<file path="app/Models/Report.php" line="3" mode="edit">x</file>')"
+printf '<?php\nfinal class Money { public static function sum(array $a) {} }\n' > "$R/app/Models/Money.php"
+case_ "a <reuse> path and symbol that exist pass" 0 "" \
+  "$(card 14 'vendor/bin/pest tests/Feature/ReportTest.php' '<reuse path="app/Models/Money.php" symbol="Money::sum">totals round here</reuse>')"
+case_ "a <reuse> path that does not exist blocks" 2 "reuse-missing: app/Support/InFlight.php" \
+  "$(card 15 'vendor/bin/pest tests/Feature/ReportTest.php' '<reuse path="app/Support/InFlight.php" symbol="InFlight::STATES">in-flight set</reuse>')"
+case_ "a <reuse> symbol missing from its file only warns" 0 "WARN reuse-symbol: Money::refund" \
+  "$(card 16 'vendor/bin/pest tests/Feature/ReportTest.php' '<reuse path="app/Models/Money.php" symbol="Money::refund">x</reuse>')"
+printf 'export class Money { sum(a) {} }\n' > "$R/app/Models/money.ts"
+case_ "a dotted symbol is looked up by its last segment" 0 "" \
+  "$(card 17 'vendor/bin/pest tests/Feature/ReportTest.php' '<reuse path="app/Models/money.ts" symbol="Money.sum">x</reuse>')"
+out=$("$lint" --card "$R/cards/17.md" --root "$R" 2>&1)
+if printf '%s' "$out" | grep -q 'WARN reuse-symbol'; then fail=$((fail+1)); printf 'FAIL: dotted symbol warned (%s)\n' "$out"; else pass=$((pass+1)); printf 'PASS: a dotted symbol present in the file does not warn\n'; fi
 case_ "retro: an edited file that does not exist (StarDef.cs)" 2 "edit-missing: Assets/Scripts/StarDef.cs" \
   "$(card 13 'dotnet test core/Tests' '<file path="Assets/Scripts/StarDef.cs" line="40" mode="edit">dead reference</file>')"
 case_ "neighbour: URLs, flags, globs and absolute paths in verify are not targets" 0 "" \

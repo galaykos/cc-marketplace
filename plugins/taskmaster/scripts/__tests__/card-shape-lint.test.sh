@@ -39,7 +39,7 @@ good='# 03 — Extract invoice totals
 
 <must>
 <change>create invoices/totals.py with compute_total; Invoice.total() delegates to it</change>
-<interface consumer="04">def compute_total(lines: list[Line], tax_rate: Decimal) -> Decimal</interface>
+<interface consumer="04" kind="signature">def compute_total(lines: list[Line], tax_rate: Decimal) -> Decimal</interface>
 <skill name="money-conventions"/>
 </must>
 
@@ -97,6 +97,21 @@ run_case "<agent> outside vocabulary" 2 "agent-vocabulary" \
   "$(printf '%s' "$good" | sed 's|<agent>backend</agent>|<agent>wizard</agent>|')"
 run_case "<agent>generic</agent> is in vocabulary" 0 "" \
   "$(printf '%s' "$good" | sed 's|<agent>backend</agent>|<agent>generic</agent>|')"
+
+# --- contract tags (grill references/contracts.md): <interface kind>, <reuse path symbol>, <invariant id> ---
+with_must() { printf '%s\n' "$good" | L="$1" awk '{ print } /^<must>/ { print ENVIRON["L"] }'; }
+run_case "<interface> without kind" 2 "interface-kind" \
+  "$(printf '%s' "$good" | sed 's| kind="signature"||')"
+run_case "<interface> kind outside the vocabulary" 2 "interface-kind" \
+  "$(printf '%s' "$good" | sed 's|kind="signature"|kind="thing"|')"
+run_case "<reuse> with path and symbol passes" 0 "" \
+  "$(printf '%s\n' "$good" | awk '{ print } /^<facts>/ { print "<reuse path=\"invoices/money.py\" symbol=\"quantize_cents\">rounding already lives here</reuse>" }')"
+run_case "<reuse> without symbol" 2 "reuse-shape" \
+  "$(printf '%s\n' "$good" | awk '{ print } /^<facts>/ { print "<reuse path=\"invoices/money.py\">rounding</reuse>" }')"
+run_case "<invariant id=I2> on one line passes" 0 "" "$(with_must '<invariant id="I2">a poll never enqueues work</invariant>')"
+run_case "<invariant> with a non-I<n> id" 2 "invariant-id" "$(with_must '<invariant id="2">a poll never enqueues work</invariant>')"
+run_case "<invariant> wrapped over two lines" 2 "invariant-id" "$(with_must '<invariant id="I2">a poll never
+enqueues work</invariant>')"
 
 # --- <walk> (UI cards, task-cards card-shape.md) is optional: present passes, absent
 #     passes (the good card above has none), and it is not counted as a <verify> ---
