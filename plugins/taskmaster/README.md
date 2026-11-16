@@ -309,9 +309,10 @@ what they produce.
   options each. Choosing an option restyles the content of every frame at once and nothing else on the page;
   the active option of each switcher is the look. A switcher with fewer than two options is not shown, and in
   a window 600 px wide or narrower the row folds behind a `Look` button, under which a switcher's options
-  wrap onto further lines. While the header is taller than half the window it stops sticking and scrolls away
-  with the page; opening `Look` on a six-frame page in a window 375 px wide and 800 px tall does this (the
-  open header measured 53% of the window's height). A browser tab keeps its look across reloads. Gate:
+  wrap onto further lines. Once the header is taller than 55% of the window it stops sticking and scrolls away
+  with the page, and it sticks again once it is 45% of the window or less (two thresholds, so a phone's URL bar
+  sliding in and out does not flip it); opening `Look` on a six-frame page in a window 375 px wide and 800 px
+  tall measured 49 to 53% of the window's height, which stays stuck. A browser tab keeps its look across reloads. Gate:
   `scripts/__tests__/shell-controls.test.sh`, which drives the page in a headless browser (without one it
   prints SKIP and passes, unless `PREVIEW_REQUIRE_BROWSER=1`: see Standing under Render checks); the limits
   are check E7.
@@ -443,7 +444,7 @@ each pass before asking for the pick, fixes what it shows, re-runs once and name
 | E4 stand-in content | lorem ipsum, "placeholder", TODO, TBD or FIXME, "your text here" and the like, a whole text that is a generic word plus a number ("Item 3", "Row N"); three or more sibling rows or cards (`tr`, `li`, `article`, or blocks of two or more elements) with the same text outside a `data-state="loading"` block; a table with no filled cell or a list with no filled item outside a `data-state="empty"` block | realistic-looking wrong data; stand-ins in attributes such as `alt`; such a word used on purpose |
 | E5 variants, advisory | two variants with the same text, markup (tags, classes, attributes), colours and fonts; two variants sharing less than half of their words, of their parent-child tag pairs and of their colour and font values | two axes changed while a third stays close; the axis the header names; anything outside `.vd-frame > .vd-content` |
 | E6 change, advisory | for `current.html` or a ledger pass: the share of pixels that differ from the newest older ledger pass whose bytes differ, at the widest width, and the box around them; printed with `"advisory": true`, not counted as a finding | whether the change was the one asked for; a page that grew or shrank shifts everything below it, so the box covers it all; that pass can belong to another decision |
-| E7 limits | on a layout or creative pass only: more than 6 frames; and, read from the header's look row, more than 3 switchers; more than 4 options in one switcher; an option name used twice in its switcher; an option name the server refuses (not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores). Findings, not advisory | a page of any other pass kind, which is held to no limit; a switcher written by hand outside the header's look row; the default of 3 frames, the floor of 2 and the condition on a sixth; whether the frames differ on layout only |
+| E7 limits | on a layout or creative pass only: more than 6 frames; and, read from anywhere in the page's header, more than 3 switchers; more than 4 options in one switcher; an option name used twice in its switcher; an option name the server refuses (not 1 to 24 ASCII letters, digits, spaces, hyphens or underscores). Findings, not advisory | a page of any other pass kind, which is held to no limit; a switcher written by hand outside the header's look row; the default of 3 frames, the floor of 2 and the condition on a sixth; whether the frames differ on layout only |
 | E8 palette contrast | on any page with a palette, for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert or nav text, or the primary colour used as text, under 4.5:1 against the colour behind it, naming the palette and the scheme; read once, in the first width's load | text over a background image or dimmed by opacity; text that is no shell primitive; a pair on any background but those the page draws it on; a page with no palette |
 
 Thresholds and the reasons for them: `rationale/derivations/plugin-taskmaster.md`, section

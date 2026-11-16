@@ -873,6 +873,48 @@ with one deliberate defect; it is killed when a harness case fails on it.
   quote. A switcher written by hand outside the look row and outside the frames. A lone real option beside a
   frame's control of the same kind, for style and for type.
 
+### Second pass: five assertions the red-team round found missing; switchers anywhere in the header (2026-11-16, taskmaster 0.62.0, commit `ccf3e071`)
+
+A red-team round at `e60787e5` asked one question, would the harness fail if the code were wrong, and seeded
+11 mutants in a scratch copy: 5 were killed and 6 left every harness green. Five of the six were in this
+check; none was a defect in the code, each was an assertion nobody had written. They are written now, and
+each was shown to kill its mutant (relayed from the worker's report; the orchestrator re-ran the harness
+by receipt only, 237 passed):
+
+- The 4.5:1 threshold: every failing fixture was at or under 3.95:1 and every passing pair at or over
+  5.17:1, so `>= 4` passed. Now #777777 on #ffffff (4.478:1) is reported and #767676 on #ffffff (4.542:1)
+  is not. Mutants `>= 4` and `>= 4.6` killed.
+- E8 runs at the first width given: with `--widths 768,1280` a failing palette is reported at 768. Mutant
+  `"E8": 375` killed (it gave exit 0 and no finding).
+- The look at load is kept under an option: a style that overflows only with the type the page loaded with
+  is reported under that style. Mutant `setLook({ ...state.look })` killed.
+- A refused name on a lone style and on a lone type is reported. Mutant `['palette']` killed.
+- Two options that each break one element give two findings. Mutant `drawn.add(el)` killed.
+
+Changed behaviour, from the review of the fix round:
+
+- `switchers()` reads `#vd-header [data-vd-switcher]`: anywhere in the header, where the first fix read the
+  look row only and so stopped seeing a switcher written by hand beside the header's other controls. Not
+  covered: a switcher outside the header; a hand-written and a shell-built switcher of one kind both in the
+  header (E7 counts both, the plan takes the first in document order; untested, and which should win is
+  undecided); the plan has no pass-mark condition, so such a switcher adds states on an unmarked page too.
+- The slowest state time is kept for the whole run, so at a second width a state that cannot fit is named
+  "not run" and not started, stopped and reloaded. One run each at a 1.2 s budget, `--widths 1280,375`:
+  1.6 s before, 1.2 s after.
+- A repeated `--widths` value is dropped when the argument is parsed. The six-width limit still counts
+  before repeats are dropped (untested).
+- A state that cannot be stopped says ", and could not be stopped in 3 s". No harness case (it would wait
+  the 3 s); one hand run with a state blocked in a synchronous request: exit 5, the width recorded, 5.3 s.
+- Seven cases run the check on the shell harness's own `scheme-*.html` pages and assert, per page, which
+  schemes E8 plans, so an edit to `lightOnly` here fails on the pages the shell's Scheme toggle is tested
+  on. The expected table is one more hand-kept copy; an edit to the shell's `lightOnly` alone is still
+  caught only by the shell's harness.
+- The time-dependent case ("states slower than the time they share") accepts "did not finish" for the first
+  state left. It still depends on time through its allowed range of states, and the two-widths case fails on
+  a stall of about 250 ms (arithmetic, not observed). Five runs in a row passed, 109 s each.
+
+Harness: 205 cases to 237; with the new cases and the code unfixed, 229 passed and 8 failed.
+
 ## plugins/taskmaster/scripts/preview-cleanup.sh
 
 ### Header
@@ -1967,3 +2009,37 @@ deliberate defect; it is killed when a harness case fails on it.
 - **Follow-ups, not done.** Nothing guards the fixture folder that this harness's `--emit` shares with
   `preview-check.test.sh`: pages named `dark-*.html` collided (201 passed, 4 failed) and were renamed
   `scheme-*.html`. An existing comment in shell.html holds two U+200B characters.
+
+### Second pass: two thresholds for the header, and what the first fix round broke (2026-11-16, taskmaster 0.62.0, commit `2ea95beb`)
+
+The first fix round made a header taller than half the window stop sticking. A review of that round found
+the rule itself was a defect on a phone: `innerHeight` changes each time the URL bar slides in or out, so a
+header near half the window stuck and unstuck at every change of scroll direction, and where a tapped
+button keeps focus (Chrome and Firefox on Android) each flip to unstuck ran the follow-scroll and threw the
+page to its top. Confirmed by a second reader from the code; no phone was used at any point.
+
+- The header unsticks over 55% of the window's height and sticks again at 45% or less
+  (`20 * height > (was ? 9 : 11) * innerHeight`); between the two it keeps its state, and a page that
+  loads inside the band sticks. Under `?static=1` there is no kept state (55% only), so a screenshot is
+  the picture a load at that size gives.
+- The page follows a focused header control only when the header itself grew past the threshold (`Look`
+  opened), never because the window changed size.
+- Orchestrator's browser run on the exported commit (Chrome through Playwright, six frames, 375 px wide,
+  header 282 px, a header button focused, page scrolled to 1800 px): window height 628 → 553 → 628 stayed
+  stuck with `scrollY` 1800 throughout; 480 (59%) unstuck with `scrollY` still 1800; back to 553 (51%)
+  stayed unstuck. At 1280 by 800 the header was 187 px and stuck; a pick, and a look change after it,
+  announced as before; console empty.
+- A screenshot (`?_outline`) keeps 24 px above the outlined element when the header has stopped sticking,
+  where it kept the whole header's height clear.
+- The note box is held under the window's height (`max-block-size`, its own scroll) and moves up when a
+  refusal makes it taller; a refusal with one long unbroken token wraps (WCAG 1.4.10).
+- Where `AbortSignal.timeout` is missing (Chrome before 103, Firefox before 100, Safari before 16) a timer
+  aborts the post at the same 10 s. Before this the call threw, a pick posted nothing and Send note stayed
+  disabled.
+- Harness, from the worker's commit message (its written report had not arrived when this was recorded):
+  `shell-controls.test.sh` 146 → 157 cases, each refusal answer with its own status and a wait for the
+  stub's post count, a 25-character option name; `preview-feedback.test.sh` 92 → 93, a 320 by 480 shot.
+  The orchestrator checked the receipt (fresh at `2ea95be`), not the cases one by one.
+- Not covered: a real phone; what happens between 45% and 55% on first load when the user expects no
+  sticky header; `matches`, the module-level value the look-change announcement compares against, which a
+  later `showPick()` call outside the observer would move (left as it is, recorded).
