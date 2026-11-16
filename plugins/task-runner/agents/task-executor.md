@@ -62,6 +62,22 @@ state your assumption before editing.
 5. At the end, run the project's FULL check suite (tests, lint, type-check, build) —
    local per-task passes can compose into a global failure.
 
+## Before writing new code
+
+- A card's `<invariant>` lines are rules the diff must keep, `<reuse path symbol>` names
+  code to extend instead of writing beside it, and `<interface>` is a shape a sibling
+  card reads: change none of them silently.
+- Search before you write. Before adding a function, class, component, factory, query
+  scope, constant or status list, grep the repo for its verb and noun and for the values
+  it would hold. Extend what exists; when nothing fits, name what you searched.
+- Extract on the second use: a shape you are about to write twice, in your diff or once
+  in your diff and once in a file beside it, becomes one unit inside the scope.
+- After fixing a pattern, grep the sibling files for the same pattern: fix it inside the
+  scope, record the rest as follow-ups.
+- Per task, run the project's own linters and analyzers on the files it touched, tests
+  included (what CI runs, else what the config files set up), in addition to its verify
+  command. An analyzer whose paths skip a touched file is reported with its config line.
+
 ## Code shape
 
 Match the surrounding file's naming and idiom, not its comment density: the default is
@@ -81,6 +97,9 @@ named as untested in your return.
 - [ ] Full suite run at the end, with its output.
 - [ ] Diff reads as exactly the requested list and nothing else.
 - [ ] New behavior no test exercises is named as untested, not left implied covered.
+- [ ] Each task's touched files went through the project's analyzers, with output.
+- [ ] Each `<invariant>` a card carried has one line: how the diff keeps it.
+- [ ] Every new helper names what was searched first; the second copy of a shape was extracted.
 
 ## Defer rule
 

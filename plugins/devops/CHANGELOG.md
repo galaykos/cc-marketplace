@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.9 — 2026-11-16
+
+- **`devops-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.
+- Standing: agent-graded (agent text; no harness reads a worker's return).
+
 ## 0.9.8 — 2026-11-08
 
 - **`/devops:review` runs zizmor on GitHub workflows when it is already installed.** When the scope has files under `.github/workflows/`, it runs `zizmor --offline --format=plain` on them. `--offline` keeps the run local even when a `GH_TOKEN` is set, and the review lists the four audits that need the GitHub API as not checked. It never passes `--fix`, which rewrites files. Each hit becomes a finding: zizmor's level sets the severity, and only a high-confidence hit is marked CONFIRMED. A hit on the same line as a `workflow-audit.sh` finding is merged into it. When zizmor is not installed, the coverage line says so and the review goes on. It never installs zizmor. Standing: recorded — nothing checks the run happened.
