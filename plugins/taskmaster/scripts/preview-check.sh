@@ -42,7 +42,7 @@ limit=""; command -v timeout >/dev/null 2>&1 && limit="timeout 90"
 
 # exec, so a caller's TERM or HUP reaches the driver, which closes the browser and removes its profile before it exits.
 exec python3 - "$docroot" "$page" "$widths" "$browser" "$sandbox" "$limit" "$here" <<'PY'
-import base64, fcntl, hashlib, json, math, os, secrets, select, shutil, signal, subprocess, sys, tempfile, time, unicodedata
+import base64, fcntl, hashlib, json, math, os, re, secrets, select, shutil, signal, subprocess, sys, tempfile, time, unicodedata
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote, urlsplit
@@ -579,13 +579,20 @@ try:
 except OSError:
     pass
 merged = {}
+# An E1 resource's status comes from its timing entry, which one width can read before it lands: "got no response" there
+# and "answered 404" at the others is one failure, so the key drops that suffix and the merged row keeps the status.
+NO_RESPONSE = " got no response"
 for w in widths:
     for f in (collected.get(w) or {}).get("findings") or []:
-        key = (f.get("check"), f.get("selector"), f.get("text"), f.get("detail"))
+        detail = f.get("detail")
+        same = re.sub(r" (answered \d+|got no response)$", "", detail) if f.get("check") == "E1" and isinstance(detail, str) else detail
+        key = (f.get("check"), f.get("selector"), f.get("text"), same)
         if key in merged:
             merged[key]["widths"].append(w)
+            if isinstance(merged[key]["detail"], str) and merged[key]["detail"].endswith(NO_RESPONSE) and detail != merged[key]["detail"]:
+                merged[key]["detail"] = detail
         else:
-            merged[key] = {"check": key[0], "width": w, "widths": [w], "selector": key[1], "text": key[2], "detail": key[3]}
+            merged[key] = {"check": key[0], "width": w, "widths": [w], "selector": key[1], "text": key[2], "detail": detail}
 dropped = sum(int((collected.get(w) or {}).get("dropped") or 0) for w in widths)
 by_check = {}
 for f in merged.values():
