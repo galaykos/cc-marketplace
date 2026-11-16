@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.18.1 — 2026-11-16
+
+- **`dk check` waits up to 30 s for a cold browser's first answer** (was 10 s, the default for every command). On CI runners a fresh Chrome took longer than 10 s to answer its first command in 2 of 3 runs, so the clean fixture read "the browser failed (no answer from the browser in time)" and nothing was checked. Later commands keep their own limits, and the whole run keeps its 60 s cap.
+- Standing: gate for the run (`scripts/__tests__/check.test.sh`); the timing itself is not measured by any harness.
+
 ## 0.18.0 — 2026-11-15
 
 - **A board holds 3 artboards by default, up to 5, and never more than 6.** The builder refused anything but 2 to 4. It now accepts 2 to 6, and `--screens` defaults to 3 and is clamped to 2-6: ask for 4 or 5 when the directions are really different. A spec with 1 or 7 artboards still fails with exit 2, and the message names the bound. The reason: taskmaster's mockup page and this board now state one count rule, where they disagreed (3 against 2 to 4). The numbers are a judgment that matches what other design tools ship, not a measured optimum; the sources are in the marketplace repository's `rationale/derivations/plugin-taskmaster.md`, under "count rule".
