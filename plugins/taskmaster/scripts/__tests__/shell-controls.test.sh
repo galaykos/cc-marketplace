@@ -396,9 +396,15 @@ def style(selector, prop):
 
 def click(selector):
     """A real mouse click on the centre of the first element matching the selector; it must be the topmost element there."""
-    at = js("(() => { const el = document.querySelector(%s); if (!el) return null; el.scrollIntoView({ block: 'center', inline: 'center' });"
-            " const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, hit = document.elementFromPoint(x, y);"
-            " return { x, y, hit: !!hit && el.contains(hit) }; })()" % json.dumps(selector))
+    # The sticky header reacts to the scroll a frame or more later, so a covered target is re-measured for up to 1 s before failing.
+    deadline = time.time() + 1.0
+    while True:
+        at = js("(() => { const el = document.querySelector(%s); if (!el) return null; el.scrollIntoView({ block: 'center', inline: 'center' });"
+                " const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, hit = document.elementFromPoint(x, y);"
+                " return { x, y, hit: !!hit && el.contains(hit) }; })()" % json.dumps(selector))
+        if not at or at["hit"] or time.time() >= deadline:
+            break
+        time.sleep(0.05)
     if not at or not at["hit"]:
         raise RuntimeError("cannot click %s: %s" % (selector, "something covers it" if at else "no such element"))
     for kind in ("mousePressed", "mouseReleased"):
