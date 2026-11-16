@@ -266,10 +266,11 @@ value.
   least 24 px tall, so a long name is neither cut off nor scrolled out of reach
   (gate: `scripts/__tests__/shell-controls.test.sh`, at 320 and 375 px with
   four 24-character names per kind).
-- While the header is taller than half the window it stops sticking and
+- Once the header is taller than 55% of the window it stops sticking and
   scrolls away with the page, so a frame reached by a number key or a jump
-  link is not under it (gate: the same harness, at 320 by 480 px with `Look`
-  open).
+  link is not under it; it sticks again once it is 45% of the window or less
+  (gate: the same harness, at 320 by 480 px with `Look` open, and at each
+  threshold to the pixel).
 - A preset reaches frame content only: everything inside `.vd-content`, the
   frame's own navigation bar included. The header, and each frame's title,
   caption and tradeoff list, keep the shell's neutral colours.

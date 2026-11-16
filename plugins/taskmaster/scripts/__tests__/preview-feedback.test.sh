@@ -440,6 +440,12 @@ print(" ".join((re.findall(r"data-vd-%s=\"([^\"]*)\"" % kind, tag) or ["-"])[0] 
   case "$got" in "375 800 0 whole below "*) ok ;; *) bad "shot keeps an element further down the page in the picture at 375 by 800" "want the header on the first row and frame C's whole outline below it, got $got" ;; esac
   got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 640 400)" placed)"
   case "$got" in "640 400 0 top below "*) ok ;; *) bad "shot shows the top of an element taller than the room under the header" "want the outline's top edge below the header and its bottom edge past the PNG's end, got $got" ;; esac
+  # At 320 by 480 the header is over 55% of the window and scrolls away with the page: frame C's content fits the picture only when no room is kept for it.
+  got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 320 480 "#vd-c > .vd-content")" placed)"
+  first="$(printf '%s\n' "$got" | sed -n 's/.*the outline.s rows are \([0-9][0-9]*\) to .*/\1/p')"; last="$(printf '%s\n' "$got" | sed -n 's/.*the outline.s rows are [0-9][0-9]* to \([0-9][0-9]*\)).*/\1/p')"
+  # The frame clips this outline's sides, so "whole" alone would read a top edge as both: the bottom edge has to be a band of its own, further down.
+  case "$got" in "320 480 0 whole "*) [ -n "$first" ] && [ -n "$last" ] && [ "$((first + 5))" -le 60 ] && [ "$((last - first))" -gt 100 ] ;; *) false ;; esac && ok \
+    || bad "shot keeps no room for a header that scrolled away at 320 by 480" "want a 320 by 480 PNG with no blank row at its top, the outline's top and bottom edge over 100 rows apart, and the element's top (5 px under the outline's first row) within the first 60 px, got $got"
 
   u="$(shot_url "$K" "$(noted look-5.html Berry Sharp Serif dark)")"
   got="$(dom_look "$u")"

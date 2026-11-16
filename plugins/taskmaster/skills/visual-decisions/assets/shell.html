@@ -116,7 +116,7 @@ body {
   align-items: center;
   gap: calc(var(--vd-space) * 2);
 }
-/* Set by the script while the header is over half the window's height: stuck, it would cover the frame a key or a jump link scrolls to. Screen only: print pins it per page. */
+/* Set by the script once the header is over 55% of the window's height, until it is 45% or less: stuck, it would cover the frame a key or a jump link scrolls to. Screen only: print pins it per page. */
 @media screen {
   #vd-header.vd-tall { position: relative; }
 }
@@ -1542,6 +1542,8 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 }
 #vd-fb-box {
   position: fixed; z-index: 31; width: min(20rem, calc(100vw - 16px)); box-sizing: border-box; padding: 8px;
+  /* WCAG 1.4.10: a refusal adds up to a dozen lines, so the box is held under the window's height and scrolls inside itself. `vh` is for a browser with no `dvh`. */
+  max-block-size: calc(100vh - 16px); max-block-size: calc(100dvh - 16px); overflow: auto;
   background: var(--vd-paper); color: var(--vd-ink);
   border: 1px solid var(--vd-line); border-radius: var(--vd-radius); box-shadow: var(--vd-shadow-lg);
   font: .82rem/1.4 var(--vd-font);
@@ -1554,7 +1556,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 }
 #vd-fb-box .vd-fb-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
 .vd-fb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.vd-fb-refused { display: block; font-size: .72rem; font-weight: 600; line-height: 1.3; }
+.vd-fb-refused { display: block; font-size: .72rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 .vd-fb-refused:empty { display: none; }
 .vd-frame > h2 .vd-fb-refused { clear: both; padding-top: 4px; text-align: end; }
 #vd-fb-box .vd-fb-refused { flex: 1 1 0; align-self: center; }
@@ -1993,14 +1995,19 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   }
 
   const header = document.getElementById('vd-header');
-  // The header is as tall stuck as not, so marking it cannot change the answer: no loop.
+  // ?static=1 keeps no header state: a screenshot's page first sees a shorter window than the one it is captured in, and the picture has to be the one a load at that size gives.
+  const live = new URLSearchParams(location.search).get('static') !== '1';
+  let fitted = 0;
+  // Unstuck over 55% of the window, stuck again at 45%: a phone's URL bar changes innerHeight at each change of scroll direction, and one threshold would flip with it. The header is as tall stuck as not, so marking it cannot change the answer: no loop.
   function fitHeader() {
-    const tall = header.offsetHeight > innerHeight / 2;
-    const unstuck = tall && !header.classList.contains('vd-tall');
+    const height = header.offsetHeight, was = header.classList.contains('vd-tall');
+    const tall = 20 * height > (was && live ? 9 : 11) * innerHeight;
+    const grew = height > fitted;
+    fitted = height;
     header.classList.toggle('vd-tall', tall);
-    document.documentElement.style.setProperty('--vd-header-h', (tall ? 0 : header.offsetHeight) + 'px');
-    // Look opened on a scrolled page: the header just left for the page's top, and the page follows the control in use there.
-    if (unstuck && header.contains(document.activeElement)) document.activeElement.scrollIntoView({ block: 'nearest' });
+    document.documentElement.style.setProperty('--vd-header-h', (tall ? 0 : height) + 'px');
+    // Look opened on a scrolled page: the header just left for the page's top, and the page follows the control in use there. Not when the window alone changed: that would throw a page being scrolled back to its top.
+    if (tall && !was && grew && header.contains(document.activeElement)) document.activeElement.scrollIntoView({ block: 'nearest' });
   }
   new ResizeObserver(fitHeader).observe(header);
   window.addEventListener('resize', fitHeader);
@@ -2291,7 +2298,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
   function letterOf(frame) { return (frame && frame.dataset.vdLetter) || null; }
 
-  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted element and brings it below the sticky header, centred in the room there when it fits, else by its top.
+  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted element and brings it below the sticky header (24 px under the window's top where the header has stopped sticking), centred in the room there when it fits, else by its top.
   const outline = params.get('_outline');
   if (outline) {
     let el = null;
@@ -2302,7 +2309,8 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       const still = params.get('static') === '1';
       const reveal = () => {
         document.body.style.marginTop = '';
-        const clear = document.getElementById('vd-header').offsetHeight + 24;
+        const header = document.getElementById('vd-header');
+        const clear = (header.classList.contains('vd-tall') ? 0 : header.offsetHeight) + 24;
         el.style.scrollMargin = clear + 'px 24px 24px';
         el.scrollIntoView({ block: el.getBoundingClientRect().height + clear + 24 > innerHeight ? 'start' : 'center', inline: 'nearest' });
         if (!still) return;
@@ -2377,12 +2385,20 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     return out;
   }
 
+  // Chrome before 103, Firefox before 100 and Safari before 16 have no AbortSignal.timeout: there a timer aborts in its place.
+  function timeLimit(ms) {
+    if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+    const limit = new AbortController();
+    setTimeout(() => limit.abort(), ms);
+    return limit.signal;
+  }
+
   // `refused` is the message element beside the control that sent the post. A refused post is never sent again from here: serve.py drops or doubles a repeat pick by its own rules.
   function post(fields, refused) {
     const body = Object.assign({ page: page, pass: pass, switchers: look(), context: context() }, fields);
     if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
     // serve.py takes a post and then waits for its lock: without a limit the control that sent it would stay as it is, with no message.
-    const wait = AbortSignal.timeout(POST_WAIT_S * 1000);
+    const wait = timeLimit(POST_WAIT_S * 1000);
     return fetch('/_feedback', {
       method: 'POST',
       // The header is the server's CSRF gate, as on /_restore.
@@ -2548,6 +2564,11 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     box.style.top = top + 'px';
     box.style.left = Math.min(Math.max(m, r.left), innerWidth - box.offsetWidth - m) + 'px';
   }
+  // A refusal drawn in the open box makes it taller: it moves up by what would pass the window's bottom.
+  function fit() {
+    const r = box.getBoundingClientRect();
+    box.style.top = Math.max(8, Math.min(r.top, innerHeight - 8 - r.height)) + 'px';
+  }
   function openBox(opts) {
     pending = opts;
     boxTitle.textContent = opts.label;
@@ -2632,7 +2653,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       send.disabled = true;
       post({ kind: 'note', variant: pending.variant, anchor: pending.anchor, text: note }, noteRefused)
         .then(() => { announce('Note recorded.'); closeBox(); })
-        .catch(() => {})
+        .catch(fit)
         .finally(() => { send.disabled = false; });
     });
     text.addEventListener('keydown', e => {
