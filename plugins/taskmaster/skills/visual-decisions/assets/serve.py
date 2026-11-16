@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Never served (404): a dot-prefixed file or folder at any depth (the .preview.* state files included), a directory listing. --lan: a non-loopback peer needs the key (?key= once, then an HttpOnly SameSite=Strict cookie, 403 otherwise), /_restore, /_feedback and /_checks stay loopback-only (the loopback URL is printed too), the key file is never followed through a symlink, the server exits after PREVIEW_LAN_MINUTES (60).
-# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; GET /_feedback?page= returns that page's rows. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
-# Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
+# Every mode exits after PREVIEW_IDLE_MINUTES (240) with no completed request that passed the key gate and no open event stream; 0 turns either limit off. Restore writes a dot temp file, then renames it over current.html. POST /_feedback (X-Preview-Feedback, local Host/Origin, 1..8192 bytes of a JSON pick or note; else 403/413/400) appends one clamped row (numbers to +-1e7, a lone surrogate as ?, a pass outside 1..9 or a refused look name as null) to .feedback.jsonl under a flock on .feedback.lock, 507 once that file would pass 2 MiB; a pick equal (letter, pass, look) to its page's newest pick while that one is unread appends nothing and answers 200 with that row's id; GET /_feedback?page= returns that page's rows and "server": SERVER_VERSION, which scripts/preview.sh compares with its own serve.py's to replace an older running server. Render check: no route serves check.js or takes findings (scripts/preview-check.sh runs it in an isolated world and writes .checks/<page>-<hash>/<width>.json itself); GET /_checks?page= counts those records while the page's bytes still match (a page key with a control character is no page: 404), and a new run.json there streams a "checked" event. Harnesses: plugins/taskmaster/scripts/__tests__/serve.test.sh, preview-check.test.sh.
+# Misses: a page served from here, third-party script included, can post a pick or a note, and note text is unverified; without fcntl nothing locks, so two equal picks posted together can both be stored; a deleted file (only changed or new paths are pushed); a ninth open stream (503); a symlink in the docroot is followed out of it; under --lan read routes skip the Origin/Host check and the key crosses the network in plain HTTP; the synthesized landing and gallery pages never reload; a kill mid-Restore leaves a .restore-*.tmp dot file behind.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/skills/visual-decisions/assets/serve.py
 """Threaded static file server with an SSE push-reload lane.
 
@@ -58,6 +58,9 @@ LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 PER_PURPOSE_FILES = ("theme.html", "walkthrough.html", "diagram.html", "api.html", "modules.html", "compose.html")
 # Per-purpose files are live destinations, not past passes of current.html: never offered as a restorable version.
 LEDGER_EXCLUDED = {"current.html", "index.html"} | set(PER_PURPOSE_FILES)
+# experience-walkthrough keeps a dated copy (YYYY-MM-DD-<slug>-walkthrough.html) beside the mockup passes; it is no pass of current.html either.
+# Misses: a mockup pass whose own topic slug ends in "-walkthrough" is dropped from the list with it.
+LEDGER_EXCLUDED_SUFFIXES = ("-walkthrough.html",)
 # Restore demands a header no cross-origin <form> can set, forcing a CORS preflight this server never answers; Host/Origin alone would pass another localhost port.
 RESTORE_HEADER = "X-Preview-Restore"
 MAX_RESTORE_BODY = 4096
@@ -67,8 +70,13 @@ FEEDBACK_FILE = ".feedback.jsonl"
 FEEDBACK_LOCK = ".feedback.lock"
 MAX_FEEDBACK_BODY = 8192
 MAX_FEEDBACK_FILE = 2 * 1024 * 1024  # appends stop here (507): a page looping posts must not fill the disk
+TAIL_BLOCK = 64 * 1024  # bytes per read when the feedback file is walked from its end
 PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
-VARIANTS = ("A", "B", "C")
+VARIANTS = ("A", "B", "C", "D", "E", "F")
+SWITCHERS = ("palette", "style", "type")
+LOOK_NAME = re.compile(r"[A-Za-z0-9 _-]{1,24}")
+# Raise it when a server already running would refuse or mishandle what this plugin's pages and scripts now send: preview.sh replaces one reporting less.
+SERVER_VERSION = 2
 CHECKS_DIR = ".checks"  # dot-named, so never served: one folder per page, one record per width, written by scripts/preview-check.sh only
 CHECK_STAMP = "run.json"  # preview-check.sh writes it last in a page's folder: the watcher streams "checked" for that page
 
@@ -177,6 +185,14 @@ def _number(value):
     return value if isinstance(value, int) else round(value, 1)
 
 
+def _pass_number(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 9 else None
+
+
+def _look_name(value):
+    return value if isinstance(value, str) and LOOK_NAME.fullmatch(value) else None
+
+
 def page_key(value):
     """A docroot-relative page path: leading slashes dropped, at most 256 characters."""
     return _clean(value.lstrip("/")[:256]) if isinstance(value, str) else ""
@@ -206,17 +222,21 @@ def feedback_row(body):
     viewport = context.get("viewport") if isinstance(context.get("viewport"), dict) else {}
     states = context.get("states") if isinstance(context.get("states"), dict) else {}
     console = context.get("console") if isinstance(context.get("console"), list) else []
+    switchers = body.get("switchers") if isinstance(body.get("switchers"), dict) else {}
     return {
         "id": secrets.token_hex(4),
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "page": page_key(body.get("page")),
         "kind": kind,
         "variant": variant,
+        "pass": _pass_number(body.get("pass")),
+        "switchers": {k: _look_name(switchers[k]) for k in SWITCHERS if k in switchers},
         "anchor": anchor,
         "text": text,
         "context": {
             "viewport": {k: _number(viewport.get(k)) for k in ("w", "h")},
-            "theme": _clip(context.get("theme"), 16),
+            "theme": _clip(context.get("theme"), 30),  # a 24-character palette name, a space, "light" or "dark"
+            "scheme": context.get("scheme") if context.get("scheme") in ("light", "dark") else None,
             "states": dict([(_clip(k, 32), _clip(v, 32)) for k, v in states.items() if isinstance(v, str)][:16]),
             "console": [_clip(s, 300) for s in console if isinstance(s, str)][-5:],
         },
@@ -237,19 +257,33 @@ def feedback_lock(docroot):
         os.close(fd)
 
 
+def unread_repeat(docroot, row):
+    """The stored pick a posted pick repeats, else None: its page's newest pick, equal in variant, pass and switchers, still unread as preview-feedback.sh wait reads it."""
+    if row["kind"] != "pick":
+        return None
+    newest = newest_pick(docroot, row["page"])
+    if (newest and newest.get("status") == "open" and not newest.get("handed_out")
+            and all(newest.get(k) == row[k] for k in ("variant", "pass", "switchers"))):
+        return newest
+    return None
+
+
 def append_feedback(docroot, row):
-    """Append one row; False, writing nothing, when the file would pass MAX_FEEDBACK_FILE."""
+    """Append one row and return it; a repeat of an unread pick returns that stored pick instead; None, writing nothing, when the file would pass MAX_FEEDBACK_FILE."""
     line = (json.dumps(row, ensure_ascii=False) + "\n").encode("utf-8")
     with feedback_lock(docroot):
+        repeated = unread_repeat(docroot, row)
+        if repeated:
+            return repeated
         fd = os.open(str(docroot / FEEDBACK_FILE),
                      os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
         try:
             if os.fstat(fd).st_size + len(line) > MAX_FEEDBACK_FILE:
-                return False
+                return None
             os.write(fd, line)
         finally:
             os.close(fd)
-    return True
+    return row
 
 
 def read_feedback(docroot):
@@ -268,6 +302,37 @@ def read_feedback(docroot):
             if isinstance(row, dict):
                 rows.append(row)
     return rows
+
+
+def lines_from_end(handle):
+    """A binary file's lines, last first, cut at each \\n and \\r, where a text-mode read ends a line; empty ones included."""
+    pos, rest = handle.seek(0, os.SEEK_END), b""
+    while pos:
+        step = min(TAIL_BLOCK, pos)
+        pos -= step
+        handle.seek(pos)
+        lines = re.split(rb"[\r\n]", handle.read(step))
+        lines[-1] += rest
+        rest = lines[0]
+        yield from reversed(lines[1:])
+    yield rest
+
+
+def newest_pick(docroot, page):
+    """The page's last pick among read_feedback's rows, or None, parsing from the file's end and no line before that row."""
+    try:
+        fd = os.open(str(docroot / FEEDBACK_FILE), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        return None
+    with os.fdopen(fd, "rb") as handle:
+        for line in lines_from_end(handle):
+            try:
+                row = json.loads(line.decode("utf-8", "replace"))
+            except ValueError:
+                continue
+            if isinstance(row, dict) and row.get("kind") == "pick" and row.get("page") == page:
+                return row
+    return None
 
 
 def check_page(docroot, value):
@@ -512,13 +577,13 @@ def build_handler(state):
             return peer_is_loopback(self.client_address[0]) and self.host_and_origin_local()
 
         def serve_feedback(self):
-            """The feedback rows for ?page=, as data, for the shell's status list."""
+            """The feedback rows for ?page=, as data, for the shell's status list; SERVER_VERSION for preview.sh."""
             if not self.is_loopback_local():
                 self.send_error(403, "Forbidden (feedback is loopback-only)")
                 return
             query = self.path.partition("?")[2]
             page = page_key(next((v for k, v in parse_qsl(query, keep_blank_values=True) if k == "page"), ""))
-            self._send_json({"rows": [r for r in read_feedback(state.docroot) if r.get("page") == page]})
+            self._send_json({"rows": [r for r in read_feedback(state.docroot) if r.get("page") == page], "server": SERVER_VERSION})
 
         def handle_feedback(self):
             """Append one pick or note row to .feedback.jsonl; the guards are /_restore's, the header its own."""
@@ -546,14 +611,15 @@ def build_handler(state):
                 self._send_json({"recorded": False, "error": "body must be a JSON pick or note of 1..%d bytes" % MAX_FEEDBACK_BODY}, 400)
                 return
             try:
-                if not append_feedback(state.docroot, row):
+                stored = append_feedback(state.docroot, row)
+                if stored is None:
                     self._send_json({"recorded": False, "error": "%s has reached its %d MiB cap; move it aside to record more"
                                      % (FEEDBACK_FILE, MAX_FEEDBACK_FILE // (1024 * 1024))}, 507)
                     return
             except OSError as exc:
                 self._send_json({"recorded": False, "error": str(exc)}, 500)
                 return
-            self._send_json({"recorded": True, "id": row["id"]})
+            self._send_json({"recorded": True, "id": stored.get("id")})
 
         def serve_checks(self):
             """Whether ?page= was checked as its bytes stand now, and the finding count, for the shell's badge."""
@@ -654,6 +720,8 @@ def build_handler(state):
             low = name.lower()
             if "/" in name or name.startswith(".") or not low.endswith(".html") or low in LEDGER_EXCLUDED:
                 return None
+            if low.endswith(LEDGER_EXCLUDED_SUFFIXES):
+                return None
             try:
                 return (name, (state.docroot / name).stat().st_mtime)
             except OSError:
@@ -682,7 +750,7 @@ def build_handler(state):
         def handle_restore(self):
             """Copy a chosen ledger pass over current.html (rollback).
 
-            The ONLY route that writes. Four independent gates, because a
+            Overwrites a served page; POST /_feedback only appends a dot file. Four independent gates, because a
             localhost port is not a trust boundary: a loopback peer with a local
             Origin/Host (in LAN mode too, a valid key included), the
             preflight-forcing custom header, a bounded body, and a name that

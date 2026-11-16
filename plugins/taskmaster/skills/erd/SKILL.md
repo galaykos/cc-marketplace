@@ -54,8 +54,8 @@ Full-mockups tier: hand-built inline SVG in crow's-foot notation, written to
 the shared preview server's reserved `diagram.html` slot in `.cc-artifacts/taskmaster/mockups/`.
 Server mechanics are visual-decisions' own, reused as-is:
 
-- Before every pass run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh"`: it starts the
-  shared server only when it is not running and prints its URL. The lower rungs and the
+- Before every pass run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh"`: it starts the shared
+  server when none runs, replaces one older than the plugin's, and prints its URL. The lower rungs and the
   port-busy rule are `../visual-decisions/SKILL.md` § Preview — one live URL for the
   whole session; follow it verbatim rather than a copy here, which is how the rungs
   drifted apart before.

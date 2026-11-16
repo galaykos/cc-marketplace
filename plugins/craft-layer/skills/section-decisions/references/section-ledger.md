@@ -12,8 +12,8 @@ picks, this binds a page's per-section treatment.
 
 The ledger is WORKING material, not a shipped file. It lives at a FIXED path so a later
 session's audit can find it without being told: `craft/section-ledger.md` under the run's
-working area — the taskmaster docs area when the project has one (in that task's directory,
-beside the spec it elaborates), otherwise the session's scratch area — alongside
+working area — the taskmaster docs area, `.cc-artifacts/taskmaster/craft/`, when the project has
+one (an older project: `taskmaster-docs/craft/`), otherwise the session's scratch area — alongside
 `craft/offer-contract.md` and `craft/divergence-record.md`. Never inside a plugin or a shipped
 `src/` tree. The audit globs for `**/craft/section-ledger.md`.
 

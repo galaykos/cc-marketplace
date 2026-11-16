@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="light">
+<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-scheme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,7 +17,8 @@
 /* ---- Theme tokens -------------------------------------------------- */
 /* Baseline: cool neutral + blue accent. Tokens style chrome and accents
    ONLY; content text and surfaces use the fixed neutrals below so a
-   broken project palette can never make the page unreadable. */
+   broken project palette can never make the page unreadable. Only a
+   palette in #vd-presets re-declares them, inside frame content. */
 :root {
   --vd-primary: #2563eb;
   --vd-surface: #fafafa;
@@ -28,7 +29,7 @@
   --vd-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --vd-radius: 8px;
   --vd-space: 8px;
-  /* per-scheme fixed neutrals — still never project-overridable */
+  /* per-scheme fixed neutrals; only a palette in #vd-presets re-declares them, inside frame content */
   --vd-ink: #18181b;
   --vd-ink-soft: #52525b;
   --vd-paper: #ffffff;
@@ -47,23 +48,10 @@
    A second COMPLETE per-scheme neutral set: the toggle flips the whole page
    uniformly across every frame. Deliberately NOT wired to the OS colour-scheme
    media query — the preview stays explicit so screenshot comparisons are
-   deterministic.
-   Split around the project slot so the cascade honours both contracts:
-   the brighter-primary DEFAULT and its paired on-primary ink sit BEFORE the
-   slot, so an injected project brand primary AND a re-paired on-primary can
-   both still win together (project accents apply in BOTH schemes — a project
-   pass sets both in the same rule, never a mismatched pair split across the
-   slot boundary); the neutral set sits AFTER the slot, so dark
-   paper/ink/line/surface always win and the page flips fully with no
-   leftover light patches. */
+   deterministic. */
 html[data-vd-scheme="dark"] {
   --vd-primary: #60a5fa;         /* brighter blue reads on dark surfaces (default) */
   --vd-on-primary: #10131a;      /* dark ink reads on the bright dark primary (default) */
-}
-html[data-vd-theme="project"] {
-  /* SLOT: theme-project */
-}
-html[data-vd-scheme="dark"] {
   --vd-surface: #26262b;
   --vd-ink: #f4f4f5;
   --vd-ink-soft: #a1a1aa;
@@ -128,6 +116,10 @@ body {
   align-items: center;
   gap: calc(var(--vd-space) * 2);
 }
+/* Set by the script once the header is over 55% of the window's height, until it is 45% or less: stuck, it would cover the frame a key or a jump link scrolls to. Screen only: print pins it per page. */
+@media screen {
+  #vd-header.vd-tall { position: relative; }
+}
 #vd-header .vd-q {
   flex: 1 1 320px;
   min-width: 240px;
@@ -186,7 +178,7 @@ body {
   background: var(--vd-primary);
   color: var(--vd-on-primary);
 }
-#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle,
+#vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle, #vd-look-toggle,
 #vd-ver-select, #vd-ver-restore {
   border: 1px solid var(--vd-line);
   background: var(--vd-paper);
@@ -197,18 +189,59 @@ body {
   border-radius: var(--vd-radius);
   cursor: pointer;
 }
-#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover,
+#vd-diff-toggle:hover, #vd-scheme-toggle:not(:disabled):hover, #vd-dir-toggle:hover, #vd-look-toggle:hover,
 #vd-ver-select:hover, #vd-ver-restore:not(:disabled):hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 /* Restore stays visible-but-inert while "Current (live)" is selected: hiding
    it would reflow the header on every pick, and a disabled control still says
    the action exists once a past pass is chosen. */
 #vd-ver-restore:disabled { opacity: .45; cursor: default; }
+#vd-scheme-toggle:disabled { opacity: .45; cursor: default; }
+/* A note too long for its line folds its own text beside the toggle, which keeps its width. */
+.vd-scheme { display: inline-flex; align-items: center; }
+#vd-scheme-toggle { flex: none; }
+#vd-scheme-note:not(:empty) { margin-inline-start: var(--vd-space); }
 #vd-ver-select { max-width: 15rem; }
 #vd-diff-toggle[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 .vd-note {
   font-size: .78rem;
   color: var(--vd-ink-soft);
   font-style: italic;
+}
+.vd-look {
+  flex: 1 0 100%;
+  gap: var(--vd-space) calc(var(--vd-space) * 2);
+}
+.vd-look-item {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--vd-space) * .75);
+}
+.vd-look-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--vd-ink-soft);
+}
+#vd-look-toggle { display: none; }
+#vd-look-toggle::after {
+  content: "";
+  display: inline-block;
+  width: 6px; height: 6px;
+  margin-inline-start: 8px;
+  border-right: 2px solid;
+  border-bottom: 2px solid;
+  transform: translateY(-2px) rotate(45deg);
+}
+#vd-look-toggle[aria-expanded="true"]::after { transform: translateY(2px) rotate(-135deg); }
+@media (max-width: 600px) {
+  #vd-look-toggle { display: inline-block; }
+  .vd-controls:has(> #vd-look-toggle[aria-expanded="false"]) + .vd-look { display: none; }
+  .vd-look { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .vd-look-label { min-width: 4em; }
+  /* Options take further lines before any is cut off; the lines between them are the switcher's own fill showing through 1 px gaps. */
+  .vd-switcher { flex-wrap: wrap; gap: 1px; background: var(--vd-line); }
+  /* WCAG 2.5.8: wrapped lines sit 1 px apart, so each option is a 24 px target by itself. */
+  .vd-switcher button { flex: 1 1 auto; min-block-size: 24px; overflow-wrap: anywhere; }
+  .vd-switcher button + button { border-inline-start: 0; }
 }
 
 /* ---- Variant frames -------------------------------------------------- */
@@ -225,6 +258,8 @@ body {
   border-radius: var(--vd-radius);
   box-shadow: var(--vd-shadow);
   overflow: hidden;
+  /* --vd-header-h is the header's height while it sticks, else 0, kept current by the script: a frame scrolled to lands below it. */
+  scroll-margin-top: calc(var(--vd-header-h, 0px) + var(--vd-space));
 }
 .vd-frame > h2 {
   margin: 0;
@@ -232,7 +267,20 @@ body {
   font-size: .95rem;
   background: var(--vd-surface);
   border-bottom: 1px solid var(--vd-line);
+  display: flow-root; /* the floated box of title buttons stays inside the title when it drops to a second line */
 }
+/* The title's buttons in one box at the title's end: they read in the order Tab takes them, and take another line before one is squeezed. */
+.vd-title-btns {
+  float: right; /* physical, flipped by the [dir="rtl"] rule below: no logical `float` value is relied on for the preview browser */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 6px;
+  margin-inline-start: 6px;
+}
+[dir="rtl"] .vd-title-btns { float: left; }
+/* WCAG 2.5.8: wrapped rows sit 4 px apart, too close for its spacing exception, so each button is a 24 px target by itself. */
+.vd-title-btns > button { min-block-size: 24px; min-inline-size: 24px; }
 .vd-frame > h2 .vd-badge {
   display: inline-block;
   min-width: 1.6em;
@@ -254,6 +302,9 @@ body {
 .vd-frame .vd-content {
   padding: calc(var(--vd-space) * 2);
   font-family: var(--vd-font);
+  /* Set here, not left to the frame and the body: a preset re-declares these tokens on .vd-content, below both. */
+  background-color: var(--vd-paper);
+  color: var(--vd-ink);
   min-height: 120px;
   /* Cap height so dense/realistic data in one frame cannot outgrow its
      siblings; overflow scrolls inside the frame, keeping tops aligned. */
@@ -281,15 +332,9 @@ body {
   font-size: .72rem;
   font-weight: 600;
   padding: 2px 8px;
-  margin-inline-start: 6px;
   border-radius: var(--vd-radius);
   cursor: pointer;
-  /* `float` has no widely-shipped logical value we rely on for the preview
-     browser, so the physical `right` stays (keeping LTR byte-identical) and
-     a single [dir="rtl"] override flips it — see the Direction axis note. */
-  float: right;
 }
-[dir="rtl"] .vd-zoom-btn { float: left; }
 .vd-zoom-btn:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 .vd-zoom-btn[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 #vd-frames.vd-zoom-active { grid-template-columns: 1fr; }
@@ -1097,9 +1142,7 @@ li.vd-hl { outline-offset: 0; }
   padding: 2px 8px;
   border-radius: var(--vd-radius);
   cursor: pointer;
-  float: right; /* physical + [dir="rtl"] flip below, same as .vd-zoom-btn */
 }
-[dir="rtl"] .vd-replay { float: left; }
 @media (prefers-reduced-motion: reduce) {
   /* TRANSITIONS. Every one of these is declared at 0-1-0 ("Content primitives"
      and the motion kit), so an equal-specificity reset at later source order
@@ -1220,19 +1263,15 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
     --vd-line: #9ca3af;
   }
 
-  /* Force the light NEUTRAL set: re-declare every dark neutral back to its
+  /* Force the light NEUTRAL set: re-declare every dark value back to its
      light equivalent. Token consumers (paper/ink/surface/nav/shadows) flip
      automatically; the chip/dialog/switch/alert rules use literal colors or
-     point at now-reset tokens, so they are restored too. Deliberately does
-     NOT re-declare --vd-primary/--vd-on-primary: those two are set once
-     BEFORE the project slot (the default dark accent) and re-set BY the
-     project slot when a project brand color is active, and this print
-     block is later in source order than the slot at the same 0-1-1
-     specificity — re-declaring them here would win and clobber a project's
-     brand accent back to baseline blue on every dark+project print.
-     Leaving them alone lets whichever accent is actually active, default
-     or project, flow through unchanged. */
+     point at now-reset tokens, so they are restored too. A palette's own
+     dark rule never reaches print: the script makes it screen-only, so a
+     frame prints in its palette's light set. */
   html[data-vd-scheme="dark"] {
+    --vd-primary: #2563eb;
+    --vd-on-primary: #ffffff;
     --vd-surface: #fafafa;
     --vd-ink: #18181b;
     --vd-ink-soft: #52525b;
@@ -1254,10 +1293,7 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   html[data-vd-scheme="dark"] .vd-switch::after { background: var(--vd-paper); }
   /* --vd-alert-accent reset to the LIGHT severity hues; it drives both the
      border and the glyph prefix, so both revert together for a was-dark print.
-     The base (info) accent is --vd-primary, which the print block deliberately
-     leaves un-reset, so pin it to the light primary here too — otherwise the
-     small "i" glyph prints as pale #60a5fa on white (~2.8:1, illegible). */
-  html[data-vd-scheme="dark"] .vd-alert { --vd-alert-accent: #2563eb; }
+     The base (info) accent is --vd-primary, reset above. */
   html[data-vd-scheme="dark"] .vd-alert.vd-warn { --vd-alert-accent: #eab308; }
   html[data-vd-scheme="dark"] .vd-alert.vd-err { --vd-alert-accent: #dc2626; }
 
@@ -1299,7 +1335,7 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   }
 
   /* Drop every interactive affordance: the header controls (segmented
-     mode/width groups + Diffs/Theme/Scheme toggles + the injected global
+     mode/width groups + Diffs/Scheme toggles + the injected global
      state bar, which lives inside .vd-controls), the per-frame Focus and
      Replay buttons, and the per-frame state toggle bars. Whatever state is
      currently selected on screen is what prints. `.vd-state-global` is
@@ -1477,8 +1513,7 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
 }
 #vd-fb-panel > summary { list-style: none; }
 #vd-fb-panel > summary::-webkit-details-marker { display: none; }
-.vd-fb-btn { font-size: .72rem; font-weight: 600; padding: 2px 8px; margin-inline-start: 6px; float: right; }
-[dir="rtl"] .vd-fb-btn { float: left; }
+.vd-fb-btn { font-size: .72rem; font-weight: 600; padding: 2px 8px; }
 #vd-fb-toggle:hover, #vd-fb-panel > summary:hover, .vd-fb-btn:hover, #vd-fb-box button:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
 #vd-fb-toggle[aria-pressed="true"], .vd-fb-btn[aria-pressed="true"], #vd-fb-box button[type="submit"] {
   background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary);
@@ -1507,6 +1542,8 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 }
 #vd-fb-box {
   position: fixed; z-index: 31; width: min(20rem, calc(100vw - 16px)); box-sizing: border-box; padding: 8px;
+  /* WCAG 1.4.10: a refusal adds up to a dozen lines, so the box is held under the window's height and scrolls inside itself. `vh` is for a browser with no `dvh`. */
+  max-block-size: calc(100vh - 16px); max-block-size: calc(100dvh - 16px); overflow: auto;
   background: var(--vd-paper); color: var(--vd-ink);
   border: 1px solid var(--vd-line); border-radius: var(--vd-radius); box-shadow: var(--vd-shadow-lg);
   font: .82rem/1.4 var(--vd-font);
@@ -1519,8 +1556,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 }
 #vd-fb-box .vd-fb-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; }
 .vd-fb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.vd-fb-refused { display: block; font-size: .72rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.vd-fb-refused:empty { display: none; }
+.vd-frame > h2 .vd-fb-refused { clear: both; padding-top: 4px; text-align: end; }
+#vd-fb-box .vd-fb-refused { flex: 1 1 0; align-self: center; }
 @media print {
-  #vd-fb, .vd-fb-btn, #vd-fb-box, #vd-fb-hover { display: none; }
+  #vd-fb, .vd-fb-btn, .vd-fb-refused, #vd-fb-box, #vd-fb-hover { display: none; }
 }
 
 /* Check badge: shown only when serve.py answers GET /_checks for this page. */
@@ -1530,13 +1571,39 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   #vd-check-badge { display: none; }
 }
 </style>
+<style id="vd-presets">
+/* Page-wide looks for a layout or creative pass. One rule per option, exactly
+   `html[data-vd-palette="Name"] .vd-content { }` (or data-vd-style,
+   data-vd-type); an empty rule is an option that keeps the shell's own values.
+   A kind with two or more options gets a switcher in the header, options in
+   rule order, the active name written to that attribute on <html>. A kind
+   with one option gets no switcher and that option applied. The page opens on
+   the option its browser tab last chose, else the one authored in that
+   attribute on <html>, else the first. Scope every rule to .vd-content: the
+   header, captions and tradeoff lists keep the neutrals. */
+/* A palette may set --vd-paper, --vd-surface, --vd-ink, --vd-ink-soft,
+   --vd-line, --vd-primary, --vd-on-primary, --vd-nav-bg, --vd-nav-ink and
+   --vd-nav-ink-soft. Its dark set is a second rule, exactly
+   `html[data-vd-palette="Name"][data-vd-scheme="dark"] .vd-content { }`.
+   A palette that sets a value and has no such rule has no dark set: while it
+   is active the page stays light and the Scheme toggle is off, with a note.
+   A project's own theme is the first palette, named Project, with Neutral
+   (an empty rule) second: set the colours the project defines, the rest stay
+   Neutral's. Its radius and spacing are a first style named Project, its
+   font a first type named Project. */
+/* SLOT: palettes */
+/* A style may set --vd-radius, --vd-space and --vd-shadow. */
+/* SLOT: styles */
+/* A type may set --vd-font, to a system stack only: no web font. */
+/* SLOT: types */
+</style>
 <style id="vd-custom">
 /* SLOT: custom-css — shared classes when no primitive fits; never style one
    variant differently from its rivals, EXCEPT the sanctioned theme-axis token
    presets on `.vd-content` (see Theme-axis passes). */
 </style>
 </head>
-<body data-vd-mode="side" data-vd-vw="full">
+<body data-vd-mode="side" data-vd-vw="full" data-vd-pass-kind="layout" data-vd-pass="1">
 
 <!-- Inline icon sprite — 12 hand-authored 24x24 stroke glyphs, fully
      self-contained: no href/src/xmlns to any URL, so there is nothing to fetch
@@ -1574,9 +1641,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     </div>
   </div>
   <div class="vd-controls">
-    <nav class="vd-jump" aria-label="Jump to variant">
-      <a href="#vd-a">A</a><a href="#vd-b">B</a><a href="#vd-c">C</a>
-    </nav>
+    <nav class="vd-jump" aria-label="Jump to variant"></nav>
     <div class="vd-seg" role="group" aria-label="Compare mode">
       <button type="button" data-vd-set-mode="side" aria-pressed="true">Side-by-side</button>
       <button type="button" data-vd-set-mode="stack" aria-pressed="false">Stacked</button>
@@ -1588,8 +1653,10 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       <button type="button" data-vd-set-vw="full" aria-pressed="true">Full</button>
     </div>
     <button type="button" id="vd-diff-toggle" aria-pressed="false" hidden>Diffs</button>
-    <button type="button" id="vd-theme-toggle" hidden>Theme</button>
-    <button type="button" id="vd-scheme-toggle">Scheme, light</button>
+    <span class="vd-scheme">
+      <button type="button" id="vd-scheme-toggle" aria-describedby="vd-scheme-note">Scheme, light</button>
+      <span id="vd-scheme-note" class="vd-note" role="status"></span>
+    </span>
     <button type="button" id="vd-dir-toggle">Direction, LTR</button>
     <!-- Version picker: populated from serve.py's /_versions.json, so it stays
          hidden on a static rung or over file:// where that route 404s. -->
@@ -1634,6 +1701,33 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-C --></ul>
   </section>
   <!-- FRAME-C-END -->
+
+  <!-- FRAME-D-START -->
+  <section class="vd-frame" id="vd-d" tabindex="-1">
+    <h2><span class="vd-badge">D</span><!-- SLOT: variant-D-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-D-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-D-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-D --></ul>
+  </section>
+  <!-- FRAME-D-END -->
+
+  <!-- FRAME-E-START -->
+  <section class="vd-frame" id="vd-e" tabindex="-1">
+    <h2><span class="vd-badge">E</span><!-- SLOT: variant-E-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-E-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-E-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-E --></ul>
+  </section>
+  <!-- FRAME-E-END -->
+
+  <!-- FRAME-F-START -->
+  <section class="vd-frame" id="vd-f" tabindex="-1">
+    <h2><span class="vd-badge">F</span><!-- SLOT: variant-F-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-F-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-F-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-F --></ul>
+  </section>
+  <!-- FRAME-F-END -->
 </main>
 
 <div id="vd-offline" role="status"></div>
@@ -1642,8 +1736,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     <p id="vd-fb-box-title"></p>
     <textarea id="vd-fb-text" maxlength="2000" required aria-labelledby="vd-fb-box-title"></textarea>
     <div class="vd-fb-actions">
+      <span id="vd-fb-box-refused" class="vd-fb-refused"></span>
       <button type="button" id="vd-fb-cancel">Cancel</button>
-      <button type="submit">Send note</button>
+      <button type="submit" aria-describedby="vd-fb-box-refused">Send note</button>
     </div>
   </form>
 </div>
@@ -1653,6 +1748,28 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 <script>
 (() => {
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
+
+  // A frame's letter is its position, first A, whatever its id; a seventh has none. The feedback script reads data-vd-letter.
+  const jump = document.querySelector('.vd-jump');
+  if (jump) jump.replaceChildren();
+  frames.forEach((frame, i) => {
+    const letter = 'ABCDEF'[i];
+    if (!letter) return;
+    frame.dataset.vdLetter = letter;
+    const badge = frame.querySelector('h2 .vd-badge');
+    if (badge) badge.textContent = letter;
+    if (!jump) return;
+    const a = document.createElement('a');
+    a.href = '#' + frame.id;
+    a.textContent = letter;
+    a.addEventListener('click', e => {
+      if (document.body.dataset.vdMode === 'flip') {
+        e.preventDefault();
+        focusVariant(i);
+      }
+    });
+    jump.appendChild(a);
+  });
 
   // Data-state toggles: a frame's .vd-content may hold sibling blocks
   // tagged data-state="populated|empty|loading|error". Each stateful frame
@@ -1740,7 +1857,7 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         b.setAttribute('aria-pressed', 'false'));
     };
     const controls = document.querySelector('#vd-header .vd-controls');
-    controls.insertBefore(gbar, document.getElementById('vd-theme-toggle'));
+    controls.insertBefore(gbar, controls.querySelector('.vd-scheme'));
     showAll(gStates.includes('populated') ? 'populated' : gStates[0]);
   }
 
@@ -1770,7 +1887,10 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     btn.textContent = 'Focus';
     btn.setAttribute('aria-pressed', 'false');
     btn.addEventListener('click', () => toggleZoom(frame));
-    frame.querySelector('h2').appendChild(btn);
+    const btns = document.createElement('span');
+    btns.className = 'vd-title-btns';
+    btns.appendChild(btn);
+    frame.querySelector('h2').appendChild(btns);
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -1874,6 +1994,24 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     });
   }
 
+  const header = document.getElementById('vd-header');
+  // ?static=1 keeps no header state: a screenshot's page first sees a shorter window than the one it is captured in, and the picture has to be the one a load at that size gives.
+  const live = new URLSearchParams(location.search).get('static') !== '1';
+  let fitted = 0;
+  // Unstuck over 55% of the window, stuck again at 45%: a phone's URL bar changes innerHeight at each change of scroll direction, and one threshold would flip with it. The header is as tall stuck as not, so marking it cannot change the answer: no loop.
+  function fitHeader() {
+    const height = header.offsetHeight, was = header.classList.contains('vd-tall');
+    const tall = 20 * height > (was && live ? 9 : 11) * innerHeight;
+    const grew = height > fitted;
+    fitted = height;
+    header.classList.toggle('vd-tall', tall);
+    document.documentElement.style.setProperty('--vd-header-h', (tall ? 0 : height) + 'px');
+    // Look opened on a scrolled page: the header just left for the page's top, and the page follows the control in use there. Not when the window alone changed: that would throw a page being scrolled back to its top.
+    if (tall && !was && grew && header.contains(document.activeElement)) document.activeElement.scrollIntoView({ block: 'nearest' });
+  }
+  new ResizeObserver(fitHeader).observe(header);
+  window.addEventListener('resize', fitHeader);
+
   // Focus variant N: scroll in side/stack, show in flip
   function focusVariant(i) {
     const frame = frames[i];
@@ -1887,19 +2025,13 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       frame.classList.add('vd-focus');
       setTimeout(() => frame.classList.remove('vd-focus'), 900);
     }
+    frame.focus({ preventScroll: true });
   }
   document.addEventListener('keydown', e => {
     if (e.target instanceof Element && e.target.closest('input, textarea, select')) return;
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= frames.length) focusVariant(n - 1);
   });
-  document.querySelectorAll('.vd-jump a').forEach((a, i) =>
-    a.addEventListener('click', e => {
-      if (document.body.dataset.vdMode === 'flip') {
-        e.preventDefault();
-        focusVariant(i);
-      }
-    }));
 
   // Callout pairing: highlight badge + matching tradeoff bullet per frame.
   // Each tradeoff <li> gets a deterministic id (frame id + "-t" + its data-n)
@@ -1991,36 +2123,69 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
         el.classList.add('vd-anim');
       });
     });
-    frame.querySelector('h2').appendChild(btn);
+    frame.querySelector('.vd-title-btns').appendChild(btn);
   });
 
-  // Theme toggle (un-hidden by the skill when project tokens are injected)
-  const toggle = document.getElementById('vd-theme-toggle');
-  function labelToggle() {
-    const cur = document.documentElement.dataset.vdTheme;
-    toggle.textContent = cur === 'project' ? 'Theme, project' : 'Theme, baseline';
+  // Kept for this tab only, under the page's path and decision title: every preview on the port shares one origin. ?static=1 keeps nothing.
+  const lookKey = 'vd-look\n' + location.pathname + '\n' + document.title;
+  const search = new URLSearchParams(location.search);
+  const keeps = search.get('static') !== '1';
+  let kept = {};
+  try {
+    if (keeps) kept = JSON.parse(sessionStorage.getItem(lookKey)) || {};
+  } catch { /* storage refused: the page opens on its own look */ }
+  function keep(control, value) {
+    kept[control] = value;
+    try {
+      if (keeps) sessionStorage.setItem(lookKey, JSON.stringify(kept));
+    } catch { /* storage refused: the choice lasts until the next load */ }
   }
-  toggle.addEventListener('click', () => {
-    const root = document.documentElement;
-    root.dataset.vdTheme = root.dataset.vdTheme === 'project' ? 'baseline' : 'project';
-    labelToggle();
-  });
-  labelToggle();
+  // ?static=1&_palette=&_style=&_type=&_scheme= (preview-feedback.sh shot): a stored row's look. Read beside static=1 only, where nothing can be picked: a link cannot restyle the page a person picks on.
+  const asked = {};
+  if (!keeps) ['palette', 'style', 'type', 'scheme'].forEach(control => { asked[control] = search.get('_' + control); });
+  function opening(control, attr, options) {
+    const authored = document.documentElement.getAttribute(attr);
+    return options.includes(asked[control]) ? asked[control] : options.includes(kept[control]) ? kept[control] : options.includes(authored) ? authored : options[0];
+  }
 
-  // Scheme toggle: preview every frame on the dark neutral set. Explicit
-  // control only — no OS colour-scheme auto-switch, so screenshot and
-  // side-by-side comparisons stay deterministic regardless of the OS setting.
+  const presets = document.getElementById('vd-presets');
+  const sheet = presets && presets.sheet;
+  const selectors = Array.from((sheet && sheet.cssRules) || []).map(r => r.selectorText || '');
+  // A palette's dark rule is made screen-only: print lays a frame out in its palette's light set, whatever the scheme.
+  selectors.forEach((selector, i) => {
+    if (!/^html\[data-vd-palette="[^"\\]*"\]\[data-vd-scheme="dark"\] \.vd-content$/.test(selector)) return;
+    const rule = sheet.cssRules[i].cssText;
+    sheet.deleteRule(i);
+    sheet.insertRule('@media screen {' + rule + '}', i);
+  });
+  // The rule check.js reads too: among the top-level style rules and those directly inside an `@media screen` block, a palette is light only when its first rule sets a value (an empty one keeps the shell's values, dark ones included) and it has no dark rule.
+  function lightOnly(palette) {
+    const styled = r => r instanceof CSSStyleRule;
+    const rules = Array.from((sheet && sheet.cssRules) || []).flatMap(r => (styled(r) ? [r]
+      : r instanceof CSSMediaRule && r.media.mediaText === 'screen' ? Array.from(r.cssRules).filter(styled) : []));
+    const own = 'html[data-vd-palette="' + palette + '"]', tail = ' .vd-content';
+    const first = rules.find(r => r.selectorText === own + tail);
+    return palette !== null && !!first && first.style.length > 0 && !rules.some(r => r.selectorText === own + '[data-vd-scheme="dark"]' + tail);
+  }
+
+  // Scheme toggle: the shell's dark neutrals and, inside each frame, the active palette's dark set. Explicit only, no OS colour-scheme auto-switch: screenshots compare alike on any machine.
   const schemeToggle = document.getElementById('vd-scheme-toggle');
-  function labelScheme() {
-    const cur = document.documentElement.dataset.vdScheme;
-    schemeToggle.textContent = cur === 'dark' ? 'Scheme, dark' : 'Scheme, light';
+  const schemeNote = document.getElementById('vd-scheme-note');
+  let scheme = opening('scheme', 'data-vd-scheme', ['light', 'dark']);
+  function showScheme() {
+    const root = document.documentElement;
+    const palette = root.getAttribute('data-vd-palette');
+    const held = lightOnly(palette);
+    root.dataset.vdScheme = held ? 'light' : scheme;
+    schemeToggle.disabled = held;
+    schemeToggle.textContent = 'Scheme, ' + root.dataset.vdScheme;
+    schemeNote.textContent = held ? palette + ' has no dark set' : '';
   }
   schemeToggle.addEventListener('click', () => {
-    const root = document.documentElement;
-    root.dataset.vdScheme = root.dataset.vdScheme === 'dark' ? 'light' : 'dark';
-    labelScheme();
+    scheme = scheme === 'dark' ? 'light' : 'dark';
+    keep('scheme', scheme);
+    showScheme();
   });
-  labelScheme();
 
   // Direction toggle: preview every frame in RTL. Mirrors the scheme toggle —
   // explicit control only, no auto-detection — and writes BOTH the real `dir`
@@ -2031,14 +2196,74 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     const cur = document.documentElement.dataset.vdDir;
     dirToggle.textContent = cur === 'rtl' ? 'Direction, RTL' : 'Direction, LTR';
   }
-  dirToggle.addEventListener('click', () => {
+  function setDir(dir) {
     const root = document.documentElement;
-    const next = root.dataset.vdDir === 'rtl' ? 'ltr' : 'rtl';
-    root.dataset.vdDir = next;
-    root.setAttribute('dir', next);
+    root.dataset.vdDir = dir;
+    root.setAttribute('dir', dir);
     labelDir();
+  }
+  dirToggle.addEventListener('click', () => {
+    const next = document.documentElement.dataset.vdDir === 'rtl' ? 'ltr' : 'rtl';
+    setDir(next);
+    keep('dir', next);
   });
-  labelDir();
+  setDir(opening('dir', 'dir', ['ltr', 'rtl']));
+
+  // An option is one #vd-presets rule whose whole selector is `html[data-vd-<kind>="Name"] .vd-content`: a dark-scheme rule declares none.
+  const passKind = document.body.dataset.vdPassKind;
+  if (passKind === 'layout' || passKind === 'creative') {
+    const row = document.createElement('div');
+    row.className = 'vd-controls vd-look';
+    [['palette', 'Palette'], ['style', 'Style'], ['type', 'Type']].forEach(([kind, label]) => {
+      const declares = new RegExp('^html\\[data-vd-' + kind + '="([^"\\\\]*)"\\] \\.vd-content$');
+      const names = selectors.map(s => declares.exec(s)).filter(Boolean).map(m => m[1]);
+      if (!names.length) return;
+      const group = document.createElement('div');
+      group.className = 'vd-seg vd-switcher';
+      group.setAttribute('role', 'group');
+      group.setAttribute('aria-label', label);
+      group.dataset.vdSwitcher = kind;
+      function choose(name) {
+        document.documentElement.setAttribute('data-vd-' + kind, name);
+        Array.from(group.querySelectorAll('button')).forEach(b =>
+          b.setAttribute('aria-pressed', String(b.dataset.vdOption === name)));
+      }
+      names.forEach(name => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.vdOption = name;
+        b.textContent = name;
+        b.addEventListener('click', () => { choose(name); keep(kind, name); showScheme(); });
+        group.appendChild(b);
+      });
+      choose(opening(kind, 'data-vd-' + kind, names));
+      // A lone option is applied and has no switcher to show.
+      if (names.length < 2) return;
+      const item = document.createElement('div');
+      item.className = 'vd-look-item';
+      const title = document.createElement('span');
+      title.className = 'vd-look-label';
+      title.setAttribute('aria-hidden', 'true');
+      title.textContent = label;
+      item.append(title, group);
+      row.appendChild(item);
+    });
+    if (row.children.length) {
+      row.id = 'vd-look-row';
+      const fold = document.createElement('button');
+      fold.type = 'button';
+      fold.id = 'vd-look-toggle';
+      fold.textContent = 'Look';
+      fold.setAttribute('aria-expanded', 'false');
+      fold.setAttribute('aria-controls', row.id);
+      fold.addEventListener('click', () =>
+        fold.setAttribute('aria-expanded', String(fold.getAttribute('aria-expanded') !== 'true')));
+      // Beside Direction, not in the row it opens: on a line of its own it would add that line to the closed header.
+      document.getElementById('vd-dir-toggle').after(fold);
+      header.appendChild(row);
+    }
+  }
+  showScheme();
 })();
 </script>
 
@@ -2071,13 +2296,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
 
   const params = new URLSearchParams(location.search);
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
-  function letterOf(frame) {
-    const m = /^vd-([a-c])$/.exec((frame && frame.id) || '');
-    return m ? m[1].toUpperCase() : null;
-  }
+  function letterOf(frame) { return (frame && frame.dataset.vdLetter) || null; }
 
-  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted
-  // element and scrolls to it before the headless screenshot.
+  // ?_outline=<selector>: preview-feedback.sh shot outlines the noted element and brings it below the sticky header (24 px under the window's top where the header has stopped sticking), centred in the room there when it fits, else by its top.
   const outline = params.get('_outline');
   if (outline) {
     let el = null;
@@ -2085,12 +2306,29 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     if (el) {
       el.style.outline = '3px solid #e11d48';
       el.style.outlineOffset = '2px';
-      el.scrollIntoView({ block: 'center', inline: 'nearest' });
+      const still = params.get('static') === '1';
+      const reveal = () => {
+        document.body.style.marginTop = '';
+        const header = document.getElementById('vd-header');
+        const clear = (header.classList.contains('vd-tall') ? 0 : header.offsetHeight) + 24;
+        el.style.scrollMargin = clear + 'px 24px 24px';
+        el.scrollIntoView({ block: el.getBoundingClientRect().height + clear + 24 > innerHeight ? 'start' : 'center', inline: 'nearest' });
+        if (!still) return;
+        // Headless --screenshot writes the document from its top and draws only what the scrolled window holds, so the scroll becomes a shift of the body.
+        document.body.style.marginTop = -scrollY + 'px';
+        window.scrollTo(0, 0);
+      };
+      reveal();
+      // The capture first resizes the window to the row's viewport, which can change the header's height and move the element.
+      if (still) window.addEventListener('resize', reveal);
     }
   }
   if (params.get('static') === '1') return;
 
   const page = decodeURIComponent(location.pathname).replace(/^\/+/, '');
+  // The body's pass mark as serve.py stores it: a digit 1 to 9, anything else is no pass.
+  const mark = document.body.dataset.vdPass || '';
+  const pass = /^[1-9]$/.test(mark) ? Number(mark) : null;
   const wrap = document.getElementById('vd-fb');
   const toggle = document.getElementById('vd-fb-toggle');
   const panel = document.getElementById('vd-fb-panel');
@@ -2101,11 +2339,17 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
   const boxTitle = document.getElementById('vd-fb-box-title');
   const text = document.getElementById('vd-fb-text');
   const send = form.querySelector('button[type="submit"]');
+  const noteRefused = document.getElementById('vd-fb-box-refused');
   const hover = document.getElementById('vd-fb-hover');
   const live = document.getElementById('vd-fb-live');
+  const kinds = ['palette', 'style', 'type'];
+  const POST_WAIT_S = 10;
   let picking = false;
   let target = null;
   let pending = null;
+  let newest = null;
+  // Whether the active look is the one a frame on this page was picked under; null with no such pick.
+  let matches = null;
 
   function announce(msg) { live.textContent = msg; }
   function textOf(el) { return cut((el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim(), 200); }
@@ -2124,39 +2368,88 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     });
     return {
       viewport: { w: innerWidth, h: innerHeight },
-      theme: (root.dataset.vdTheme || 'baseline') + ' ' + (root.dataset.vdScheme || 'light'),
+      theme: (root.getAttribute('data-vd-palette') || 'baseline') + ' ' + (root.dataset.vdScheme || 'light'),
+      scheme: root.dataset.vdScheme === 'dark' ? 'dark' : 'light',
       states: states,
       console: errors.slice()
     };
   }
 
-  function post(fields) {
-    const body = Object.assign({ page: page, context: context() }, fields);
+  // The active look: a name for each kind that has an attribute on <html>, whether or not a switcher shows it.
+  function look() {
+    const root = document.documentElement;
+    const out = {};
+    kinds.forEach(kind => {
+      if (root.hasAttribute('data-vd-' + kind)) out[kind] = root.getAttribute('data-vd-' + kind);
+    });
+    return out;
+  }
+
+  // Chrome before 103, Firefox before 100 and Safari before 16 have no AbortSignal.timeout: there a timer aborts in its place.
+  function timeLimit(ms) {
+    if (AbortSignal.timeout) return AbortSignal.timeout(ms);
+    const limit = new AbortController();
+    setTimeout(() => limit.abort(), ms);
+    return limit.signal;
+  }
+
+  // `refused` is the message element beside the control that sent the post. A refused post is never sent again from here: serve.py drops or doubles a repeat pick by its own rules.
+  function post(fields, refused) {
+    const body = Object.assign({ page: page, pass: pass, switchers: look(), context: context() }, fields);
     if (new TextEncoder().encode(JSON.stringify(body)).length > 8192) body.context.console = [];
+    // serve.py takes a post and then waits for its lock: without a limit the control that sent it would stay as it is, with no message.
+    const wait = timeLimit(POST_WAIT_S * 1000);
     return fetch('/_feedback', {
       method: 'POST',
       // The header is the server's CSRF gate, as on /_restore.
       headers: { 'Content-Type': 'application/json', 'X-Preview-Feedback': '1' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: wait
     })
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error('the server answered ' + r.status))))
-      .then(refresh)
+      .catch(err => { throw new Error('the server did not answer', { cause: err }); })
+      .then(r => (r.ok ? r.json() : r.json().then(d => d.error).catch(() => null).then(said => {
+        // serve.py sends its reason as JSON's `error`; any other body leaves the status to say it.
+        const words = typeof said === 'string' ? cut(said.trim(), 200) : '';
+        throw new Error(words ? words + ' (' + r.status + ')' : 'the server answered ' + r.status);
+      })))
+      .then(() => {
+        refused.textContent = '';
+        return refresh();
+      })
       .catch(err => {
-        announce('Not recorded: ' + err.message);
+        refused.textContent = 'Not recorded: ' + (wait.aborted ? 'no answer from the server in ' + POST_WAIT_S + ' s' : err.message);
+        announce(refused.textContent);
         throw err;
       });
   }
 
-  function render(rows) {
-    const picks = rows.filter(r => r.kind === 'pick');
-    const picked = picks.length ? picks[picks.length - 1].variant : null;
+  function showPick() {
+    // A row stored before rows carried a pass or a look has no such key: it reads as no pass and no look.
+    const current = !!newest && (newest.pass || null) === pass;
+    const recorded = (current && newest.switchers) || {};
+    const active = look();
+    // serve.py stores a name it refuses as null: the active look is compared as a pick of it would be stored.
+    const stored = name => (typeof name === 'string' && /^[A-Za-z0-9 _-]{1,24}$/.test(name) ? name : null);
+    const same = kinds.every(kind => stored(recorded[kind]) === stored(active[kind]));
+    const names = kinds.map(kind => stored(recorded[kind])).filter(Boolean);
+    matches = null;
     frames.forEach(frame => {
       const btn = frame.querySelector('.vd-fb-pick');
       if (!btn) return;
-      const on = letterOf(frame) === picked;
-      btn.setAttribute('aria-pressed', String(on));
-      btn.textContent = on ? 'Picked' : 'Pick';
+      const letter = letterOf(frame);
+      const picked = current && letter === newest.variant;
+      if (picked) matches = same;
+      const text = !picked ? 'Pick' : !same ? 'Pick with current look' : 'Picked' + (names.length ? ' with ' + names.join(', ') : '');
+      btn.textContent = text;
+      btn.setAttribute('aria-pressed', String(picked && same));
+      btn.setAttribute('aria-label', picked ? text + ', variant ' + letter : 'Pick variant ' + letter);
     });
+  }
+
+  function render(rows) {
+    const picks = rows.filter(r => r.kind === 'pick');
+    newest = picks[picks.length - 1] || null;
+    showPick();
     const notes = rows.filter(r => r.kind === 'note');
     const open = notes.filter(r => r.status === 'open').length;
     summary.textContent = notes.length ? 'Notes (' + notes.length + ', ' + open + ' open)' : 'Notes (0)';
@@ -2271,10 +2564,16 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
     box.style.top = top + 'px';
     box.style.left = Math.min(Math.max(m, r.left), innerWidth - box.offsetWidth - m) + 'px';
   }
+  // A refusal drawn in the open box makes it taller: it moves up by what would pass the window's bottom.
+  function fit() {
+    const r = box.getBoundingClientRect();
+    box.style.top = Math.max(8, Math.min(r.top, innerHeight - 8 - r.height)) + 'px';
+  }
   function openBox(opts) {
     pending = opts;
     boxTitle.textContent = opts.label;
     text.value = '';
+    noteRefused.textContent = '';
     box.hidden = false;
     place(opts.near.getBoundingClientRect());
     text.focus();
@@ -2318,8 +2617,12 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       pick.textContent = 'Pick';
       pick.setAttribute('aria-pressed', 'false');
       pick.setAttribute('aria-label', 'Pick variant ' + letter);
+      const refused = document.createElement('span');
+      refused.className = 'vd-fb-refused';
+      refused.id = 'vd-fb-refused-' + letter.toLowerCase();
+      pick.setAttribute('aria-describedby', refused.id);
       pick.addEventListener('click', () => {
-        post({ kind: 'pick', variant: letter })
+        post({ kind: 'pick', variant: letter }, refused)
           .then(() => announce('Variant ' + letter + ' picked.'))
           .catch(() => {});
       });
@@ -2330,8 +2633,15 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       note.setAttribute('aria-label', 'Note on variant ' + letter);
       note.addEventListener('click', () =>
         openBox({ variant: letter, anchor: null, near: h2, label: 'Note on variant ' + letter, opener: note }));
-      h2.append(pick, note);
+      h2.querySelector('.vd-title-btns').append(pick, note);
+      h2.append(refused);
     });
+    // A look change rewrites the picked frame's button while focus stays on the switcher, so the flip is said in the status region.
+    new MutationObserver(() => {
+      const before = matches;
+      showPick();
+      if (matches !== before) announce('Variant ' + newest.variant + (matches ? ': the look matches your pick again' : ': the look no longer matches your pick'));
+    }).observe(document.documentElement, { attributeFilter: kinds.map(kind => 'data-vd-' + kind) });
 
     toggle.addEventListener('click', () => { if (box.hidden) setPicking(!picking); });
     panel.addEventListener('toggle', () => { if (panel.open) refresh(); });
@@ -2341,9 +2651,9 @@ body.vd-fb-picking .vd-content, body.vd-fb-picking .vd-content * { cursor: cross
       const note = text.value.trim();
       if (!note || !pending) return;
       send.disabled = true;
-      post({ kind: 'note', variant: pending.variant, anchor: pending.anchor, text: note })
+      post({ kind: 'note', variant: pending.variant, anchor: pending.anchor, text: note }, noteRefused)
         .then(() => { announce('Note recorded.'); closeBox(); })
-        .catch(() => {})
+        .catch(fit)
         .finally(() => { send.disabled = false; });
     });
     text.addEventListener('keydown', e => {

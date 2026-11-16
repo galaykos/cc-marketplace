@@ -136,10 +136,13 @@ as variable names:
    by design. Judge colour by comparing the two panels, never by flipping
    between them. The viewport control is the axis that does move: check the
    palette at 375 too, where a card on `background` is the whole screen.
-4. Serve it on the shared preview server: reuse a live `${PREVIEW_PORT:-8123}`
-   server (`lsof -ti :${PREVIEW_PORT:-8123}`) — when the taskmaster plugin is
-   installed, its visual-decisions `assets/serve.py` is the preferred first
-   start (adds SSE push-reload; static rungs below degrade to polling). Else
+4. Serve it on the shared preview server at `${PREVIEW_PORT:-8123}`. taskmaster installed →
+   start it only through taskmaster's launcher, `bash "<taskmaster>/scripts/preview.sh"`
+   (`<taskmaster>` = `${CLAUDE_PLUGIN_ROOT}/../taskmaster` in a source checkout, else the
+   `installPath` of its row in `claude plugin list --json`): it reuses this docroot's server or
+   starts one with push-reload, and a server started any other way makes taskmaster's own
+   start fail on a busy port (exit 4). No taskmaster → reuse a live server
+   (`lsof -ti :${PREVIEW_PORT:-8123}`), else
    start `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d .cc-artifacts/taskmaster/mockups`
    in background Bash with `timeout: 7200000` (no python3 →
    `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t .cc-artifacts/taskmaster/mockups` →
@@ -150,7 +153,8 @@ as variable names:
    2.1.288 in `-p`, SDK, CI and cloud sessions only), so nothing listening → start it again
    as in step 4, same port. When the theme is accepted,
    kill the server only if this flow started it — mockups, walkthroughs, and
-   diagrams share it. Stale recovery: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`.
+   diagrams share it. Stale recovery: the launcher's `preview.sh --stop` for a server it started;
+   `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill` only for one this flow started by hand.
 
 ## Iteration protocol
 

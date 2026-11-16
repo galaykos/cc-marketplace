@@ -122,9 +122,9 @@ convention.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to
-   the real-component rung of `taskmaster:visual-decisions` when installed, else fall back
-   to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
-   via ASCII options inline — so the choice is made on concrete mockups without dead-ending
+   `taskmaster:visual-decisions` when taskmaster is installed — its ladder picks the rung, a
+   shell mockup first and the real-component rung only when a shell cannot carry the
+   decision — else decide via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what
    they leave open to the most COMMITTED reading consistent with them, and note every
    assumption. The most conventional reading is the wrong default here: it produces the

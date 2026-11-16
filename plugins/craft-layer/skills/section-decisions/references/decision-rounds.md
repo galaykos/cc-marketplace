@@ -53,9 +53,11 @@ the cap, decide the remainder against the concept and the archetype defaults,
 report what was auto-decided, and proceed. A guided flow that outlives the user's
 patience has failed even if every answer was good.
 
-Iteration on a single pick is capped at two revisions, matching the preview
-surfaces' own limit; past that, take the closest option and note the reservation
-in the ledger.
+Iteration on a single pick stops after two revisions, asked in the dialog or staged on a drawing
+page. On taskmaster's mockup page a layout or creative pass has that limit itself: three passes for
+one decision, the first included. Any other pass kind there stops at two passes, so one revision. A
+design-kit board states no limit, so the two is this skill's. Past that, take the closest option and
+note the reservation in the ledger. Standing: recorded.
 
 ## Always-available exits
 
@@ -79,7 +81,8 @@ When the design-kit plugin is installed, a round can draw its options as artboar
 board or checks that its pick reached the ledger.
 
 - **One board per decision, one artboard per option.** Round 1's board holds the two or three
-  whole-page outlines. A Round 2 section gets a board only when the user wants it drawn, so a batch
+  whole-page outlines; a round staged on a drawing page may hold up to 5 options when the
+  directions are really different, and never more than 6, which is that page's own count rule. A Round 2 section gets a board only when the user wants it drawn, so a batch
   stays one exchange. Round 3's one signature decision is the one most worth a board. The board's
   brief is the decision: the slot, the concept's metaphor and voice, and how the options differ in
   structure. The option rule still binds — artboards that differ in decoration are a fake choice.

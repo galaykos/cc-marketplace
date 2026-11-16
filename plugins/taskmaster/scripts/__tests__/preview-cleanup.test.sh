@@ -34,5 +34,23 @@ else echo "FAIL web.php: marker line not stripped or real route lost"; fail=$((f
 out=$(bash "$CLEAN" --verify "$T/p"); rc=$?
 if [[ $rc -eq 0 ]]; then pass=$((pass+1)); else echo "FAIL verify-clean: rc=$rc"; fail=$((fail+1)); fi
 
+# A ledger or spec that quotes the scratch path is not a leftover: before 0.61.0 it failed every cleanup after a real-component pick.
+mk; mkdir -p "$T/p/.cc-artifacts/taskmaster" "$T/p/taskmaster-docs/specs"
+echo '| 4 | Card layout | variant B | CLEAR | src/__design-preview__/main.tsx |' > "$T/p/.cc-artifacts/taskmaster/ledger-demo.md"
+echo 'Source: src/__design-preview__/main.tsx' > "$T/p/taskmaster-docs/specs/old.md"
+out=$(bash "$CLEAN" "$T/p"); rc=$?
+if [[ $rc -eq 0 && -f "$T/p/.cc-artifacts/taskmaster/ledger-demo.md" && -f "$T/p/taskmaster-docs/specs/old.md" ]]; then pass=$((pass+1));
+else echo "FAIL ledger-quote: rc=$rc"; echo "$out" | tail -3; fail=$((fail+1)); fi
+
+# --verify after the root is still search-only: it once ran the deleting mode silently.
+mk
+out=$(bash "$CLEAN" "$T/p" --verify); rc=$?
+if [[ $rc -eq 1 && -f "$T/p/__design-preview__.html" && -d "$T/p/src/__design-preview__" ]]; then pass=$((pass+1));
+else echo "FAIL verify-trailing: rc=$rc or scratch deleted"; fail=$((fail+1)); fi
+
+out=$(bash "$CLEAN" --verfy "$T/p"); rc=$?
+if [[ $rc -eq 2 && -f "$T/p/__design-preview__.html" ]]; then pass=$((pass+1));
+else echo "FAIL unknown-option: rc=$rc or scratch deleted"; fail=$((fail+1)); fi
+
 echo "design-preview cleanup tests: $pass passed, $fail failed"
 exit $((fail > 0))

@@ -4,6 +4,11 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.34.1 — 2026-11-14
+
+- **The theme preview starts through taskmaster's launcher when taskmaster is installed.** shadcn-theming started `python3 -m http.server` on the shared port, which made taskmaster's own `preview.sh` fail on a busy port and move to another, and recovered with a `kill` that also ended a launcher-managed server. It now runs `preview.sh` and stops with `preview.sh --stop`.
+- `/ui-ux:build` routes an undecided visual choice to `taskmaster:visual-decisions` and lets its ladder pick the rung. Both branches tested the same condition, so every choice went to the real-component rung. `/ui-ux:theme` describes grill's `.gitignore` as it is.
+
 ## 0.34.0 — 2026-11-14
 
 - **The theme preview goes to `.cc-artifacts/taskmaster/mockups/theme.html`** (was `taskmaster-docs/mockups/`), the docroot taskmaster 0.60.0 serves. `/ui-ux:theme`, shadcn-theming and the theme-shell starter name it; an older theme page is not carried over.

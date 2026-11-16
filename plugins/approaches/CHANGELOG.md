@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.14.1 — 2026-11-14
+
+- approach-deliberation's defer rule says grill and brainstorm run this deliberation, not always the panel: from taskmaster 0.61.0 brainstorm takes the slate by default, as grill does.
+
 ## 0.14.0 — 2026-11-14
 
 - **The deliberation marker moved to `.cc-artifacts/approaches/deliberated.json`** (was `.claude/approaches/deliberated.json`), the folder every marketplace plugin now writes its project artifacts to. When the new folder does not exist and `.claude/approaches/` does, `mark-deliberated.sh` and `compact-recovery.sh` copy its contents over once, then use only the new folder; the old one is never changed. The approach-deliberation skill names the new path.

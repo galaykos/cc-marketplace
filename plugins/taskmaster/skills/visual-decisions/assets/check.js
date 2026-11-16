@@ -1,6 +1,6 @@
-// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun() and reads the findings back over DevTools.
-// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory).
-// Misses: what each check misses is listed in its derivation; nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
+// Render check for scripts/preview-check.sh, which registers it in an isolated world of every page it loads (page script can neither see nor replace it), evaluates axe-core there after load, calls __vdRun(), then __vdState() for the states __vdStates() lists that are due at that width and that the run has room for, and reads the findings back over DevTools.
+// Catches: E1 a blank page, failed loads (console and uncaught errors come from the browser, in preview-check.sh); E2 sideways scroll, too-wide boxes, clipped or overlapping text, targets under 24 px, and at 375 px the same under each style option and each type option on its own, a finding naming its option and one the look at load already drew left out; E3 serious or critical axe-core (WCAG A/AA) violations; E4 stand-in text, identical rows, empty tables and lists; E5 identical variants or variants differing on several axes (advisory); E7 on a layout or creative pass, more than 6 frames, and in the header more than 3 switchers or 4 options in a switcher, an option name repeated, one serve.py refuses; E8 for each palette in light and, unless it has no dark set, in dark: body, soft, button, chip, alert, nav or primary-coloured text under 4.5:1 against the colour behind it, on the shell primitives a frame draws, else on a probe.
+// Misses: what each check misses is listed in its derivation (of E8: text over a background image or dimmed by opacity, a pair on any background but those the page draws it on, text that is no shell primitive, a page with no palette; of E7: a switcher anywhere but the header; of E2 under an option: a style together with a type the page did not load with, an option at any other width, an element only an option shows); nothing here judges whether a design is good; page script still runs and can change what is measured; past 4000 elements, the rest.
 // Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 (() => {
   'use strict';
@@ -24,8 +24,14 @@
 
   const findings = [];
   const counts = new Map();
+  const atLoad = new Map(); // check|text -> the elements the look at load drew that finding on
+  let under = null; // while a state's layout check runs: its option, as a finding names it
   function add(check, el, text, detail) {
     const key = check + '|' + text;
+    const drawn = atLoad.get(key) || atLoad.set(key, new Set()).get(key);
+    if (!under) drawn.add(el);
+    else if (drawn.has(el)) return;
+    else detail = under + ': ' + detail;
     counts.set(key, (counts.get(key) || 0) + 1);
     if (counts.get(key) > CAP) return;
     findings.push({ check, selector: typeof el === 'string' ? cut(el, 300) : el ? selectorOf(el) : null, text, detail: cut(detail, 300) });
@@ -50,7 +56,12 @@
   }
   const textOf = el => (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
   function label(el) { const t = textOf(el); return el.localName + (t ? ' "' + cut(t, 40) + '"' : ''); }
-  const letterOf = el => { const f = el.closest('.vd-frame'); return f && /^vd-([a-c])$/.test(f.id) ? f.id.slice(3).toUpperCase() : '?'; };
+  // The letter of el's frame by its position among the frames (first A, a seventh has none): the shell's rule. data-vd-letter is not read, since page script writes it.
+  const letterOf = el => 'ABCDEF'[Array.from(document.querySelectorAll('.vd-frame')).indexOf(el.closest('.vd-frame'))] || '?';
+  // The pass kind the author marked on <body>: 'layout' or 'creative', else null (every other pass kind, which keeps its own rules).
+  const passKind = () => { const kind = document.body.getAttribute('data-vd-pass-kind'); return kind === 'layout' || kind === 'creative' ? kind : null; };
+  // The header's switchers, in the look row the shell builds or written there by hand: a frame may draw a control of its own with the same attributes.
+  const switchers = () => Array.from(document.querySelectorAll('#vd-header [data-vd-switcher]'));
   const shown = el => (el.checkVisibility ? el.checkVisibility({ visibilityProperty: true }) : el.getClientRects().length > 0);
   const style = el => getComputedStyle(el);
   const clips = cs => cs.overflowX !== 'visible' || cs.overflowY !== 'visible';
@@ -158,6 +169,7 @@
     + '[role="checkbox"], [role="switch"], [role="tab"], [role="radio"], [role="menuitem"], [role="option"]';
 
   function checkLayout() {
+    clipCache.clear();
     scrollTo(0, 0);
     const root = document.documentElement;
     const vw = root.clientWidth;
@@ -355,10 +367,166 @@
     }
   }
 
+  const LOOK_NAME = /^[A-Za-z0-9 _-]{1,24}$/; // serve.py's rule of the same name: a pick stores any other name as null
+  function checkLimits() {
+    if (!passKind()) return;
+    const frames = document.querySelectorAll('.vd-frame');
+    if (frames.length > 6) add('E7', frames[6], 'more than 6 frames', frames.length + ' frames; a layout or creative pass holds at most 6');
+    const groups = switchers().map(el => {
+      const kind = cut(el.getAttribute('data-vd-switcher'), 24);
+      return { el, kind, where: 'the ' + kind + ' switcher', names: Array.from(el.querySelectorAll('[data-vd-option]'), b => b.getAttribute('data-vd-option')) };
+    });
+    if (groups.length > 3) {
+      add('E7', groups[3].el, 'more than 3 switchers', groups.length + ' switchers (' + groups.map(g => g.kind).join(', ') + '); a layout or creative pass holds at most 3');
+    }
+    // The shell applies a kind's one option with no switcher, and a pick posts that name from <html> all the same.
+    for (const kind of ['palette', 'style', 'type']) {
+      const name = document.documentElement.getAttribute('data-vd-' + kind);
+      if (name !== null && !groups.some(g => g.kind === kind)) groups.push({ el: 'html', kind, where: 'the ' + kind + ' applied with no switcher', names: [name] });
+    }
+    for (const g of groups) {
+      if (g.names.length > 4) add('E7', g.el, 'more than 4 options in a switcher', g.where + ' has ' + g.names.length + ' options; a switcher holds at most 4');
+      const times = new Map();
+      g.names.forEach(name => times.set(name, (times.get(name) || 0) + 1));
+      times.forEach((count, name) => {
+        if (count > 1) add('E7', g.el, 'option name repeated', g.where + ' has ' + count + ' options named "' + cut(name, 40) + '"; a name is used once in a switcher');
+      });
+      const refused = Array.from(times.keys()).filter(name => !LOOK_NAME.test(name));
+      if (refused.length) {
+        add('E7', g.el, 'option name the server refuses', g.where + ' has ' + refused.length + ' name' + (refused.length === 1 ? '' : 's')
+          + ' outside 1 to 24 ASCII letters, digits, spaces, hyphens and underscores: ' + refused.map(name => '"' + cut(name, 40) + '"').join(', ')
+          + '; a pick stores null in its place');
+      }
+    }
+  }
+
+  let pixel = null;
+  const parsed = new Map();
+  // A computed colour as [r, g, b, alpha]: rgb() and rgba() as written; any other form (oklch(), color(), color-mix()) drawn on a canvas and read back as sRGB, alpha to 1/255.
+  function rgba(css) {
+    if (!parsed.has(css)) {
+      const m = /^rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)$/.exec(css);
+      if (m) parsed.set(css, [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]]);
+      else {
+        pixel = pixel || document.createElement('canvas').getContext('2d');
+        pixel.clearRect(0, 0, 1, 1);
+        pixel.fillStyle = css;
+        pixel.fillRect(0, 0, 1, 1);
+        const d = pixel.getImageData(0, 0, 1, 1).data;
+        parsed.set(css, [d[0], d[1], d[2], d[3] / 255]);
+      }
+    }
+    return parsed.get(css);
+  }
+  const over = (top, under) => [0, 1, 2].map(i => top[i] * top[3] + under[i] * (1 - top[3]));
+  // The colour behind el's text: its own and its ancestors' background colours, laid over each other from the nearest opaque one, white under them all. A background image is not read.
+  function backdrop(el) {
+    const layers = [];
+    for (let n = el; n; n = n.parentElement) {
+      const c = rgba(style(n).backgroundColor);
+      if (c[3] > 0) layers.unshift(c);
+      if (c[3] === 1) break;
+    }
+    return layers.reduce((under, layer) => over(layer, under), [255, 255, 255]);
+  }
+  // WCAG 2 relative luminance and contrast ratio.
+  const luminance = c => [0.2126, 0.7152, 0.0722].reduce((sum, k, i) => { const v = c[i] / 255; return sum + k * (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); }, 0);
+  const contrast = (a, b) => { const la = luminance(a), lb = luminance(b); return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05); };
+  const hex = c => '#' + c.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+
+  const make = (tag, cls, ...kids) => { const el = document.createElement(tag); el.className = cls; el.append(...kids); return el; };
+  // E8's pairs: name, the shell primitives that draw it inside a frame, and the probe measured when no frame holds one of them.
+  const PAIRS = [
+    ['body text', '.vd-frame > .vd-content', () => []],
+    ['soft text', '.vd-small, .vd-tagline, .vd-lede, .vd-table th, .vd-card .vd-meta, .vd-kpi span, .vd-crumbs, .vd-pager, .vd-empty, .vd-field small, .vd-input, .vd-tab:not([aria-current]), .vd-step, .vd-acc-body, '
+      + '.vd-sidenav a:not([aria-current]), .vd-feature p, .vd-tier-price span, .vd-prose blockquote, .vd-footer', () => [make('p', 'vd-small')]],
+    ['button text', '.vd-btn.vd-primary', () => [make('span', 'vd-btn vd-primary')]],
+    ['chip text', '.vd-chip', () => ['ok', 'warn', 'err', 'info', 'neutral'].map(kind => make('span', 'vd-chip vd-' + kind))],
+    ['alert text', '.vd-alert', () => [make('div', 'vd-alert')]],
+    ['nav text', '.vd-nav, .vd-nav a', () => [make('div', 'vd-nav', make('a', ''))]],
+    ['primary used as text', '.vd-tab[aria-current], .vd-sidenav a[aria-current], .vd-code .vd-k', () => { const tab = make('span', 'vd-tab'); tab.setAttribute('aria-current', 'page'); return [tab]; }],
+  ];
+  function checkContrast(look) {
+    const host = document.querySelector('.vd-frame > .vd-content');
+    if (!host) return;
+    const probe = document.createElement('div');
+    probe.style.display = 'none';
+    try {
+      for (const [pair, selector, standIn] of PAIRS) {
+        let els = Array.prototype.filter.call(document.querySelectorAll(selector), el => el.closest('.vd-frame > .vd-content'));
+        const drawn = els.length > 0;
+        if (!drawn) {
+          probe.replaceChildren(...standIn());
+          host.appendChild(probe);
+          els = Array.from(probe.querySelectorAll(selector));
+        }
+        let worst = null;
+        for (const el of els) {
+          const bg = backdrop(el), fg = over(rgba(style(el).color), bg), ratio = contrast(fg, bg);
+          if (!worst || ratio < worst.ratio) worst = { el, fg, bg, ratio };
+        }
+        probe.remove();
+        if (!worst || worst.ratio >= 4.5) continue;
+        // Cut, not rounded: 4.499 must not print as 4.50.
+        add('E8', drawn ? worst.el : null, pair + ' under 4.5:1', 'palette "' + cut(look.palette, 40) + '", ' + look.scheme + ': ' + pair + ' is '
+          + (Math.floor(worst.ratio * 100) / 100).toFixed(2) + ':1 (' + hex(worst.fg) + ' on ' + hex(worst.bg) + '), on ' + (drawn ? label(worst.el) : 'a probe: no frame draws it'));
+      }
+    } finally {
+      probe.remove();
+    }
+  }
+
+  // The shell's rule, the same in both files: among the top-level style rules and those directly inside an `@media screen` block (where the shell moves a dark rule), a palette is light only when its first rule sets a value and it has no dark rule.
+  function lightOnly(palette) {
+    const sheet = (document.getElementById('vd-presets') || {}).sheet;
+    const styled = r => r instanceof CSSStyleRule;
+    const rules = Array.from((sheet && sheet.cssRules) || []).flatMap(r => (styled(r) ? [r]
+      : r instanceof CSSMediaRule && r.media.mediaText === 'screen' ? Array.from(r.cssRules).filter(styled) : []));
+    const own = 'html[data-vd-palette="' + palette + '"]', tail = ' .vd-content';
+    const first = rules.find(r => r.selectorText === own + tail);
+    return !!first && first.style.length > 0 && !rules.some(r => r.selectorText === own + '[data-vd-scheme="dark"]' + tail);
+  }
+  const LOOK = ['palette', 'style', 'type', 'scheme'];
+  const lookNow = () => Object.fromEntries(LOOK.map(kind => [kind, document.documentElement.getAttribute('data-vd-' + kind)]));
+  function setLook(look) {
+    for (const kind of LOOK) {
+      if (typeof look[kind] === 'string') document.documentElement.setAttribute('data-vd-' + kind, look[kind]);
+      else document.documentElement.removeAttribute('data-vd-' + kind);
+    }
+  }
+  function checkLayoutUnder(look) {
+    const [kind, name] = Object.entries(look)[0];
+    under = kind + ' "' + cut(name, 40) + '"';
+    try { checkLayout(); } finally { under = null; }
+  }
+  const STATE_CHECKS = { E2: checkLayoutUnder, E8: checkContrast };
+  const optionsOf = kind => { const switcher = switchers().find(el => el.getAttribute('data-vd-switcher') === kind); return switcher && Array.from(switcher.querySelectorAll('button[data-vd-option]'), b => b.getAttribute('data-vd-option')); };
+  // The states preview-check.sh's loop visits after __vdRun(): E8 under every palette in light and, unless it is light only, in dark (a lone palette has no switcher and is read from <html>); E2 under each style, then each type, the page did not load with, one at a time.
+  window.__vdStates = () => {
+    const now = lookNow();
+    const palettes = optionsOf('palette') || (now.palette === null ? [] : [now.palette]);
+    const contrast = palettes.flatMap(palette => (lightOnly(palette) ? ['light'] : ['light', 'dark']).map(scheme => ({ check: 'E8', look: { palette, scheme } })));
+    const layout = ['style', 'type'].flatMap(kind => Array.from(new Set(optionsOf(kind) || [])).filter(name => name !== now[kind]).map(name => ({ check: 'E2', look: { [kind]: name } })));
+    return contrast.concat(layout);
+  };
+  // One state: its look laid over the look the page has, its check run, the page's look put back; answers the findings that check added.
+  window.__vdState = async state => {
+    const from = findings.length, start = lookNow();
+    try {
+      setLook({ ...start, ...state.look });
+      await STATE_CHECKS[state.check](state.look);
+    } catch (err) {
+      add(String(state && state.check), null, 'check failed to run', String((err && err.message) || err));
+    } finally {
+      setLook(start);
+    }
+    return findings.slice(from);
+  };
+
   async function run() {
     const total = document.body.getElementsByTagName('*').length;
     visible = new Set(first(document.body).filter(shown));
-    for (const [id, fn] of [['E3', checkAxe], ['E1', checkLoad], ['E2', checkLayout], ['E4', checkStandIns], ['E5', checkVariants]]) {
+    for (const [id, fn] of [['E3', checkAxe], ['E1', checkLoad], ['E2', checkLayout], ['E4', checkStandIns], ['E5', checkVariants], ['E7', checkLimits]]) {
       try { await fn(); } catch (err) { add(id, null, 'check failed to run', String((err && err.message) || err)); }
     }
     scrollTo(0, 0);

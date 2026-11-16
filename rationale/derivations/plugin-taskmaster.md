@@ -117,6 +117,13 @@ comment-discipline/hooks/scan.sh applies to its deny, for the same reason:
 a message with no working one-shot repeats on every edit of the run.
 ```
 
+### 0.61.0 — the fourth record (2026-11-14)
+
+`card-paths-lint.sh` has called `cardlint_write card-paths` since it shipped (0.52.0), and this
+hook checked three records, so a set that skipped the newest lint drew no warning. It checks
+four now and names the fourth script in the warning. The harness holds a case with three
+records present and one absent (`rationale/taskmaster-consistency-review-2026-11-14.md`, A14).
+
 ## plugins/taskmaster/hooks/clarify-gate.sh
 
 ### Header
@@ -490,7 +497,11 @@ here too.
   when the check is done. One browser serves every width.
 - **Reused from `shot`.** The browser lookup, moved to `find-browser.sh` so the two lists cannot drift; the
   sandbox rule (on, unless root or `PREVIEW_BROWSER_NO_SANDBOX=1`); `timeout` around the browser (90 s, a
-  backstop behind the script's own 60 s deadline and 20 s per width); a throwaway `--user-data-dir`, removed
+  backstop behind the script's own deadline and its limit per width: 60 s and 20 s as first built; each plus
+  1 s per state in 0.62.0 as first written, a state being one look a check is run under; and since the review
+  fix of 2026-11-15 a width's limit is 20 s again and the run's is 60 s plus the time its states used, 76 s at
+  most; see "E2 again under each style and each type option" and "States that do not fit are named" below); a
+  throwaway `--user-data-dir`, removed
   on exit. The browser runs in its own session, so a stuck one is killed as a group. The output escaping is
   `preview-feedback.sh`'s `show()`, copied with its blank-character set, because findings carry page text.
 - **No network.** `--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1` plus
@@ -600,6 +611,31 @@ meant to change. Misses: whether the change is the one asked for; a height chang
 it, so the box covers it (the real run: 7 px taller, box x 0-1279, y 41-818); the previous pass may belong to
 another decision; one width only.
 
+**E7 limits (a layout or creative pass).** Runs only when `<body data-vd-pass-kind>` is `layout` or
+`creative`; `passKind()` in check.js reads that mark, and later checks call it. No mark, or any other value,
+draws nothing: the shell builds no switcher row there either. Every limit is read from the page as loaded,
+never from the `#vd-presets` rules: the shell is the one reader of those rules, and what it built is what a
+person is shown and what a pick posts. Frames: more than 6 `.vd-frame` elements. Switchers: more than 3
+elements carrying `data-vd-switcher`; the shell builds palette, style and type only, so a fourth is markup
+written by hand and appears in no preset rule. (As first written E7 counted such elements anywhere in the
+document. Since the review fix of 2026-11-15 it reads only those inside the header's look row,
+`#vd-header > .vd-look`, and the option limits and names below are read from those switchers alone; see
+"States that do not fit are named" below.) Options: more than 4 `[data-vd-option]` in one switcher. A name
+repeated in one switcher: one finding per name. A name serve.py's `LOOK_NAME` refuses (not 1 to 24 ASCII
+letters, digits, spaces, hyphens or underscores): one finding per switcher, listing the names. That rule is
+now written three times (serve.py, the shell, check.js). A kind with one option has no switcher, yet the
+shell applies it and a pick posts its name from `<html>`; so for palette, style and type with no switcher,
+the `data-vd-<kind>` attribute on `<html>` is read as that kind's one name. These are findings (exit 1), not
+advisories: they are the gate behind the count rule. Misses: a preset rule the shell does not list (a
+selector list, `:root[…]`, a name holding `"` or `\`), which is an option its author wrote and nobody is
+shown; a kind with one option beside three shown switchers (four kinds, three switchers); the floor of 2
+frames, the default of 3 and the sixth frame being legal only as one kept plus five new, which need the
+passes before this one; a pass-kind mark with a typo, read as another kind; a page whose script stopped
+before the shell built its switchers (E1 reports the error).
+
+**E8 palette contrast, and E2 again under each style and type option.** Both were added on 2026-11-15 and
+are described under their own headings below, each with what it misses.
+
 ### Red, then green
 
 The harness was written first and run against nothing: 48 of 58 failed (`bash: …/preview-check.sh: No such
@@ -629,9 +665,14 @@ checked" after an edit reloaded the tab, "checked: 0 findings" again after a che
 
 ### Not covered
 
-The macOS and Edge lookup paths; a browser that starts and then hangs (the 60 s deadline and a group kill
-handle it, untested); what the PNGs show (one looked at by eye, above); the shell `shot` path still uses
-`--window-size`, so its viewports under 500 px render 500 px wide.
+The macOS and Edge lookup paths; a browser that starts and then hangs (the run's deadline and a group kill
+handle it, untested; the deadline was 60 s as first built, 60 s plus 1 s per state in 0.62.0 as first
+written, and is 60 s plus the time the run's states used, 76 s at most, since the review fix of 2026-11-15);
+what the PNGs show
+(one looked at by eye, above); the shell `shot` path still uses `--window-size`, so page script there first
+sees a window at least 500 px wide. (Corrected 2026-11-15: this line said such viewports "render 500 px
+wide". The PNG is laid out at the row's width; see "Blank rows above the header in a shot" under
+preview-feedback.sh's heading.)
 
 ### Review fixes (2026-11-13, taskmaster 0.59.0)
 
@@ -648,6 +689,231 @@ A review of the uncommitted tree listed defects; each was reproduced first, the 
 **Records (L9).** Folders whose records and `run.json` name only pages no longer in the docroot are removed at each run (red: the folder stayed). Records are runner-written, so the server's shared 2 MiB budget and any-integer width went with the route.
 
 **What a hostile page can still do.** Its script runs while it is measured: change the DOM it is measured on, detect a headless browser, keep the main thread busy so a width reads not reported, log errors, open dialogs (accepted), and reach any loopback service, `POST /_feedback` of this server included. It can no longer read, replace or answer for the check, nor write a record.
+
+### E7: the limits of a layout or creative pass (2026-11-15, taskmaster 0.62.0)
+
+Commit `05e1a1a9`.
+The shell had come to draw up to six lettered frames and a palette, style and type switcher from the page's
+preset rules, and nothing capped either. Measured on the shell: five rules give five buttons, two rules of
+one name give two buttons, and a name serve.py refuses is drawn as a button (serve.py's `_look_name` stores such a
+name as null on a pick). E7 is the check behind "never more than 6 frames, 3 switchers, 4 options in one,
+each name once and storable". The code E6 was taken, so E7 is the next free one.
+
+Red, then green. The 22 cases were written first and run on the check as it stood: the 15 that expect a
+finding failed (`got 0 and []`: the limit pages draw no other finding). With E7 in check.js and no `"E7"` in
+preview-check.sh's `CHECK_IDS`, the findings were counted as dropped and never printed (`got 1 and []`).
+The harness as a whole on that first run read 32 passed, 15 failed, a total relayed from that run's report
+and not run again for this line.
+
+The 7 cases that expect no finding pass on any code without E7. Three were shown to fail under a mutant of
+check.js: with the pass-kind guard removed, `FAIL unmarked page clean for all five limits (frames)`; with any
+mark value read as a pass kind, `FAIL seven frames under a pass-kind value that is neither layout nor
+creative draw none`; with a limit one lower, a name of 23 characters refused, or a name allowed no space,
+digit, hyphen or underscore, `FAIL six frames and three four-option switchers clean, …`. The other four are
+the unmarked pages of the switcher limits. The shell builds no switcher on a page with no mark, so no change
+to check.js makes them fail: they hold only against a shell that starts building switchers there, or a check
+that starts reading the rules. A switcher written by hand on an unmarked page is not covered.
+
+Twenty mutants of check.js in all; none survived the final cases. Two survived a first draft and changed
+them: reading the `<html>` name for a kind that has a switcher too printed a refused active option twice, so
+the refused palette is now the first, active one and the case counts one finding; and the page marked with
+another pass-kind value was added.
+
+### Frames named by position (2026-11-15, taskmaster 0.62.0)
+
+Commit `b30b8f6f`. `letterOf` in check.js names the frame a finding sits in, a frame being one of the
+alternative designs the page shows side by side. It read the frame's id and knew a to c, so a finding on a
+fourth, fifth or sixth frame said "variant ?". It now returns the letter by the frame's position among the
+`.vd-frame` elements, A to F, and `?` for a seventh. It reads neither the id nor the `data-vd-letter`
+attribute the shell's script stamps on each frame; a harness page of five frames with its third block
+deleted and no stamped letter names its third frame C.
+
+### E8: each palette's text contrast, in light and in dark (2026-11-15, taskmaster 0.62.0)
+
+Commit `dfafc4f4`. A palette is a named set of colours that the page's Palette switcher applies to every
+frame's content; a page may offer up to four, each in a light and a dark scheme. axe-core (E3) runs on the
+page as loaded, so it measures one palette in one scheme. E8 measures each of them. Every number in this
+entry is as reported by the agent that made the commit, in that run on its machine; none was measured again
+when the entry was written.
+
+- **What it measures.** For each palette, in light and in dark, seven pairs of text and the colour behind
+  it, against 4.5:1 with no allowance for large text: body text, soft text, button text, chip text, alert
+  text, nav text, and the primary colour used as text. A palette whose rule declares a property and has no
+  dark rule is measured in light only; a palette whose rule is empty is measured in both. (Since the review
+  fix of 2026-11-15 "its rule" is the palette's first rule, and a dark rule counts only at the top level of
+  the presets block or directly inside an `@media screen` block; see "States that do not fit are named"
+  below.) The lowest ratio
+  among all matching elements in any frame is reported once per palette and scheme. A pair no frame draws is
+  measured on a probe element the check inserts. The background is composited down to the nearest opaque
+  ancestor.
+- **When it runs.** Once per run, in the first width's load, on any page with a palette. It is not tied to
+  the pass kind, the mark E7 reads.
+- **Cost.** Time for the whole loop, median of 9 runs: 6.1 ms with four palettes, 289 ms with four palettes
+  and 4000 chips, 0.2 ms with no palette.
+- **Red, then green.** On the code before the change the harness read 109 passed, 39 failed. 22 mutants, all
+  killed. A mutant is a copy of the code with one deliberate defect; it is killed when a harness case fails
+  on it.
+- **Misses.** Text over a background image; text dimmed by opacity; a pair on a background the page does not
+  draw it on; text that is none of the shell's own primitives; an alert's accent glyph and its border. A
+  pair that fails in the look the page loads with, on a visible element, draws two findings, one from E3 and
+  one from E8.
+
+### E2 again under each style and each type option (2026-11-15, taskmaster 0.62.0)
+
+Commit `ac83f20d`. A style option changes radius, spacing and shadow, and a type option changes the font
+stack; each is chosen in a switcher and applies to every frame. Layout was checked only under the look the
+page loads with, the look being the active option of each switcher. Every number in this entry is as
+reported by the agent that made the commit, in that run on its machine; none was measured again when the
+entry was written.
+
+- **What runs.** In the 375 px load the layout check runs again under each style option and each type option
+  the page did not load with, one kind at a time and never as a cross product. A finding is prefixed `style
+  "Name": ` or `type "Name": `. A finding on an element the look at load already drew one on is dropped; the
+  match is by element, not by detail.
+- **A defect found on the way.** `checkLayout` kept its cache of clip boxes from one run to the next, which
+  drew a false "text clipped" blamed on the option. It now clears the cache on each run.
+- **Limits that grow.** A state is one look a check is run under: a palette in a scheme for E8, a style or a
+  type option at 375 px here. As first written, the run's limit was 60 s plus 1 s per state and a width's was
+  20 s plus 1 s per state (`PER_STATE = 1`); a page inside E7's limits has at most 14 states, so 74 s, under
+  the 90 s `timeout` around the browser. The summary line gained `"states": N`. (Replaced the same day by the
+  review fix: `PER_STATE` is gone, a run's states share 16 s and at most 16 of them run, the run's limit is
+  60 s plus the time they used, 76 s at most, and a width's limit is 20 s again. See "States that do not fit
+  are named" below.)
+- **Measured.** Wall time per state: 1.1 to 3.5 ms on six frames of one paragraph each, 27 to 46 ms on six
+  frames of about 1,950 elements, 56 to 131 ms on 5000 paragraphs; 1 s is 7.6 times the slowest. A page with
+  four palettes, four styles and four types ran its 14 states in 0.6 s over three widths. Once by hand, not
+  in the harness: with every state slowed to 1.6 s the run ended exit 0 in 23.0 s, and exit 5 without the
+  1 s per state. (That was the code as first written. Under the review fix's shared 16 s that page would
+  have some of its states named and not run: computed, not run, in the entry below.)
+- **Red, then green.** On the code before the change the harness read 152 passed, 15 failed. Fifteen
+  mutants: 12 killed by new cases, 1 by an existing case, 1 equivalent (it changes no behaviour), and 1
+  survives, a state that adds nothing to the limits. So no harness case holds the 1 s per state; only the
+  run by hand does. (True of that code. The review fix removed the 1 s per state, and one mutant of the new
+  code survives as well: the entry below names it.)
+- **Misses.** A CSS transition on a layout property hides an option's overflow: with
+  `.vd-nav{transition:gap .5s,padding .5s}` a run gave 0 findings. An element only an option shows is not
+  measured. A style together with a type the page did not load with, and an option at any width but 375,
+  are not run. A page past E7's limits can raise the run's limit past the 90 s `timeout`. (That last
+  sentence held for the code as first written. Since the review fix the run's limit is 76 s at most whatever
+  the page lists.)
+- **Known and left alone.** The E5 advisory joins the text of touching elements into one word, and six
+  frames give it 15 pairs to compare.
+
+### States that do not fit are named; the look row; one dark-set rule (2026-11-15, taskmaster 0.62.0, after the range review)
+
+Commits `706424a0` and `0d8d06d4`, in `preview-check.sh` and `check.js`, after a review of every 0.62.0
+commit together. A state is one look a check is run under: a palette in a scheme for E8, a style or a type
+option at 375 px for E2. Every number in this entry is as reported by the agent that made the commits, in
+that run on its machine; none was measured again when the entry was written. A mutant is a copy of the code
+with one deliberate defect; it is killed when a harness case fails on it.
+
+- **One budget for a run's states, and a cap.** As first written each state added 1 s to its width's limit
+  and to the run's, however many the page listed. Now a run's states share one budget, `STATE_BUDGET = 16`
+  seconds, and at most `MAX_STATES = 16` of them run, counted by position in the plan check.js returns. The
+  run's limit is 60 s plus the time its states used, so 76 s at most; a width's own check is held to 20 s
+  again, and its states to the budget. A state starts only if the slowest state so far fits in what is left
+  of the budget. That time is measured from the Python side; the layout check's time at load is not visible
+  there apart from axe and the font wait. A state that has started and outlasts the budget is stopped with
+  `Runtime.terminateExecution`, and the page is loaded again before the screenshot.
+- **What a state not run prints.** One line:
+  `{"not_reported": 375, "state": {"check": "E2", "type": "Mono"}, "reason": ...}`, and for E8 a state of
+  `{"check": "E8", "palette": …, "scheme": …}`. The summary gains `"states_not_run"`, and `"states"` counts
+  the states that ran. The run exits 5 when any state did not run, and the width keeps its record.
+  `PREVIEW_STATE_BUDGET`, in seconds, lowers the budget and never raises it: it is the harness's knob and is
+  not in the script's header.
+- **Measured by hand**, Chrome 157.0.8103.78, one run each. A page of 18 states: 16 ran, 2 were named,
+  0.3 s. Six states held 300 ms each under a budget of 1.5 s: 4 ran, 2 were named, 1.5 s (the code before:
+  all 6 in 2.1 s, exit 1). A first state held 8 s under a budget of 0.5 s: stopped, 0.9 s in all, and E6
+  read "0% of pixels differ" (the code before: 8.4 s, exit 1). Two widths under a budget of 1.2 s: 4 palette
+  states at 1280, then the state at 375 "did not finish in the 0.4 s left". The harness's own run went from
+  90 s to 96-97 s.
+- **The latest a run can end, by arithmetic only.** 76 s, plus 3 s for `Browser.close`, plus 5 s of process
+  wait, is 84 s against the 90 s `timeout`. No run waited that out.
+- **E7 reads the header's look row.** It counted every element carrying `data-vd-switcher` in the document,
+  so a control a frame drew as its own content with those attributes was read as a switcher. It now reads
+  `#vd-header > .vd-look [data-vd-switcher]`, the row the shell builds.
+- **So does the state plan** (the second commit). `optionsOf`, which lists the options the states are
+  planned from, read the first `[data-vd-switcher]` of its kind in the document, so a frame's control hid the
+  page's real palettes from E8. The reproduction: a lone palette Dusk failing in dark at 3.00:1, plus a frame
+  control marked `palette`, gave exit 0, no finding and 4 states; it now gives exit 1 and 2 states.
+  `switchers()` is the one expression `checkLimits` and `optionsOf` both read. The harness reads the plan
+  under `PREVIEW_STATE_BUDGET=0`, where every planned state prints as `not_reported`.
+- **One rule for "no dark set".** check.js's `lightOnly` reads the presets sheet's top-level style rules
+  (`CSSStyleRule`) plus the direct children of a `CSSMediaRule` whose `media.mediaText` is exactly `screen`,
+  in document order. A palette is light only when the first rule with its exact selector has
+  `style.length > 0` and no rule has its exact dark selector. A dark rule inside `@media print`, `@supports`,
+  `@media screen and (min-width: 1px)` or an `@supports` nested in `@media screen` does not count. Before,
+  any rule with the palette's selector that set a value counted, and so did a dark rule one level inside any
+  at-rule. shell.html reads the same expression since its own review fix (its heading below).
+- **The harness honours `PREVIEW_REQUIRE_BROWSER=1`.** `preview-check.test.sh` printed SKIP and exited 0
+  without a browser whatever the environment said. With the variable set, no browser is exit 1
+  (`FAIL the browser half`) and so is a missing python3; without it the exit is 0 as before. These were runs
+  by hand: no harness case holds them, and no run with curl missing is reported. Commit `66306dfb` makes CI's
+  harness step export the variable, which this harness, `shell-controls.test.sh` and
+  `preview-feedback.test.sh` read; that setting has not been exercised on a runner.
+- **Red, then green.** The harness read 167 passed before the fix. The first commit's finished harness on
+  the code before it: 174 passed, 21 failed (12 for the states, 1 for E7, 8 for the dark-set rule), and 195
+  passed after. The second commit's harness on the first commit's code: 199 passed, 6 failed, and 205 passed
+  after; it added 10 cases on three fixtures, `control-palette`, `control-type` and `control-style`.
+- **Mutants.** For the states, 10 seeded and 9 killed. The survivor removes `DEADLINE += share`: nothing
+  holds the bookkeeping of the run's limit, and the 60 s has no knob a harness could lower. For the dark-set
+  rule, 5 seeded and 5 killed. For the plan, "`optionsOf` reads the whole document" was killed (199 passed,
+  6 failed).
+- **Residuals.** A state not run shows only on stdout and in the exit code: the width's record has no field
+  for it, and the page's badge probably counts the width as checked. A uniformly slow page is held tighter
+  than before: the earlier run by hand, 14 states slowed to 1.6 s each, exit 0 in 23.0 s, needs 22.4 s for
+  its states and would now run about 10 of them and name the rest (computed, not run). The first state of
+  each width has no measurement before it. The cap drops style and type options first, because palette states
+  come first in the plan. Nothing bounds the number of state lines printed. An evaluate that errors outright,
+  or a plan that cannot be read, still voids the width. A state that cannot be stopped within 3 s would
+  likely lose the width. The stop was exercised on Chrome 157 only. A switcher written by hand outside the
+  look row and outside the frames draws no E7 finding, and the plan ignores it. Frame content with its own
+  `id="vd-header"` and a `.vd-look` child would match the look row's selector.
+- **Untested.** A palette whose light rule exists only inside `@media screen`. A palette name holding a
+  quote. A switcher written by hand outside the look row and outside the frames. A lone real option beside a
+  frame's control of the same kind, for style and for type.
+
+### Second pass: five assertions the red-team round found missing; switchers anywhere in the header (2026-11-16, taskmaster 0.62.0, commit `ccf3e071`)
+
+A red-team round at `e60787e5` asked one question, would the harness fail if the code were wrong, and seeded
+11 mutants in a scratch copy: 5 were killed and 6 left every harness green. Five of the six were in this
+check; none was a defect in the code, each was an assertion nobody had written. They are written now, and
+each was shown to kill its mutant (relayed from the worker's report; the orchestrator re-ran the harness
+by receipt only, 237 passed):
+
+- The 4.5:1 threshold: every failing fixture was at or under 3.95:1 and every passing pair at or over
+  5.17:1, so `>= 4` passed. Now #777777 on #ffffff (4.478:1) is reported and #767676 on #ffffff (4.542:1)
+  is not. Mutants `>= 4` and `>= 4.6` killed.
+- E8 runs at the first width given: with `--widths 768,1280` a failing palette is reported at 768. Mutant
+  `"E8": 375` killed (it gave exit 0 and no finding).
+- The look at load is kept under an option: a style that overflows only with the type the page loaded with
+  is reported under that style. Mutant `setLook({ ...state.look })` killed.
+- A refused name on a lone style and on a lone type is reported. Mutant `['palette']` killed.
+- Two options that each break one element give two findings. Mutant `drawn.add(el)` killed.
+
+Changed behaviour, from the review of the fix round:
+
+- `switchers()` reads `#vd-header [data-vd-switcher]`: anywhere in the header, where the first fix read the
+  look row only and so stopped seeing a switcher written by hand beside the header's other controls. Not
+  covered: a switcher outside the header; a hand-written and a shell-built switcher of one kind both in the
+  header (E7 counts both, the plan takes the first in document order; untested, and which should win is
+  undecided); the plan has no pass-mark condition, so such a switcher adds states on an unmarked page too.
+- The slowest state time is kept for the whole run, so at a second width a state that cannot fit is named
+  "not run" and not started, stopped and reloaded. One run each at a 1.2 s budget, `--widths 1280,375`:
+  1.6 s before, 1.2 s after.
+- A repeated `--widths` value is dropped when the argument is parsed. The six-width limit still counts
+  before repeats are dropped (untested).
+- A state that cannot be stopped says ", and could not be stopped in 3 s". No harness case (it would wait
+  the 3 s); one hand run with a state blocked in a synchronous request: exit 5, the width recorded, 5.3 s.
+- Seven cases run the check on the shell harness's own `scheme-*.html` pages and assert, per page, which
+  schemes E8 plans, so an edit to `lightOnly` here fails on the pages the shell's Scheme toggle is tested
+  on. The expected table is one more hand-kept copy; an edit to the shell's `lightOnly` alone is still
+  caught only by the shell's harness.
+- The time-dependent case ("states slower than the time they share") accepts "did not finish" for the first
+  state left. It still depends on time through its allowed range of states, and the two-widths case fails on
+  a stall of about 250 ms (arithmetic, not observed). Five runs in a row passed, 109 s each.
+
+Harness: 205 cases to 237; with the new cases and the code unfixed, 229 passed and 8 failed.
 
 ## plugins/taskmaster/scripts/preview-cleanup.sh
 
@@ -667,6 +933,21 @@ Residual: removes only artifacts carrying the __design-preview__ marker. A
 hand-renamed scratch file without the marker is invisible to this script —
 which is why the skill forbids renaming scratch artifacts.
 ```
+
+### 0.61.0 — the ledger quoted the marker (2026-11-14)
+
+`real-components.md` tells the model to record a real-component pick as a ledger row "with
+`src/__design-preview__/main.tsx` as the source", and grill persists the ledger under
+`.cc-artifacts/taskmaster/`. The content grep covered that folder, so from the first pick on
+every run printed `artifacts REMAIN` and exited 1, on a tree with no scratch file left.
+Reproduced in a scratch directory holding only such a ledger: exit 1 twice. The grep now skips
+`.cc-artifacts/` and `taskmaster-docs/`. Not skipped: an older ledger under `.claude/taskmaster/`,
+since `--exclude-dir` matches a folder name and `.claude` holds more than ledgers.
+
+`--verify` was read only as the first argument, so `preview-cleanup.sh <root> --verify` took
+`--verify` for nothing and ran the deleting mode. Arguments are now parsed in any order and an
+unknown option exits 2. Found by reading in `rationale/taskmaster-consistency-review-2026-11-14.md`
+(A1, A18); the harness gained a fixture for each.
 
 ## plugins/taskmaster/scripts/preview-feedback.sh
 
@@ -695,7 +976,10 @@ hook, so the page writes rows to a file (serve.py's `POST /_feedback`) and this 
   what makes the case able to fail). An unparseable line is kept byte for byte.
 - **`shot` loads the page from disk.** `file://<page>?static=1&_outline=<selector>`, so it works with the
   server stopped and the LAN key never matters; `static=1` keeps the feedback controls out of the picture.
-  The shell honours `_outline` by outlining the element and scrolling it to the centre. The window is the
+  The shell honours `_outline` by outlining the element and scrolling it to the centre. (Both as first
+  built. Since 0.62.0 the query also carries the row's look, and the shell places the element below its
+  header and, under `static=1`, shifts the page instead of scrolling it: see the two 2026-11-15 entries
+  below.) The window is the
   row's viewport, clamped to 320–3840 × 240–2160 (default 1280 × 800). Browser discovery copies design-kit's
   `board-export.sh` order (an override variable, `PATH`, the macOS bundles, Playwright's cache) instead of
   importing it, since each plugin must work installed alone; the override is `PREVIEW_BROWSER`. A temp
@@ -714,8 +998,10 @@ is found but fails to start.
 
 ### Not covered
 
-`wait` polls every 0.5 s. The screenshot uses the shell's default theme, scheme and state toggles, not the
-ones in the row's context. A row appended by anything other than serve.py does not take the lock.
+`wait` polls every 0.5 s. The screenshot uses the shell's default state toggles, direction and width preset,
+not the ones in the row's context. Until 0.62.0 that held for the theme and scheme too; since then the row's
+palette, style, type and scheme are used where the row holds them and the page still has the option (see
+"The row's look in a shot" below). A row appended by anything other than serve.py does not take the lock.
 
 ### Review fixes (2026-11-13, still 0.58.0)
 
@@ -756,7 +1042,96 @@ server log showed Chrome's `GET /current.html?static=1&_outline=%23plain`.
 
 ### Review fixes (2026-11-13, taskmaster 0.59.0)
 
-`find-browser.sh` was sourced through `dirname "$0"` unchecked; run through a symlink in another folder, the source failed and `shot` reported "no Chromium-family browser found" (exit 4). It is now sourced from the resolved script directory, and a failed source exits 1 naming the file. Red: `FAIL find-browser.sh missing: want exit 1 naming it, got 4`. `shot` still uses `--window-size`: measured on Chrome 157, a 390 px window lays the page out at `innerWidth` 500 and writes a 390 px PNG of it. Moving `shot` to preview-check.sh's DevTools driver would mean a second copy of that driver or a shared module, so it is stated in the header's misses instead.
+`find-browser.sh` was sourced through `dirname "$0"` unchecked; run through a symlink in another folder, the source failed and `shot` reported "no Chromium-family browser found" (exit 4). It is now sourced from the resolved script directory, and a failed source exits 1 naming the file. Red: `FAIL find-browser.sh missing: want exit 1 naming it, got 4`. `shot` still uses `--window-size`: measured on Chrome 157, a 390 px window lays the page out at `innerWidth` 500 and writes a 390 px PNG. (Corrected 2026-11-15: this line said "a 390 px PNG of it". 500 is what page script reads at load; the capture then resizes the window, and the PNG is the page laid out 390 px wide. See "Blank rows above the header in a shot" below.) Moving `shot` to preview-check.sh's DevTools driver would mean a second copy of that driver or a shared module, so it is stated in the header's misses instead.
+
+### The row's look in a shot (2026-11-15, taskmaster 0.62.0)
+
+Commit `cd557578`. The look is the active option of each of the page's three switchers, the header controls
+that restyle every frame at once: Palette (colours), Style (radius, spacing, shadow) and Type (a font
+stack). Since this version a row stores the look it was written under, as `switchers`; the scheme, light or
+dark, is the last word of its `context.theme` (serve.py's heading below). (As first written. Since the
+review fix of 2026-11-15 a row holds the scheme as its own field, `context.scheme`: see "The scheme is the
+row's own field" below.) `shot` rendered the page in its default look, so a picture could show other colours
+than the ones the note was about.
+
+`shot` now sends the row's look beside `static=1`, as `_palette`, `_style`, `_type` and `_scheme`, through
+`urlencode`. Only string values are sent: a stored null would otherwise select an option named `None`. The
+scheme is the text after the last space of `context.theme`, and is sent only when it is `light` or `dark`.
+(As first written. Since the review fix the scheme is the row's `context.scheme`, and the theme's last word
+is read only for a row whose `context.scheme` is missing or null.)
+The shell reads the four parameters only when `static` is exactly `1`, and uses a value only when it equals
+one of the page's own options. In static mode the order is the URL's value, else the one authored on
+`<html>`, else the first option.
+
+As reported by the agent that made the commit, in that run on its machine: on the script before the change
+the harness read 71 passed, 6 failed. Three defects were seeded and each failed a case: a join without
+encoding gave `"static": ["1", "0"]`; without the string check, `"_palette": ["None"]`; without the static
+guard, `Berry Sharp Serif dark` on the live page.
+
+Not covered: the state toggles, the direction and the width preset in a shot are still the shell's defaults.
+The harness changed too: with `PREVIEW_REQUIRE_BROWSER=1` a missing browser, python3 or curl is a failure,
+where it used to be a SKIP.
+
+### Blank rows above the header in a shot (2026-11-15, taskmaster 0.62.0)
+
+Commit `6c422888`. A shot's PNG began with a band of blank rows above the page's header, and at 640 by 480
+the noted element was not in the picture. Unless a line says otherwise, the numbers are as reported by the
+agent that made the commit, in that run on its machine.
+
+- **Cause.** Chrome's `--screenshot` first resizes the window to the row's viewport, then writes the
+  document rectangle from its top-left corner, and draws only what the scrolled window holds. The shell's
+  `scrollIntoView({block:'center'})` scrolled the window by N px, so the PNG had N blank rows and then the
+  header. A probe showed `scrollY` 109 and 109 blank rows at 1280 by 800, and 353 and 353 at 640 by 480; a
+  12-line page with `scrollTo(0,200)` gave 200 blank rows. Before the capture, page script sees `innerHeight`
+  713 for `--window-size=1280,800`, and a window of 500 by 713 for 375 by 800. The same on Chrome
+  157.0.8103.78 and on Playwright's Chromium 156.0.8078.4.
+- **The resize, measured again for this entry** (Chrome 157.0.8103.78, the flags `shot` uses, a page with a
+  marker at each top corner): at `--window-size=390,800` and at `375,800`, script read `innerWidth` 500 at
+  load, and the PNG was 390 and 375 px wide with the right-hand marker ending at its last column. So the
+  picture is the page laid out at the row's width, not a cut of a 500 px layout.
+- **How old.** Each ref's own `shot` on a page from its own shell, blank rows at 1280 by 800, 900 by 700, 640
+  by 480 and 375 by 800: `master` 0, 0, 82, 97 on its harness fixture and 0, 84, 305, 110 on a three-frame
+  page; commit `f33723ca`, which added the switcher row, on a page with a look 107, 130, 351, 231 and no
+  outline pixel at 640 by 480; the commit before the fix 109, 132, 353, 149. So the band is as old as
+  `shot`, and losing the element at 640 by 480 came with the taller header of `f33723ca`. The scroll margin
+  added in commit `28fbe99b` is not involved.
+- **The fix is in `shell.html`'s `_outline` block.** A scroll margin of the header's height plus 24 px on
+  top; `block` stays `center` when the element fits under the header, else `start`; under `static=1` the
+  scroll becomes a negative `margin-top` on `body` followed by `scrollTo(0,0)`; and the placement runs again
+  on `resize`. After: 0 blank rows at all four sizes. Each of the four parts is needed: removing one fails a
+  harness case.
+- **Why not in the script.** Any window scroll produces blank rows, so only a DevTools capture would fix it
+  there, and the 0.59.0 note above declined a second copy of that driver.
+- **Residual.** A page copied from an older shell keeps the defect. A header taller than the window still
+  hides the element (320 by 240).
+
+### The scheme is the row's own field; the race case counts its own rows (2026-11-15, taskmaster 0.62.0, after the range review)
+
+Commit `c42c5c3b`, after a review of every 0.62.0 commit together. `shot` took the scheme, light or dark,
+from the text after the last space of the row's `context.theme`. serve.py now stores the scheme as a field
+of its own, `context.scheme` (its heading below), and `shot` sends `_scheme` from that field. It parses the
+theme's last word only when the row has no `scheme` key or holds null there: a row stored before this
+change, or one posted by a page that sends no scheme. Every number in this entry is as reported by the agent
+that made the commit, in that run on its machine; none was measured again when the entry was written.
+
+- **Red, then green.** The finished harness on the script before the change read 88 passed, 4 failed. After
+  it 92 pass, and no SKIP was printed.
+- **Two defects seeded in `shot`, both caught.** Falling back to the theme whenever the scheme is not
+  `light` or `dark`: one case fails, on the row `lk07`, whose scheme is `Dark` (91 passed, 1 failed). Never
+  falling back: 86 passed, 6 failed.
+- **The race case counts its own rows.** "Posts racing rewrites" (the 0.58.0 entries above) asserted a fixed
+  total. It now counts the rows after the padding and before the 60 posts, requires that count to be at
+  least 3000, and asserts that count plus 60. Two losses were seeded and caught: 7 of the 60 posts dropped
+  (`got 3056`), and the rewrite without its `flock` (`got 3053`, in one run; how often that mutant fails was
+  not estimated). On that machine the file held 3003 rows before the posts, and 5 to 6 rewrites ran during
+  them.
+- **Residuals.** A scheme that is not null and is neither `light` nor `dark` gets no `_scheme` and no
+  fallback. No case reads the scheme from a PNG's pixels: the browser case reads the `<html>` tag. A page
+  copied from an older shell never posts the field.
+- **The header** now says "the scheme is context.scheme, or the last word of context.theme in a row with
+  none". CI's harness step exports `PREVIEW_REQUIRE_BROWSER=1` since commit `66306dfb`, so on a runner with
+  no browser this harness is meant to fail where it printed SKIP and passed; that setting has not been
+  exercised on a runner.
 
 ## plugins/taskmaster/scripts/preview.sh
 
@@ -818,6 +1193,33 @@ Known residual of `take_lock`, recorded and not fixed: with three contenders, C 
 A's lock, A finishes and its trap removes the lock, B takes the lock and writes its pid, then C finds A's pid
 dead and removes B's live lock and takes its own. B and C then both run check-and-start. The same window
 exists with a lock that is really stale.
+
+### A running server older than this serve.py is replaced (2026-11-15, taskmaster 0.62.0)
+
+Commit `f3c24a8a`. A start over a live server reused it, whatever copy of `serve.py` it had been started
+from. A server from before this version answers 400 to a pick on a fourth, fifth or sixth frame and drops
+the two fields a row gained, as unknown keys (both under serve.py's heading below), and the launcher could
+not tell such a server from a current one. `serve.py` now carries a number, `SERVER_VERSION` (2), and
+returns it as `"server"` from `GET /_feedback`.
+
+- **The rule.** In its already-running branch the launcher asks the running server for its number, with a
+  2 s timeout, at `127.0.0.1` and the running process's `--port`. It does not use the recorded URL: under
+  `--lan` that is the LAN address, where `/_feedback` does not answer, being loopback-only. A lower number, a
+  missing one or no answer: the server is stopped through the script's own stop path, and this `serve.py` is
+  started on the old port with the old `--lan`. An equal number: reused. A higher number: left running, and
+  the launcher prints that this copy's controls may be refused.
+- **A frozen server.** One that survives its stop is exit 4, and the pid and URL files are kept. Without
+  that guard a frozen server lost its record while it still held the port.
+- **`--lan`.** Asked over an older loopback server, it still exits 5 before any restart. A plain start over
+  an older LAN server restarts it in LAN mode; "Why it exists" above says such a start reuses the server,
+  which now holds for one of the same or a higher number.
+- **Measured**, as reported by the agent that made the commit, in that run on its machine. On the launcher
+  before the change the harness read 71 passed, 7 failed. Twelve mutants, each a copy of the launcher with
+  one deliberate change, and a harness case failed on every one. Once with the real old code: `git show`
+  copies of the launcher and the server from commit `2df6ebcb`, started on a temporary docroot, and this
+  checkout's launcher restarted that server on the same port.
+- **Not tested.** A browser tab left open across a restart. A restart whose new server fails to start: that
+  is exit 4 with no record of the old port. A `server` value that is not an integer.
 
 ## plugins/taskmaster/scripts/skills-stamp-lint.sh
 
@@ -1132,6 +1534,71 @@ round-trip assertion against the migrated database.
    creates a UI component/view, and every segment of the line is static.
 ```
 
+## plugins/taskmaster/skills/visual-decisions/SKILL.md § count rule
+
+### Why 3 by default, up to 5, never more than 6 (2026-11-15, taskmaster 0.62.0)
+
+The count rule is the skill's line on how many frames, alternative designs shown side by side on one mockup
+page, a layout or creative pass may hold: "3 directions by default, up to 5, floor 2, never more than 6". It
+replaced a cap of three in commit `8295f05c`. **The numbers are a judgment that matches what other tools ship,
+not a measured optimum.** The repository owner decided on 2026-11-15, on research run on 2026-11-14.
+
+**What the old cap rested on.** One sentence in the skill's list of failures, with no source: `More than 3
+variants — choice overload produces "whichever", not a decision.`
+
+**How far to trust the findings.** The research sent ten claims to one refuter each; `confirmed` was its label
+for a claim whose refuter found no counter-evidence. No claim reached it: nine came back contested on a detail
+and were corrected, and the tenth passed its refuter and was demoted on a format failure. Details that went to
+no refuter are unconfirmed, among those used here Banani, Superdesign and Hanoch. Read every finding as Medium
+confidence at best. The report, `.cc-artifacts/ultra-deep-research/ai-design-variant-presentation-2026-11-14.md`,
+is gitignored scratch; the URLs are what lasts.
+
+**Tools and agent skills mostly default to 3 and top out at 4 or 5** (Medium: each number has one origin, the
+vendor's own page).
+- Google Stitch's SDK, `variantCount` 1 to 5, default 3: <https://github.com/google-labs-code/stitch-sdk>
+- emilkowalski's `prototype` skill, "Default 3 variants; up to 5" and "More than 5 dilutes the comparison":
+  <https://raw.githubusercontent.com/emilkowalski/skills/main/skills/prototype/SKILL.md>
+- superpowers' visual companion, "2-4 options max per screen", no default stated:
+  <https://raw.githubusercontent.com/obra/superpowers/main/skills/brainstorming/visual-companion.md>
+- Superdesign, 1 to 4 iterations: <https://superdesign.dev/docs/features/canvas/branch.md>
+- Banani, "up to 5 screen variations": <https://www.banani.co/product/text-to-ui-generator>
+- One skill goes higher and contradicts itself. gstack's `design-shotgun` says "default 3, up to 8", limits a
+  batch to 7 in the same file and in its code, and advertises "4-6" in its README: nominal 8, effective 7.
+  <https://raw.githubusercontent.com/garrytan/gstack/main/design-shotgun/SKILL.md>,
+  <https://raw.githubusercontent.com/garrytan/gstack/main/design/src/variants.ts>
+
+**Neither meta-analysis of choice overload locates a threshold at three** (Medium: primary texts read; their
+data sets overlap, so the two are not independent). Choice overload is the claim that more options make a
+choice worse. The literature mostly compares about 6 options with 24 to 30, and applying it to design options
+is the report's extrapolation; the report leaves open whether the effect exists at all.
+- Scheibehenne, Greifeneder and Todd (2010): a mean effect of "virtually zero" (D = 0.02) over 63 conditions.
+  Five used a small set of three, and four of those five favoured the larger set.
+  <https://www.scheibehenne.de/ScheibehenneGreifenederTodd2010.pdf>
+- Chernev, Böckenholt and Goodman (2015): set size has a significant effect once four moderators (complexity,
+  task difficulty, preference uncertainty, goal) are modelled, with no significant trend as the larger set
+  grows.
+  <https://chernev.com/wp-content/uploads/2017/02/ChoiceOverload_JCP_2015.pdf>
+
+**Two findings cut the other way** (Medium: neither is about glancing at mockups).
+- Nielsen Norman Group: "Each test participant can test 2 or 3 versions. Any more and users get fatigued and
+  can't articulate the differences." That is about people using each version in a test; the same page says to
+  create "a minimum of 3" designs. <https://www.nngroup.com/articles/parallel-and-iterative-design/>
+- Hanoch et al. (2009): comprehension was better with 3 Medicare drug plans than with 10 or 20; nothing in
+  between was tested. <https://pmc.ncbi.nlm.nih.gov/articles/PMC2739022>
+
+**The page's shape has no first-party precedent**, meaning none in a vendor's own pages (Medium: a negative
+search, three candidate pages unreadable). A switcher is a header control whose options restyle every frame at
+once; page-wide switchers over several generated layouts were not found. Nearest: Figma's variable modes,
+applied frame by frame. <https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables>
+
+**What each number rests on, and what is left.**
+- Raising the cap: nothing found defends three. Default 3, up to 5: the most common numbers above. Never more
+  than 6: only gstack's effective 7 as precedent.
+- Open: no study was found of how many mockups a person can compare side by side. The report names a small
+  within-subjects test of 3 against 5 frames as what would settle it for this page; this change did not run it.
+- Deferred, as two briefs in gitignored `.cc-artifacts/taskmaster/followups/`: "Follow-up brief: request
+  buttons on the mockup page" and "Follow-up brief: binding the picked look, and the `/ui-ux:theme` page".
+
 ## plugins/taskmaster/skills/visual-decisions/assets/serve.py
 
 The module docstring is what `--help` prints (argparse's description) and is unchanged; the two-line header above it is new.
@@ -1261,7 +1728,8 @@ out of it (checked by hand on 2026-11-12, not in the harness).
 - **The route.** `POST /_feedback` appends one row to `.feedback.jsonl`; its guards are `/_restore`'s
   (loopback peer in every mode, a local Host and Origin, a header no cross-origin form can set) plus
   design-kit's `/_decision` body rule (1 to 8192 bytes, a JSON object). Every field is clamped and
-  unknown keys dropped; a pick needs a variant A to C and a note non-blank text, else 400. `GET
+  unknown keys dropped; a pick needs a variant A to C (A to F since 0.62.0, see the 2026-11-15 entry below)
+  and a note non-blank text, else 400. `GET
   /_feedback?page=` is loopback-only too, so a device on the LAN never sees controls whose post would get
   403. The file is dot-named, so the M1 rule already answers 404 for it and the watcher never names it.
   Red before the route: 32 cases (`FAIL feedback pick: want 200, got 404`); 134 passed after.
@@ -1277,7 +1745,8 @@ out of it (checked by hand on 2026-11-12, not in the harness).
   path, a note box anchored to the element, Escape to cancel, and a Notes list with status and reply. The
   selector is built from an id unique in the document, one short `data-*` attribute, the tag and
   `:nth-of-type` when siblings share a tag, rooted at `#vd-<letter> > .vd-content`, and checked to resolve
-  to the element (else a tag and `:nth-of-type` chain). Context: viewport, `<theme> <scheme>`, the
+  to the element (else a tag and `:nth-of-type` chain). Context: viewport, `<theme> <scheme>` (since 0.62.0
+  `<palette or "baseline"> <scheme>`), the
   width, compare mode and direction, each frame's shown data-state, and a five-entry ring of
   `console.error` calls and window `error` events.
 - **Browser run (Playwright Chromium 1248, headless, a private instance, 2026-11-13).** On a two-variant page
@@ -1296,7 +1765,9 @@ out of it (checked by hand on 2026-11-12, not in the harness).
 
 Residuals: any script on a served page can post a pick or note; note text is unverified; console errors
 thrown before the shell's script runs are missed; `python3 -m http.server` serves `.feedback.jsonl` (200,
-measured) on that rung. Standing of the shell's part: recorded; no harness runs a browser.
+measured) on that rung. Standing of the shell's part: recorded; no harness runs a browser. (True on that
+date. Since 0.62.0 `scripts/__tests__/shell-controls.test.sh` drives these controls in a headless browser;
+see shell.html's heading below.)
 
 ### Review fixes (2026-11-13, still 0.58.0)
 
@@ -1349,3 +1820,226 @@ whole emoji (201 and 301 UTF-16 units). The value is now `CSS.escape`d and the q
 ### Render-check routes removed (2026-11-13, taskmaster 0.59.0 review)
 
 `GET /_check.js`, `GET /_axe.js` and `POST /_check` are gone: the check runs in an isolated world that preview-check.sh drives and which writes the records, so no route lets a page plant or overwrite one. `GET /_checks` stays and reads those records. The "checked" event the post used to stream now comes from the watcher: a changed `.checks/<folder>/run.json`, which preview-check.sh writes last, streams `checked` with the page it names. A page key with a control character (a NUL made `Path.resolve()` raise `ValueError`, and the connection dropped with no answer) is no page: 404 with the JSON error. Red: `FAIL checks, a NUL in the page: want 404, got 000`, `FAIL no route takes findings: POST /_check answered {"recorded": true, "findings": 0}`.
+
+### Six letters, pass and look on a row, the repeated pick, a server number (2026-11-15, taskmaster 0.62.0)
+
+The shell (its own heading below) came to draw up to six frames, a frame being one of the alternative
+designs a page shows side by side, and to restyle them from three switchers, header controls with named
+options for palette, style and type; the active option of each is the page's look. The server stored picks
+for three letters, and knew neither the look nor the pass, the numbered round of frames a pick belongs to.
+Four commits. Every number in this entry is as reported by the agent that made the commit, in that run on
+its machine; none was measured again when the entry was written.
+
+- **Letters A to F, `pass`, `switchers`** (commit `d7e59b6f`). `VARIANTS`, the letters a pick or a note may
+  name, went from A, B and C to A through F. Each row gains `pass`, an integer 1 to 9 and otherwise null (a
+  boolean and a float are null), and `switchers` with the keys palette, style and type. A name that is not 1
+  to 24 ASCII letters, digits, spaces, hyphens or underscores is stored as null; a key not sent is left out;
+  a value that is no object is stored empty. A row with neither field is still stored. On the server before
+  the change the harness read 141 passed, 19 failed, the 19 being the new cases.
+- **A repeat of an unread pick is dropped** (commit `2df6ebcb`), so that a double click stores one row. A
+  pick equal in variant, pass and switchers to its page's newest pick is not appended while that newest pick
+  is unread, meaning its status is `open` and it was never handed out; the post still answers 200, with the
+  stored row's id. The comparison runs under the append's lock, and one harness case holds `.feedback.lock`
+  for 1 s and posts two equal picks. Picks on A, B and A again store three rows. Misses: without `fcntl`
+  nothing locks; an unread repeat at the 2 MiB cap answers 200, not 507, because the comparison runs before
+  the size check; each pick post parses the whole file under the lock, and the cost near the cap was not
+  measured (as first written; since the review fix of 2026-11-15 the comparison reads the file from its end
+  and parses no line before the page's newest pick, and the cost was measured: see "The scheme as its own
+  field" below); "notes are never dropped" has no case of its own.
+- **`SERVER_VERSION = 2`** (commit `f3c24a8a`), returned as `"server"` by `GET /_feedback`, for
+  `scripts/preview.sh` to compare with its own (that script's heading above). A server that returns no number
+  counts as 1.
+- **`context.theme` keeps 30 characters, not 16** (commit `6a12c30e`). The page posts `<palette or
+  "baseline"> <light|dark>`, and a palette name may be 24 characters. On the old clip `Berry preserve dark`
+  was stored as `Berry preserve d`. Residual: a palette name over 24 characters whose 30-character cut ends
+  in "light" or "dark" yields that word as the scheme. (Since the review fix of 2026-11-15 that holds only
+  for a row with no `context.scheme`: a row that has the field gives its scheme from there.)
+
+### The scheme as its own field; the repeat pick read from the file's end (2026-11-15, taskmaster 0.62.0, after the range review)
+
+Commit `c42c5c3b`, after a review of every 0.62.0 commit together. Every number in this entry is as reported
+by the agent that made the commit, in that run on its machine; none was measured again when the entry was
+written. A mutant is a copy of the code with one deliberate defect; it is caught when a harness case fails
+on it.
+
+- **`context.scheme`.** Until this change a row held the scheme, light or dark, only as the last word of
+  `context.theme`. A row's context now has `scheme`, stored as `"light"` or `"dark"` and otherwise as null.
+  `context.theme` is unchanged, and so is `SERVER_VERSION`, 2. `preview-feedback.sh shot` reads the field
+  (that script's heading above). One mutant, any string kept as the scheme, was caught (178 passed, 1
+  failed).
+- **The repeat comparison reads the file from its end.** `unread_repeat` parsed every row of
+  `.feedback.jsonl` on each pick post, under the append's lock. It now calls `newest_pick`, which reads the
+  file in blocks of 64 KiB (`TAIL_BLOCK`) from the end and parses no line before the page's newest pick.
+- **Measured** with the committing agent's own bench script (`python3 -I bench.py <serve.py> 21`) on a file
+  of 3655 rows and 2,072,182 bytes: the median of 21 pick posts, one TCP connection each, 32 cores, Python
+  3.14.4. With the page's newest pick four rows from the end and the post stored: 10.39 ms before, 0.49 ms
+  after. The same with the repeat dropped: 11.27 ms before, 0.52 ms after. A page with no pick in the file:
+  11.49 ms before, 11.57 ms after, so no gain. Parse calls on the unit case's file of 304 lines: 304 before,
+  5 after.
+- **One case got slower.** A single line of 2,097,133 bytes with no newline, in process, median of 9:
+  1.70 ms before, 6.19 ms after. serve.py never writes such a line: a row is bounded by the 8 KiB body cap.
+- **The same answer as a whole read** was shown, not proven: on 17 crafted files, each with 7 page names and
+  with block sizes of 1, 2, 3, 7 and 64 bytes.
+- **Red, then green.** The finished harness on the server before the change read 171 passed, 8 failed, 6 of
+  the 8 being the scheme's cases. After it 179 pass, and no SKIP was printed.
+- **Mutants of the walk from the end**, each caught: the remainder not carried across a block (178 passed,
+  1 failed); a split on `\n` only (178 passed, 1 failed); the first line never yielded (176 passed, 3
+  failed); stopping at the newest pick of any page (176 passed, 3 failed). Two more were seeded on the
+  walk's first version only.
+- **Residuals.** A page whose newest pick lies far back in the file, or that has none, still parses up to
+  the whole file. A line that `json.loads` rejects with something other than `ValueError` (deep nesting)
+  still kills the request thread; that is untested. `GET /_feedback?page=` still parses the whole file on
+  each poll, with no lock; it was outside the finding. Windows was not run. A server started from this
+  version's serve.py before this commit reports the same number, 2, so `preview.sh` reuses it, and it drops
+  the field. A page copied from an older shell never posts the field.
+- **Headers.** serve.py's header and `serve.test.sh`'s were not changed: neither names the scheme's clamp
+  nor the end-of-file cases.
+
+## plugins/taskmaster/skills/visual-decisions/assets/shell.html
+
+The shell is the page every mockup pass is written into. What it did before 2026-11-15 is recorded under
+serve.py's heading above ("Feedback route and the shell's controls") and under `preview-check.sh`'s.
+
+### Six frames, a look, and controls that say what was stored (2026-11-15, taskmaster 0.62.0)
+
+Until this version the shell drew up to three frames, a frame being one of the alternative designs shown
+side by side, lettered by id, with a Theme toggle for the project's theme. Every number in this entry is as
+reported by the agent that made the commit, in that run on its machine; none was measured again when the
+entry was written. A mutant is a copy of the file with one deliberate defect; it is killed when a harness
+case fails on it.
+
+- **Frames A to F by position** (commit `f8eb36db`). A frame's letter is its place among the frames,
+  whatever its id. Number keys move real keyboard focus to the frame. The title's buttons sit in one block in
+  the order Focus, Replay, Pick, Note (commit `60a170aa`), each at least 24 px tall and wide (commit
+  `e4341322`).
+- **The pass number** (commit `0f7d14a5`). A pass is one round of frames shown for a decision, numbered on
+  `<body data-vd-pass>`. Every post carries the number, and a frame reads Picked only for the newest pick of
+  the page's own pass. Residual: the pass number is a pick's only identity, so a later decision that reuses
+  `current.html` at the same pass number opens with the earlier decision's frame marked Picked.
+- **The switcher row and its presets** (commit `f33723ca`). A switcher is a header control whose named
+  options restyle every frame at once; there are three, Palette, Style and Type, and the active option of
+  each is the look. The options are read from the rules an author writes in the `#vd-presets` style block. 17
+  mutants killed.
+- **The look is kept for the tab** (commit `55843f61`), in `sessionStorage` under the page's path plus its
+  title, and only the controls a person changed are stored. 17 mutants killed.
+- **One Look control under 600 px** (commit `28fbe99b`). The closed header on six frames at 375 by 800
+  measured 304.7 px, 38.1% of the window's height (before: 388.7 px, 48.6%). It needs CSS `:has()`.
+- **The project's theme is the palette option `Project`** (commit `0a28f9ed`); the Theme toggle is gone. For
+  print, the shell re-inserts each palette's dark rule inside `@media screen` at load, so frames print in the
+  light set; that needs the page's script to have run.
+- **A refused post is said in words** (commit `f73ec2c0`): `Not recorded: the server answered <status>`
+  under the title's buttons. (Since the review fix of 2026-11-15 the line carries the server's own sentence
+  with the status where the server sends one, and a post with no answer in 10 s has a line of its own: the
+  entry below.)
+- **A shot's look and placement.** The `_palette`, `_style`, `_type`, `_scheme` and `_outline` parameters
+  are described under `preview-feedback.sh`'s heading above.
+- **The option-name rule is written three times**, in `serve.py`, `shell.html` and `check.js`, with nothing
+  tying the copies together.
+- **A harness that drives the shell live**, `scripts/__tests__/shell-controls.test.sh`: 112 cases at the end
+  of the run (146 since the review fix of 2026-11-15, the entry below). It loads pages through `serve.py`
+  without `?static=1`. A seventh live page in one tab never loads in headless Chrome, so it opens a fresh tab
+  for each page. Without a browser it prints SKIP and exits 0, unless `PREVIEW_REQUIRE_BROWSER=1`: a green
+  run on a machine with no browser says nothing about the shell. (CI's harness step exports that variable
+  since commit `66306dfb`; the setting has not been exercised on a runner.) What it misses is listed in its
+  own header.
+
+### The scheme on a post, worded refusals, a tall header, switchers that wrap (2026-11-15, taskmaster 0.62.0, after the range review)
+
+Commit `4bc19795`: seven changes that followed a review of every 0.62.0 commit together. Every number in
+this entry is as reported by the agent that made the commit, in that run on its machine; none was measured
+again when the entry was written. Nobody ran Firefox or Safari. A mutant is a copy of the file with one
+deliberate defect; it is killed when a harness case fails on it.
+
+- **Every post carries `context.scheme`**, `light` or `dark`: the scheme the frames are drawn in, so `light`
+  while a palette with no dark set holds the page light. serve.py stores it as a field of its own (its
+  heading above). Untested: a screenshot taken from a row the page itself posted.
+- **"No dark set" is read by check.js's rule.** `lightOnly` used a list made once at load. It now reads the
+  presets sheet at each call with the expression check.js uses: the top-level style rules plus the direct
+  children of a block that is exactly `@media screen`. A dark rule an author wrote inside `@media screen` is
+  not wrapped a second time. A harness case computes the rule again from the live sheet and compares it with
+  the Scheme toggle on each page. Residual: a dark selector with its two attributes in the other order still
+  reads as no dark set.
+- **A post gives up after 10 s.** Each post carries `AbortSignal.timeout(10000)`, and the line then reads
+  `Not recorded: no answer from the server in 10 s`. serve.py takes a post and then waits for its lock, so
+  without a limit the control that sent it stayed as it was, with no message. The harness swaps the page's
+  `AbortSignal.timeout` for one of 250 ms and asserts that 10000 was asked for; the stall is the real
+  serve.py with `.feedback.lock` held. Residuals: a post the server finishes after the page gave up is
+  stored, though the page said "Not recorded" (measured for a pick; that a note sent again would be stored
+  twice is inferred, not measured); the reload of rows after a post has no limit; an answer that is not 2xx
+  and whose body stalls reads "no answer".
+- **A refusal carries the server's sentence.** The line reads `Not recorded: <error> (<status>)` when the
+  answer's body is JSON with a non-blank string `error`: its first 200 code points, set as text. Otherwise
+  it keeps the earlier form, `Not recorded: the server answered <status>`. serve.py's 403 and 413 are
+  `send_error` HTML pages, so they keep that form. The cases answer from a stand-in server with sentences
+  copied from serve.py, not from the real server's 507.
+- **A header taller than half the window stops sticking** (WCAG 1.4.10 and 2.4.11). When
+  `header.offsetHeight > innerHeight / 2` the script sets the class `vd-tall`;
+  `@media screen { #vd-header.vd-tall { position: relative } }` unsticks the header, and `--vd-header-h`
+  becomes `0px`. It is evaluated again on `resize` and by a ResizeObserver. Print's `position: fixed` is
+  untouched. When the header unsticks while a control inside it has focus, that control is scrolled into
+  view: with the plain fix the Look control ended at −2949 px on a page scrolled 3010 px.
+- **The header's height, measured** on six frames (`look-6.html`), before the wrap change below. At 320 by
+  480: closed 395 px (82%), open 517 px. At 375 by 800: closed 305 px (38.1%), open 427 px (53.4%), so
+  opening Look on a phone unsticks the header. At 600 by 800: closed 217 px, open 339 px. At 1280 by 800:
+  200 px (25%). At 1280 by 500: 200 px (40%). The threshold, with a 305 px header: a window 609 px tall
+  unsticks it, 610 px leaves it stuck, and the answer is the same on animation frames 2 to 7. Residuals: such
+  a window has no sticky header at all; a `?_outline` screenshot still clears a tall header's height; zoom
+  itself was not driven, window sizes were; print has no case.
+- **A look change that flips the match with the pick is said** (WCAG 4.1.3). When a change of look makes
+  the active look stop matching the picked frame's, or match it again, one sentence naming the frame is
+  written to the existing status region. Nothing is written at first render, with no pick, or when the match
+  does not flip. Not tested: what a screen reader speaks.
+- **Switchers wrap at 600 px and under** (WCAG 1.4.10; the 24 px floor of 2.5.8). Until this change the
+  rule there was `overflow-x: auto`, a switcher scrolling sideways inside itself, and a page with four
+  24-character names per kind was 714 px wide in a 320 px window. On that page now: 4 lines per switcher at
+  320 and at 375, and 2, 3 and 2 lines at 600; an option is 28 px tall, 46 px when its name folds; the open
+  header is 814 px at 320, 687 px at 375 and 455 px at 600. Residuals: above 600 px nothing changed (at
+  601 px that page is 696 px wide; not measured on the shell before the change); a name with no break point
+  folds in the middle of a word; the rules that change only how the wrapped row looks (the fill lines, the
+  dropped start border) have no case and were checked by eye.
+- **Harness.** `shell-controls.test.sh` went from 112 cases to 146: 35 added and 1 removed, "a switcher too
+  wide for 375 scrolls inside itself". It runs in 15.6 s. The finished harness on the shell before the
+  commit read 126 passed, 20 failed. Mutants were seeded by hand for each fix, and all were killed but one:
+  a rule of the wrap change that only affects its look (no `flex-grow`; 146 passed, 0 failed).
+- **Sizes.** shell.html went from 122,413 to 125,240 bytes, and from 2763 to 2798 lines.
+- **The render check on a page from the new shell.** Six frames with four palettes, four styles and four
+  types, at 320, 375 and 1280: exit 1 with one E2 finding at 320 ("variant A is 284px wide in 278px", which
+  is the harness fixture's own table and reads the same on the shell before the commit),
+  `"states": 14, "states_not_run": 0`, 0.6 s.
+- **Follow-ups, not done.** Nothing guards the fixture folder that this harness's `--emit` shares with
+  `preview-check.test.sh`: pages named `dark-*.html` collided (201 passed, 4 failed) and were renamed
+  `scheme-*.html`. An existing comment in shell.html holds two U+200B characters.
+
+### Second pass: two thresholds for the header, and what the first fix round broke (2026-11-16, taskmaster 0.62.0, commit `2ea95beb`)
+
+The first fix round made a header taller than half the window stop sticking. A review of that round found
+the rule itself was a defect on a phone: `innerHeight` changes each time the URL bar slides in or out, so a
+header near half the window stuck and unstuck at every change of scroll direction, and where a tapped
+button keeps focus (Chrome and Firefox on Android) each flip to unstuck ran the follow-scroll and threw the
+page to its top. Confirmed by a second reader from the code; no phone was used at any point.
+
+- The header unsticks over 55% of the window's height and sticks again at 45% or less
+  (`20 * height > (was ? 9 : 11) * innerHeight`); between the two it keeps its state, and a page that
+  loads inside the band sticks. Under `?static=1` there is no kept state (55% only), so a screenshot is
+  the picture a load at that size gives.
+- The page follows a focused header control only when the header itself grew past the threshold (`Look`
+  opened), never because the window changed size.
+- Orchestrator's browser run on the exported commit (Chrome through Playwright, six frames, 375 px wide,
+  header 282 px, a header button focused, page scrolled to 1800 px): window height 628 → 553 → 628 stayed
+  stuck with `scrollY` 1800 throughout; 480 (59%) unstuck with `scrollY` still 1800; back to 553 (51%)
+  stayed unstuck. At 1280 by 800 the header was 187 px and stuck; a pick, and a look change after it,
+  announced as before; console empty.
+- A screenshot (`?_outline`) keeps 24 px above the outlined element when the header has stopped sticking,
+  where it kept the whole header's height clear.
+- The note box is held under the window's height (`max-block-size`, its own scroll) and moves up when a
+  refusal makes it taller; a refusal with one long unbroken token wraps (WCAG 1.4.10).
+- Where `AbortSignal.timeout` is missing (Chrome before 103, Firefox before 100, Safari before 16) a timer
+  aborts the post at the same 10 s. Before this the call threw, a pick posted nothing and Send note stayed
+  disabled.
+- Harness, from the worker's commit message (its written report had not arrived when this was recorded):
+  `shell-controls.test.sh` 146 → 157 cases, each refusal answer with its own status and a wait for the
+  stub's post count, a 25-character option name; `preview-feedback.test.sh` 92 → 93, a 320 by 480 shot.
+  The orchestrator checked the receipt (fresh at `2ea95be`), not the cases one by one.
+- Not covered: a real phone; what happens between 45% and 55% on first load when the user expects no
+  sticky header; `matches`, the module-level value the look-change announcement compares against, which a
+  later `showPick()` call outside the observer would move (left as it is, recorded).

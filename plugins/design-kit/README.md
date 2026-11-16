@@ -11,7 +11,7 @@ machine unless a skill names the path and you say yes.
 | Desktop option | Skill | Produces |
 |---|---|---|
 | Slides | `/design-kit:slides` | a self-contained HTML deck with speaker notes; PDF and PPTX by script |
-| Design | `/design-kit:design` | an artboard canvas of 2–4 directions with editable text, adjustment knobs, PNG/PDF export, and a "copy edits as prompt" bring-back |
+| Design | `/design-kit:design` | an artboard canvas of 3 directions by default (up to 5, never more than 6) with editable text, adjustment knobs, PNG/PDF export, and a "copy edits as prompt" bring-back |
 | Design in codebase | `/design-kit:in-codebase` | the design rendered with the project's OWN components on its dev server, cleaned up after the pick; intake of a Claude Design handoff bundle with a token-drift table |
 | Design System | `/design-kit:system` | `.cc-artifacts/design-kit/design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
 | Artifacts | `/design-kit:artifact` | one self-contained, versioned HTML page in a local gallery; LAN, pages-branch or zip sharing on explicit consent |
@@ -291,8 +291,8 @@ PowerPoint is the host `pptx` skill's job.
 
 ### `/design-kit:design` — directions as artboards on one local canvas
 
-`/design-kit:design <brief> [--screens 2-4] [--device phone|tablet|desktop] [--theme tokens.json]`
-drafts 2–4 UI directions as artboards on one canvas, `.cc-artifacts/design-kit/boards/<date>-<slug>.html`,
+`/design-kit:design <brief> [--screens 2-6] [--device phone|tablet|desktop] [--theme tokens.json]`
+drafts 3 UI directions by default (up to 5, never more than 6; `--screens` is clamped to 2-6) as artboards on one canvas, `.cc-artifacts/design-kit/boards/<date>-<slug>.html`,
 served at the plugin's preview URL. Directions differ on structure (navigation, hierarchy, density,
 first screen), not colour — the knobs do colour. On the board: edit any text in place, move
 spacing/radius/hue/type/density/scheme knobs globally or per artboard (persisted in that browser's
@@ -300,7 +300,7 @@ localStorage), pick an artboard, and "Copy edits as prompt" pastes the decision 
 session as plain requirements. `scripts/board-export.sh` writes a PNG per artboard or one PDF
 through a headless Chromium-family browser (exit 3 with the install hint when none is found).
 
-What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 4 artboards, an empty body,
+What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 6 artboards, an empty body,
 lorem ipsum, or any external asset — a board renders offline — **gate**. That the directions
 diverge structurally, that content is real, and the accessibility floor of a hand-written body
 are **agent-graded**. Nothing here measures contrast — **recorded**.

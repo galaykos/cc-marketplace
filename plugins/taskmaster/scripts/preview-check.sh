@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# preview-check.sh [--docroot DIR] [--page PATH] [--widths 375,768,1280] (defaults .cc-artifacts/taskmaster/mockups, current.html): loads the page from this docroot's serve.py (started through preview.sh when none answers, said on stderr) in a headless Chromium-family browser driven over its DevTools pipe, one exact width at a time; check.js and axe-core run in an isolated world page script cannot reach (E1 load, E2 layout, E3 axe-core, E4 stand-in content, E5 variants; console and uncaught errors read from the browser), and this script writes each width's record and a full-page PNG to DIR/.checks/<page>-<hash>/; E6 compares the widest PNG with the newest ledger pass that differs from the page. Every stdout line is one escaped JSON object: a finding (seen at several widths once, with "widths"), an E6 "advisory" that counts as no finding, a {"not_reported": width, "reason": ...}, then one {"summary": ...}.
-# Exit: 0 no findings; 1 findings; 2 bad argument, or --page names no .html file inside DIR; 3 no serve.py with the /_checks route (preview.sh could not start one, or one from before this version runs: --stop, then rerun); 4 no Chromium-family browser (PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 some width not reported (the check timed out or failed, or no screenshot), the rest still printed; 6 python3 missing, the browser failed, a signal, or the run passed 60 s, with what was collected still printed.
-# Misses: what each check misses (see the derivation); whether the model acts on a finding; page script still runs and can change what is measured, so a clean check is not proof the page is fine; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page leaning on a CDN reads as broken, yet loopback stays reachable; E6 is pixels at one width against the newest differing ledger pass, which can belong to another decision.
+# preview-check.sh [--docroot DIR] [--page PATH] [--widths 375,768,1280] (defaults .cc-artifacts/taskmaster/mockups, current.html): loads the page from this docroot's serve.py (started through preview.sh when none answers, said on stderr) in a headless Chromium-family browser driven over its DevTools pipe, one exact width at a time; check.js and axe-core run in an isolated world page script cannot reach (E1 load, E2 layout, and at 375 px E2 again under each style option and each type option on its own, E3 axe-core, E4 stand-in content, E5 variants, E7 the frame, switcher, option and option-name limits of a layout or creative pass, E8 each palette's text contrast in light and in dark, from the first width's load only; console and uncaught errors read from the browser), and this script writes each width's record and a full-page PNG to DIR/.checks/<page>-<hash>/; E6 compares the widest PNG with the newest ledger pass that differs from the page. Every stdout line is one escaped JSON object: a finding (seen at several widths once, with "widths"), an E6 "advisory" that counts as no finding, a {"not_reported": width, "reason": ...} (with "state", its check and option, when it is one state due at that width that did not run), then one {"summary": ...}.
+# Exit: 0 no findings; 1 findings; 2 bad argument, or --page names no .html file inside DIR; 3 no serve.py with the /_checks route (preview.sh could not start one, or one from before this version runs: --stop, then rerun); 4 no Chromium-family browser (PREVIEW_BROWSER, PATH, macOS bundles, Playwright's cache); 5 some width not reported (the check timed out or failed, or no screenshot) or some state not run (a state is a palette in a scheme, or a style or type option at 375 px; a run visits 16 at most, in 16 s together; "states" in the summary counts those run, "states_not_run" the rest), the rest still printed; 6 python3 missing, the browser failed, a signal, or the run passed its limit, 60 s plus the time its states took, with what was collected still printed.
+# Misses: what each check misses (see the derivation; E8's are in check.js's header); E2 under a style together with a type the page did not load with, or under an option at any width but 375; a state not run is named on stdout and in the exit code only, its width's record does not carry it; whether the model acts on a finding; page script still runs and can change what is measured, so a clean check is not proof the page is fine; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page leaning on a CDN reads as broken, yet loopback stays reachable; E6 is pixels at one width against the newest differing ledger pass, which can belong to another decision.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-check.sh
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -50,16 +50,24 @@ from urllib.request import ProxyHandler, build_opener
 
 docroot, page, widths, browser, sandbox, limit, here = sys.argv[1:8]
 root, page = Path(docroot).resolve(), page.lstrip("/")
-widths = [int(w) for w in widths.split(",")]
+widths = list(dict.fromkeys(int(w) for w in widths.split(",")))  # a width given twice is loaded once
 started = time.monotonic()
 DEADLINE = started + 60
 PER_WIDTH = 20
+MAX_STATES = 16  # states a run visits; the rest of a longer plan are named, not run
+STATE_BUDGET = 16.0  # seconds a run's states share, added to its limit as they are used: 76 s at most, under the browser's 90
+try:
+    STATE_BUDGET = min(STATE_BUDGET, max(0.0, float(os.environ["PREVIEW_STATE_BUDGET"])))  # the harness lowers it; nothing raises it
+except (KeyError, ValueError):
+    pass
+FONTS = "Promise.race([document.fonts ? document.fonts.ready : null, new Promise(r => setTimeout(r, 3000))]).then(() => 1)"
+STATE_WIDTH = {"E8": widths[0], "E2": 375}  # the load a check's states run in
 HEIGHT = 800  # the emulated viewport; screenshots cover the whole page, up to MAX_SHOT
 MAX_SHOT = 8000
 WORLD = "vd-check"  # the isolated world check.js and axe-core run in
 KEEP = 60  # findings kept per width; the rest are counted as dropped
 EVENTS = 200  # console and exception events kept per page; the rest are counted
-CHECK_IDS = ("E1", "E2", "E3", "E4", "E5")
+CHECK_IDS = ("E1", "E2", "E3", "E4", "E5", "E7", "E8")
 opener = build_opener(ProxyHandler({}))
 # preview-feedback.sh's output rule: variation selectors and blank-rendering letters escape too, though not C*.
 BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
@@ -219,13 +227,13 @@ class Browser:
                                      stderr=subprocess.DEVNULL, start_new_session=True)
         os.close(a)
         os.close(b)
-        self.buf, self.next_id, self.events, self.session, self.lost = b"", 0, [], None, 0
+        self.buf, self.next_id, self.events, self.session, self.lost, self.visited, self.left, self.slowest, self.stuck = b"", 0, [], None, 0, 0, STATE_BUDGET, 0.0, False
 
     def recv(self, until):
         while b"\0" not in self.buf:
             wait = min(until, DEADLINE) - time.monotonic()
             if wait <= 0:
-                raise TimeoutError("passed 60 s" if time.monotonic() >= DEADLINE else "timed out")
+                raise TimeoutError("passed %d s" % (DEADLINE - started) if time.monotonic() >= DEADLINE else "timed out")
             ready, _, _ = select.select([self.from_r], [], [], wait)
             if ready:
                 chunk = os.read(self.from_r, 1 << 20)
@@ -299,16 +307,66 @@ class Browser:
         self.event("Page.loadEventFired", timeout)
         return nav.get("frameId")
 
-    def check(self, frame):
-        """check.js's answer from its isolated world, and that world's context id; axe-core is evaluated there first."""
-        until = time.monotonic() + PER_WIDTH
-        ctx = self.call("Page.createIsolatedWorld", {"frameId": frame, "worldName": WORLD}, until=until)["executionContextId"]
-        self.call("Runtime.evaluate", {"expression": AXE_JS, "contextId": ctx}, until=until)
-        res = self.call("Runtime.evaluate", {"expression": "window.__vdRun()", "contextId": ctx, "awaitPromise": True, "returnByValue": True},
-                        until=until)
+    def ask(self, ctx, expression, until):
+        """What check.js answers to expression in its isolated world."""
+        res = self.call("Runtime.evaluate", {"expression": expression, "contextId": ctx, "awaitPromise": True, "returnByValue": True}, until=until)
         if res.get("exceptionDetails"):
             raise RuntimeError("the check script stopped (%s)" % clip(res["exceptionDetails"].get("text"), 100))
-        return res.get("result", {}).get("value"), ctx
+        return res.get("result", {}).get("value")
+
+    def check(self, frame, until):
+        """check.js's answer from its isolated world, and that world's context id; axe-core is evaluated there first."""
+        ctx = self.call("Page.createIsolatedWorld", {"frameId": frame, "worldName": WORLD}, until=until)["executionContextId"]
+        self.call("Runtime.evaluate", {"expression": AXE_JS, "contextId": ctx}, until=until)
+        return self.ask(ctx, "window.__vdRun()", until), ctx
+
+    def states(self, ctx, until, found, width):
+        """Adds to found the findings of the states check.js lists that are due at this width: for each, check.js sets its look, runs the check it names and puts the page's look back. Answers (state, why) for each one not run: past MAX_STATES in the plan, with less left of the run's STATE_BUDGET than the slowest state so far took at any width, or behind one that did not finish in what was left, which is stopped in the page. The run's limit moves by the time used."""
+        global DEADLINE
+        plan = [s for s in self.ask(ctx, "window.__vdStates()", until) or [] if isinstance(s, dict)]
+        began, share, unrun = time.monotonic(), self.left, []
+        DEADLINE += share
+        try:
+            for i, state in enumerate(plan):
+                if STATE_WIDTH.get(state.get("check")) != width:
+                    continue
+                room = began + share - time.monotonic()
+                if self.stuck:
+                    why = "not run: a state before it did not finish"
+                elif i >= MAX_STATES:
+                    why = "not run: a run visits %d states at most and the page lists %d" % (MAX_STATES, len(plan))
+                elif room <= self.slowest:
+                    why = "not run: %.1f s left of the %g s a run's states share" % (max(room, 0.0), STATE_BUDGET) + (", and one took %.1f s" % self.slowest if self.slowest else "")
+                else:
+                    asked = time.monotonic()
+                    try:
+                        found += self.ask(ctx, "window.__vdState(%s)" % json.dumps(state), began + share) or []
+                    except TimeoutError:
+                        why = "did not finish in the %.1f s left of the %g s a run's states share" % (room, STATE_BUDGET)
+                        if not self.halt(ctx):
+                            why += ", and could not be stopped in 3 s"
+                    else:
+                        self.slowest = max(self.slowest, time.monotonic() - asked)
+                        self.visited += 1
+                        continue
+                unrun.append((state, why))
+        finally:
+            used = min(share, time.monotonic() - began)
+            DEADLINE -= share - used
+            self.left -= used
+        return unrun
+
+    def halt(self, ctx):
+        """Stops the state still running in the page, its look set: the caller loads the page again before the screenshot. The evaluate takes the stop when that state had just ended, so it cannot fall on the next load's script. Answers False when the page gave no answer to it in 3 s."""
+        self.stuck = True
+        self.send("Runtime.terminateExecution", session=self.session)
+        try:
+            self.call("Runtime.evaluate", {"expression": "0", "contextId": ctx}, timeout=3)
+        except RuntimeError:
+            pass  # the stop fell on this evaluate, as meant
+        except TimeoutError:
+            return False
+        return True
 
     def errors(self, ctx):
         """E1 console errors and uncaught errors of the page's own script, as check.js reported them before it moved to its own world."""
@@ -404,7 +462,7 @@ def pct(x):
 
 
 def record_of(answer, errs, lost, w):
-    """One width's record: check.js's findings (named fields, clamped, E1-E5 only) and the browser's E1 errors, KEEP of them; the rest counted."""
+    """One width's record: check.js's findings (named fields, clamped, CHECK_IDS only) and the browser's E1 errors, KEEP of them; the rest counted."""
     raw = answer.get("findings") if isinstance(answer.get("findings"), list) else []
     rows = [{"check": f["check"], "selector": clip(f.get("selector"), 300) or None, "text": clip(f.get("text"), 120), "detail": clip(f.get("detail"), 400)}
             for f in raw if isinstance(f, dict) and f.get("check") in CHECK_IDS]
@@ -416,7 +474,7 @@ def record_of(answer, errs, lost, w):
 
 
 token = secrets.token_hex(6)
-records, collected, shots, missing, notes, advisories = {}, {}, [], [], [], []
+records, collected, shots, missing, notes, unrun, advisories = {}, {}, [], [], [], [], []
 previous = None
 cdp = None
 profile = None
@@ -432,13 +490,19 @@ try:
     cdp.call("Browser.setDownloadBehavior", {"behavior": "deny"}, page_session=False)  # a page cannot save a file of its choosing
     cdp.open()
     pngs = {}
+    url = base + quote(page) + "?static=1"
     for w in widths:
         reason, answer, ctx = None, None, None
         try:
-            frame = cdp.go(base + quote(page) + "?static=1", w)
-            answer, ctx = cdp.check(frame)
+            frame = cdp.go(url, w)
+            until = time.monotonic() + PER_WIDTH
+            answer, ctx = cdp.check(frame, until)
             if not isinstance(answer, dict):
                 reason = "the check returned nothing usable"
+            elif w in STATE_WIDTH.values():
+                for state, why in cdp.states(ctx, until, answer.setdefault("findings", []), w):
+                    look = state.get("look") if isinstance(state.get("look"), dict) else {}
+                    unrun.append({"not_reported": w, "state": {"check": clip(state.get("check"), 8), **{clip(k, 8): clip(v, 40) for k, v in look.items()}}, "reason": why})
         except TimeoutError as exc:
             if time.monotonic() >= DEADLINE:
                 raise
@@ -449,6 +513,10 @@ try:
             collected[w] = record_of(answer, cdp.errors(ctx), cdp.lost, w)
             capped += int(answer["capped"]) if isinstance(answer.get("capped"), int) and answer["capped"] > 0 else 0
         try:
+            if cdp.stuck:
+                cdp.stuck = False
+                cdp.go(url, w)
+                cdp.value(FONTS)
             pngs[w] = cdp.shot(w)
             path = folder / ("%d.png" % w)
             path.write_bytes(base64.b64decode(pngs[w]))
@@ -470,7 +538,7 @@ try:
         widest = max(pngs) if pngs else None
         if previous and widest:
             cdp.go(base + quote(previous) + "?static=1", widest)
-            cdp.value("Promise.race([document.fonts ? document.fonts.ready : null, new Promise(r => setTimeout(r, 3000))]).then(() => 1)")
+            cdp.value(FONTS)
             before = cdp.shot(widest)
             (folder / ("previous-%d.png" % widest)).write_bytes(base64.b64decode(before))
             cdp.go("about:blank", widest)
@@ -522,11 +590,11 @@ dropped = sum(int((collected.get(w) or {}).get("dropped") or 0) for w in widths)
 by_check = {}
 for f in merged.values():
     by_check[f["check"]] = by_check.get(f["check"], 0) + 1
-for line in list(merged.values()) + advisories + notes:
+for line in list(merged.values()) + advisories + notes + unrun:
     print(show(line))
 print(show({"summary": {"page": page, "widths": sorted(records), "findings": len(merged), "dropped": dropped, "by_check": by_check,
-                        "not_reported": sorted(missing), "capped": capped, "shots": shots, "previous": previous,
+                        "not_reported": sorted(missing), "capped": capped, "states": cdp.visited if cdp else 0, "states_not_run": len(unrun), "shots": shots, "previous": previous,
                         "seconds": round(time.monotonic() - started, 1)}}))
 sys.stdout.flush()
-sys.exit(code or (5 if missing else 1 if merged or dropped else 0))
+sys.exit(code or (5 if missing or unrun else 1 if merged or dropped else 0))
 PY

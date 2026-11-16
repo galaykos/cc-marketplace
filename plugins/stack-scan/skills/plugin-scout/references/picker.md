@@ -124,8 +124,7 @@ TIER 3 — no signal in this repo
   | Row | Overlaps |
   |---|---|
   | `ui-ux` | `craft-layer` |
-  | `taskmaster` | `task-runner` |
-  | `web-dev` | `laravel` |
+    | `web-dev` | `laravel` |
 
   A row on no pair is never annotated. A deprioritized row sorts last within its
   tier and its description names the overlap ("overlaps installed ui-ux"). Tier-1

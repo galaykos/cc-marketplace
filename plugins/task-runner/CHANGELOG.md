@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.58.0 — 2026-11-14
+
+- **The full suite runs at each milestone close on the serial path.** An index with milestones runs milestone by milestone in index order, and the project's suite runs when a milestone's last card lands. taskmaster's cards promised this and the runner ran the suite once, at the end. `plan-overlap.sh --dir` still levels the whole card set (recorded).
+- **A stale card fact loses to the code.** Where a card's `<facts>` disagree with the tree today (a moved path, a changed signature, a `<current>` quote that no longer matches), the worker follows the code and names the stale fact in its report. A disagreement that changes what the card asks for is still a halt. In task-execution and the dispatch preamble.
+- Corrections with no change in behaviour: tier resolution is cited at `references/boost-execution.md`, where it lives; track-orchestration no longer says a goal index has no `Ultra:` line (taskmaster 0.61.0 writes both).
+
 ## 0.57.0 — 2026-11-14
 
 - **Run state moves to `.cc-artifacts/task-runner/`, card indexes to `.cc-artifacts/taskmaster/tasks/`.** `active-run.json`, `closed-run.json`, `gate-pass.json`, the receipt and its logs, `scope*.json`, `rv/`, `rt/`, `bg/`, `nc/`, `walk/`, `iso/`, `ports/`, `reductions/`, sweep state and `env-notes.md` now live there, so one `.gitignore` line keeps every plugin's artifacts out of a commit and a deploy; the dir still ignores itself. Claude Code refuses a Write into `.claude/` as a sensitive path, and the run's close has the model write `gate-pass.json`. `register-run.sh` writes this session's phase sentinel to `.cc-artifacts/cc-phase/` and clears its `.claude/cc-phase/` twin. Every prose path (commands, the task-executor agent, skills, references, README, `lane.tsv`, the `types` contract) names the new one.

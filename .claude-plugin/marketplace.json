@@ -27,7 +27,7 @@
     {
       "name": "design-kit",
       "source": "./plugins/design-kit",
-      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (an HTML deck; PDF and PPTX by script), /design-kit:design (2-4 artboard directions with knobs), /design-kit:in-codebase (the design rendered with the project's OWN components; handoff-bundle intake with a token-drift table), /design-kit:system (the project's tokens, typefaces and components), /design-kit:artifact (a self-contained page, shared on consent), /design-kit:motion (a static design animated into a looping showcase) and /design-kit:film (a beat-synced product film from a brief, with checks by script). One localhost URL under .cc-artifacts/design-kit/; nothing leaves the machine unless you say yes."
+      "description": "The Claude Desktop design picker as local, own-your-files skills: /design-kit:slides (an HTML deck; PDF and PPTX by script), /design-kit:design (3-5 artboard directions with knobs), /design-kit:in-codebase (the design rendered with the project's OWN components; handoff-bundle intake with a token-drift table), /design-kit:system (the project's tokens, typefaces and components), /design-kit:artifact (a self-contained page, shared on consent), /design-kit:motion (a static design animated into a looping showcase) and /design-kit:film (a beat-synced product film from a brief, with checks by script). One localhost URL under .cc-artifacts/design-kit/; nothing leaves the machine unless you say yes."
     },
     {
       "name": "laravel",
@@ -42,7 +42,7 @@
     {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
-      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under .cc-artifacts/taskmaster/ (no collision with a project's own docs/)."
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach (via the approaches plugin when installed: an inline slate of 2-3, or its blind four-persona panel for rework of existing code; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under .cc-artifacts/taskmaster/ (no collision with a project's own docs/)."
     },
     {
       "name": "git-workflow",

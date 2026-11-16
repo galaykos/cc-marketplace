@@ -45,11 +45,11 @@ session above opus: an adversary weaker than the model that wrote the spec is a 
 gate on exactly the specs that most need one. Registry unresolved → omit `model:` and
 note `role-floors.md unresolved — floors not applied`.
 
-## The panel — ultra only
+## The panel — boosted runs only
 
-Under `ULTRA-TASK ACTIVE`, via either dispatch mechanism (the Workflow tool or the Agent
-tool), this is a **blind panel**, not a single adversary. Unboosted runs keep the
-single adversary above.
+Under a boost — `ULTRA-TASK ACTIVE` or `ULTRA-GOAL ACTIVE`, never `ULTRA-GOAL ACTIVE (boost=off)` —
+via either dispatch mechanism (the Workflow tool or the Agent tool), this is a **blind panel**,
+not a single adversary. Unboosted runs, goal-lean included, keep the single adversary above.
 
 Size N by the gate conditions already computed above. Panel width is owned by
 `task-runner:verification-panels` § Panel width; `ultra/references/dispatch-tiers.md`

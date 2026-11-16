@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixtures for the card-lint observability path: the run record the three linters
+# Fixtures for the card-lint observability path: the run record the four per-card linters
 # write (scripts/card-lint-record.sh) and the hook that reads it back
 # (hooks/card-lint-observe.sh).
 #
@@ -73,7 +73,7 @@ fire() { # $1 transcript_path, $2 cwd, $3 session_id, $4 agent_id -> additionalC
 out=$(fire "$FX/t/main.jsonl" "$REPO")
 if [ -n "$out" ]; then pass "warn branch: unlinted card set is no longer silent"
 else bad "warn branch: silent on a card set with zero lint records"; fi
-for want in "01-alpha.md" "02-beta.md" "card-shape" "verify-teeth" "skills-stamp" "2 of 2"; do
+for want in "01-alpha.md" "02-beta.md" "card-shape" "verify-teeth" "skills-stamp" "card-paths" "2 of 2"; do
   if printf '%s' "$out" | grep -qF "$want"; then pass "warning names '$want'"
   else bad "warning missing '$want' (got: $out)"; fi
 done
@@ -138,6 +138,17 @@ if grep -q "$(printf '\tspec-ledger\tpass\t')" "$FX/spec/.lint-records/design.md
   pass "spec-ledger-lint records against the spec"
 else bad "spec-ledger-lint left no record"; fi
 
+# --- 5b. three records are not four: card-paths-lint writes a record too, and before 0.61.0 the hook never read it.
+out=$(fire "$FX/t/three-of-four.jsonl" "$REPO")
+if printf '%s' "$out" | grep -qF '01-alpha.md (card-paths)' && printf '%s' "$out" | grep -qF '02-beta.md (card-paths)'; then
+  pass "a set that skipped card-paths-lint warns, naming that lint alone"
+else bad "skipped card-paths-lint went unseen (got: $out)"; fi
+for card in "$SET/01-alpha.md" "$SET/02-beta.md"; do
+  bash "$TM/scripts/card-paths-lint.sh" --card "$card" --root "$REPO" >/dev/null 2>&1
+done
+if grep -q "$(printf '\tcard-paths\t')" "$log"; then pass "card-paths-lint leaves a run record beside the card"
+else bad "card-paths-lint left no record at $log"; fi
+
 # --- 6. SILENT BRANCH: every card in the set now has a record ----------------
 # Fresh transcript, so the one-shot from case 1 cannot be what produces the silence.
 if [ -z "$(fire "$FX/t/after-lint.jsonl" "$REPO")" ]; then
@@ -153,6 +164,7 @@ cat > "$SET/03-gamma.md" <<'EOF'
 EOF
 bash "$TM/scripts/card-shape-lint.sh" --card "$SET/03-gamma.md" >/dev/null 2>&1
 bash "$TM/scripts/verify-teeth-lint.sh" --card "$SET/03-gamma.md" >/dev/null 2>&1
+bash "$TM/scripts/card-paths-lint.sh" --card "$SET/03-gamma.md" --root "$REPO" >/dev/null 2>&1
 out=$(fire "$FX/t/partial.jsonl" "$REPO")
 if printf '%s' "$out" | grep -qF '03-gamma.md (skills-stamp)' \
    && ! printf '%s' "$out" | grep -qF '01-alpha.md'; then

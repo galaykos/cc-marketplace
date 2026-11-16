@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 # preview-cleanup.sh [--verify] [project-root] — removes every design-preview scratch artifact carrying the __design-preview__ marker, strips marker lines from routes/web.php, then verifies none remains (exit 1 if any does; exit 2 bad root); --verify searches only.
-# Misses: a scratch file renamed without the marker — why the skill forbids renaming scratch artifacts.
+# Misses: a scratch file renamed without the marker — why the skill forbids renaming scratch artifacts; marker text inside .cc-artifacts/ and taskmaster-docs/ is not searched, since ledgers and specs quote the scratch path.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/preview-cleanup.sh
 set -u
 MARKER="__design-preview__"
-verify_only=0
-[[ "${1:-}" == "--verify" ]] && { verify_only=1; shift; }
-root="${1:-.}"
+verify_only=0; root="."
+for a in "$@"; do
+  case "$a" in
+    --verify) verify_only=1 ;;
+    -*) echo "cleanup: unknown option '$a'"; exit 2 ;;
+    *) root="$a" ;;
+  esac
+done
 cd "$root" || { echo "cleanup: bad root '$root'"; exit 2; }
 
 list_hits() {
   # Tracked or not, every path or file content carrying the marker, excluding VCS internals and this plugin's own shipped files.
   { find . -path ./.git -prune -o -name "*${MARKER}*" -print 2>/dev/null
-    grep -rIl --exclude-dir=.git --exclude-dir=node_modules -- "$MARKER" . 2>/dev/null
+    grep -rIl --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.cc-artifacts --exclude-dir=taskmaster-docs -- "$MARKER" . 2>/dev/null
   } | grep -v "plugins/taskmaster" | sort -u
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
+# Drives skills/visual-decisions/assets/serve.py over real HTTP on free ports with temp docroots: static files, /events, /_versions.json, /_restore and its rejects (and its rename), /_feedback (rows, letters A to F, pass and look, an unread pick repeated: once, also when two arrive behind a held lock, yet stored on the next pass, after another pick or once closed; clamps, a pick without text, lone surrogates, the 2 MiB cap, rejects, the per-page read and its server version, LAN), the Host/Origin guard, the stream cap, the key file (symlink, not UTF-8), 403s and the idle clock.
 # Misses: anything only a browser does (the shell's reload client never runs here); IPv6 peers.
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -63,6 +63,7 @@ mkdir -p "$D/gallery" "$D/sub"
 printf '<!doctype html><title>live</title><p>LIVE</p>\n' > "$D/current.html"
 printf '<!doctype html><p>PASS-A</p>\n' > "$D/2026-01-01-a.html"
 printf '<!doctype html><p>theme</p>\n' > "$D/theme.html"
+printf '<!doctype html><p>WALK</p>\n' > "$D/2026-01-02-signup-walkthrough.html"
 printf '<!doctype html><p>GALLERY-ONE</p>\n' > "$D/gallery/2026-01-01-one.html"
 printf 'hello asset\n' > "$D/sub/asset.txt"
 mkdir -p "$D/.hidden" "$D/withindex"
@@ -106,6 +107,7 @@ names=[v["name"] for v in d["versions"]]
 assert d["current"]=="current.html", d
 assert names==["2026-01-01-a.html"], names' "$T/resp" 2>/dev/null \
   && ok || bad "versions body" "want only the ledger pass, got $(cat "$T/resp")"
+expect "a walkthrough's dated copy is still served" 200 "$base/2026-01-02-signup-walkthrough.html"
 
 # ---- /events: a change event arrives after a write ----------------------------
 sse "$base/events" "$T/sse1"
@@ -138,7 +140,7 @@ got="$(restore --data '{"name":"2026-01-01-a.html"}')"
 big="$(python3 -c 'print("{\"name\":\"" + "x"*5000 + ".html\"}")')"
 got="$(restore -H 'X-Preview-Restore: 1' --data "$big")"
 [ "$got" = 413 ] && ok || bad "restore over the size cap" "want 413, got $got"
-for name in theme.html current.html ../2026-01-01-a.html missing.html sub/asset.txt .private.html; do
+for name in theme.html current.html 2026-01-02-signup-walkthrough.html ../2026-01-01-a.html missing.html sub/asset.txt .private.html; do
   got="$(restore -H 'X-Preview-Restore: 1' --data "{\"name\":\"$name\"}")"
   [ "$got" = 400 ] && ok || bad "restore non-ledger $name" "want 400, got $got"
 done
@@ -161,7 +163,7 @@ import json, re, sys
 rows = [json.loads(l) for l in open(sys.argv[1])]
 assert len(rows) == 1, rows
 r = rows[0]
-assert set(r) == {"id", "ts", "page", "kind", "variant", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
+assert set(r) == {"id", "ts", "page", "kind", "variant", "pass", "switchers", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
 assert r["id"] == sys.argv[2] and re.fullmatch(r"[0-9a-f]{6,16}", r["id"]), r["id"]
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", r["ts"]), r["ts"]
 assert (r["page"], r["kind"], r["variant"], r["anchor"], r["text"]) == ("current.html", "pick", "B", None, ""), r
@@ -172,14 +174,14 @@ import json
 print(json.dumps({"page": "current.html", "kind": "note", "variant": "B", "text": "t" * 3000,
   "id": "forged", "status": "addressed", "reply": "x", "handed_out": True, "evil": 1,
   "anchor": {"selector": "s" * 600, "tag": "t" * 40, "text": "x" * 300, "rect": {"x": 1.5, "y": "bad", "w": 10, "h": 20, "z": 9}, "extra": 1},
-  "context": {"viewport": {"w": 1280, "h": 800, "d": 1}, "theme": "q" * 20,
+  "context": {"viewport": {"w": 1280, "h": 800, "d": 1}, "theme": "q" * 40,
               "states": {"k%d" % i: "v" * 40 for i in range(20)}, "console": ["e" * 350] * 7, "more": 1}}))')"
 got="$(fb -H 'X-Preview-Feedback: 1' --data "$note")"
 [ "$got" = 200 ] && ok || bad "feedback note" "want 200, got $got: $(cat "$T/resp")"
 python3 - "$FB" <<'EOF' 2>&1 | grep . && bad "feedback note clamped" "see above" || ok
 import json, sys
 r = [json.loads(l) for l in open(sys.argv[1])][-1]
-assert set(r) == {"id", "ts", "page", "kind", "variant", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
+assert set(r) == {"id", "ts", "page", "kind", "variant", "pass", "switchers", "anchor", "text", "context", "status", "reply", "handed_out"}, sorted(r)
 assert r["id"] != "forged" and (r["status"], r["reply"], r["handed_out"]) == ("open", "", False), r
 assert (r["kind"], r["variant"], len(r["text"])) == ("note", "B", 2000), (r["kind"], r["variant"], len(r["text"]))
 a = r["anchor"]
@@ -187,20 +189,103 @@ assert set(a) == {"selector", "tag", "text", "rect"}, sorted(a)
 assert (len(a["selector"]), len(a["tag"]), len(a["text"])) == (512, 32, 200), a
 assert a["rect"] == {"x": 1.5, "y": 0, "w": 10, "h": 20}, a["rect"]
 c = r["context"]
-assert set(c) == {"viewport", "theme", "states", "console"}, sorted(c)
-assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 16, c
+assert set(c) == {"viewport", "theme", "scheme", "states", "console"}, sorted(c)
+assert c["viewport"] == {"w": 1280, "h": 800} and len(c["theme"]) == 30 and c["scheme"] is None, c
 assert len(c["states"]) == 16 and all(len(v) <= 32 for v in c["states"].values()), c["states"]
 assert len(c["console"]) == 5 and all(len(s) == 300 for s in c["console"]), [len(s) for s in c["console"]]
 EOF
+theme_of() { tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["context"]["theme"])'; }
+long_name="Harbour morning at sunset"; long_name="${long_name:0:24}"
+for theme in "Berry preserve dark" "$long_name light"; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"$theme\"}}")"
+  [ "$got" = 200 ] && [ "$(theme_of)" = "$theme" ] && ok \
+    || bad "theme with a long palette name keeps its scheme" "want 200 and '$theme', got $got and '$(theme_of)'"
+done
+got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"$(printf 'x%.0s' $(seq 40))\"}}")"
+[ "$got" = 200 ] && [ "$(theme_of)" = "$(printf 'x%.0s' $(seq 30))" ] && ok \
+  || bad "theme longer than 30 characters is clipped" "want 200 and 30 characters, got $got and '$(theme_of)'"
+scheme_of() { tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.dumps(json.load(sys.stdin)["context"].get("scheme", "no such key")))' 2>&1 | tail -n 1; }
+# stores_scheme <posted JSON value> <stored JSON value>: a note posted with that context.scheme under the theme "Berry light"; the newest row's scheme and theme.
+stores_scheme() {
+  local got
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"theme.html\",\"kind\":\"note\",\"text\":\"n\",\"context\":{\"theme\":\"Berry light\",\"scheme\":$1}}")"
+  [ "$got" = 200 ] && [ "$(scheme_of)" = "$2" ] && [ "$(theme_of)" = "Berry light" ] && ok \
+    || bad "scheme $1 stored as $2" "want 200, scheme $2 and theme 'Berry light', got $got, $(scheme_of) and '$(theme_of)'"
+}
+stores_scheme '"dark"' '"dark"'
+stores_scheme '"light"' '"light"'
+for v in '"Dark"' 1 '["dark"]'; do stores_scheme "$v" null; done
 huge="$(python3 -c 'print("{\"kind\":\"note\",\"text\":\"n\",\"anchor\":{\"selector\":\"p\",\"rect\":{\"x\":" + "9"*400 + ",\"y\":1e999,\"w\":-1e308,\"h\":1e308}},\"context\":{\"viewport\":{\"w\":NaN,\"h\":3e9}}}")')"
 got="$(fb -H 'X-Preview-Feedback: 1' --data "$huge")"
 [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["anchor"]["rect"], r["context"]["viewport"])')" = "{'x': 10000000, 'y': 0, 'w': -10000000, 'h': 10000000} {'w': 0, 'h': 10000000}" ] && ok \
   || bad "feedback huge numbers" "want 200, a rect clamped to +-1e7 and NaN/Infinity as 0, got $got: $(tail -n 1 "$FB" | cut -c1-300)"
-for v in D b 1; do
+for pair in D:D b:None 1:None; do
+  v="${pair%%:*}"; want="${pair#*:}"
   got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"current.html\",\"kind\":\"note\",\"variant\":\"$v\",\"text\":\"n\"}")"
-  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["variant"])')" = None ] && ok \
-    || bad "feedback variant $v" "want 200 and variant null, got $got: $(tail -n 1 "$FB")"
+  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;print(json.load(sys.stdin)["variant"])')" = "$want" ] && ok \
+    || bad "feedback variant $v" "want 200 and variant $want, got $got: $(tail -n 1 "$FB")"
 done
+for v in D E F; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"six.html\",\"kind\":\"pick\",\"variant\":\"$v\"}")"
+  [ "$got" = 200 ] && [ "$(tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(r["kind"],r["variant"])')" = "pick $v" ] && ok \
+    || bad "pick D E F stored" "pick $v: want 200 and the row, got $got: $(tail -n 1 "$FB" | cut -c1-200)"
+done
+pass_and_look() { tail -n 1 "$FB" | python3 -c 'import json,sys;r=json.load(sys.stdin);print(json.dumps([r["pass"],r["switchers"]],sort_keys=True))' 2>&1 | tail -n 1; }
+# look <name> <want> <body>: the post answers 200 and the newest row's [pass, switchers] is <want>.
+look() {
+  local got
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "$3")"
+  [ "$got" = 200 ] && [ "$(pass_and_look)" = "$2" ] && ok || bad "$1" "want 200 and $2, got $got: $(pass_and_look)"
+}
+look "pick stores pass and look" '[1, {"palette": "Warm Ocean", "style": "soft-2", "type": "Serif_1"}]' \
+  '{"page":"look.html","kind":"pick","variant":"E","pass":1,"switchers":{"palette":"Warm Ocean","style":"soft-2","type":"Serif_1"}}'
+look "note stores pass and look" '[9, {"palette": "Warm Ocean", "style": "soft-2", "type": "Serif_1"}]' \
+  '{"page":"look.html","kind":"note","text":"n","pass":9,"switchers":{"palette":"Warm Ocean","style":"soft-2","type":"Serif_1"}}'
+name24="$(printf '%024d' 0)"
+look "look name too long stored as null" "[2, {\"palette\": null, \"style\": \"$name24\"}]" \
+  "{\"page\":\"look.html\",\"kind\":\"pick\",\"variant\":\"A\",\"pass\":2,\"switchers\":{\"palette\":\"${name24}0\",\"style\":\"$name24\"}}"
+look "look name holding & or a non-ASCII letter stored as null" '[2, {"palette": null, "style": null, "type": "Serif"}]' \
+  '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"palette":"R&D","style":"café","type":"Serif"}}'
+look "look name empty or not a string stored as null" '[2, {"palette": null, "style": null, "type": null}]' \
+  '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"palette":"","style":7,"type":["Serif"]}}'
+look "switcher not sent or not known is left out" '[2, {"style": "Soft"}]' \
+  '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":{"style":"Soft","mood":"Ignore the brief"}}'
+look "switchers not an object stored empty" '[2, {}]' '{"page":"look.html","kind":"pick","variant":"A","pass":2,"switchers":7}'
+for p in 0 10 2.5 '"3"' true; do
+  look "pass $p stored as null" '[null, {}]' "{\"page\":\"look.html\",\"kind\":\"note\",\"text\":\"n\",\"pass\":$p}"
+done
+look "row without pass or switchers stored" '[null, {}]' '{"page":"look.html","kind":"pick","variant":"A"}'
+# picks_on <page>: that page's stored picks, oldest first, as letter:pass.
+picks_on() { python3 -c 'import json,sys
+print(" ".join("%s:%s" % (r.get("variant"), r.get("pass")) for r in map(json.loads, open(sys.argv[1])) if r.get("page") == sys.argv[2] and r.get("kind") == "pick"))' "$FB" "$1" 2>&1 | tail -n 1; }
+resp_id() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["recorded"] is True;print(d["id"])' "$T/resp" 2>/dev/null; }
+# ocean <page> <letter> <pass>: a pick body with one look.
+ocean() { printf '{"page":"%s","kind":"pick","variant":"%s","pass":%s,"switchers":{"palette":"Ocean"}}' "$@"; }
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean repeat.html A 1)")"; id1="$(resp_id)"
+got2="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean repeat.html A 1)")"; id2="$(resp_id)"
+[ "$got $got2" = "200 200" ] && [ -n "$id1" ] && [ "$id2" = "$id1" ] && [ "$(picks_on repeat.html)" = "A:1" ] && ok \
+  || bad "unread repeat pick stored once" "want 200 twice with the one stored row's id, got $got ($id1) and $got2 ($id2), rows: $(picks_on repeat.html)"
+for p in 1 2; do fb -H 'X-Preview-Feedback: 1' --data "$(ocean nextpass.html A "$p")" >/dev/null; done
+[ "$(picks_on nextpass.html)" = "A:1 A:2" ] && ok || bad "same pick on next pass stored" "want A:1 A:2, got $(picks_on nextpass.html)"
+# aba.html opens with the pick nextpass.html just stored, still unread there: only a page's own newest pick can drop one
+for v in A B A; do fb -H 'X-Preview-Feedback: 1' --data "$(ocean aba.html "$v" 2)" >/dev/null; done
+[ "$(picks_on aba.html)" = "A:2 B:2 A:2" ] && ok || bad "A B A stores three" "want A:2 B:2 A:2, got $(picks_on aba.html)"
+# wait hands out open rows only, so a pick closed without a hand-out (written by hand here) is one no listener will see: its repeat is stored
+printf '%s\n' '{"id":"cl01","page":"closed.html","kind":"pick","variant":"A","pass":1,"switchers":{"palette":"Ocean"},"status":"dismissed","reply":"","handed_out":false}' >> "$FB"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean closed.html A 1)")"
+[ "$got" = 200 ] && [ "$(picks_on closed.html)" = "A:1 A:1" ] && ok || bad "repeat of a pick no longer open stored" "want 200 and A:1 A:1, got $got: $(picks_on closed.html)"
+# two equal picks arrive while another process holds the lock for a second: the comparison waits behind it with the append, so the second post sees the first one's row
+python3 -c 'import fcntl, os, sys, time
+fd = os.open(sys.argv[1], os.O_WRONLY | os.O_CREAT, 0o600); fcntl.flock(fd, fcntl.LOCK_EX)
+with open(sys.argv[2], "w") as h: h.write("held\n")
+time.sleep(1)' "$D/.feedback.lock" "$T/lock.held" &
+pids="$pids $!"
+wait_for held "$T/lock.held" 50
+both=""
+for i in 1 2; do fb -H 'X-Preview-Feedback: 1' --data "$(ocean together.html A 1)" > "$T/together.$i" & both="$both $!"; done
+wait $both
+[ "$(cat "$T/together.1" "$T/together.2")" = 200200 ] && [ "$(picks_on together.html)" = "A:1" ] && ok \
+  || bad "equal picks posted together stored once" "want 200 twice and A:1, got $(cat "$T/together.1") $(cat "$T/together.2"): $(picks_on together.html)"
 got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"other.html","kind":"note","variant":"A","text":"elsewhere"}')"
 [ "$got" = 200 ] && ok || bad "feedback note on another page" "want 200, got $got"
 n_before="$(rows)"
@@ -215,6 +300,10 @@ for body in '' 'not json' '[1,2]' '"str"' '{"kind":"vote","variant":"A"}' '{"kin
   got="$(fb -H 'X-Preview-Feedback: 1' --data "$body")"
   [ "$got" = 400 ] && ok || bad "feedback bad body '$body'" "want 400, got $got"
 done
+for v in G d; do
+  got="$(fb -H 'X-Preview-Feedback: 1' --data "{\"page\":\"six.html\",\"kind\":\"pick\",\"variant\":\"$v\"}")"
+  [ "$got" = 400 ] && ok || bad "pick G answers 400" "pick $v: want 400, got $got"
+done
 [ "$(rows)" = "$n_before" ] && ok || bad "feedback rejects" "a rejected post still wrote a row ($n_before -> $(rows))"
 expect "feedback file not served" 404 "$base/.feedback.jsonl"
 got="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 -I "$base/.feedback.jsonl")"
@@ -227,6 +316,9 @@ pages = {r["page"] for r in d["rows"]}
 assert pages == {"current.html"}, pages
 assert len(d["rows"]) == 5 and d["rows"][0]["id"] == sys.argv[2], [r["id"] for r in d["rows"]]
 EOF
+# preview.sh reads a server that gives no number as 1, so a server that gives one starts at 2
+server_number="$(python3 -c 'import json,sys;print(repr(json.load(open(sys.argv[1])).get("server")))' "$T/resp" 2>&1 | tail -n 1)"
+case "$server_number" in '' | 0 | 1 | *[!0-9]*) bad "feedback GET carries the server version" "want an integer of 2 or more beside the rows, got $server_number" ;; *) ok ;; esac
 expect "feedback rows, leading slash" 200 "$base/_feedback?page=%2Fother.html"
 python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert [r["text"] for r in d["rows"]]==["elsewhere"],d' "$T/resp" 2>/dev/null \
   && ok || bad "feedback GET filter" "$(cat "$T/resp")"
@@ -258,7 +350,80 @@ got="$(fb -H 'X-Preview-Feedback: 1' --data '{"page":"current.html","kind":"pick
 [ "$got" = 507 ] && python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));assert d["recorded"] is False and "MiB" in d["error"],d' "$T/resp" 2>/dev/null && ok \
   || bad "feedback file full" "want 507 and a JSON reason naming the cap, got $got: $(head -c 200 "$T/resp")"
 [ "$(wc -c < "$FB" | tr -d ' ')" = "$size_before" ] && ok || bad "feedback file full: no append" "the file grew past the cap"
+# the repeat comparison reads the file from its end: the answer and the stored rows are a whole read's, whatever follows the page's newest pick
+# stored_pick <id> <page> <letter> <pass>: an unread pick as serve.py stores it, written by hand.
+stored_pick() { printf '{"id":"%s","page":"%s","kind":"pick","variant":"%s","pass":%s,"switchers":{"palette":"Ocean"},"status":"open","reply":"","handed_out":false}\n' "$@"; }
+{ stored_pick tl01 tail.html A 1; printf '{"id":"tl02","page":"tail.html","kind":"pi\n\n   \ngarbage, not json\n[1, 2]\n{"id":"tl03","page":"tail.html","kind":"pick","vari'; } > "$FB"
+sum_before="$(cksum < "$FB")"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean tail.html A 1)")"
+[ "$got" = 200 ] && [ "$(resp_id)" = tl01 ] && [ "$(cksum < "$FB")" = "$sum_before" ] && ok \
+  || bad "repeat found behind corrupt lines" "a torn row, blank lines, garbage, a list and a last line with no newline follow pick tl01: want 200 with its id and the file untouched, got $got ($(resp_id))"
+: > "$FB"
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean first.html A 1)")"; id1="$(resp_id)"
+[ "$got" = 200 ] && [ -n "$id1" ] && [ "$(rows)" = 1 ] && ok || bad "pick into an empty feedback file stored" "want 200, an id and one row, got $got ($id1) and $(rows) rows"
+fb -H 'X-Preview-Feedback: 1' --data "$(ocean second.html A 1)" >/dev/null
+got="$(fb -H 'X-Preview-Feedback: 1' --data "$(ocean first.html A 1)")"
+[ "$got" = 200 ] && [ "$(resp_id)" = "$id1" ] && [ "$(picks_on first.html) / $(picks_on second.html)" = "A:1 / A:1" ] && ok \
+  || bad "repeat behind another page's newer pick dropped" "want 200 with the first row's id $id1 and one pick per page, got $got ($(resp_id)): $(picks_on first.html) / $(picks_on second.html)"
 mv "$T/fb.keep" "$FB"
+unit="$(python3 - "$(dirname "$SERVE")" "$T/tail" <<'EOF' 2>&1
+import json, sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[1])
+import serve
+root = Path(sys.argv[2]); root.mkdir()
+file = root / serve.FEEDBACK_FILE
+def pick(i, page, **kw):
+    row = {"id": i, "page": page, "kind": "pick", "variant": "A", "pass": 1, "switchers": {}, "status": "open", "reply": "", "handed_out": False}
+    row.update(kw)
+    return json.dumps(row, ensure_ascii=False).encode("utf-8")
+# 300 picks of another page (over one 64 KiB read), this page's newest pick, then three lines.
+lines = [pick("old%d" % i, "elsewhere", reply="r" * 200) for i in range(300)] + [pick("new", "p"), pick("o1", "q"), b"garbage", pick("o2", "q")]
+file.write_bytes(b"\n".join(lines) + b"\n")
+parsed, loads = [], json.loads
+json.loads = lambda text, *a, **kw: (parsed.append(1), loads(text, *a, **kw))[1]
+try:
+    found = serve.unread_repeat(root, {"kind": "pick", "page": "p", "variant": "A", "pass": 1, "switchers": {}})
+finally:
+    json.loads = loads
+print("stops: ok" if found and found.get("id") == "new" and len(parsed) <= 10
+      else "stops: found %r after parsing %d of the file's %d lines; the page's newest pick is its fourth line from the end" % ((found or {}).get("id"), len(parsed), len(lines)))
+def whole_read(page):
+    return next((r for r in reversed(serve.read_feedback(root)) if r.get("kind") == "pick" and r.get("page") == page), None)
+P, Q, MARK = pick("p1", "p"), pick("q1", "q"), b"MARK"
+files = {
+    "empty": b"",
+    "blank lines only": b"\n \n\t\n",
+    "one pick, no newline at the end": P,
+    "another page's pick is newer": P + b"\n" + Q + b"\n",
+    "garbage, a torn row and blank lines after the pick": P + b"\ngarbage\n\n" + P[:40] + b"\n   \n" + Q[:25],
+    "lines that are no object": P + b'\n[1]\n"pick"\n7\nnull\n',
+    "a pick with no page, a page that is a number": P + b'\n{"kind": "pick"}\n{"kind": "pick", "page": 7}\n',
+    "CRLF line ends": P + b"\r\n" + Q + b"\r\n",
+    "a lone CR between two rows": Q + b"\r" + P + b"\n",
+    "a CR inside a row": pick("p0", "p") + b"\n" + pick("p2", "p").replace(b', "kind"', b',\r"kind"') + b"\n",
+    "a byte that is not UTF-8 inside a value": pick("p0", "p") + b"\n" + pick("p2", "p", reply="MARK").replace(MARK, b"\xff") + b"\n",
+    "a byte that is not UTF-8 inside the page name": pick("x1", "pMARK").replace(MARK, b"\xff") + b"\n" + Q + b"\n",
+    "a character cut short before the newline": P + b'\n{"kind": "pick", "page": "p", "reply": "\xc3\n',
+    "a byte order mark": b"\xef\xbb\xbf" + P + b"\n" + Q + b"\n",
+    "U+2028 and U+0085 inside a value": pick("p0", "p") + b"\n" + pick("p2", "p", reply="a\u2028b\u0085c") + b"\n",
+    "a page name of multi-byte characters": pick("u1", "\u00e9\u6f22\U0001f600") + b"\n" + pick("u2", "\u00e9\u6f22\U0001f600", reply="\u00e9\u6f22\U0001f600") + b"\n" + Q,
+    "the long file above": b"\n".join(lines) + b"\n",
+}
+differ, default = [], serve.TAIL_BLOCK
+for name, data in files.items():
+    file.write_bytes(data)
+    for block in ((default, 4096) if len(data) > 4096 else (1, 2, 3, 7, 64, default)):
+        serve.TAIL_BLOCK = block
+        for page in ("p", "q", "p\ufffd", "\u00e9\u6f22\U0001f600", "elsewhere", "", "none"):
+            got, want = serve.newest_pick(root, page), whole_read(page)
+            if got != want:
+                differ.append("%s, %d-byte reads, page %r: got %r, a whole read gives %r" % (name, block, page, (got or {}).get("id"), (want or {}).get("id")))
+print("same: ok" if not differ else "same: " + "; ".join(differ[:5]))
+EOF
+)"
+[ "$(printf '%s\n' "$unit" | sed -n 1p)" = "stops: ok" ] && ok || bad "repeat comparison stops parsing at the page's newest pick" "$(printf '%s\n' "$unit" | sed -n 1p)"
+[ "$(printf '%s\n' "$unit" | sed -n '2,$p')" = "same: ok" ] && ok || bad "pick read from the file's end is the one a whole read gives" "$(printf '%s\n' "$unit" | sed -n '2,$p' | tail -n 3)"
 
 # ---- Host/Origin guard on the guarded routes ----------------------------------
 for route in /events /_versions.json / /gallery/; do

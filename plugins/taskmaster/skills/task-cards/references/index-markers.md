@@ -20,11 +20,11 @@ Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: t
 hook directives), and the literal `auto` lets a fresh execution session re-resolve it, so the
 run inherits the boost at the same tier. Under `ULTRA-GOAL ACTIVE` (the `ultra` skill's Goal mode), FIRST run
 `"${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh" --slug <slug>` — exit 2 blocks the stamp
-(an unaudited goal run may not hand itself off); then ALSO write an exact `Goal: true
-(model=<model>, effort=<effort>) — requires task-runner ≥0.11.0; older runners fall back to
-interactive execution` line with the resolved tier (ultra-task tier when both tokens are
-present); when only goal is active, write BOTH lines — the `Ultra:` line carries the resolved
-tier because goal implies the boost. Both markers go near the top of `00-INDEX.md`,
+(an unaudited goal run may not hand itself off); then write BOTH lines, each with the same
+literal tier: the `Ultra: true (model=auto, effort=xhigh)` line above, because goal implies the
+boost, and an exact `Goal: true (model=auto, effort=xhigh) — requires task-runner ≥0.11.0; older
+runners fall back to interactive execution` line. A goal index always carries both, whether or
+not an `ultra-task` token was typed too. Both markers go near the top of `00-INDEX.md`,
 beside the `## Upgraded statement` section when the SKILL body's unconditional rule
 wrote one.
 

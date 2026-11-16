@@ -2,6 +2,10 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.33.1 — 2026-11-14
+
+- `lane.tsv` comment only: the reason for yielding to `taskmaster:remind` quotes the note `route-prompt.sh` injects today, and the rank it cites is 25, behind the two any-phase guards.
+
 ## 0.33.0 — 2026-11-14
 
 - **Compaction recall reads `.cc-artifacts/` first.** `compact-capsule.sh` and the `compact` mod read this session's phase sentinel in `.cc-artifacts/cc-phase/`, the task-runner run and scope lock in `.cc-artifacts/task-runner/` and taskmaster ledgers in `.cc-artifacts/taskmaster/`, else the `.claude/` copies plugins wrote before 2026-11-14, and each line names the path it read. `.claude/task-runner/` counts only while `.cc-artifacts/task-runner/` does not exist, so the copy task-runner's one-time migration leaves behind is not reported as a live run.

@@ -5,7 +5,7 @@ description: Use before the first edit of ad-hoc coding work typed straight into
 
 ## The window this covers
 
-Skills reach work in exactly two ways today. A taskmaster card carries `Skills to apply`,
+Skills reach work in exactly two ways today. A taskmaster card names its skills in `<skill>` stamps,
 primed at dispatch. The skill-router nudges after a file is edited. Neither covers the
 common case: a coding request typed straight into a session, where the first line is
 written before anything says what the house rules are.
@@ -154,6 +154,6 @@ plan says is `plan-before-code`. This skill decides only whether to plan at all.
 - Emitting the triage line and then ignoring it. A `needs a spec` verdict followed by code
   is worse than no triage: it launders the decision.
 - Running this when cards already exist. That is `/task-runner:run`, and re-priming
-  duplicates what `Skills to apply` already carries per card.
+  duplicates what the card's `<skill>` stamps already carry.
 - Growing a question round here. One turn of questions is grill's job and it does it
   better; this skill's job ends at naming the unknown.

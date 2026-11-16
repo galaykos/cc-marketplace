@@ -23,7 +23,8 @@ earns its place at authoring time only, via the **gate** rows (why:
 | a `<walk>` surface is not a media file (`.png`, `.glb` …) | **gate** — `card-shape-lint.sh` `walk-surface` |
 | a look check on a render goes in `<change>`: render to PNG, Read it, state what it shows | **agent-graded** — Read views images only (video/audio/3D: render first) |
 | a card needing a browser names its driver in `<verify>`/`<walk>` (Playwright MCP, a `playwright` dep) | **agent-graded** — "browser smoke" alone once sent a worker to an uninstalled host extension |
-| a framework card names a real skill | **gate** — `skills-stamp-lint.sh` |
+| a framework card names a skill at all (not empty, not `none`) | **gate** — `skills-stamp-lint.sh` `framework-card-no-skill` |
+| the skill a card names is one an installed plugin ships | **WARN** — `skills-stamp-lint.sh` `unreachable-skill` |
 | no unreplaced template token (`__B__`, `{{CARD_ID}}`); a `mode="edit"` file exists; a path `<verify>` runs exists or this/a sibling card creates it | **gate** — `card-paths-lint.sh` `placeholder` / `edit-missing` / `verify-target-missing` (retro 2026-11-05: cards halted on all three) |
 | set order: real acyclic `<depends-on>`; every producer precedes its consumers | **gate** — `card-set-lint.sh` |
 | a bare `<skill>` stamp shadowed by a same-named project skill (`.claude/skills/<name>`, a plugin's, a known Laravel Boost twin) | **WARN** — `skills-stamp-lint.sh` `shadowed-skill` (prints the `plugin:skill` stamp) |

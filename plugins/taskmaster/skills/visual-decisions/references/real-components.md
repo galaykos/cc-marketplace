@@ -116,7 +116,10 @@ cited, not restated. The one rule this rung adds: each variant renders its OWN
 states, because these are REAL components with real branches — a variant that omits
 `loading` or `error` falls through silently to whatever branch catches it, a bug no
 compiler catches. Theme is a
-constant backdrop, never a variant axis — colour decisions belong to `/ui-ux:theme`.
+constant backdrop, never a variant axis. Colour on the user's own content is explored
+one rung down, on the shell mockup's Palette switcher (a layout or creative pass); the
+picked palette seeds `/ui-ux:theme`, which still decides and writes the theme and stays
+the command for a colour decision with no mockup.
 
 ## Server lifecycle
 

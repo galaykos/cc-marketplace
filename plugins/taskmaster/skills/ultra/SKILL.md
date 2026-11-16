@@ -65,9 +65,10 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
 
 ## The boost contract (both modes)
 
-- REASONING roles (red-team, coverage gap-judgment, card-verify, synthesis) dispatch at the
-  boosted tier; mechanical/breadth roles (recon scouts, `opinion-lens`) stay NATIVE. Ladder,
-  reachable set, and sizing table: `references/dispatch-tiers.md`.
+- REASONING roles (red-team, card-verify, synthesis) dispatch at the boosted tier;
+  mechanical/breadth roles (recon scouts, `opinion-lens`) stay NATIVE. Coverage's gap-judgment
+  runs in the main thread at the session tier, so no tier lands on it. Ladder, reachable set,
+  and sizing table: `references/dispatch-tiers.md`.
 - spec-redteam: runs ALWAYS; blind adversaries via either dispatch mechanism (the Workflow
   tool or the Agent tool), N=3 as a CEILING (2 at small radius) — spec-redteam sizes N
   from its own gate.
@@ -75,7 +76,7 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
 - recon: up to 3 parallel lenses via either dispatch mechanism (the Workflow tool or the
   Agent tool), else one inline scout (NATIVE).
 - card-verify: one fan-out pass per card via either dispatch mechanism (the Workflow tool
-  or the Agent tool).
+  or the Agent tool) — the builder check, `references/dispatch-tiers.md` § Card-verify.
 - task-cards writes the index markers verbatim. Which lines, in which order, and the
   ledger check that must pass first are owned by `task-cards/references/index-markers.md`
   — cited, not restated (boosted goal writes BOTH an `Ultra:` and a `Goal:` line; goal-lean
@@ -101,7 +102,9 @@ is a dispatch-time override. Tokens take no suffix — a bare token, one fixed t
   stop, surface the parked list.
 - NEVER suppress: halt-with-evidence, the full-suite completion gate, the behavioral-gate
   (produced code is run, not just linted) + negative-control, mis-specified-task halts,
-  security-hole flagging. These SURFACE, not consent prompts.
+  security-hole flagging. These SURFACE, not consent prompts. One substitution, the runner's:
+  on 8 or more cards under a `Goal:` marker task-runner takes range review unasked, and its
+  close's teeth-lens red-team round stands in for per-card negative control.
   A paid external call's cost confirmation (Meshy, Higgsfield credits) is ASKED, never auto-taken.
   Confirmed code-redteam findings feed the bounded auto-retry like reviewer findings; on exhaustion, park.
 - Never auto-accept security holes, any hole touching auth or stored data (loss, corruption,
@@ -120,8 +123,8 @@ unchanged; the ledger header records `boost=off`. Nothing in § The boost contra
 reasoning roles run at the session tier; grill takes its normal rounds; spec-redteam and
 coverage-check run by their OWN gates (three-plus criteria or an ASSUMED row still fires
 spec-redteam, so a hands-off run of any real brief keeps its wrong-pick checkpoint; a
-trivial spec skips, and the skip is a ledger line); no fan-out; no code red-team at
-execution. Directive string: `ULTRA-GOAL ACTIVE (boost=off)` — the Goal rules key on the
+trivial spec skips, and the skip is a ledger line); no fan-out; no code red-team panel at
+execution (a range run's one teeth round at close still runs: it is the negative control). Directive string: `ULTRA-GOAL ACTIVE (boost=off)` — the Goal rules key on the
 prefix, the boost rules check the suffix. task-cards stamps `Goal: true (boost=off)` and NO
 `Ultra:` line (`task-cards/references/index-markers.md`); task-runner ≥0.32.0 reads the
 suffix; an older runner reads a lone `Goal:` as boosted and overpays, never under-verifies.
@@ -133,7 +136,8 @@ for lean/standard); or anyone who wants autonomy priced like a standard run.
 ## Goal audit trail
 
 1. **Goal ledger** `.cc-artifacts/taskmaster/goal-ledger-<slug>.md`, appended live per auto-take
-   (decision, options, pick, rationale, source `file:line`). Writability is an ACTIVATION
+   (decision, options, pick, rationale, source `file:line`), each entry a `- ` list line or a
+   `## ` heading: the check counts those, and a table row is no entry. Writability is an ACTIVATION
    PRECONDITION — run `"${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh" --init --slug <slug>`
    at boost time (creates the ledger and probes an append; exit 2 → halt with evidence, never
    proceed unaudited). After grill's Step 0, record the upgraded task statement here as its

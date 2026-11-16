@@ -133,7 +133,7 @@ with any delta or do not state the delta.
 
 - **resilience** — owns the `event-driven` skill (brokers, outbox, sagas, DLQ) and
   the failure modes of the topology this plugin draws
-- **taskmaster** — supplies the plan-before-code and work-verification gates the pipeline runs
+- **taskmaster** — runs this plugin's plan-before-code check on a frozen spec before it splits cards
 - **task-runner** — applies the work-verification discipline across a task run
 - **candor** — carries the Stop gate whose clause 3 is this plugin's evidence
   rule; install it or the rule is prose
