@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.14.0 — 2026-11-16
+
+- **The hint-line badge module is gone; candor ships no mod.** `hooks/badge.ts`, its `cc-kit.ts`, `tests/badge.test.ts`, the `modules` entry and the `cc_terse_badge` / `CC_TERSE_BADGE` option were removed. Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls, and the badge hooked every main-loop Bash call to refresh. The same `[TERSE:LEVEL]` badge stays available as a `statusLine` command, `scripts/statusline.sh` (or `.ps1`), which you wire in yourself. Standing: the `.sh` badge stays `gate` (`level-sources.test.sh`).
+
 ## 0.13.0 — 2026-11-14
 
 - **Clause 4 reads the task-runner run in `.cc-artifacts/task-runner/`, else in `.claude/task-runner/`**, where task-runner wrote it before 2026-11-14. The old dir counts only while the new one does not exist (task-runner copies it over once), and every path the block text names is the dir the run was read from.

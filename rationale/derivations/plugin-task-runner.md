@@ -1273,6 +1273,31 @@ over a forecast from a real one. Run on the three card sets under `taskmaster-do
 exit 0 (no parked card in any). Nothing here is measured on a code run: the source proved theorems against a
 machine checker, and no eval with a control arm exists for these rules.
 
+## plugins/task-runner/scripts/card-status.sh
+
+Added 2026-11-16 (task-runner 0.59.0), replacing the `card_status` tool that `hooks/status.ts` registered from 0.53.0.
+Claude Code's experimental Code Mode (CLI 2.1.323+, `CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`,
+https://code.claude.com/docs/en/code-mode) refuses to start with an installed mod that checks tool calls, and the tool was
+a `tool.call` hook. The user decided on 2026-11-16 to keep its rules as a script instead (the plan:
+`.cc-artifacts/plugin-usage-review/AGREED.md` § P8 in the session that made it, gitignored). The tool had been called about
+100 times across two runs, so the rules were in use.
+
+The port keeps `hooks/status-core.ts` `applyStatus` as it stood at 0.58.0: the status vocabulary, the first table whose
+header names a card (or `#`) and a status column, a numeric id matched without leading zeros, the five park reasons, a
+detail for every reason but `split`, split children that exist and are not the card, a split parent left parked until its
+children are done, a detail with no `|` or line break, and a rewrite of that one cell only. Its harness ports every case of
+`tests/status.test.ts` that does not need the host. What changed:
+
+- **No subagent refusal.** The tool refused a call carrying an `agentId`; a script cannot see its caller. The run command
+  says only the orchestrator writes the index, which is now recorded, not a gate.
+- **No listing.** The tool existed only while a run with an index was registered; the script always exists and takes the
+  index path, so a stale run no longer matters.
+- **A second `in_progress` is noted, not refused.** The P8 plan listed "exactly one in_progress" among the rules to port.
+  `applyStatus` never enforced it, and task-execution lets a parallel group with disjoint files run delegated, so several
+  cards can be in progress at once. The script writes the cell and prints a note on stderr naming the other card.
+- **Byte-exact.** awk rebuilds the edited line with the same `|` joins `applyStatus` used, and keeps an index with no
+  final newline without one.
+
 ## plugins/task-runner/scripts/plan-overlap.sh
 
 Added 2026-11-11. `parallel-planning` steps 1-2 (topo-sort into levels, group a level's cards by disjoint file

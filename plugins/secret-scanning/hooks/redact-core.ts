@@ -1,8 +1,5 @@
 export type Pattern = { kind: 'secret' | 'assigned' | 'placeholder'; label: string; re: RegExp }
 
-/** A line's ranges, `from` up to `to`, inside which a match of the row labelled `label` stays unmasked. */
-export type Kept = (line: string) => { from: number; to: number; label: string }[]
-
 type Span = { start: number; end: number; ranks: number[]; opensKey: boolean }
 
 // The break-delimited lines of one string, built once when a BEGIN there has no END after it. contentEnd drops trailing
@@ -22,11 +19,6 @@ type Lines = {
 }
 
 type Shape = 'blank' | 'filled' | 'closed'
-
-// Key blocks left open at the end of a value, by path inside it: '' the value itself, ."key" a field, [i] an element.
-type Open = Map<string, number[]>
-
-const NONE: Open = new Map()
 
 // The rules and messages of scan.sh's load_patterns, read against the pattern with `\\` pairs dropped.
 const DIALECT = /\[\[(:|\.|=)|\[:[A-Za-z]+:\]|(^|[^\\])\(\?|\\[1-9]/
@@ -49,16 +41,6 @@ const BLANK = /\s/
 // The only characters grep -i folds into ASCII letters under C.UTF-8; JavaScript's i without the u flag folds neither.
 const FOLDABLE = /[\u017f\u0131]/g
 const FOLDS: Record<string, string> = { '\u017f': 's', '\u0131': 'i' }
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-
-  const proto: unknown = Object.getPrototypeOf(value)
-
-  return proto === Object.prototype || proto === null
-}
 
 function compiled(source: string, flags: string, n: number): RegExp {
   try {
@@ -157,15 +139,12 @@ export function isPlaceholder(s: string, pats: Pattern[]): boolean {
 }
 
 // grep matches line by line, so no match spans a newline; the masked span of a private key block can.
-function spansOf(text: string, pats: Pattern[], kept: Kept | null): Span[] {
+function spansOf(text: string, pats: Pattern[]): Span[] {
   const spans: Span[] = []
   let offset = 0
 
   for (const line of text.split('\n')) {
     const folded = line.replace(FOLDABLE, ch => FOLDS[ch] ?? ch)
-    const ranges = kept === null ? [] : kept(line)
-    const isKept = (label: string, start: number, end: number) =>
-      ranges.some(r => r.label === label && r.from <= start && end <= r.to)
 
     pats.forEach((pattern, rank) => {
       if (pattern.kind === 'placeholder') {
@@ -184,11 +163,6 @@ function spansOf(text: string, pats: Pattern[], kept: Kept | null): Span[] {
         const value = pattern.kind === 'assigned' ? match.replace(OPERATOR, '') : match
 
         if (isPlaceholder(value || match, pats)) {
-          continue
-        }
-
-        // An assigned row is judged on its matched value, not on the span to the quote its mask would cover.
-        if (isKept(pattern.label, end - value.length, end)) {
           continue
         }
 
@@ -358,16 +332,13 @@ function pemBlockEnd(text: string, lines: Lines, from: number): { end: number; o
   return { end: quoted !== -1 ? quoted : last !== -1 ? last : own, open: lines.restOpen[k] === 1 }
 }
 
-// `carried` is a key block left open by an earlier value; `open` is one this string leaves open.
-function merged(text: string, spans: Span[], carried: number[] | null): { spans: Span[]; open: number[] | null } {
+function merged(text: string, spans: Span[]): Span[] {
   const out: Span[] = []
-  const open = new Set<number>()
-  const all = carried ? [{ start: 0, end: 0, ranks: carried, opensKey: true }, ...spans] : spans
   let searchedFrom = Infinity
   let keyEnd: { start: number; end: number } | null = null
   let lines: Lines | null = null
 
-  for (const span of [...all].sort((a, b) => a.start - b.start)) {
+  for (const span of [...spans].sort((a, b) => a.start - b.start)) {
     let end = span.end
 
     if (span.opensKey) {
@@ -382,10 +353,6 @@ function merged(text: string, spans: Span[], carried: number[] | null): { spans:
       const block = keyEnd ? { end: keyEnd.end, open: false } : pemBlockEnd(text, (lines ??= lineIndex(text)), span.end)
 
       end = block.end
-
-      if (block.open) {
-        span.ranks.forEach(rank => open.add(rank))
-      }
     }
 
     if (end <= span.start) {
@@ -402,7 +369,7 @@ function merged(text: string, spans: Span[], carried: number[] | null): { spans:
     }
   }
 
-  return { spans: out, open: open.size > 0 ? [...open] : null }
+  return out
 }
 
 function labelsOf(ranks: Iterable<number>, pats: Pattern[]): string[] {
@@ -411,14 +378,18 @@ function labelsOf(ranks: Iterable<number>, pats: Pattern[]): string[] {
   return [...new Set(ordered.flatMap(rank => pats[rank]?.label ?? []))]
 }
 
-function redactedText(
-  text: string,
-  pats: Pattern[],
-  found: Set<number>,
-  carried: number[] | null,
-  kept: Kept | null,
-): { text: string; open: number[] | null } {
-  const { spans, open } = merged(text, spansOf(text, pats, kept), carried)
+/**
+ * Masks each non-placeholder match in `text` with `[REDACTED:<labels>]`; overlapping matches merge into one mask
+ * naming every label. An assigned row keeps its name and operator and masks a quoted value up to its closing quote, an
+ * unquoted one up to the next quote or whitespace, either at most to the line end.
+ * A private key masks from BEGIN through the next END line. With no END, it masks on only over the lines after BEGIN
+ * that look like a PEM body (base64, Proc-Type: and DEK-Info: headers, blank lines; a `\n` escape breaks a line),
+ * closing at the first line that does not, though a base64 run that a quote ends on that line is still masked.
+ * Labels come back in pattern-file order, so the first is the one scan.sh's deny would name.
+ */
+export function redact(text: string, pats: Pattern[]): { value: string; labels: string[] } {
+  const spans = merged(text, spansOf(text, pats))
+  const found = new Set<number>()
   let out = ''
   let at = 0
 
@@ -428,165 +399,10 @@ function redactedText(
     span.ranks.forEach(rank => found.add(rank))
   }
 
-  return { text: spans.length === 0 ? text : out + text.slice(at), open }
+  return { value: spans.length === 0 ? text : out + text.slice(at), labels: labelsOf(found, pats) }
 }
 
 /** The `[start, end)` ranges of one string that `redact` would mask, in order and merged. */
 export function secretSpans(text: string, pats: Pattern[]): { start: number; end: number }[] {
-  return merged(text, spansOf(text, pats, null), null).spans.map(({ start, end }) => ({ start, end }))
-}
-
-function redactedError(error: Error, pats: Pattern[], found: Set<number>, kept: Kept | null): Error {
-  const copy: Error = Object.setPrototypeOf(new Error(), Object.getPrototypeOf(error))
-
-  for (const key of new Set(['stack', ...Object.getOwnPropertyNames(error)])) {
-    Object.defineProperty(copy, key, {
-      value: walked(Reflect.get(error, key), pats, found, NONE, kept).value,
-      enumerable: Object.getOwnPropertyDescriptor(error, key)?.enumerable ?? false,
-      writable: true,
-      configurable: true,
-    })
-  }
-
-  return copy
-}
-
-function under(carried: Open, segment: string): Open {
-  if (carried.size === 0) {
-    return NONE
-  }
-
-  const inside: Open = new Map()
-
-  for (const [path, ranks] of carried) {
-    if (path.startsWith(segment)) {
-      inside.set(path.slice(segment.length), ranks)
-    }
-  }
-
-  return inside
-}
-
-function joinedOpen(first: Open, second: Open): Open {
-  if (first.size === 0 || second.size === 0) {
-    return first.size === 0 ? second : first
-  }
-
-  const both: Open = new Map(first)
-
-  for (const [path, ranks] of second) {
-    both.set(path, [...(both.get(path) ?? []), ...ranks])
-  }
-
-  return both
-}
-
-// Returns the value with its strings masked, and the key blocks it leaves open; a carried path it holds no string at
-// passes over it, still open.
-function walked(
-  value: unknown,
-  pats: Pattern[],
-  found: Set<number>,
-  carried: Open,
-  kept: Kept | null,
-): { value: unknown; open: Open } {
-  if (typeof value === 'string') {
-    const redacted = redactedText(value, pats, found, carried.get('') ?? null, kept)
-
-    if (carried.size === 0 && !redacted.open) {
-      return { value: redacted.text, open: NONE }
-    }
-
-    const open: Open = new Map(carried)
-
-    open.delete('')
-
-    if (redacted.open) {
-      open.set('', redacted.open)
-    }
-
-    return { value: redacted.text, open }
-  }
-
-  if (Array.isArray(value)) {
-    const open: Open = new Map()
-    let previous = NONE
-
-    const items = value.map((item, index) => {
-      const result = walked(item, pats, found, joinedOpen(under(carried, `[${index}]`), previous), kept)
-
-      previous = result.open
-
-      return result.value
-    })
-
-    for (const [path, ranks] of previous) {
-      open.set(`[${value.length - 1}]${path}`, ranks)
-    }
-
-    for (const [path, ranks] of carried) {
-      const index = /^\[(\d+)\]/.exec(path)?.[1]
-
-      if (index === undefined || Number(index) >= value.length) {
-        open.set(path, ranks)
-      }
-    }
-
-    return { value: items, open }
-  }
-
-  if (value instanceof Error) {
-    return { value: redactedError(value, pats, found, kept), open: carried }
-  }
-
-  if (!isPlainObject(value)) {
-    return { value, open: carried }
-  }
-
-  const copy: Record<string, unknown> = Object.create(Object.getPrototypeOf(value))
-  const open: Open = new Map()
-  const segments: string[] = []
-
-  for (const [key, item] of Object.entries(value)) {
-    const segment = `.${JSON.stringify(key)}`
-    const result = walked(item, pats, found, under(carried, segment), kept)
-
-    segments.push(segment)
-    Object.defineProperty(copy, key, { value: result.value, enumerable: true, writable: true, configurable: true })
-
-    for (const [path, ranks] of result.open) {
-      open.set(segment + path, ranks)
-    }
-  }
-
-  for (const [path, ranks] of carried) {
-    if (!segments.some(segment => path.startsWith(segment))) {
-      open.set(path, ranks)
-    }
-  }
-
-  return { value: copy, open }
-}
-
-/**
- * Masks each non-placeholder match in the strings of `value` with `[REDACTED:<labels>]`; overlapping matches merge
- * into one mask naming every label. An assigned row keeps its name and operator and masks a quoted value up to its
- * closing quote, an unquoted one up to the next quote or whitespace, either at most to the line end.
- * A private key masks from BEGIN through the next END line in the same string. With no END there, it masks on only
- * over the lines after BEGIN that look like a PEM body (base64, Proc-Type: and DEK-Info: headers, blank lines; a `\n`
- * escape breaks a line), closing at the first line that does not, though a base64 run that a quote ends on that line
- * is still masked. A block still open at the end of an array element
- * carries into the next element at the same path only: a string into the next string, `.text` into the next object's
- * `.text`, `[j]` into the next nested array's `[j]`; it passes over an element with no string at that path. There it
- * masks through the END line if that string holds one, else over PEM-shaped lines as above. No other field is masked.
- * Walks arrays, plain objects (prototype Object.prototype or null) and Errors (every own property: message, stack,
- * cause); keys are never redacted, and a Map, Set or any other object comes back as received.
- * Labels come back in pattern-file order, so the first is the one scan.sh's deny would name.
- * With `kept`, a match of the row a range for its line names, lying inside that range, is left unmasked; for an
- * assigned row that is the matched value, not the span to the quote its mask would cover.
- */
-export function redact(value: unknown, pats: Pattern[], kept: Kept | null = null): { value: unknown; labels: string[] } {
-  const found = new Set<number>()
-
-  return { value: walked(value, pats, found, NONE, kept).value, labels: labelsOf(found, pats) }
+  return merged(text, spansOf(text, pats)).map(({ start, end }) => ({ start, end }))
 }

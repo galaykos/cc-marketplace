@@ -33,7 +33,7 @@ cat > "$H/.claude/settings.json" <<'EOF'
 {"permissions":{"allow":["Bash"],"defaultMode":"acceptEdits","additionalDirectories":["HOMEDIR/","HOMEDIR/work"]},
  "disableAllHooks":false,
  "env":{"CLAUDE_DESTRUCTIVE_GUARD":"deny-only","CC_DB_GUARD":"off","CC_WORKFLOW_GUARD":"on"},
- "pluginConfigs":{"command-guard@m":{"options":{"cc_config_guard":false,"claude_destructive_guard":"deny"}},"x@m":{"options":{"cc_secret_redact":"off"}}}}
+ "pluginConfigs":{"command-guard@m":{"options":{"cc_config_guard":false,"claude_destructive_guard":"deny"}},"x@m":{"options":{"cc_secret_output_scan":"off"}}}}
 EOF
 sed -i.bak "s#HOMEDIR#$H#g" "$H/.claude/settings.json" && rm -f "$H/.claude/settings.json.bak"
 before=$(cat "$P/.claude/settings.json" "$H/.claude/settings.json" | cksum)
@@ -68,7 +68,7 @@ has '~/.claude/settings.json: env.CLAUDE_DESTRUCTIVE_GUARD: deny-only drops' "de
 has '~/.claude/settings.json: env.CC_DB_GUARD: turns off' "a user-level guard off switch is flagged"
 lacks 'env.CC_WORKFLOW_GUARD' "a guard switch set on in the user file is silent"
 has '~/.claude/settings.json: pluginConfigs["command-guard@m"].options.cc_config_guard: turns off' "a /config option set false is flagged"
-has 'pluginConfigs["x@m"].options.cc_secret_redact: turns off' "a /config option set off is flagged"
+has 'pluginConfigs["x@m"].options.cc_secret_output_scan: turns off' "a /config option set off is flagged"
 lacks 'options.claude_destructive_guard' "a /config option left on is silent"
 lacks_at '.claude/settings.json: pluginConfigs' "pluginConfigs in project settings is silent: the host ignores it there"
 [ "$(printf '%s\n' "$out" | grep -c .)" = 17 ] && ok "one line per finding, 17 in all" || bad "one line per finding, 17 in all" "$(printf '%s\n' "$out" | grep -c .) lines"

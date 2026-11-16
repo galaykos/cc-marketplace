@@ -167,9 +167,8 @@ Installed, the mode does nothing until switched on; there is no ambient mode.
 The level persists across every session on this machine
 (`~/.claude/terse-mode`; `CC_TERSE=off|lite|full|ultra|wenyan-*` overrides it
 for a headless run), and the `cc_terse` /config option sets one when neither does —
-that order holds in the hooks, both badges and both commands. **Standing:** the `.sh`
-badge and `scripts/level.sh` — `gate` (`level-sources.test.sh`); the hint-line badge —
-`gate` (`tests/badge.test.ts`); the `.ps1` badge and the commands — `agent-graded`. Budgets count prose lines only — code blocks, tables
+that order holds in the hooks, both status-line badges and both commands. **Standing:** the `.sh`
+badge and `scripts/level.sh` — `gate` (`level-sources.test.sh`); the `.ps1` badge and the commands — `agent-graded`. Budgets count prose lines only — code blocks, tables
 and trees are free:
 
 | Turn kind | lite | full | ultra |
@@ -204,32 +203,20 @@ shows the level shows both — `level.sh` prints `newcomer file lite`, the badge
 off. `CC_TERSE` and the `cc_terse` option take the names as well. Each prompt costs about 220
 tokens at `newcomer`, 190 at `expert` and 210 at `on-call`, against 164 at the level each maps
 to; `context-budget.sh`'s fixtures never set a reader name, so these are measured by hand.
-**Standing:** the name, its mapping, the injected line and both badges — `gate`
-(`mode-hook.test.sh`, `level-sources.test.sh`, `tests/badge.test.ts`); whether a reply follows
+**Standing:** the name, its mapping, the injected line and the `.sh` badge — `gate`
+(`mode-hook.test.sh`, `level-sources.test.sh`); whether a reply follows
 the word rule and the cap — `unenforceable` (nothing rewrites a reply, and `/candor:check`
 counts prose lines only).
 
 **Running another brevity mode?** Remove it first; two always-on compression
 prompts on the same turn are not designed to coexist.
 
-**The badge needs no setup.** On Claude Code 2.1.291 or later, the plugin's hooks module
-(`hooks/badge.ts`) appends the active level — `[TERSE:ULTRA]` — dim at the end of the hint line
-under the prompt, and nothing while terse is off. It follows `scripts/statusline.sh`'s rule:
-`CC_TERSE`, then the level file, then the `cc_terse` option; a value outside the vocabulary or a
-symlinked level file shows no badge. The option comes from the plugin configuration the host
-hands the module, so a `cc_terse` saved through `--settings` shows too (measured once on 2.1.294).
-It re-reads at session start, at each turn start (after `/candor:level` wrote the level) and
-after every main-loop `Bash` call, the one tool that writes the level file (since 0.10.0; until
-then after every tool call, a subagent's included); a level another session changes shows here
-at the next of those. Another
-plugin's text on the same line stays, the badge after it. Terminal only — the desktop app does
-not draw the line's tail yet. Off: `cc_terse_badge` in `/config`, or `CC_TERSE_BADGE=off`.
-**Standing:** `gate` for the level order, the tail composition and both switches
-(`tests/badge.test.ts`, run by `claude plugin test`); the drawn line itself is `recorded` — the
-test kit drives the hook, never the terminal's paint, and one live 2.1.294 terminal showed the
-badge from `CC_TERSE` and from the option, and none under `CC_TERSE_BADGE=off`.
+**The badge is a status line you wire.** Up to 0.13.0 a hooks module (`hooks/badge.ts`) drew
+`[TERSE:ULTRA]` at the end of the hint line on its own. It hooked tool calls, which Code Mode
+(`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`) refuses to start with, so 0.14.0 removed it and its
+`CC_TERSE_BADGE` switch; candor now ships no module.
 
-Older CLI, or want it in your own status line: wire `scripts/statusline.sh` (or `.ps1`) as a
+Wire `scripts/statusline.sh` (or `.ps1`) as a
 `statusLine` command. The `.sh` badge runs the same `scripts/level.sh` the commands run —
 `CC_TERSE`, the level file, the option — and the `.ps1` twin re-implements that order; in both a
 symlinked level file blanks the badge.
@@ -414,12 +401,11 @@ bash plugins/candor/scripts/__tests__/candor-scan.test.sh   # the six axes
 bash plugins/candor/scripts/__tests__/install.test.sh       # install shape, non-git consumer project
 bash plugins/candor/scripts/__tests__/mode-hook.test.sh     # level switching and per-turn reinforcement
 bash plugins/candor/scripts/__tests__/level-sources.test.sh # level.sh's layer order, the sh badge, measure.sh's level
-claude plugin test plugins/candor                           # the hint-line badge: level order, tail composition, switches, CLI floor
 ```
 
 All run in CI: the plugin harnesses through the shared
 `plugins/*/scripts/__tests__/*.test.sh` step, the two smoke harnesses as named
-steps, the module's tests through `scripts/mod-tests.sh`. `install.test.sh` copies the plugin to a temp dir, resolves the hook by
+steps. `install.test.sh` copies the plugin to a temp dir, resolves the hook by
 expanding `${CLAUDE_PLUGIN_ROOT}` the way the host does, refuses a hook that
 resolves back into this repository, and drives it against a consumer project
 that is **not** a git repository.

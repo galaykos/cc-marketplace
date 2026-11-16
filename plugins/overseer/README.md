@@ -27,7 +27,6 @@ a browser; where it has none, in a captured run.
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
 | `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.cc-artifacts/overseer/.reads`; prints nothing |
-| `hooks/status-line.ts` | hooks module (Claude Code ≥ 2.1.291) | pins the next open milestone as a status line under the prompt; see Mods |
 | `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept, and the evidence profile accept demands (`ui`, the default, or `headless`); read by `program.sh` |
 | `scripts/program.sh` | script | the state machine; the only writer of `.cc-artifacts/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup, brief; size WARN; a milestone's fourth fix dispatch refused), `decision add --assumed`, `suggestion add`, `log`, `resume` (five plain lines on where the program stands), `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
@@ -53,11 +52,11 @@ Each step writes state, so the session can end anywhere and `/overseer:resume` p
 Everything a program writes is under `.cc-artifacts/overseer/` at the project's git toplevel,
 the one folder a project gitignores for what plugins write during development; the directory
 also ignores itself. A program opened before 2026-11-14 lives in `.claude/overseer/`: the
-SessionStart line and the status line read it there, and the first `program.sh` call copies
+SessionStart line reads it there, and the first `program.sh` call copies
 the directory over once and never touches the original. From then on only the new directory
 counts and the old one is never read again. Standing: **gate** —
 `scripts/__tests__/program.test.sh` (the copy, writes landing only in the copy, the original
-byte-for-byte unchanged, archived paths) and `tests/status-line.test.ts`.
+byte-for-byte unchanged, archived paths).
 
 ## Coming back to a program
 
@@ -137,46 +136,13 @@ finish), `task-runner` (delegation contracts), the stack plugins (`laravel`, `we
 the browser walk. With none of them it still runs: specs, cards and reviews inline, workers
 dispatched directly — weaker, and said so in the charter.
 
-## Mods (Claude Code ≥ 2.1.291)
+## No hooks module
 
-Since 0.6.0 the plugin also ships a hooks module, `hooks/status-line.ts`, listed under
-`modules` in `hooks/hooks.json` beside the classic hooks (`announce.sh`, `track-read.sh`),
-which fire with or without it. It reads `program.json` and writes nothing.
-
-- **Status line.** While `.cc-artifacts/overseer/program.json` (at the git toplevel of the
-  session's directory; `.claude/overseer/program.json` while that directory does not exist)
-  names a next milestone, one line is pinned under the prompt:
-  `overseer  milestone <k>/<n>  <id> <title> (<status>)` — the milestone `program.sh next`
-  names (every dependency done; a parked one never counts as done), `k` its place in the
-  roadmap, `n` the milestone count. It clears when no milestone is open, when the open ones
-  wait only on a parked one, and when the file is gone (`program.sh close` archives it) or
-  unreadable.
-- **Refresh.** At session start and after every main-loop `Bash`, `Write`, `Edit` or
-  `MultiEdit` call, the calls that can change the file (`program.sh` runs through Bash):
-  the module checks the file's modification time and re-reads it only when that moved, so
-  an edit made outside the session shows at the next such call, not at once. A subagent's
-  tool calls do not refresh it (since 0.6.2), nor, since 0.7.0, does a read-only call
-  (`Read`, `Grep`, `Glob` and every other tool). **Gate** — `tests/status-line.test.ts`,
-  "leaves a read-only main-loop call to the next call that can write".
-- **A git call per writing call.** Unless the line is switched off, every main-loop
-  `Bash`, `Write`, `Edit` or `MultiEdit` call waits for a refresh that runs `git rev-parse`
-  once to find the git toplevel; `CC_OVERSEER_STATUS=off` removes it.
-- **Off switch.** `CC_OVERSEER_STATUS=off` (or `0`, `false`), or the `/config` option
-  `cc_overseer_status` off; the variable wins over the option. Off clears the line at the
-  next refresh.
-- **CLI floor.** With mods off in the host, on a CLI below 2.1.287 (which loads no module)
-  or on 2.1.288-2.1.290, the module passes every hook through and the classic hooks work
-  exactly as before. On CLI 2.1.287 with mods on the module still registers its `tool.call`
-  hook (the version check runs inside it), and that CLI's own bug — a plugin's `tool.call`
-  hook breaking Bash and file search in worktree subagents, fixed in 2.1.288 — applies even
-  with the switch off: upgrade the CLI or turn mods off.
-
-Standing: **gate** — `tests/status-line.test.ts` runs under `claude plugin test` in CI (the
-marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails
-the build; `scripts/__tests__/status-core.test.sh` holds the milestone rule to
-`program.sh`'s own. Untested here: the drawn line (the test kit records the text, not the
-screen) and the git call per writing call, which no test counts. That a subagent's tool call
-leaves the line to the next main-loop one is a gate (`tests/status-line.test.ts`).
+Up to 0.12.1 the plugin shipped `hooks/status-line.ts`, a hooks module that pinned the next
+open milestone under the prompt. It hooked tool calls, which Code Mode
+(`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`) refuses to start with, so 0.13.0 removed it and its
+`CC_OVERSEER_STATUS` switch. `/overseer:status` and `program.sh resume` print the same
+next milestone on demand, and `hooks/announce.sh` names it at session start.
 
 ## Running unattended
 

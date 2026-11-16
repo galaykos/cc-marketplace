@@ -147,7 +147,7 @@
     {
       "name": "secret-scanning",
       "source": "./plugins/secret-scanning",
-      "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read."
+      "description": "Secret-leak prevention: a PreToolUse hook blocks a Write/Edit, or a Bash heredoc/echo written to a file, introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk; /secret-scanning:scan sweeps a path or diff. A PostToolUse hook names a secret in any tool's output by label, never the value; output is no longer masked, so Code Mode can start. A hooks module (CLI 2.1.291 or newer) masks a secret typed, pasted, @-mentioned or attached into the prompt. Fail-open, with a fixture escape and CC_SECRET_SCAN=off. unicode-scan warns on invisible and bidi characters in text just written or read."
     },
     {
       "name": "ultra-deep-research",
@@ -162,7 +162,7 @@
     {
       "name": "session-hud",
       "source": "./plugins/session-hud",
-      "description": "A zero-setup session HUD for the terminal, as a hooks module: a /hud pane with the context window by category, the compaction point, the 5-hour and 7-day rate-limit windows with reset countdowns and the session's cost and time, opt-in pinned so it comes back after you close it; and richer subagent rows. Opt-in: the same figures on the prompt's hint line and what each turn cost on its closing line, for anyone without a statusLine of their own. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291."
+      "description": "A zero-setup session HUD for the terminal, as a hooks module: a /hud pane with the context window by category, the compaction point, the 5-hour and 7-day rate-limit windows with reset countdowns and the session's cost and time, opt-in pinned so it comes back after you close it; and richer subagent rows. Opt-in: the same figures on the prompt's hint line and what each turn cost on its closing line, for anyone without a statusLine of their own. Plugins cannot edit your statusLine, so this needs no settings.json edit. Each surface is its own /config option. Terminal only; needs Claude Code 2.1.291. A mod that hooks tool calls: uninstall it before starting Code Mode."
     },
     {
       "name": "plugin-updater",

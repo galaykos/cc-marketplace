@@ -20,6 +20,14 @@ already shows these figures, and two copies of them is noise):
 It needs Claude Code 2.1.291 or newer with mods allowed. It draws in the terminal only,
 because the hint-line tail and the turn line exist only there. It makes no model calls.
 
+**Not with Code Mode.** The module hooks every tool call (`tool.call`) to refresh its figures,
+and Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an
+installed mod checks tool calls. Uninstall this plugin before starting Code Mode
+(`claude plugin uninstall session-hud@cc-plugins-marketplace`); switching its options off does
+not help, because the module still loads. It is the one marketplace mod left that hooks tool
+calls (candor, overseer, secret-scanning and task-runner removed theirs). Standing:
+**recorded** — read from the host's Code Mode docs, not measured here.
+
 ```bash
 claude plugin install session-hud@cc-plugins-marketplace -s local
 ```

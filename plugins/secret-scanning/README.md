@@ -8,14 +8,14 @@ Blocks secrets before they reach disk.
 |---|---|
 | A `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, or an MCP `create_new_file`/`apply_patch`, whose new text (for apply_patch, the whole patch; for NotebookEdit, the cell's `new_source`) matches a high-confidence secret pattern | **gate** — PreToolUse `permissionDecision: "deny"`; the write never happens |
 | A `Bash` command that writes a file through a heredoc (`cat > config/aws.php <<'PHP'`, `cat <<EOF \| tee -a f`) or `echo`/`printf` (`echo "K=…" >> .env.example`), whose heredoc body or echo/printf arguments match the same patterns (since 0.9.0) | **gate** — same deny, same patterns, same placeholder escape, naming the file the command writes |
-| The pattern set itself (which shapes count as high-confidence), held in `hooks/patterns.tsv`, the one source the write guard and the redaction mod both read | **recorded** — the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` (§ `plugins/secret-scanning/hooks/scan.sh`) argues the non-provider rules and the placeholder exemption, and § `plugins/secret-scanning/hooks/patterns.tsv` names the gitleaks rules the provider rows follow (since 0.15.7); `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
-| An unusable `hooks/patterns.tsv` (missing, CRLF, a malformed row, a pattern outside the regex dialect its header states) | **gate** — the write guard's one exception to fail-open: `scan.sh` denies every write it would scan, naming the file, the line and `CC_SECRET_SCAN=off`; `scan-hook.test.sh` runs each shape. The redaction mod logs it once and passes output through instead |
-| Secrets in any tool's output, on Claude Code ≥ 2.1.291 — masked as `[REDACTED:<label>]`, or the result withheld (see Mods, below) | **gate** — `hooks/redact.ts`; `tests/redact.test.ts` runs under `claude plugin test` in CI (the marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build. A subagent's call is not tested (the test kit drops `agentId`) |
-| A file attached with an `@` mention, or changed outside the session, whose text holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast, and masks what the engine attaches either way; same tests, same CI step. A subagent's mention is not tested |
+| The pattern set itself (which shapes count as high-confidence), held in `hooks/patterns.tsv`, the one source the write guard, the output flag and the prompt mod read | **recorded** — the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` (§ `plugins/secret-scanning/hooks/scan.sh`) argues the non-provider rules and the placeholder exemption, and § `plugins/secret-scanning/hooks/patterns.tsv` names the gitleaks rules the provider rows follow (since 0.15.7); `scripts/__tests__/scan-hook.test.sh` pins the behaviour, nothing pins the coverage |
+| An unusable `hooks/patterns.tsv` (missing, CRLF, a malformed row, a pattern outside the regex dialect its header states) | **gate** — the write guard's one exception to fail-open: `scan.sh` denies every write it would scan, naming the file, the line and `CC_SECRET_SCAN=off`; `scan-hook.test.sh` runs each shape. The prompt mod logs it once and passes prompts through instead; the output flag stays silent |
+| A secret in any tool's output (since 0.19.0; until 0.18.0 the mod masked it, which stopped Code Mode starting) | **advisory** — `hooks/output-scan.sh`, on PostToolUse and PostToolUseFailure for every tool, adds one context line naming each pattern's label, never the value, and telling the model not to repeat or write it. It never masks: the value has already reached the model and the transcript. An assigned value whose directory part exists under the call's cwd is read as a path, not a secret (an echoed `secret-…: <path>` line was flagged on 2026-11-16). `scripts/__tests__/output-scan.test.sh` runs each case beside the neighbour that must stay silent, and `pattern-parity.test.sh` holds it to `scan.sh`'s verdict. Off: `CC_SECRET_OUTPUT_SCAN=off` or the `/config` option `cc_secret_output_scan` |
+| A file attached with an `@` mention, or changed outside the session, whose text holds a secret, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses the mention with a toast, and masks what the engine attaches either way; `tests/redact.test.ts` runs under `claude plugin test` in CI (the marketplace repository's `scripts/mod-tests.sh`). A subagent's mention is not tested |
 | A secret typed or pasted into the prompt box, on Claude Code ≥ 2.1.291 | **gate** for the decision: the mod paints it in the draft, and at submit asks Mask and send / Send as typed / Cancel, masking when nobody can answer. A slash command's arguments cannot be masked, so a command holding a secret is offered only Send as typed / Cancel and dropped otherwise (`tests/redact.test.ts`, "prompt box"). **Recorded**: the masked text, not the secret, is what reached the API in a live probe on 2.1.294 (marketplace repository `rationale/2026-10-08-secret-scanning-prompt-guard-probe.md`). Below 2.1.300 the host's changelog says its session-title request still carried the prompt as typed; the residuals below give each CLI version's gap |
-| A `Write`/`Edit`/`MultiEdit`/`NotebookEdit` whose new text carries `[REDACTED:`, on Claude Code ≥ 2.1.291 | **gate** — the mod refuses it, naming `CC_SECRET_REDACT=off`, so a redacted read written back cannot replace the real value; same tests, same CI step |
-| A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0), on any CLI, with or without mods | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_REDACT` is `off`, `0` or `false`; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and the off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
-| The mod and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
+| A `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, or an MCP `create_new_file`/`apply_patch`, whose new text carries `[REDACTED:` (since 0.19.0 in `scan.sh`, on any CLI; the mod refused the four file tools before) | **gate** — `scan.sh` refuses it unless `CC_SECRET_PROMPT` is `off`, `0` or `false`, naming that switch, so a masked prompt or attachment written back cannot replace the real value; `scan-hook.test.sh` runs the four tools and the switch |
+| A `Bash` heredoc body or `echo`/`printf` argument carrying `[REDACTED:` that lands in a file (since 0.14.0), on any CLI, with or without mods | **gate** — `scan.sh` refuses it the same way unless `CC_SECRET_PROMPT` is `off`, `0` or `false`; `scan-hook.test.sh` runs both write shapes, a command writing no file, stdout only and the off switches. Not refused: an MCP write tool, and the Bash writes the guard cannot read (`sed -i` text, interpreters, `cp`/`mv`; the "through Bash any other way" row below) |
+| The mod, the output flag and the write guard agree on what is a secret (one pattern file, two regex engines) | **gate** — `scripts/__tests__/pattern-parity.test.sh` runs one fixture set through `scan.sh`, `output-scan.sh` and the mod's matcher and fails on any disagreement it does not declare; it proves its fixtures, not every input, and its declared divergences (astral characters in a webhook tail, a NUL inside a key) are fixtures of their own |
 | Invisible characters in a file this session wrote or read | **advisory** — `hooks/unicode-scan.sh` is a PostToolUse **warning**; it never blocks, once per model context (a session's main thread, each subagent) and file, again only when the file's invisible characters change, including past the six it names (`unicode-scan.test.sh` pins each) |
 | A secret a Bash python, node, php, ruby, perl, deno, bun, cp, mv, install or patch run put in a file of a git repo (since 0.15.0) | **advisory** — the same `scan.sh`, registered on PostToolUse too (and on PostToolUseFailure for Bash, the event a command that exits non-zero fires), **warns** after the fact, naming the file and the pattern; it cannot deny, because the write has landed. It reads what each file git reports changed since the lane's previous call added: the whole file when HEAD lacks it, else its `+` lines against HEAD, so a line any uncommitted edit added is judged again. `scan-hook.test.sh` runs a python write, the first call in a repo, a run that wrote nothing, a placeholder, an Edit between two runs, a failed run and another session's marker. Misses: a writer it does not name (`npx prettier --write`, `make`, `git apply`), gitignored files, no git, a submodule's files, anything under `.claude/`, a file written then reverted, a `mv` or `cp -p` destination that keeps an older mtime, files past the eighth, text past 1 MiB per file, the first such run of each session (the marker holds the session's cksum; another session's reads as none); a `$HOME` root or a repo with `status.showUntrackedFiles=no` reads nothing; and anything else that changed a file since the lane's previous call (an IDE, a parallel agent) reads as this run's write |
 | A secret reaching a file through Bash any other way — an interpreter or `cp`/`mv` before the write lands (the row above warns after it), `sed -i` replacement text, a here-string `<<<`, a `{ echo …; } > f` group, a `printf 'KEY=%s' value` pair the generic assigned-literal rule cannot join (a provider-shaped value still matches alone) — or a live key in a command that writes no file (`curl -H "Authorization: …"`) | **unenforceable here** — the guard reads only heredoc bodies and echo/printf arguments whose pipeline writes a file; `scan.sh`'s header `Misses:` line and its `cc_bash_write_chunks` `Misses:` line name each gap, and the marketplace repository's `rationale/derivations/plugin-secret-scanning.md` keeps why. `command-guard` owns destroying a live `.env`, not what enters a file |
@@ -74,8 +74,11 @@ off-switch documented only in a changelog is not reachable by the person it exis
   0.15.0); homoglyphs are out of scope. Once per model context — the main thread and each
   subagent, told apart by `agent_id` — and file, again only when the file's invisible
   characters change (since 0.15.0); every context that reads the hidden text is told. `CC_UNICODE_SCAN=off` (or `CC_REMIND=off`) disables it.
-- **Hooks module** (`hooks/redact.ts`, Claude Code ≥ 2.1.291) — masks secrets in tool
-  output and refuses a write carrying a mask; see Mods, below.
+- **PostToolUse hook** (`hooks/output-scan.sh`, since 0.19.0) — after any tool call, names
+  each secret pattern its output matches, by label, never the value; it never masks.
+  `CC_SECRET_OUTPUT_SCAN=off` disables it.
+- **Hooks module** (`hooks/redact.ts`, Claude Code ≥ 2.1.291) — masks a secret in the prompt
+  box, an `@` mention or an attached file; it hooks no tool call. See Mods, below.
 - **PreToolUse hook** (`hooks/commit-scan.sh`, since 0.17.0) — denies a `git commit` or
   `git push` that would record or send a secret; see "Commit and push scan" below.
 - **`/secret-scanning:scan`** — sweeps a path, diff, or the whole repo for secrets
@@ -187,66 +190,32 @@ would record or send, and denies on a match, naming `file:line` and the pattern 
 ## Mods (Claude Code ≥ 2.1.291)
 
 Since 0.11.0 the plugin also ships a hooks module, `hooks/redact.ts`, listed under
-`modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without it
-(probed on CLI 2.1.282 and 2.1.291; older CLIs untested). With mods off in the host,
-on a CLI below 2.1.287 (which loads no module), on 2.1.288-2.1.290, with
-`CC_SECRET_REDACT=off`, or with the `/config` option `cc_secret_redact` off, the module
-passes every call through and the classic hooks work exactly as before. On CLI 2.1.287
-with mods on the module still registers its hook (the version check runs inside it), and
-that CLI's own bug — a plugin's `tool.call` hook breaking Bash and file search in
-worktree subagents, fixed in 2.1.288 — applies even with redaction switched off: upgrade
-the CLI or turn mods off. An organization that sets `allowManagedModsOnly` refuses the
-module and leaves only the classic guard (per the CLI's built-in sec-default mod
-documentation, not measured). Each rule's
-standing is in the table at the top.
+`modules` in `hooks/hooks.json` beside the classic hooks, which fire with or without it.
+Since 0.19.0 it hooks no tool call: Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`)
+refuses to start with a mod that checks tool calls, so tool-output masking, its Higgsfield
+upload-URL exception, its withheld errors and the `CC_SECRET_REDACT` switch were removed.
+Tool output is now flagged by `hooks/output-scan.sh`, and the write-back refusal moved to
+`scan.sh`. With mods off in the host, on a CLI below 2.1.291, with `CC_SECRET_PROMPT=off`,
+or with the `/config` option `cc_secret_prompt` off, the module passes everything through.
+An organization that sets `allowManagedModsOnly` refuses the module and leaves only the
+classic hooks (per the CLI's built-in sec-default mod documentation, not measured). Each
+rule's standing is in the table at the top.
 
-- **Redaction.** Every tool's result — any tool, main loop and subagents, every string
-  however nested — has each secret-pattern match outside the placeholder escape replaced
-  by `[REDACTED:<label>]` (`[REDACTED:an AWS access key ID]`) before the model or the
-  transcript sees it, using the write guard's `hooks/patterns.tsv`. A redacted result
-  carries one line for the model naming the labels, saying the value is unchanged at its
-  source and forbidding writing the placeholder back; a toast names the count and the
-  labels, never a value.
-- **Higgsfield upload URLs** (since 0.16.0). Higgsfield's MCP `media_upload` returns a signed
-  `https://upload.higgsfield.ai/…` URL whose `X-Amz-Credential` and `X-Amz-Security-Token`
-  values match the AWS and assigned rows. Masked, the URL cannot take the `PUT` the upload
-  needs, so the model regenerated images instead. In the result of a tool named
-  `mcp__<server>__media_upload`, two matches stay unmasked: the `ASIA…` key ID leading
-  `X-Amz-Credential` and the assigned-row match on `X-Amz-Security-Token`, each only while it
-  lies inside its own value. The URL and each value end at the first character outside
-  `[A-Za-z0-9%._~-]`, so a JSON-escaped newline ends them. Everything else is masked as before: a
-  key beside the URL or in another parameter, any other row's match inside those two values, a
-  long-term `AKIA…` key ID, the same URL in any other tool's result (a log, a commit), an errored
-  result, and every other presigned URL. The write guard still denies the URL in a file.
-  **Gate** — `tests/redact.test.ts`, "Higgsfield upload URL", replays the firing and runs each
-  must-still-mask case; `scan-hook.test.sh` pins the write deny. Residual: the transcript keeps
-  that URL, which can upload to one path until it expires.
-- **Errors and attached context.** An errored result whose error text, stored result or
-  attached context holds a secret is answered with a refusal carrying the redacted error
-  text. Context a hook seated beneath this one attached is passed on verbatim (CLI 2.1.291
-  skips a hook that edits it), so when that context holds a secret the call is answered with a
-  refusal instead: its text is the result, redacted, plus a line naming the labels and
-  `CC_SECRET_REDACT=off`; that context never reaches the model.
-- **Write-back refusal.** A `Write`, `Edit`, `MultiEdit` or `NotebookEdit` whose new text
-  carries `[REDACTED:` is refused, naming `CC_SECRET_REDACT=off`: writing the placeholder
-  would replace the real secret on disk. Since 0.14.0 `scan.sh` refuses the same marker in a
-  Bash heredoc or `echo`/`printf` written to a file. So a whole-file rewrite of a file that
-  holds a masked value (a `.env.example` with a real-looking key, a JWT test fixture) is
-  refused either way; an `Edit` whose `old_string` and `new_string` leave the masked line
-  out still works.
-- **Failure.** Once the tool has run, a redaction that throws or overruns its time
-  budget withholds the output with a refusal naming the failure and
-  `CC_SECRET_REDACT=off`; the tool's effects stand.
+- **Write-back refusal.** A masked prompt or attached file carries `[REDACTED:<label>]`.
+  `scan.sh` refuses a `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, MCP write, or Bash
+  heredoc or `echo`/`printf` into a file whose new text carries `[REDACTED:`, naming
+  `CC_SECRET_PROMPT=off`: writing the placeholder would replace the real secret on disk. An
+  `Edit` whose `old_string` and `new_string` leave the masked line out still works.
 - **`@` mentions** (since 0.12.0). A file named after an `@` in a prompt is read with no
-  `tool.call`, so the redaction above never sees it. Two checks cover it. First the
+  tool call, so no tool hook sees it. Two checks cover it. First the
   module reads the file itself, only the mentioned lines when the mention names some
   (`@.env#L3`; an offset or limit below 1 widens the scan), and when a pattern matches
   outside the placeholder escape it refuses the mention: nothing of the file reaches the
   prompt, and a toast names the file and labels, since the refusal's own reason goes only
-  to the debug log. Claude can still `Read` the file, which the redaction masks. A file the
+  to the debug log. Claude can still `Read` the file, unmasked; `output-scan.sh` then names the secret by label. A file the
   module cannot read (missing, or over the 4 MiB a plugin may read) is left to the engine,
   and so to the second check. A scan that throws or overruns its budget refuses the
-  mention, with a toast naming `CC_SECRET_REDACT=off`. **Gate** — `tests/redact.test.ts`,
+  mention, with a toast naming `CC_SECRET_PROMPT=off`. **Gate** — `tests/redact.test.ts`,
   "@-mentions".
 - **Attached files** (since 0.12.1). The text the engine attaches for a mentioned file
   (`file`, `already_read_file`) and for a file changed outside the session
@@ -277,32 +246,17 @@ standing is in the table at the top.
 
 Residuals, stated:
 
-- **Where it fails open.** A hook failure before the tool runs lets the call through
-  and its output passes unredacted. Below Claude Code 2.1.299 so does a call the host
-  cannot hand this hook at all (a value nested past its limit); from 2.1.299 the host
-  refuses that call, or withholds the result of one that ran (its changelog; in
-  `claude plugin test` 2.1.300 refuses a 30,000-deep value, where 2.1.291's kit raised an
-  error). An unusable `hooks/patterns.tsv` is logged once and
-  every result then passes unredacted (the write guard denies instead). A
-  withheld-output refusal that cannot return within the one-second grace of the hook's
-  failure handler lets the result through, on 2.1.300 as on 2.1.291: 2.1.299's refusal
-  does not cover it (re-measured in `claude plugin test` on both, the handler held 3 s).
-  An unusable `hooks/patterns.tsv` also lets every `@` mention and
-  attachment through unscanned.
-- **Private keys.** A key body arriving without its `BEGIN` line in the same string — a
-  `Read` with an offset, `tail`, a `Grep` hit inside a `.pem` — is never matched. A
-  `BEGIN` literal in source code masks everything up to the next `END` literal in that
-  string. A mask can name several labels joined by `, ` and can cover a large region.
+- **Where it fails open.** An unusable `hooks/patterns.tsv` is logged once, and every
+  prompt, `@` mention and attachment then passes unscanned (the write guard denies
+  instead).
+- **Private keys.** A key body arriving without its `BEGIN` line in the same text is never
+  matched. A `BEGIN` literal masks everything up to the next `END` literal in that text. A
+  mask can name several labels joined by `, ` and can cover a large region.
 - **Not scanned through `@`.** A mentioned PDF or image, which the engine sends as a
   document or image with no text to scan (the mention check's raw read of a compressed PDF
   matches nothing); an MCP resource mention; and text-bearing attachment kinds outside
   `file`, `already_read_file` and `edited_text_file`, such as `nested_memory` (a nested
   `CLAUDE.md`, an `@`-import in it included).
-- **Not scanned.** Object keys, so a value under a key such as `password` in a structured
-  (non-text) result passes unless a provider pattern matches it alone; context a hook
-  seated above this one attaches (a managed-settings hook, a mod loaded above it); a `Map`, `Set`, `Buffer` or class instance; a
-  `base64` or `data` field holding strict base64 of a
-  non-text type (a `Bash` `stdout` holding image data is masked as text instead).
 - **The prompt box.**
   - **Not painted:** a large paste that the prompt box collapses to `[Pasted text #1 +N lines]`,
     or a draft recalled with Up. Both are still checked at Enter. CLI 2.1.300's
@@ -333,27 +287,22 @@ Residuals, stated:
     The guard still runs from 2.1.291, the mods floor. Below each fix one path leaks, and
     turning the guard off there would leak on every path. Its version check could raise
     the floor; it does not.
-- **Not matched.** The secret-access-key field of an AWS credentials CSV stays visible
-  beside its masked key ID: it has no pattern of its own. NUL-interleaved UTF-16 text
-  passes, though `scan.sh` denies writing it. From CLI 2.1.299 `Read` decodes a UTF-16LE
-  file that opens with a byte-order mark, so its text is masked like any other. Measured
-  through `claude mcp serve`: 2.1.291 returns the NUL-interleaved bytes, 2.1.300 the text.
-  A file without the mark, one read through Bash, and every one below 2.1.299 still
-  pass. An assigned literal whose name carries more
-  than twelve `_`/`-` segments after its last keyword, or a segment over 64 characters
-  between that keyword and the `:`/`=`, passes both the mod and `scan.sh`: the shared pattern bounds the name so JavaScript's
-  regex stays linear.
-- **Not refused.** A `[REDACTED:` token written through an MCP write tool, or through a
-  Bash write `scan.sh` cannot read (`sed -i` text, interpreters, `cp`/`mv`). A Bash heredoc
-  or `echo`/`printf` into a file is refused by `scan.sh` since 0.14.0.
+- **Not matched.** An assigned literal whose name carries more than twelve `_`/`-` segments
+  after its last keyword, or a segment over 64 characters between that keyword and the
+  `:`/`=`, passes the mod, `output-scan.sh` and `scan.sh`: the shared pattern bounds the name
+  so JavaScript's regex stays linear.
+- **Tool output** (`output-scan.sh`). Flagged, never masked: the value stays in the model's
+  context and the transcript. Not read: output past 1 MiB, a `base64` field, JSON keys (a
+  value under a key such as `password` passes unless a provider pattern matches it alone).
+  It repeats on every call that shows the same value. An assigned value whose directory part
+  happens to exist under the call's cwd is read as a path and passes; one relative to a
+  directory the command `cd`-ed into is not, and is flagged.
+- **Not refused.** A `[REDACTED:` token written through a Bash write `scan.sh` cannot read
+  (`sed -i` text, interpreters, `cp`/`mv`).
 - **Refused by mistake.** The same token in a file that quotes it on purpose — a spec, a
   test, this README, a script that greps for it — is refused too, even in a session that
-  redacted nothing: the refusal reads the new text, not where it came from. Its reason says
-  the token may have come from a redacted result; `CC_SECRET_REDACT=off` (or `0`, `false`)
-  gets past it and also stops output redaction. Standing: **gate** — `tests/redact.test.ts`
-  refuses all four tools with nothing redacted and pins the reason's full wording, and
-  `scripts/__tests__/scan-hook.test.sh` the Bash refusal.
-- **Untested.** Subagent calls (the test kit drops `agentId`) and the time-budget-overrun
-  path end to end (only its refusal text is tested).
+  masked nothing: the refusal reads the new text, not where it came from.
+  `CC_SECRET_PROMPT=off` (or `0`, `false`) gets past it and also stops prompt masking.
+  Standing: **gate** — `scripts/__tests__/scan-hook.test.sh` pins each tool and the switch.
 - **Signals.** The toast is transient; afterwards only the mask text and the model's note
-  show that a result was redacted. The parity harness covers only its fixtures.
+  show that a prompt or attachment was masked. The parity harness covers only its fixtures.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.0 — 2026-11-16
+
+- **The program status line is gone; overseer ships no mod.** `hooks/status-line.ts`, `status-core.ts`, `cc-kit.ts`, `tests/status-line.test.ts`, `scripts/__tests__/status-core.test.sh`, the `modules` entry and the `cc_overseer_status` / `CC_OVERSEER_STATUS` option were removed. Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls, and the line hooked every writing call to refresh. `/overseer:status`, `program.sh resume` and the SessionStart line still name the next milestone.
+
 ## 0.12.1 — 2026-11-14
 
 - `dispatch-prompts.md` sends two-plus track-eligible milestones to `/task-runner:run --tracks`, as the skill body says (it said parallel groups), and says to run it yourself, since taskmaster's handoff never adds the flag. It lists all four triggers of taskmaster's spec red-team. The capability map names `approaches` `opinions`, not the removed `size` command.
