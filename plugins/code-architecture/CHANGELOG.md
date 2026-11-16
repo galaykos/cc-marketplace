@@ -2,6 +2,11 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.21.0 — 2026-11-16
+
+- **plan-before-code's interfaces step names shared state and reuse.** Where two units share state it names the one writer, every state's exit and the lock order, and the existing code each unit extends (grep first). In a taskmaster spec these become `## Shared state & invariants` and `## Module map` (taskmaster 0.61.0 grill `references/contracts.md`); taskmaster now runs this plan check on every multi-card spec.
+- Standing: recorded (skill text).
+
 ## 0.20.1 — 2026-11-14
 
 - coding-entry names taskmaster's card field as it is, `<skill>` stamps (was `Skills to apply`, the label cards dropped at taskmaster 0.45.0). The README no longer says taskmaster supplies this plugin's gates; it runs the plan-before-code check.

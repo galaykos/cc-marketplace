@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # card-shape-lint.sh — author-time STRUCTURAL lint for a role-tagged task card (task-cards `references/card-shape.md`); a legacy bold-label card (no <card> wrapper, a **Verify:** line) passes with a NOTE.
-# Misses: whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); whether a UI card has a <walk> line, and a route <walk> on a card whose diff touches no UI file (walked only when its milestone's diff touches UI); a single-quoted or missing <walk> surface (skipped).
+# Misses: whether a card that touches shared state cites its <invariant> or the right <reuse> (agent-graded); whether a <criterion> describes behaviour rather than the diff, whether a reason="…" is true, whether the <change> is right (agent-graded in task-cards); the <verify> text (verify-teeth-lint.sh); <skill> names against the touched files (skills-stamp-lint.sh); whether a UI card has a <walk> line, and a route <walk> on a card whose diff touches no UI file (walked only when its milestone's diff touches UI); a single-quoted or missing <walk> surface (skipped).
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/card-shape-lint.sh (marketplace repository)
 
 # WHAT IT CATCHES (each -> exit 2, one `card-shape: <reason>` line on stderr per
@@ -15,6 +15,10 @@
 #   file-line            : a <file mode="edit"> without line="<n>"
 #   must-not-reason      : an element inside <must-not> without a non-empty reason="…"
 #   interface-consumer   : an <interface> without consumer="…"
+#   interface-kind       : an <interface> without kind= one of payload event factory state
+#                          route component signature
+#   reuse-shape          : a <reuse> without a non-empty path="…" and symbol="…"
+#   invariant-id         : an <invariant> without id="I<n>", or not closed on its own line
 #   skill-name           : a <skill> without name="…"
 #   agent-vocabulary     : <agent> value outside the closed list in
 #                          skills/task-cards/references/agent-tags.md (read at run time,
@@ -110,6 +114,21 @@ while IFS= read -r l; do
   printf '%s' "$l" | grep -Eq 'consumer="[^"]+"' \
     || finding "interface-consumer: <interface> names who reads it, consumer=\"…\" — $l"
 done < <(grep -E '^<interface([ />]|$)' "$card" || true)
+
+while IFS= read -r l; do
+  printf '%s' "$l" | grep -Eq 'kind="(payload|event|factory|state|route|component|signature)"' \
+    || finding "interface-kind: <interface> names what crosses the boundary, kind=\"payload|event|factory|state|route|component|signature\" — $l"
+done < <(grep -E '^<interface([ />]|$)' "$card" || true)
+
+while IFS= read -r l; do
+  printf '%s' "$l" | grep -Eq 'path="[^"]+"' && printf '%s' "$l" | grep -Eq 'symbol="[^"]+"' \
+    || finding "reuse-shape: <reuse> names the existing file and symbol to extend, path=\"…\" symbol=\"…\" — $l"
+done < <(grep -E '^<reuse([ />]|$)' "$card" || true)
+
+while IFS= read -r l; do
+  printf '%s' "$l" | grep -Eq '^<invariant id="I[0-9]+">.*</invariant>' \
+    || finding "invariant-id: <invariant id=\"I<n>\">…</invariant> on one line, the id from the spec's Shared state & invariants table — $l"
+done < <(grep -E '^<invariant([ />]|$)' "$card" || true)
 
 while IFS= read -r l; do
   printf '%s' "$l" | grep -Eq 'name="[^"]+"' \

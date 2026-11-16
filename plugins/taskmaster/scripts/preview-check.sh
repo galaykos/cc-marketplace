@@ -42,7 +42,7 @@ limit=""; command -v timeout >/dev/null 2>&1 && limit="timeout 90"
 
 # exec, so a caller's TERM or HUP reaches the driver, which closes the browser and removes its profile before it exits.
 exec python3 - "$docroot" "$page" "$widths" "$browser" "$sandbox" "$limit" "$here" <<'PY'
-import base64, fcntl, hashlib, json, math, os, secrets, select, shutil, signal, subprocess, sys, tempfile, time, unicodedata
+import base64, fcntl, hashlib, json, math, os, re, secrets, select, shutil, signal, subprocess, sys, tempfile, time, unicodedata
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import quote, urlsplit
@@ -579,13 +579,26 @@ try:
 except OSError:
     pass
 merged = {}
+# One failed resource reaches check.js two ways: its error event (with the element) when the listener was in place, else its
+# timing entry (no element), whose status one width can read before it lands. So at one width it is `img` with a selector and
+# "answered 404", at another no selector and "got no response". An E1 resource row is keyed by its URL alone; the merged row
+# keeps the first selector and status any width read.
+NO_RESPONSE = " got no response"
 for w in widths:
     for f in (collected.get(w) or {}).get("findings") or []:
-        key = (f.get("check"), f.get("selector"), f.get("text"), f.get("detail"))
+        detail, selector = f.get("detail"), f.get("selector")
+        resource = f.get("check") == "E1" and f.get("text") == "resource failed to load" and isinstance(detail, str)
+        same = re.sub(r" (answered \d+|got no response)$", "", detail) if resource else detail
+        key = (f.get("check"), None if resource else selector, f.get("text"), same)
         if key in merged:
-            merged[key]["widths"].append(w)
+            row = merged[key]
+            row["widths"].append(w)
+            if row["selector"] is None:
+                row["selector"] = selector
+            if isinstance(row["detail"], str) and row["detail"].endswith(NO_RESPONSE):
+                row["detail"] = detail
         else:
-            merged[key] = {"check": key[0], "width": w, "widths": [w], "selector": key[1], "text": key[2], "detail": key[3]}
+            merged[key] = {"check": key[0], "width": w, "widths": [w], "selector": selector, "text": key[2], "detail": detail}
 dropped = sum(int((collected.get(w) or {}).get("dropped") or 0) for w in widths)
 by_check = {}
 for f in merged.values():

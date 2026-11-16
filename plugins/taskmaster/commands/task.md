@@ -88,15 +88,19 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    non-goals, success criteria, and the converged ledger embedded as
    `## Ambiguity ledger (final)`; run
    `"${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh" --spec <file>`
-   until exit 0 (task-cards re-runs it later as the final gate) — plus the
+   until exit 0 (task-cards re-runs it later as the final gate; a `WARN no-invariants` here is
+   expected, step 6 writes that section) — plus the
    walkthrough file path and cross-screen contracts when step 4 ran.
-6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`
-   skill to attack the frozen spec for holes (missing edge cases, unstated
-   assumptions, conflicts, failure/security gaps) and resolve each before planning.
-   Then, if the code-architecture plugin is installed (the plan-before-code skill
-   is available), run a plan check on the spec before splitting cards — file-level
-   change plan, unit ownership, interfaces — and fold any corrections back into
-   the spec. Skip it when the plugin is not installed.
+6. Plan check, then red-team. Every spec that will become two or more cards gets a
+   plan check before splitting: file-level change plan, unit ownership, interfaces,
+   written into the spec as `## Shared state & invariants` and `## Module map` per
+   grill's `references/contracts.md`, built from the scout's Reuse candidates and the
+   decisions, never asked of the user. Use the plan-before-code skill when the
+   code-architecture plugin is installed; do it inline otherwise. Then red-team the
+   spec when its blast radius warrants: run the `spec-redteam` skill to attack the
+   frozen spec for holes (missing edge cases, unstated assumptions, conflicts,
+   failure/security gaps, an invariant with no exit or two writers) and resolve each
+   before cards.
 7. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `.cc-artifacts/taskmaster/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
    milestones when the run is large — every card one sitting or smaller (task-cards
