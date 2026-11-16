@@ -100,7 +100,7 @@ no negative control or reviewer pass. Close adds one code-redteam round (`RT-LEN
 and runs the suite once, by receipt. Overseer's `references/range-verify.md`.
 
 Critical/high findings send the task back into the fix loop; each such round counts toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop
-uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Medium/low findings go to the follow-up backlog, not the current diff; after a reviewer-driven fix,
+uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Medium/low findings go to the follow-up backlog, except `[duplication]`/`[convention]` mediums, fixed in the card (`references/reviewer-routing.md` § Card-contract inject); after a reviewer-driven fix,
 re-run the verify command before re-review. Accessibility findings and `/ui-ux:audit` deferrals are the exception: they
 close in the run, fixed or recorded (`references/reviewer-routing.md` § UI diffs).
 
@@ -177,7 +177,7 @@ manual, with what was observed; "Verified ✓" alone is not evidence.
 An index with milestones runs milestone by milestone in index order (a parallel group never spans
 two), and the project's full check suite runs when a milestone's last card lands, before the next
 starts: a milestone is sold as shippable alone, and per-card checks miss what cards break in each
-other. Red → the bounded loop on the card that broke it, or halt. Side-by-side milestones are
+other. Red → the bounded loop on the card that broke it, or halt. Green → one milestone review (`references/reviewer-routing.md` § Milestone review). Side-by-side milestones are
 `--tracks`. Standing: recorded — `plan-overlap.sh --dir` levels the whole set, blind to milestones.
 
 ## Completion protocol

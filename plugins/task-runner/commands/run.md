@@ -137,12 +137,14 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    arguments and a lens for knowledge duplicated across cards. The review observer records
    that marker, and candor's clause 4 requires the record at the closing HEAD. Required:
    per-card passes never substitute, because they cannot see what changed across cards.
-   Fix its findings through the bounded fix loop; a commit after the review moves HEAD, so
-   mark a pass over `<reviewed head>..HEAD` with the new HEAD. **Two fix passes in a row that
-   each surface a new critical/high stop the loop:** no third pass. List the open findings with
-   the pass that introduced each and ask the user (hands-off: record them under `Skipped:` and
-   close the run as halted). Fixes that keep re-breaking mean the diagnosis is wrong, not the
-   fix. Standing: agent-graded, because no script reads finding severity across passes. A skip needs the user's
+   With milestones, each already had its milestone review, so this pass looks for what spans
+   them. ONE pass: fix its critical/high findings and its `[duplication]`/`[convention]` mediums
+   through the bounded fix loop and re-run their verify commands. A commit after the review moves
+   HEAD, so mark a pass over `<reviewed head>..HEAD`, the fix commits only, with the new HEAD; it
+   checks the fixes, it does not hunt again. **A new critical/high in that mark stops the loop:**
+   list the open findings with the pass that introduced each and ask the user (hands-off: record
+   them under `Skipped:` and close the run as halted). Fixes that keep re-breaking mean the
+   diagnosis is wrong, not the fix. Standing: agent-graded, because no script reads finding severity across passes. A skip needs the user's
    approval and `scripts/review-skip.sh --card range-<HEAD12> --reason "<why>"` (no
    code-review installed: `--exempt no-reviewer-installed`), and appears under `Skipped:`.
    Then, for a taskmaster index, run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/coverage-close.sh" --index <index>`

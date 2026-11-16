@@ -2,6 +2,14 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.62.0 — 2026-11-16
+
+- **Reviewers check a card's contract first.** Every per-card reviewer dispatch now carries the card's `<invariant>`, `<reuse>` and `<interface>` lines (taskmaster 0.63.0) with a fixed instruction: one `kept | broken` line per invariant, a broken invariant or a changed interface is high, and a symbol written beside a `<reuse>` symbol or repeating a helper is a `[duplication]` medium. Then the usual review. Same reviewers as before.
+- **Duplication and convention mediums block the card.** A medium tagged `[duplication]` or `[convention]` goes back into the card's fix loop on the same three-cycle ceiling; other mediums and lows still go to the backlog.
+- **One cross-card review per milestone.** When a milestone's suite is green, one `/code-review:review` of its range runs with the spec's invariant table and a cross-card lens (an invariant across cards, a state with no exit, a second writer, a helper duplicated between cards). Its fixes re-run their verify commands; there is no second hunting pass.
+- **The run-close range review is one pass.** Its fixes are checked by a pass over the fix commits only; a new critical/high there goes to the user (was: up to two fix-and-hunt rounds). Why: one run's close review found 9, then 3, then 1, then 2 more highs, and most later ones came from earlier fix commits.
+- Standing: agent-graded (skill, reference and command text); no record counts milestone reviews, and no script reads finding tags.
+
 ## 0.61.0 — 2026-11-16
 
 - **`task-executor` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer. The analyzer run is per task, in addition to the full suite at the end; three new lines in its finishing checklist.

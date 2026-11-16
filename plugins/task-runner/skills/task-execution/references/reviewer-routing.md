@@ -78,6 +78,8 @@ return (delegation-contracts § Compressed returns), injected verbatim:
 > "Return findings most severe first, ONE line each:
 > `file:line — severity(critical|high|medium|low) — problem — fix`. List every critical
 > and high; medium/low past the tenth may collapse into one final `+N more (medium/low)` line.
+> A medium that is duplicated code or drift from the repo's conventions opens its problem
+> with `[duplication]` or `[convention]`.
 > No prose introductions, no summary of the summary. Your final message is data for the
 > orchestrator, not prose for a human."
 
@@ -92,6 +94,22 @@ its `Verify:` line) plus this instruction, verbatim:
 
 This is what makes a silent reviewer distinguishable from a clean diff: "no findings"
 now asserts "each criterion checked", not "nothing jumped out".
+
+**Card-contract inject (contract first)** — when the card carries `<invariant>`, `<reuse>` or
+`<interface>` lines (taskmaster 0.63.0 cards), paste them verbatim after the criteria with this
+instruction, verbatim:
+
+> "Check the card's contract before anything else. One line per `<invariant>`:
+> `<id> — kept | broken — <path:line>`. A broken invariant is high. A new symbol written
+> beside a `<reuse>` symbol instead of extending it, or a helper that repeats one you can
+> find by grep, is a `[duplication]` medium. An `<interface>` whose shape the diff changed
+> is high. Then review the rest of the diff as usual."
+
+Reviews of two real runs found the largest share of bugs in contracts between cards and in
+code rewritten beside a sibling's helper; a free hunt reached them late or not at all.
+**Blocking mediums:** a `[duplication]` or `[convention]` medium goes back into the card's fix
+loop like a high, on the same three-cycle ceiling; other mediums and lows go to the backlog.
+A card without contract lines gets the criteria inject alone. Standing: agent-graded.
 
 **Bound:** inject the card's `<skill>` names (deduped) + at most one agnostic domain
 skill from the map. The sentinel `<skill name="none"/>` (or an absent element)
@@ -132,6 +150,20 @@ Runs after the card's verification passes — a command OR a recorded manual che
 A card whose `<agent>` tag and `<skill>` names imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they
 are complementary.
+
+## Milestone review: one cross-card pass
+
+When a milestone's full suite is green (task-execution § Milestone close), the orchestrator runs
+ONE `/code-review:review <milestone base>..HEAD` (Skill tool) before the next milestone starts,
+with the spec's `## Shared state & invariants` table pasted and this lens: each invariant held
+across every card that touches it, a state with no exit, a second writer, a helper duplicated
+between cards, an `<interface>` its consumer reads differently. Per-card passes cannot see
+these. Its critical/high findings, and its `[duplication]`/`[convention]` mediums, go through
+the bounded fix loop on the card that owns the code; the fixes' verify commands re-run, and
+there is no second hunting pass. Other mediums go to the backlog. A skip needs the user's
+approval and `scripts/review-skip.sh --card milestone-<n> --reason "<why>"`. An index without
+milestones gets none: the run-close range review (`commands/run.md` step 4) is its one
+cross-card pass. Standing: agent-graded; no record counts milestone reviews.
 
 ## UI diffs: nothing deferred leaves the run
 

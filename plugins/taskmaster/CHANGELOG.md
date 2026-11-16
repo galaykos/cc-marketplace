@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.63.1 — 2026-11-16
+
+- `shell-controls.test.sh`'s click helper re-measures a covered target for up to 1 s before failing: the sticky header reacts to `scrollIntoView` a frame or more later, so at 320 by 256 the "Note on variant B" button read as covered on one CI run. Test-only; no shipped behaviour changes. Standing: gate (the harness, 157 cases, 2 of 2 local runs green).
+
 ## 0.63.0 — 2026-11-16
 
 - **Specs now settle the contracts between cards before any card exists.** A spec that becomes two or more cards carries `## Shared state & invariants` (one `I<n>` row per entity or flow: states and their exits, the one writer, the invariant a reviewer can check against a diff, what each error means) and `## Module map` (what each unit owns, where the next variant plugs in, and the existing code to extend). The plan check writes both from the scout report and the decisions; they are not new questions. The format is grill's `references/contracts.md`. Why: two real runs' reviews (62 findings) traced the largest share to cards that each assumed half of a contract (a status with no exit, two writers of one snapshot, a poll that queued a job on every tick) and to helpers rewritten beside a sibling that already had them.
