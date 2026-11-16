@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
-# Smoke tests for the two checks added 2026-08-27 to scripts/lib/plugin-checks.sh:
-# pc_hook_timeout (every hooks.json entry declares a timeout) and
-# pc_budget_crowding (the ratchet on SKILL bodies written to the 200-line cap).
+# Smoke tests for pc_hook_timeout (every hooks.json entry declares a timeout),
+# pc_skill_budget's byte edge (16,000 B; no line cap since 2026-11-16) and the
+# pc_plugin_corpus ratchet, in scripts/lib/plugin-checks.sh.
 #
-# BOTH ARE DEMONSTRATED FAILING ON PURPOSE, for the reason lanes-tests.sh states:
+# EACH IS DEMONSTRATED FAILING ON PURPOSE, for the reason lanes-tests.sh states:
 # a gate nobody has watched fail is indistinguishable from one that returns 0
-# unconditionally. Neither has a shipped violation to point at — the whole fleet
-# was brought clean in the same commit that added them — so these fixtures ARE
-# their entire enforcement record.
-#
-# The crowding ratchet gets a directional pair specifically: a check that only
-# ever fires upward must be shown NOT firing when the number falls, or "ratchet"
-# is a claim rather than a behaviour.
+# unconditionally. The corpus ratchet gets a directional pair: a check that only
+# ever fires upward must be shown NOT firing when the number falls.
 #
 # Two more checks joined them on 2026-09-22 and are exercised the same way:
 # pc_hook_shebang (a registered hook must start `#!/bin/bash`) and
@@ -73,45 +68,26 @@ rm -f "$FIX/ht/bar/hooks/hooks.json"
 run pc_hook_timeout "$FIX/ht"
 clean "plugin with no hooks.json is not a violation"
 
-# ------------------------------------------------------------ pc_budget_crowding
-# A body of N lines: the function counts lines AFTER the second '---'.
-mkskill() { # mkskill <dir> <body_lines>
-  mkdir -p "$FIX/bc/p/skills/$1"
-  { printf -- '---\nname: %s\n---\n' "$1"; seq "$2" | sed 's/^/line /'; } \
-    > "$FIX/bc/p/skills/$1/SKILL.md"
+# --------------------------------------------------------------- pc_skill_budget
+# mkskill <dir> <body_lines> <chars_per_line>: the body is the text AFTER the second '---'.
+mkskill() {
+  mkdir -p "$FIX/sb/$1"
+  { printf -- '---\nname: %s\n---\n' "$1"
+    for i in $(seq "$2"); do head -c "$(( $3 - 1 ))" /dev/zero | tr '\0' 'x'; echo; done; } > "$FIX/sb/$1/SKILL.md"
 }
-base() { printf '{"within_3_of_line_cap": %s}\n' "$1" > "$FIX/base.json"; }
-
-mkskill short 40
-mkskill crowded 199
-base 1
-run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-clean "count equal to baseline — passes"
-
-mkskill crowded2 200
-run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-fails "count above baseline — fails" "crowding 2 > 1"
-printf '%s\n' "$out" | grep -qF 'crowded2/SKILL.md (200)' \
-  && pass "names the crowded files" || bad "crowded file not named: $out"
-
-# Directional half: the ratchet must stay silent when the number FALLS.
-base 5
-run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-clean "count below baseline — passes (ratchet, not equality)"
-
-# 147 is under the 3-line window and must not count.
-rm -rf "$FIX/bc/p/skills/crowded" "$FIX/bc/p/skills/crowded2"
-mkskill edge 197
-base 0
-run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-clean "197-line body is outside the window"
-
-mkskill edge2 198
-run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-fails "198-line body is inside the window" "crowding 1 > 0"
-
-run pc_budget_crowding "$FIX/bc" "$FIX/does-not-exist.json"
-clean "missing baseline file is not a violation"
+# 160 lines of 100 bytes = exactly 16,000 B: the cap is inclusive.
+mkskill at-cap 160 100
+run pc_skill_budget "$FIX/sb/at-cap/SKILL.md"
+clean "a 16,000 B body passes"
+# One more line puts the body over.
+mkskill over-cap 161 100
+run pc_skill_budget "$FIX/sb/over-cap/SKILL.md"
+fails "a 16,100 B body fails on bytes" "bytes 16100"
+# 400 short lines: the line count is not gated, so this must stay clean. A re-added
+# line cap would turn this red, which is the point of keeping it.
+mkskill many-short 400 20
+run pc_skill_budget "$FIX/sb/many-short/SKILL.md"
+clean "400 lines of 8,000 B pass: no line cap"
 
 # ------------------------------------------------------------- pc_plugin_corpus
 # Corpus = the SKILL.md files under skills/. References, generated files and runtime assets do not count.
@@ -229,10 +205,6 @@ run pc_hook_timeout plugins
 clean "shipped tree: every hook entry declares a timeout"
 run pc_command_arg_hint plugins
 clean "shipped tree: every \$ARGUMENTS command declares an argument-hint"
-run pc_budget_crowding plugins scripts/skill-crowding-baseline.json
-clean "shipped tree: crowding at or below the committed baseline"
-
-
 run pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json
 clean "shipped tree: plugins over the corpus cap at or below the committed baseline"
 

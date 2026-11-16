@@ -104,14 +104,13 @@ for d in plugins/*/skills/*/ .claude/skills/*/; do
   fm_structural "$f" || continue
   if bud=$(pc_skill_budget "$f"); then :; else
     # "budget <path> <kind> <n> [:line]" -> one sentence naming the measure that
-    # bit, since there are now three and "over the ceiling" no longer says which.
+    # bit, since there are two and "over the ceiling" does not say which.
     bkind=$(printf '%s' "$bud" | awk '{print $3}')
     bval=$(printf '%s' "$bud" | awk '{print $4}')
     bwhere=$(printf '%s' "$bud" | awk '{print $5}')
     case "$bkind" in
-      lines)       err "$f: body is $bval lines, over the 200-line ceiling" ;;
-      bytes)       err "$f: body is $bval bytes, over the 14,000-byte ceiling — the line count stopped measuring growth, this is the replacement; move a section to references/" ;;
-      line-length) err "$f: body line $bwhere is $bval characters, over the 300-char ceiling — reflow it; a jammed subsection is how content grows under a frozen line count" ;;
+      bytes)       err "$f: body is $bval bytes, over the 16,000-byte ceiling — move a section to references/ and point to it" ;;
+      line-length) err "$f: body line $bwhere is $bval characters, over the 300-char ceiling — reflow it; prose here wraps at about 90" ;;
     esac
   fi
 done
@@ -669,10 +668,6 @@ if [ -n "$quote_gap" ]; then
     err "plugin-root-unquoted $qp: $qlocs — a runnable line runs an unquoted \${CLAUDE_PLUGIN_ROOT} path (as the command, or as an interpreter's script), so an install path holding a space splits it; quote it: \"\${CLAUDE_PLUGIN_ROOT}/…\""
   done < <(printf '%s\n' "$quote_gap" | awk '{ a[$2] = a[$2] (a[$2] == "" ? "" : " ") $3 } END { for (p in a) print p "\t" a[p] }' | sort)
 fi
-
-# A ratchet on how many SKILL bodies crowd the 200-line ceiling (pc_budget_crowding's header).
-crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
-[ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 200-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
 
 # A ratchet on plugins whose SKILL.md bodies together pass the per-plugin cap, the channel neither per-file budget sees (pc_plugin_corpus's header).
 corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || true

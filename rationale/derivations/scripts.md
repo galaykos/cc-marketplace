@@ -1663,6 +1663,7 @@ The skill budget skip also keys on the exact "missing frontmatter opener" and
 ```text
 Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
 name: + description:, and a body within the 200-line ceiling (no floor).
+[Editor's note 2026-11-16: the line ceiling is gone; the body budget is 16,000 B and 300 chars per line.]
 `.claude/skills/*/` — the repo's tracked PROJECT skills, where the authoring
 doctrine has lived since 2026-09-03 — is held to the same rules: a doctrine home
 outside every gate would be the "recorded" tier pretending to be "gate".
@@ -2204,6 +2205,9 @@ Corpus-level companion to the per-file SKILL budget: a ceiling authors write TO
 stops being a ceiling, and no per-file check can see that. Ratchet, not
 threshold — the reasoning is in pc_budget_crowding's header.
 ```
+
+Editor's note (2026-11-16): `pc_budget_crowding` and its baseline were removed with the line cap.
+Why: `rationale/derivations/scripts-lib.md` § pc_skill_budget, editor's note of the same date.
 
 ### Plugin corpus
 

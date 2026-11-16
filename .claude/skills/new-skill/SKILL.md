@@ -1,6 +1,6 @@
 ---
 name: new-skill
-description: Scaffold a SKILL.md — trigger-rich description, 200-line body cap.
+description: Scaffold a SKILL.md — trigger-rich description, 16,000-byte body cap.
 argument-hint: [skill-name] [purpose]
 disable-model-invocation: true
 ---
@@ -50,8 +50,8 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    - TODO: the tempting-but-wrong moves this skill exists to prevent.
    ```
 
-   Line-budget guidance: inside this marketplace the validator caps the body
-   (every line after the closing `---`) at 200 lines. There is no minimum —
+   Body-budget guidance: inside this marketplace the validator caps the body
+   (everything after the closing `---`) at 16,000 bytes. There is no minimum —
    stop when the rules are stated. If a section still needs depth, add real
    guidance — more rules, worked examples, edge cases, verification — never
    filler prose or blank-line padding. Project skills created elsewhere have
