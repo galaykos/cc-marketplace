@@ -429,53 +429,20 @@ log. Not seen: other gitignored files
 repos that are not submodules, a receipt written by hand; a suite that leaves new untracked files
 behind reads stale at once. **Gate** — `scripts/__tests__/check-receipt.test.sh`.
 
-## Mods (Claude Code ≥ 2.1.291)
+## No hooks module (since 0.60.0)
 
-Since 0.44.0 the plugin also ships a hooks module, `hooks/mods.ts`, listed under `modules`
-in `hooks/hooks.json` beside the classic hooks, which fire with or without it. Since 0.59.0 it
-carries one feature and hooks no tool call, so it does not stop Code Mode
-(`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`), which refuses an installed mod that checks tool calls.
-The run board, its status line, the `/task-board` pane and the `card_status` tool were removed
-in 0.59.0: the index is the run's one view, and `scripts/card-status.sh` writes a status cell.
+The plugin ships no mod: `hooks/hooks.json` lists only classic command hooks. Code Mode
+(`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod
+hooks a tool call or an agent spawn, and reads that from the module's source, so no switch inside
+a mod can let it start. The run board, its status line, the `/task-board` pane and the
+`card_status` tool went in 0.59.0 (the index is the run's one view; `scripts/card-status.sh`
+writes a status cell). The subagent model floors mod (`hooks/floors.ts`, `agent.spawn`) went in
+0.60.0, with its `CC_SPAWN_FLOOR` switch and `cc_spawn_floor` option.
 
-- **Subagent model floors** (`hooks/floors.ts`). A new spawn of an agent in
-  `role-floors.md`'s registry runs at no less than its floor, and one naming no model (or
-  `inherit`) runs at the session's model when that is a higher tier, so the main thread's
-  own dispatches are floored too, not only skill-mediated ones. It only raises: a fork, a
-  resumed agent (the host keeps the model it started on), an agent outside the registry, an
-  explicit model at or above the floor and a model of unknown family are left as given, and
-  no spawn is refused. A `Workflow` script's `agent()` is floored from CLI 2.1.300, the first
-  that applies a mod's model to it; 2.1.292 to 2.1.299 pass it through untouched, and older
-  CLIs never show it to the module. For a workflow agent, a model the session forces on
-  every subagent outranks the raise (per the host's 2.1.300 types, not measured). Whenever the tier changes, a
-  toast names the agent, what the dispatch asked for (a model, `inherit` or its pin) and
-  the model it runs on. The registry is read once, at the first spawn, and kept for the
-  session, so an edit to it mid-session is not seen; one that cannot be read or parsed is
-  logged once and every spawn passes through for the rest of the session. A spawn of an
-  agent from a plugin your organization installed by policy skips this module,
-  `allowManagedModsOnly` or not (per sec-default's docs, not measured). Off:
-  `CC_SPAWN_FLOOR=off` or the `/config` option `cc_spawn_floor`; the variable wins.
-- **CLI floor.** With mods off in the host or on a CLI below 2.1.287 no module loads; on
-  2.1.288-2.1.290 the module passes every call through; either way the classic hooks work
-  exactly as before. An organization that sets `allowManagedModsOnly` refuses the module
-  and leaves only the classic hooks (per the CLI's built-in sec-default mod documentation,
-  not measured).
-
-- **Counts** (since 0.49.0). One is added, in this plugin's own `$.store` (key `outcomes`),
-  to `floors.raised.<agent>` each time a spawn's tier is raised: counts only, never text, on
-  this machine only.
-  The marketplace repository's `scripts/mod-outcomes.sh` prints them. **Gate** for the
-  counting (`tests/floors.test.ts`, the shared kit's tests); what a count means is **recorded**.
-
-Residuals, stated:
-
-- **Fail-open.** A hook that errors passes the spawn through as if the module were absent:
-  it runs unfloored.
-- **Code Mode is unverified.** That a mod with no `tool.call` hook lets Code Mode start is read
-  from the host's docs, not measured here.
-
-Standing: **gate** — `tests/floors.test.ts` runs under `claude plugin test` in CI (the
-marketplace repository's `scripts/mod-tests.sh`), so a regression in a tested case fails the build.
+Residual, stated: `delegation-contracts/references/role-floors.md` is now read only by the
+skills and commands that dispatch through it. A main-thread dispatch that no skill mediates (a
+`Use PROACTIVELY` agent the model picks itself) runs at the agent's frontmatter pin or the
+session's model, and nothing raises it to its floor. Standing: **recorded**.
 
 ## Pairs well with
 

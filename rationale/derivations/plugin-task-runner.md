@@ -1777,3 +1777,18 @@ threshold of 8 cards is a choice, not a measurement. Side effect, not designed: 
 range run loses that prompt. The procedure page is overseer's `references/range-verify.md`; a plain run without
 overseer installed has the one paragraph in `task-execution/SKILL.md` and the lines in `run.md`.
 
+
+## plugins/task-runner/hooks/floors.ts (removed in 0.60.0)
+
+The subagent model floors mod hooked `agent.spawn` and raised a registry agent's spawn to its
+`role-floors.md` floor. On 2026-11-16, with task-runner 0.59.0 installed, CLI 2.1.325 printed
+"Code Mode (experimental) isn't available: it doesn't yet work with an installed mod (a plugin
+with JavaScript hooks) that checks tool calls" at an interactive start. The CLI's start-up check
+(`installedModChecksToolCallsAtStartup`) scans each installed mod's source for a hook on any of
+`tool.call`, `tool.check`, `agent.offer`, `agent.spawn`, `session.send` and the classic tool and
+permission events, and refuses one that cannot be scanned. With task-runner disabled through
+`--settings`, the same start reached the Code Mode opt-in dialog, with secret-scanning,
+skill-router and stack-scan mods still installed. Because the check reads source, a `/config`
+switch inside the mod could not let Code Mode start, so the mod was deleted rather than gated.
+What it closed, main-thread `Use PROACTIVELY` dispatch below its floor, is open again and
+recorded in `role-floors.md` § Residual.

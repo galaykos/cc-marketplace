@@ -2,10 +2,14 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.60.0 — 2026-11-16
+
+- **The subagent model floors mod is gone, so the plugin ships no mod.** Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.325) still refused to start with 0.59.0 installed: its start-up check reads each mod's source and refuses one that hooks `agent.spawn`, not only `tool.call`. Measured 2026-11-16: with every other marketplace plugin installed, Code Mode started once task-runner was disabled. Removed: `hooks/floors.ts`, `hooks/floors-core.ts`, `hooks/mods.ts`, `hooks/cc-kit.ts`, `tests/floors.test.ts`, `scripts/__tests__/floors-core.test.sh`, the `modules` entry, the `cc_spawn_floor` option and its lane row. `role-floors.md` still governs skill-mediated dispatch; a main-thread dispatch no skill mediates is no longer raised to its floor (recorded).
+
 ## 0.59.0 — 2026-11-16
 
 - **`scripts/card-status.sh` replaces the `card_status` tool.** `--index <00-INDEX.md> --card NN --to <status> [--reason R] [--detail D] [--children "NN NN"]` writes one status cell and refuses (exit 1, nothing written) what the tool refused: an unknown status or card, a park with no reason or a forecast for one, a reason other than `split` with no detail, a split naming no child, itself or a missing row, a split parent reopened before its children are done, a detail with a `|` or a line break. Two differences: it cannot refuse a subagent caller, and a second `in_progress` card is noted on stderr and still written. `/task-runner:run` step 3 and task-execution call it. Standing: gate where run — `scripts/__tests__/card-status.test.sh`, ported from `tests/status.test.ts`.
-- **The run board, its status line, the `/task-board` pane and the `card_status` tool are gone.** Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls; `hooks/board.ts` and `hooks/status.ts` both hooked them. Removed: `board.ts`, `board-core.ts`, `board-view.tsx`, `status.ts`, `status-core.ts`, `tests/board.test.ts`, `tests/status.test.ts`, `scripts/__tests__/board-core.test.sh`, the `types/` state contract and the options `cc_task_board`, `cc_task_board_pin` and `cc_card_status`. The index is the run's one view. The module keeps only the subagent model floors (`hooks/floors.ts`, `agent.spawn`), which hook no tool call.
+- **The run board, its status line, the `/task-board` pane and the `card_status` tool are gone.** Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls; `hooks/board.ts` and `hooks/status.ts` both hooked them. Removed: `board.ts`, `board-core.ts`, `board-view.tsx`, `status.ts`, `status-core.ts`, `tests/board.test.ts`, `tests/status.test.ts`, `scripts/__tests__/board-core.test.sh`, the `types/` state contract and the options `cc_task_board`, `cc_task_board_pin` and `cc_card_status`. The index is the run's one view. The module kept only the subagent model floors (`hooks/floors.ts`, `agent.spawn`), which hook no tool call.
 
 ## 0.58.0 — 2026-11-14
 
