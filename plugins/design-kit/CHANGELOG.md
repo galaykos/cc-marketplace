@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.19.0 — 2026-11-16
+
+- **`/design-kit:system` drafts a design contract.** For a repo target, a new step 4 writes `contract.json` beside `tokens.json` from the component inventory (the card or panel primitive as `surface`, its folder as `primitives`, layout files as `shell.owner`, the UI root as `scope`) and asks once to keep, edit or skip it. It never names a component the inventory did not find. Shape and readers: `skills/system/references/contract.md`. ui-ux 0.35.0's `contract-check` hook and its engineer and reviewer read it.
+- Standing: agent-graded (skill text); the file's readers are gated on their side.
+
 ## 0.18.1 — 2026-11-16
 
 - **`dk check` waits up to 30 s for a cold browser's first answer** (was 10 s, the default for every command). On CI runners a fresh Chrome took longer than 10 s to answer its first command in 2 of 3 runs, so the clean fixture read "the browser failed (no answer from the browser in time)" and nothing was checked. Later commands keep their own limits, and the whole run keeps its 60 s cap.

@@ -155,6 +155,13 @@ applying it (WCAG contrast and touch-target rules stay here).
   asks to change them; name any such change in the rationale. A decided line
   (`Copy voice:`, `Banned vocabulary:`) is not that ask, and step 5 does not
   outrank this bullet.
+- Design contract: when `.cc-artifacts/design-kit/design-system/contract.json` exists, every
+  panel, card or boxed section uses its `surface` component, never a `div` with `rounded` and
+  `border`; colours come from the theme's semantic tokens, never a raw palette class
+  (`bg-gray-100`) or an arbitrary hex/px value (`text-[13px]`); the `shell.owner` files draw the
+  frame, and a page fills its slot without `calc()` on header heights; tests find elements by
+  role, name or `data-test`, not visible chrome labels. Only `primitives` folders build surfaces
+  from raw markup. A line the contract forbids is fixed in the change or named with a reason.
 - Copy load: cut taglines, helper text and secondary labels from what this
   change builds or restyles; when a screen needs one to make sense, fix the
   hierarchy, grouping or primary label instead. Never cut an input's visible label, a format or constraint the

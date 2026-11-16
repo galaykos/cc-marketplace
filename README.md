@@ -154,6 +154,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_CONFIG_GUARD` | command-guard | on | Ask before a write that would weaken settings, hooks, manifests or lint and test config: on or off |
 | `CC_CONVENTIONS` | code-review | on | Name the convention configs and the CI command enforcing them at the first code write: on or off |
 | `CC_DB_GUARD` | database | on | Ask before a write that drops, truncates or mass-deletes data or takes a risky lock: on or off |
+| `CC_DESIGN_CONTRACT` | ui-ux | on | When the project declares .cc-artifacts/design-kit/design-system/contract.json, name UI lines an edit ad … |
 | `CC_DESIGN_KIT_PICK` | design-kit | on | Tell the session when an artboard picked on a design-kit board is waiting: on or off |
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |

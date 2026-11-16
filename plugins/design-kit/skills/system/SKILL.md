@@ -21,19 +21,24 @@ permission rule; it records the workshop state the other skills read).
    `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/system-extract.py" <target> --dry-run`
    and read the table. If two sources disagree on one token (two `primary`
    rows with different sources), ask the user which is canonical BEFORE the
-   full run, one question, and record the answer for step 5.
+   full run, one question, and record the answer for step 6.
 3. Full run + kit + server in one call: `dk.sh system <target> [--out DIR]`. It
    prints the summary line (tokens, components, sources), every `note:` line — the
    URL-mode "without running JavaScript" caveat is part of the answer, not noise —
    and `url=…/previews/kit.html`. Give the user that URL; the gallery at the base
    URL lists it too. If `.cc-artifacts/` is not in `.gitignore`, say so once; do not
    edit `.gitignore` unasked.
-4. Offer, with AskUserQuestion, exactly two options: "Append the `## Design system`
+4. Repo target only: draft `contract.json` beside `tokens.json` (shape and readers:
+   `references/contract.md`) from the component inventory: the card or panel primitive as
+   `surface`, its folder as `primitives`, the layout files as `shell.owner`, the UI source root
+   as `scope`. Show it and ask once (AskUserQuestion): keep it, edit a field, or skip it. Never
+   name a component the inventory did not find.
+5. Offer, with AskUserQuestion, exactly two options: "Append the `## Design system`
    block to CLAUDE.md so every artifact, design and deck starts from it" /
    "Leave CLAUDE.md alone — the block stays in .cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md
    (Recommended)". Append only on the first; if CLAUDE.md already has a
    `## Design system` heading, replace that section rather than adding a second.
-5. Close with the `## Not found` list from `DESIGN-SYSTEM.md` in one line each, so
+6. Close with the `## Not found` list from `DESIGN-SYSTEM.md` in one line each, so
    the user knows what the source does not define. Never fill a gap by hand.
 
 The other four skills run `dk.sh check` before they build and repeat its one line

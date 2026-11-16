@@ -21,7 +21,12 @@ Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practic
    (labels, contrast, focus states, keyboard reachability), responsive behavior,
    idiomatic use of the stack (no fighting the framework), and layout-tool fit
    (Grid for 2D, Flexbox for 1D).
-3. Flag copy that props up a layout — a tagline, helper text or secondary label the
+3. When `.cc-artifacts/design-kit/design-system/contract.json` exists, flag each added line that
+   builds a surface by hand (`rounded` + `border` on a `div`) instead of its `surface` component,
+   uses a raw palette class or an arbitrary hex/px value, or puts frame geometry (`calc()` on
+   header heights) in a page: `[convention]` medium, outside the contract's `primitives` folders.
+   Old lines the diff did not touch are not findings.
+4. Flag copy that props up a layout — a tagline, helper text or secondary label the
    screen needs to make sense — with the layout fix (hierarchy, grouping, a clearer
    primary label) as the remedy, never a rewording. Never flag an input's visible
    label, a format or constraint the field needs before input (WCAG 3.3.2), error
