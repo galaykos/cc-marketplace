@@ -16,7 +16,10 @@ expensive to change five files after the fact.
    config", "this file renders the list item". If the sentence needs "and", split the file.
 3. **Define the interfaces between units** before writing bodies: function signatures, the
    shape of data crossing a boundary, which side owns validation, what errors can cross the
-   boundary and how. This is the contract implementation must satisfy.
+   boundary and how. This is the contract implementation must satisfy. Where two units share
+   state, name its one writer, every state's exit and the lock order; name the existing code
+   each unit extends (grep first). In a taskmaster spec these become `## Shared state & invariants`
+   and `## Module map` (taskmaster grill `references/contracts.md`).
 4. **Sequence the work**: which files have no dependencies on the others (write/test first),
    which depend on those. This becomes your task order — see Split into tasks.
 5. **Only then write code**, file by file, against the interfaces you defined. If reality forces

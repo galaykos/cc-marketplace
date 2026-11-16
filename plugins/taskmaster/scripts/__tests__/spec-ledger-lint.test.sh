@@ -205,6 +205,8 @@ base='## Ambiguity ledger (final)
 - it works'
 mk dguided.md "# Spec
 Detail: guided
+## Shared state & invariants
+None: one card, no shared state
 $base"
 run_case "Detail: guided passes" 0 "" --spec "$tmp/dguided.md"
 mk dexact.md "# Spec
@@ -220,6 +222,58 @@ $base"
 run_case "no Detail line warns and passes" 0 "WARN no-detail" --spec "$tmp/dnone.md"
 set +e; quiet=$("$lint" --spec "$tmp/dguided.md" 2>&1); set -e
 [ -z "$quiet" ] && { printf 'PASS: a guided spec prints nothing\n'; pass=$((pass+1)); } || { printf 'FAIL: guided spec printed <%s>\n' "$quiet"; fail=$((fail+1)); }
+
+# 13) Shared state & invariants (grill references/contracts.md): a valid table or None: <reason> passes; a broken shape blocks; absent only warns
+inv_hdr='## Shared state & invariants
+| ID | Entity / flow | States & transitions | Writer(s) | Invariant | Error meaning |
+|---|---|---|---|---|---|'
+mk inv-ok.md "# Spec
+Detail: exact
+$inv_hdr
+| I1 | Order | draft → settled | OrderSettler | lock order Batch → Order | OrderLocked = retry |
+| I2 | Import poll | GET /imports/{id} | none (read-only) | a poll never enqueues work | 404 = stop polling |
+$base"
+run_case "invariants table with I<n> rows passes" 0 "" --spec "$tmp/inv-ok.md"
+set +e; quiet=$("$lint" --spec "$tmp/inv-ok.md" 2>&1); set -e
+[ -z "$quiet" ] && { printf 'PASS: a valid invariants table prints nothing\n'; pass=$((pass+1)); } || { printf 'FAIL: invariants table printed <%s>\n' "$quiet"; fail=$((fail+1)); }
+mk inv-none.md "# Spec
+Detail: exact
+## Shared state & invariants
+None:
+$base"
+run_case "None: with no reason blocked" 2 "invariants-shape: None: carries no reason" --spec "$tmp/inv-none.md"
+mk inv-id.md "# Spec
+Detail: exact
+$inv_hdr
+| 1 | Order | draft → settled | OrderSettler | lock order | retry |
+$base"
+run_case "row id not I<n> blocked" 2 "invariants-shape: row id is not I<n>" --spec "$tmp/inv-id.md"
+mk inv-dup.md "# Spec
+Detail: exact
+$inv_hdr
+| I1 | Order | a → b | A | x | y |
+| I1 | Batch | a → b | B | z | w |
+$base"
+run_case "duplicate invariant id blocked" 2 "invariants-shape: duplicate id I1" --spec "$tmp/inv-dup.md"
+mk inv-writer.md "# Spec
+Detail: exact
+$inv_hdr
+| I1 | Order | a → b |  | x | y |
+$base"
+run_case "row with an empty Writer(s) cell blocked" 2 "invariants-shape: row I1 lacks" --spec "$tmp/inv-writer.md"
+mk inv-empty.md "# Spec
+Detail: exact
+## Shared state & invariants
+TBD
+$base"
+run_case "section with neither None: nor rows blocked" 2 "invariants-shape: neither" --spec "$tmp/inv-empty.md"
+mk inv-case.md "# Spec
+Detail: exact
+## Shared State & Invariants
+None: one card, no shared state
+$base"
+run_case "a differently-cased section heading still reads its None: line" 0 "" --spec "$tmp/inv-case.md"
+run_case "no invariants section warns and passes" 0 "WARN no-invariants" --spec "$tmp/dexact.md"
 
 # 11) usage errors
 run_case "missing --spec is usage error" 3 "usage error" --line "x"

@@ -26,6 +26,11 @@ is your strongest finding.
    table, an ordering guarantee, a data shape, an auth context — that it never
    states? Grep for the thing: if the spec assumes `LedgerClient` or a `status`
    column exists, check whether it does. A wrong assumption is a shipped bug.
+   Attack `## Shared state & invariants` the same way: a state with no exit, an entity
+   two units write, a poll or GET that enqueues work, a lock taken in two orders, a
+   failure whose meaning producer and consumer would read differently. A multi-card spec
+   that touches shared state, jobs, polls or money with that section missing or `None:`
+   is a hole too.
 3. **Conflicting or underspecified requirements.** Do two decisions contradict each
    other? Is a success criterion not actually verifiable (no command, no observable
    outcome)? Does an ASSUMED row hide a real fork the spec treats as settled?

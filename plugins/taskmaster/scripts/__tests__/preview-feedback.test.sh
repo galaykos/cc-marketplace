@@ -438,7 +438,14 @@ print(" ".join((re.findall(r"data-vd-%s=\"([^\"]*)\"" % kind, tag) or ["-"])[0] 
   # Laid out 500 wide until the capture: a shift worked out before the resize is wrong for the 375 px page.
   got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 375 800 "#vd-c > .vd-content .vd-detail")" placed)"
   case "$got" in "375 800 0 whole below "*) ok ;; *) bad "shot keeps an element further down the page in the picture at 375 by 800" "want the header on the first row and frame C's whole outline below it, got $got" ;; esac
-  got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 640 400)" placed)"
+  # The noted table is made 1200 px tall: its natural height (190 px in CI's Chrome, over 214 locally) is a font metric, not a premise.
+  python3 - "$K/look-5.html" "$K/look-tall.html" <<'PY'
+import sys
+s = open(sys.argv[1]).read()
+i = s.index('<table class="vd-table">', s.index('id="vd-a"'))
+open(sys.argv[2], "w").write(s[:i] + '<table class="vd-table" style="height:1200px">' + s[i + len('<table class="vd-table">'):])
+PY
+  got="$(shot_facts "$(noted look-tall.html Neutral Soft Sans light 640 400)" placed)"
   case "$got" in "640 400 0 top below "*) ok ;; *) bad "shot shows the top of an element taller than the room under the header" "want the outline's top edge below the header and its bottom edge past the PNG's end, got $got" ;; esac
   # At 320 by 480 the header is over 55% of the window and scrolls away with the page: frame C's content fits the picture only when no room is kept for it.
   got="$(shot_facts "$(noted look-5.html Neutral Soft Sans light 320 480 "#vd-c > .vd-content")" placed)"

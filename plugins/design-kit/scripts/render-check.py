@@ -29,6 +29,7 @@ _spec.loader.exec_module(m)
 TOTAL_S = 60  # the whole run, every width: one deadline every read honours
 LOAD_S = 10  # one page's load event
 CHECK_S = 15  # check.js, from the load event to its answer
+START_S = 30  # the first answer, a cold browser starting: CI runners took over 10 s (2 of 3 runs, 2026-11-16)
 SHOT_MAX_H = 6000
 PIXEL = 10  # a pixel counts as changed when a channel moves by more than this (dk review's threshold)
 # A dead proxy for everything but loopback (it wins over any proxy in the environment), no name resolution, no WebRTC UDP that skips the proxy.
@@ -174,7 +175,7 @@ class Chrome:
 
     def call(self, method, params=None, session=None, timeout=10.0, last=False):
         want = self.send(method, params, session)
-        deadline = time.monotonic() + timeout
+        deadline = time.monotonic() + (timeout if self.answered else max(timeout, START_S))
         if not last:
             deadline = min(deadline, self.deadline)
         while True:

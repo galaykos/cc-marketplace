@@ -12,6 +12,10 @@
 #                   a dash, a "?").
 #   no-criteria   : spec has no `## Success criteria` section.
 #   bad-detail    : a `Detail:` line whose value is not guided or exact.
+#   invariants-shape : a `## Shared state & invariants` section that is neither one
+#                   `None: <reason>` line nor a table whose rows carry a unique I<n> id,
+#                   six cells and a non-empty Writer(s) and Invariant (grill references/contracts.md).
+#   (WARN, exit 0) no-invariants: no `## Shared state & invariants` section at all.
 #   (WARN, exit 0) no-detail: no `Detail:` line; task-cards then cuts exact cards, today's default.
 #
 # CLI:
@@ -110,6 +114,34 @@ if grep -qE '^(\*\*)?Detail:' "$spec"; then
   case "$detail" in guided|exact) ;; *) violation "bad-detail: 'Detail:' is '${detail}' — grill writes exactly guided or exact" ;; esac
 else
   printf 'spec-ledger: WARN no-detail: no Detail: guided|exact line — task-cards will cut exact cards; grill asks this every run\n' >&2
+fi
+
+# Shared state & invariants (grill references/contracts.md): absent only warns, so a spec written before the section existed still converts.
+inv=$(awk '
+  tolower($0) ~ /^##+[[:space:]]+shared state/ { grab=1; next }
+  grab && /^##[^#]/ { exit }
+  grab { print }
+' "$spec")
+if grep -qEi '^##+[[:space:]]+Shared state' "$spec"; then
+  bad=$(printf '%s\n' "$inv" | awk '
+    /^[[:space:]]*(\*\*)?None:/ { none = 1; line = $0; sub(/^[[:space:]]*(\*\*)?None:(\*\*)?[[:space:]]*/, "", line); if (line !~ /[[:alnum:]]/) print "None: carries no reason"; next }
+    /^\|/ {
+      line = $0; sub(/^[[:space:]]*\|/, "", line); sub(/\|[[:space:]]*$/, "", line); gsub(/\\\|/, "\001", line)
+      n = split(line, f, "|")
+      for (i = 1; i <= n; i++) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", f[i]); gsub(/\001/, "|", f[i]) }
+      if (!hdr) { hdr = 1; for (i = 1; i <= n; i++) { h = tolower(f[i]); if (h == "invariant") ci = i; if (h ~ /^writer/) cw = i }
+                  if (!ci || !cw || n < 6) print "header needs six columns incl. Writer(s) and Invariant: " $0; next }
+      if (f[1] ~ /^:?-+:?$/) next
+      rows++
+      if (f[1] !~ /^I[0-9]+$/) { print "row id is not I<n>: " $0; next }
+      if (f[1] in seen) print "duplicate id " f[1]
+      seen[f[1]] = 1
+      if (n < 6 || f[ci] !~ /[[:alnum:]]/ || f[cw] !~ /[[:alnum:]]/) print "row " f[1] " lacks six cells or an empty Writer(s)/Invariant"
+    }
+    END { if (!none && !rows) print "neither a None: <reason> line nor any data row" }' | head -1)
+  [ -z "$bad" ] || violation "invariants-shape: ${bad} — see grill references/contracts.md"
+else
+  printf 'spec-ledger: WARN no-invariants: no ## Shared state & invariants section — a multi-card spec writes one, or `None: <why>` (grill references/contracts.md)\n' >&2
 fi
 
 record_run pass

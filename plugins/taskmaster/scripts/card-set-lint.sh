@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# card-set-lint.sh — author-time lint across ONE card set: a <depends-on> naming no card or itself, a dependency cycle, an <interface consumer="Y"> whose card Y is missing or does not depend (directly or through others) on the producer, and a card that edits or verifies a path a sibling creates without depending on that sibling. Exit 2 with one `card-set: <reason>: <detail>` line per finding on stderr, 0 clean, 3 usage.
-# Misses: a dependency the cards never declare (an import named only in prose), an interface written as prose outside <interface>, a path built from a variable or glob, ordering the index table overrides by hand, a create-order gap on a path already on disk (its creator ran); no lint record is written, so card-lint-observe cannot see that it ran.
+# card-set-lint.sh — author-time lint across ONE card set: a <depends-on> naming no card or itself, a dependency cycle, an <interface consumer="Y"> whose card Y is missing or does not depend (directly or through others) on the producer, a card that edits or verifies a path a sibling creates without depending on that sibling, and an <invariant> whose id the spec's `## Shared state & invariants` lacks or whose text differs from that row's Invariant cell (spec path from --spec or 00-INDEX.md; WARN for a spec invariant no card cites). Exit 2 with one `card-set: <reason>: <detail>` line per finding on stderr, 0 clean, 3 usage.
+# Misses: a card that touches shared state but cites no <invariant>; a dependency the cards never declare (an import named only in prose), an interface written as prose outside <interface>, a path built from a variable or glob, ordering the index table overrides by hand, a create-order gap on a path already on disk (its creator ran); no lint record is written, so card-lint-observe cannot see that it ran.
 # Why, limits, history: rationale/derivations/plugin-taskmaster.md § plugins/taskmaster/scripts/card-set-lint.sh
 set -uo pipefail
 
 PROG=card-set-lint
-usage() { printf '%s: usage: %s --dir <cards dir>\n' "$PROG" "$PROG" >&2; exit 3; }
+usage() { printf '%s: usage: %s --dir <cards dir> [--spec <spec.md>]\n' "$PROG" "$PROG" >&2; exit 3; }
 
-dir=""
+dir=""; spec=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dir) [ $# -ge 2 ] || usage; dir=$2; shift 2 ;;
+    --spec) [ $# -ge 2 ] || usage; spec=$2; shift 2 ;;
     -h | --help) usage ;;
     *) usage ;;
   esac
@@ -53,6 +54,12 @@ for f in "$dir"/[0-9]*.md; do
   while IFS= read -r p; do
     [ -n "$p" ] && ! on_disk "$p" && add "use	$id	$p"
   done < <(grep -oE '<file[^>]*>' "$f" | grep -E 'mode="edit"' | sed -nE 's/.*path="([^"]+)".*/\1/p' | sort -u)
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    iid=$(printf '%s' "$l" | sed -nE 's/^<invariant id="([^"]+)">.*/\1/p')
+    itx=$(printf '%s' "$l" | sed -nE 's#^<invariant id="[^"]+">(.*)</invariant>.*#\1#p')
+    [ -n "$iid" ] && add "inv	$id	$iid	$itx"
+  done < <(grep -E '^<invariant id=' "$f")
   vline=$(grep -m1 -oE '<verify>.*</verify>' "$f" | sed -e 's/<verify>//' -e 's#</verify>##')
   if [ -n "$vline" ]; then
     while IFS= read -r p; do
@@ -107,6 +114,43 @@ hits=$(printf '%s' "$facts" | awk -F'\t' '
       if (!own && !ok) printf "card-set: create-unordered: card %s (%s) uses %s, which card %s creates, without depending on it\n", u, card[u], q, cs[1]
     }
   }' | sort -u)
+
+# Invariants: each card's <invariant> against the spec's `## Shared state & invariants` table.
+if [ -z "$spec" ] && [ -f "$dir/00-INDEX.md" ]; then
+  spec=$(grep -oE '[^][ ()`"'"'"'<>|]*specs/[^][ ()`"'"'"'<>|]*\.md' "$dir/00-INDEX.md" | head -1)
+fi
+if [ -n "$spec" ] && [ ! -f "$spec" ]; then
+  for c in "$root/$spec" "$dir/$spec"; do [ -f "$c" ] && { spec=$c; break; }; done
+fi
+invs=$(printf '%s' "$facts" | grep -E '^inv	' || true)
+if [ -n "$spec" ] && [ -f "$spec" ]; then
+  rows=$(awk '
+    tolower($0) ~ /^##+[[:space:]]+shared state/ { grab = 1; next }
+    grab && /^##[^#]/ { exit }
+    grab && /^\|/ {
+      line = $0; sub(/^[[:space:]]*\|/, "", line); sub(/\|[[:space:]]*$/, "", line); gsub(/\\\|/, "\001", line)
+      n = split(line, f, "|")
+      for (i = 1; i <= n; i++) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", f[i]); gsub(/\001/, "|", f[i]) }
+      if (!hdr) { hdr = 1; for (i = 1; i <= n; i++) if (tolower(f[i]) == "invariant") col = i; next }
+      if (col && f[1] ~ /^I[0-9]+$/) printf "spec\t%s\t%s\n", f[1], f[col]
+    }
+    END { if (hdr && !col) print "nocol" }' "$spec")
+  more=$(printf '%s\n%s\n' "$rows" "$invs" | awk -F'\t' '
+    function norm(x) { gsub(/\\\|/, "|", x); gsub(/[[:space:]]+/, " ", x); gsub(/^ | $/, "", x); return x }
+    $1 == "nocol" { nocol = 1; print "card-set: invariant-header: the spec'"'"'s Shared state & invariants table has no Invariant column, so no card can be checked against it"; next }
+    $1 == "spec" { want[$2] = norm($3); order[++ns] = $2; next }
+    $1 == "inv"  { cited[$3] = 1
+      if (nocol) next
+      if (!($3 in want)) printf "card-set: invariant-unknown: card %s cites %s, which the spec'"'"'s Shared state & invariants table does not hold\n", $2, $3
+      else if (norm($4) != want[$3]) printf "card-set: invariant-drift: card %s copies %s as \"%s\" but the spec row says \"%s\"\n", $2, $3, norm($4), want[$3]
+    }
+    END { for (i = 1; i <= ns; i++) if (!(order[i] in cited)) printf "card-set: WARN invariant-orphan: spec invariant %s is cited by no card\n", order[i] }')
+  hits=$(printf '%s\n%s\n' "$hits" "$(printf '%s\n' "$more" | grep -v ': WARN ' || true)" | sed '/^$/d')
+  warns=$(printf '%s\n' "$more" | grep ': WARN ' || true)
+  [ -n "$warns" ] && printf '%s\n' "$warns" >&2
+elif [ -n "$invs" ]; then
+  printf '%s: NOTE cards cite <invariant> but no spec was found (--spec, or a specs/*.md path in 00-INDEX.md) — invariants unchecked\n' "$PROG" >&2
+fi
 
 if [ -n "$hits" ]; then
   printf '%s\n' "$hits" >&2

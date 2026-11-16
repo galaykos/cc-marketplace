@@ -15,6 +15,13 @@ earns its place at authoring time only, via the **gate** rows (why:
 | each `<facts>` `<file>` has `mode`; `mode="edit"` has `line` | **gate** — `file-mode` / `file-line` |
 | each `<must-not>` element has a non-empty `reason` | **gate** — `must-not-reason` |
 | every `<interface>` has `consumer` | **gate** — `interface-consumer` |
+| every `<interface>` has `kind` from `payload event factory state route component signature` | **gate** — `interface-kind` |
+| every `<reuse>` has a non-empty `path` and `symbol` | **gate** — `reuse-shape` |
+| every `<invariant>` has `id="I<n>"` and opens and closes on one line | **gate** — `invariant-id` |
+| a `<reuse>` path exists (or a sibling card creates it) / its `symbol` appears in that file | **gate** / **WARN** — `card-paths-lint.sh` `reuse-missing` / `reuse-symbol` |
+| an `<invariant>` id exists in the spec's `## Shared state & invariants` and its text equals that row's Invariant cell | **gate** — `card-set-lint.sh` `invariant-unknown` / `invariant-drift` (spec path read from `00-INDEX.md`; no spec found → NOTE, unchecked) |
+| a spec invariant no card cites | **WARN** — `card-set-lint.sh` `invariant-orphan` |
+| a card that touches shared state carries its `<invariant>`; the `<reuse>` is the right code to extend | **agent-graded** — spec-redteam and the reviewer; no lint knows what a diff will touch |
 | every `<skill>` has `name` | **gate** — `skill-name` |
 | `<agent>` value is in the closed vocabulary | **gate** — `agent-vocabulary`, list read from `agent-tags.md` at run time |
 | the `<verify>` text names an assertion | **gate** — `verify-teeth-lint.sh` |
@@ -34,7 +41,7 @@ earns its place at authoring time only, via the **gate** rows (why:
 | a `reason` is true; the `<change>` is the right change | **agent-graded** — spec-redteam and the reviewer |
 | the lints ran at all | **recorded + observed** — `hooks/card-lint-observe.sh` warns once per run (main thread) on a card with no record |
 
-`<file>`, `<interface>`, `<skill>`, `<verify>`, `<walk>`, `<agent>` are one per line — the
+`<file>`, `<interface>`, `<reuse>`, `<invariant>`, `<skill>`, `<verify>`, `<walk>`, `<agent>` are one per line — the
 scripts grep them. `<change>`, `<current>`, `<target>`, `<criterion>`, `<rule>` may span lines.
 
 ## Legacy cards

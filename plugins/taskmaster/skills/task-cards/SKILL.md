@@ -29,11 +29,13 @@ decided about each sentence, attributes carry the evidence. Standing of every ru
 <current>quote what exists today</current>
 <target>what exists after this card</target>
 <convention>service classes live in `app/Services`</convention>
+<reuse path="app/Support/Money.php" symbol="Money::sum">totals already round half-even here</reuse>
 </facts>
 
 <must>
 <change>exact edits at file level — create X, extract Y into Z, wire A to B</change>
-<interface consumer="04">the signature or data shape card 04 reads</interface>
+<interface consumer="04" kind="signature">the signature or data shape card 04 reads</interface>
+<invariant id="I2">the spec row's Invariant cell, verbatim</invariant>
 <contract section="Data Model"/>
 <skill name="laravel:laravel-best-practices"/>
 </must>
@@ -89,8 +91,8 @@ at both levels, and each known-bug criterion lands on the card building that kin
 - Every `<file>` names its `mode`; an edited file names its `line`. The shape lint
   refuses a bare path — the executor trusts the card, not its memory of the repo.
 - Quote current behavior rather than describing it from memory.
-- Signatures and data shapes crossing card boundaries go in `<interface>`, with the
-  reading card in `consumer`; two cards that each "know" half will disagree.
+- Shapes crossing card boundaries go in `<interface>` (`consumer`, `kind`): two cards that each "know" half
+  disagree. A spec invariant the card touches is copied as `<invariant id>`; its module's map rows as `<reuse>`.
 - A card touching a binding spec section — `## Data Model`, `## Visual contract` —
   carries `<contract section="…"/>` and conforms; deviation needs re-approval.
 - Cards implement the spec's chosen approach and respect its kill-trigger; a card that
@@ -191,10 +193,8 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
 ## Anti-patterns
 
-- Cards that only make sense in conversation order; hidden dependencies (card 04 quietly assumes card 02's helper → `<depends-on>`).
-- Criteria that restate the diff ("function X exists") instead of behavior.
-- A `<must-not>` whose `reason` restates the prohibition ("do not touch: out of scope").
-  The lint sees a non-empty attribute; only a reader sees an empty one.
+- Cards that only make sense in conversation order; hidden dependencies (card 04 quietly assumes card 02's helper → `<depends-on>`); criteria that restate the diff ("function X exists") instead of behavior.
+- A `<must-not>` whose `reason` restates the prohibition: the lint sees a non-empty attribute, a reader an empty one.
 - A "misc cleanup" card (leftovers become real cards or non-goals); splitting below verifiability.
 - Duplicating the whole spec into every card. Context is what THIS card needs.
 - Status inside a card — it lives only in `00-INDEX.md`, so cards stay re-runnable verbatim.
