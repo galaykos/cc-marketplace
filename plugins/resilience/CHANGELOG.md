@@ -8,6 +8,11 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.9.1 — 2026-11-16
+
+- **`observability-engineer` and `performance-engineer` check before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.
+- Standing: agent-graded (agent text; no harness reads a worker's return).
+
 ## 0.9.0 — 2026-11-08
 
 - **`/resilience:review` prints a diff risk score before a diff review.** New `scripts/diff-risk.sh [--dir D] [--base REF] [--since DATE] [--json]` scores each file the change touches (merge-base to working tree, plus untracked files) from its git history up to the base. A revert is 3, a fix is 2, and a revert or fix within 14 days of the file's previous commit adds 1. It lists the top files with the commits behind each score and one overall line. One `git log` per run. Commit subjects are printed as text, never run; control bytes show as `?`.

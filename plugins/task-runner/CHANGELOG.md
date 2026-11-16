@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.61.0 — 2026-11-16
+
+- **`task-executor` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer. The analyzer run is per task, in addition to the full suite at the end; three new lines in its finishing checklist.
+- Standing: agent-graded (agent text; no harness reads a worker's return).
+
 ## 0.60.0 — 2026-11-16
 
 - **The subagent model floors mod is gone, so the plugin ships no mod.** Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.325) still refused to start with 0.59.0 installed: its start-up check reads each mod's source and refuses one that hooks `agent.spawn`, not only `tool.call`. Measured 2026-11-16: with every other marketplace plugin installed, Code Mode started once task-runner was disabled. Removed: `hooks/floors.ts`, `hooks/floors-core.ts`, `hooks/mods.ts`, `hooks/cc-kit.ts`, `tests/floors.test.ts`, `scripts/__tests__/floors-core.test.sh`, the `modules` entry, the `cc_spawn_floor` option and its lane row. `role-floors.md` still governs skill-mediated dispatch; a main-thread dispatch no skill mediates is no longer raised to its floor (recorded).

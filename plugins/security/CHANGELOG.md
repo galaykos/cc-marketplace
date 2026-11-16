@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.6; earlier versions have no entries rather than invented ones.
 
+## 0.13.1 — 2026-11-16
+
+- **`security-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.
+- Standing: agent-graded (agent text; no harness reads a worker's return).
+
 ## 0.13.0 — 2026-11-14
 
 - **The write scan's marker with no plugin data dir moves to `.cc-artifacts/security/`** (was `.claude/security/`), through the shared plugin-state block in `hooks/write-scan.sh`. It starts fresh: the first Bash call after the upgrade only sets the marker.
