@@ -1,5 +1,5 @@
 # cite.sh — sourced, never run, by hooks/gate.sh (clauses 1 and 6) and scripts/candor-scan.sh: one citation lookup. cite_extract: stdin filter printing each file:line once, sorted, with URLs, versions, times, host:port and elided paths dropped.
-# cite_miss <file:line> <root> <cwd>: prints why a citation does not resolve, nothing when it does or cannot be decided; cite_file <path> <root> <cwd>: the file one names. Misses a name like .env.local:3, a file only under dist, build or .venv or past the depth caps (read as missing), a wrong line in a shared basename, a wrong directory with a unique one.
+# cite_miss <file:line> <root> <cwd>: prints why a citation does not resolve, nothing when it does or cannot be decided; cite_file <path> <root> <cwd>: the file one names. Misses a name like .env.local:3, a file only under dist, build or .venv or past the depth caps (read as missing), a basename that also exists in the installed plugins (undecidable), a wrong line in a shared basename, a wrong directory with a unique one.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/cite.sh
 
 # Shared block templates/blocks/quote-match.md — edit there, re-paste byte-for-byte.
@@ -86,6 +86,9 @@ cite_file() {
       if [ "$n" -eq 0 ]; then
         # A basename found only under node_modules or vendor is real but undecidable.
         [ -n "$(find "$root/node_modules" "$root/vendor" -maxdepth 6 -name "${p##*/}" -print -quit 2>/dev/null)" ] && return 2
+        # So is one only in the installed plugins (cache and marketplace clones): a turn reads skills and agents there.
+        [ -n "$(find "${CLAUDE_CONFIG_DIR:-${HOME:-/nonexistent}/.claude}/plugins" -maxdepth 9 \( -name node_modules -o -name .git \) -prune \
+          -o -name "${p##*/}" -type f -print -quit 2>/dev/null)" ] && return 2
         return 1
       fi
       [ "$n" -eq 1 ] || return 2

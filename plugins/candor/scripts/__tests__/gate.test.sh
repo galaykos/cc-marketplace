@@ -18,6 +18,8 @@ unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA
 export TMPDIR="$WS/tmp"; mkdir -p "$TMPDIR"
 PREAMBLE="$ROOT/plugins/candor/hooks/preamble.sh"
 CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"
+# The installed-plugins lookup reads $CLAUDE_CONFIG_DIR/plugins: point it at a fixture, never at the real ~/.claude.
+export CLAUDE_CONFIG_DIR="$WS/cfg"; mkdir -p "$CLAUDE_CONFIG_DIR/plugins"
 MARKER="$CWD/.cc-artifacts/candor/last"
 CLAIMED="$CWD/.cc-artifacts/candor/blocked"
 
@@ -142,6 +144,12 @@ T="$WS/c20.jsonl"; { user "where"; asst "The admin panel runs on shop.localhost:
 check "a .localhost / .test host:port is not a citation" "" "$T" 0 "__NONE__"
 T="$WS/c21.jsonl"; { user "where"; asst "The handler is in Invented.php:12."; } > "$T"
 check "an invented basename still blocks beside a vendor/ tree" "" "$T" 2 "no file named Invented.php found under"
+# A turn reads plugin skills and agents from the install cache, outside the project: four such citations were read as invented.
+mkdir -p "$CLAUDE_CONFIG_DIR/plugins/cache/mkt/code-review/0.38.0/agents"; printf 'l\n%.0s' $(seq 40) > "$CLAUDE_CONFIG_DIR/plugins/cache/mkt/code-review/0.38.0/agents/code-reviewer.md"
+T="$WS/c22.jsonl"; { user "where"; asst "The rule is in code-reviewer.md:28."; } > "$T"
+check "a basename only in the installed plugins is not invented, passes" "" "$T" 0 "__NONE__"
+T="$WS/c23.jsonl"; { user "where"; asst "The rule is in code-revieweer.md:28."; } > "$T"
+check "a basename in neither the project nor the plugins still blocks" "" "$T" 2 "no file named code-revieweer.md found under"
 # The lookup is sourced from hooks/cite.sh: without it the citation clause stands down, the gate still exits 0.
 mkdir -p "$WS/lone"; cp "$HOOK" "$WS/lone/gate.sh"
 rm -f "$MARKER" "$CLAIMED"; gate "" "$(payload "$T")" "$WS/lone/gate.sh"
@@ -293,6 +301,17 @@ T="$WS/b9.jsonl"; { user "add the parser"; bashc "cat > src/x.py <<'EOF' && echo
 check "bash write: an echo after the write in one command is not a run"             "" "$T" 2 "$EVID_SUB"
 T="$WS/b10.jsonl"; { user "fix it"; bashc "python3 -m pytest -q && sed -i 's/a/b/' src/real.ts"; tres; asst "Fixed."; } > "$T"
 check "bash write: a run before the write in one command does not clear it"         "" "$T" 2 "$EVID_SUB"
+
+# A task-runner scope file written after the last run is run state, neither an edit nor a run (four false blocks in one reviewed run).
+SCOPE_W="printf '%s\n' '{\"allow\":[\"src/a.ts\"]}' > .claude/task-runner/scope-18.json"
+T="$WS/b11.jsonl"; { user "next card"; tools Edit; tres; bashc "python3 -m pytest -q"; tres; bashc "$SCOPE_W"; tres; asst "Card 11 is committed, so all M2 cards are done."; } > "$T"
+check "state write: a scope file written after the run does not arm the claim"     "" "$T" 0 "__NONE__"
+T="$WS/b12.jsonl"; { user "next card"; tools Edit; tres; bashc $'cat > .cc-artifacts/task-runner/scope-54.json <<\'EOF\'\n{"allow":[]}\nEOF'; tres; asst "Done — card 53 is in."; } > "$T"
+check "state write: nor does it count as the run an edit is owed"                  "" "$T" 2 "$EVID_SUB"
+T="$WS/b13.jsonl"; { user "next card"; tools Edit; tres; bashc "python3 -m pytest -q"; tres; jq -cn '{type:"assistant",message:{content:[{type:"tool_use",name:"Write",input:{file_path:"/r/.cc-artifacts/task-runner/scope-2.json",content:"{}"}}]}}'; tres; asst "Done."; } > "$T"
+check "state write: a Write into .cc-artifacts/ after the run passes"              "" "$T" 0 "__NONE__"
+T="$WS/b14.jsonl"; { user "next card"; tools Edit; tres; bashc "python3 -m pytest -q"; tres; bashc "printf x > .cc-artifacts/task-runner/s.json && sed -i 's/a/b/' src/real.ts"; tres; asst "Done."; } > "$T"
+check "state write: a source write chained after it still blocks"                  "" "$T" 2 "$EVID_SUB"
 
 
 if command -v git >/dev/null 2>&1; then
@@ -513,6 +532,17 @@ if command -v git >/dev/null 2>&1; then
   verdict_is "in flight: a present background_tasks with no worker outranks a stale record (killed agent)" \
     "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
   rm -f "$(rec_of agentKilled)"
+
+  # A background Bash running a check is in flight too: probed on CLI 2.1.325, a worker that ends its turn leaves only its shell listed.
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" '[{"id":"b2","type":"shell","status":"running","description":"Run the full suite","command":"php artisan test --compact"}]')"
+  verdict_is "in flight: a running background shell running tests suppresses the block" \
+    "$([ "$rc" = 0 ] && printf '%s' "$err" | grep -qF "$WAIT_SUB"; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" '[{"id":"b3","type":"shell","status":"running","description":"Sleep for 60 seconds in background"},{"id":"b4","type":"shell","status":"completed","command":"vendor/bin/phpunit"}]')"
+  verdict_is "in flight: a sleep, or a finished test shell, is not in flight" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
+  clear_rr; run_hook "$HOOK" "$(stop_json "$RR" "$CLEAN" '[{"id":"b5","type":"shell","status":"running","command":"npm run dev"}]')"
+  verdict_is "in flight: a background dev server is not a check" \
+    "$([ "$rc" = 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; echo $?)"
 
   # task-runner's behavioral gate in background Bash records its PID, then the HEAD it tests, in bg/running.pid.
   # Named like the gate: with /proc the hook checks the recorded PID's command line, not only that it is live.

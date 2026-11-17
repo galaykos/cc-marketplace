@@ -2,6 +2,13 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.14.1 — 2026-11-17
+
+- **Clause 4 waits for a background check, not only a background agent.** The host lists a background Bash job as `type: "shell"` (probed on CLI 2.1.325), and a worker that ends its turn while its own suite runs leaves only that shell listed. Clause 4 counted only `subagent` and `teammate`, so it blocked "waiting for the worker" stops. A running shell now counts when its command or description names a check (test, suite, phpunit, pest, phpstan, lint…); a dev server or a sleep still does not. In one reviewed run, 7 of 13 "no recorded gate pass" blocks came while a worker's or the orchestrator's suite was running.
+- **Clause 3 ignores writes to plugin run state.** A task-runner scope file written after the last run (`printf … > .claude/task-runner/scope-18.json`, or a heredoc into `.cc-artifacts/`) counted as an edit with nothing run after it, so a reply saying the work items were done and committed was sent back 4 times in one run. Such a write is now neither the edit nor the run; a source write chained to it still arms the clause.
+- **Clause 1 does not call a plugin file invented.** A basename found only in the installed plugins (`$CLAUDE_CONFIG_DIR/plugins`, default `~/.claude/plugins`) counts as real but is not line-checked, like one under `node_modules/`. Four citations of plugin agents and commands were blocked as fabricated.
+- Standing: gate (`gate.test.sh`, 9 new cases; the 4 that pass a stop fail against 0.14.0).
+
 ## 0.14.0 — 2026-11-16
 
 - **The hint-line badge module is gone; candor ships no mod.** `hooks/badge.ts`, its `cc-kit.ts`, `tests/badge.test.ts`, the `modules` entry and the `cc_terse_badge` / `CC_TERSE_BADGE` option were removed. Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls, and the badge hooked every main-loop Bash call to refresh. The same `[TERSE:LEVEL]` badge stays available as a `statusLine` command, `scripts/statusline.sh` (or `.ps1`), which you wire in yourself. Standing: the `.sh` badge stays `gate` (`level-sources.test.sh`).
