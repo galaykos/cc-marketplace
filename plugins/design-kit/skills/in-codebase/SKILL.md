@@ -1,6 +1,6 @@
 ---
 name: in-codebase
-description: Use when a design must be rendered with the project's OWN components on its OWN dev server — from a brief, a board, or a Claude Design handoff bundle (a folder of exported .html plus a README) — instead of restyled from a screenshot or export. Detects the stack, stands up a marked scratch entry, imports real components, measures token drift, and removes every trace after the pick.
+description: Use when a design must be rendered with the project's OWN components on its OWN dev server — from a brief, a board, or a Claude Design handoff bundle (a folder of exported .html plus a README) — instead of restyled from a screenshot or export. Detects the stack, stands up a marked scratch entry, imports real components, measures token drift, and removes every trace once the pick is final.
 argument-hint: "[brief | board.html#board=N | <handoff-bundle-dir>]"
 ---
 
@@ -31,15 +31,14 @@ Resolve the argument first:
 
 Then, in order: `dk.sh scratch --detect`; consent via AskUserQuestion once per session —
 say what the choice buys before offering it: the scratch entry is a few throwaway files
-written into the project tree under `__design-kit__/` paths and removed after the pick, so
+written into the project tree under `__design-kit__/` paths and removed once the pick is final, so
 the design renders on the project's own dev server with its own components. Labels:
 "Write the scratch entry (Recommended)" / "Show me the plan only". No write before the
 first is chosen. Then
 `dk.sh scratch --create <slug> --brief "<one line>"` (the brief seeds the variant strip; omitted, the workshop's brief is used); fill only the printed files with real components;
 `dk.sh drift <the files the scratch page added>`, fixing each hit with its token; open the
-printed URL; iterate, re-running drift after each change; after the pick `dk.sh scratch --cleanup` then
-`dk.sh scratch --verify`, unless the user says keep — then say in one line that
-`__design-kit__` paths remain. Record what rendered the pick:
+printed URL; iterate, re-running drift after each change; after the pick, clean up only as procedure step 6
+says. Record what rendered the pick:
 `dk.sh decision --record "<board/brief>, artboard N, components: …, gaps: …"`.
 
 Reply with: the stack detected, the components and variants used, the drift table
@@ -121,7 +120,7 @@ Two entry shapes, one procedure:
    row (adopt / map to nearest / leave as a gap). `references/handoff-bundle.md`
    says what to read in the bundle and what to ignore.
 3. Consent, once per session (AskUserQuestion): the scratch files will be written
-   into the project tree under `__design-kit__/` paths and removed after the pick.
+   into the project tree under `__design-kit__/` paths and removed once the pick is final.
    "Write the scratch entry (Recommended)" / "Show me the plan only". No write
    before the first option is chosen.
 4. `dk.sh scratch --create <slug> --brief "<one line>"` → edit ONLY the files it
@@ -148,10 +147,15 @@ Two entry shapes, one procedure:
    file that git would commit (README, "Behind a login").
 6. After the pick: record what was decided (which components, which variants,
    which tokens, any gap rows) in the reply and as one line via
-   `dk.sh decision --record "…"` (→ `.cc-artifacts/design-kit/design-system/DECISIONS.md`), then run
-   `dk.sh scratch --cleanup` and `dk.sh scratch --verify`. Verify failing means
-   the turn is not done. The user may say "keep it" — then say in one line that
-   `__design-kit__` paths remain and `--verify` will fail until they are removed.
+   `dk.sh decision --record "…"` (→ `.cc-artifacts/design-kit/design-system/DECISIONS.md`).
+   A pick is not the end of the look: the user compares the page with your follow-up
+   questions and the real build. So the page stays up while any question about it is open,
+   and cleanup is its own AskUserQuestion, asked last: "Remove the scratch page now
+   (Recommended)" / "Keep it while I build". Run `dk.sh scratch --cleanup` and
+   `dk.sh scratch --verify` only on the first answer, or when the user says the page can go;
+   verify failing then means the turn is not done. Kept, say in one line that
+   `__design-kit__` paths remain and `--verify` fails until they are removed, and offer the
+   cleanup again once the real page renders. Standing: agent-graded — no hook sees a pick.
 
 ## What this cannot do
 

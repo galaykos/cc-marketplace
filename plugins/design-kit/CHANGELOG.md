@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.19.1 — 2026-11-17
+
+- **`/design-kit:in-codebase` no longer deletes the scratch page right after the pick.** The page stays up while any follow-up question about it is open, and cleanup is offered last as its own question ("Remove the scratch page now" / "Keep it while I build"). Kept, the skill says the `__design-kit__` paths remain and offers the cleanup again once the real page renders. Before, step 6 ran `scratch --cleanup` the moment the user picked, so the page vanished while the agent was still asking about it.
+- Standing: agent-graded (skill text); `scratch --verify` still gates the cleanup once chosen.
+
 ## 0.19.0 — 2026-11-16
 
 - **`/design-kit:system` drafts a design contract.** For a repo target, a new step 4 writes `contract.json` beside `tokens.json` from the component inventory (the card or panel primitive as `surface`, its folder as `primitives`, layout files as `shell.owner`, the UI root as `scope`) and asks once to keep, edit or skip it. It never names a component the inventory did not find. Shape and readers: `skills/system/references/contract.md`. ui-ux 0.35.0's `contract-check` hook and its engineer and reviewer read it.
