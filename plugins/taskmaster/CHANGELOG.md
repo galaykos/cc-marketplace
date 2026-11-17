@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.63.3 — 2026-11-17
+
+- **`preview.sh`: two starts at once no longer both start a server.** Ubuntu 26.04 ships uutils coreutils, whose `mkdir` is not atomic under a race: two concurrent calls on one path both succeeded 10 times in 400 here, so a mkdir lock let two holders in. The lock is now a file bash creates under noclobber (`set -C`, O_EXCL in the shell itself): 0 double holders in 400. Before, the loser's serve.py lost the port, it removed the winner's pid file, and `--stop` then said nothing was running while the winner's server stayed up. A `.preview.lock` directory left by an older copy is read and aged out as before.
+- Standing: gate (`preview.test.sh` race rounds).
+
 ## 0.63.2 — 2026-11-16
 
 - **Mockups no longer trip secret-scanning's invisible-character check.** `skills/visual-decisions/assets/shell.html` carried two zero-width spaces inside a CSS comment, so every mockup built from it read as hiding characters. Removed; nothing visible changes.

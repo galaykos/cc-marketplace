@@ -6,6 +6,11 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.17.2 — 2026-11-17
+
+- **`red-proof.sh`: two runs at once no longer both revert the fix.** Ubuntu 26.04 ships uutils coreutils, whose `mkdir` is not atomic under a race: two concurrent calls on one path both succeeded 10 times in 400 here, so a mkdir lock let two holders in. The lock is now a file bash creates under noclobber (`set -C`, O_EXCL in the shell itself): 0 double holders in 400. Before, both runs reverted and restored the same files at once, so one reported the test passing without the fix. A `.git/red-proof/.lock` directory from an older copy is still read for its pid and broken when that pid is dead.
+- Standing: gate (`red-proof.test.sh`, concurrent runs).
+
 ## 0.17.1 — 2026-11-16
 
 - **`test-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.

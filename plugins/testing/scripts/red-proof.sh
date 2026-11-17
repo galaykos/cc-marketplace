@@ -64,19 +64,21 @@ refuse_if_reverted() {
     exit 5
   done
 }
-take_lock() { mkdir "$LOCK" 2>/dev/null || return 1; LOCKED=1; printf '%s\n' "$$" > "$LOCK/pid"; }
-release_lock() { [ "$LOCKED" = 1 ] && rm -rf "$LOCK"; LOCKED=0; rmdir "$STORE" 2>/dev/null; }
+# A file bash creates under noclobber (O_EXCL), not a mkdir: uutils mkdir (Ubuntu 26.04) let two racing runs both take a dir lock.
+take_lock() { ( set -C; printf '%s\n' "$$" > "$LOCK" ) 2>/dev/null || return 1; LOCKED=1; }
+release_lock() { [ "$LOCKED" = 1 ] && rm -f "$LOCK"; LOCKED=0; rmdir "$STORE" 2>/dev/null; }
+lock_owner() { cat "$LOCK" 2>/dev/null || cat "$LOCK/pid" 2>/dev/null; }
 
 mkdir -p "$STORE" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$STORE" >&2; exit 3; }
 refuse_if_reverted
 trap release_lock EXIT
 trap 'exit 3' INT TERM HUP
 if ! take_lock; then
-  owner=$(cat "$LOCK/pid" 2>/dev/null)
-  # A dead holder's lock is broken under a second mkdir, and only if it still names that holder.
-  if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null && mkdir "$LOCK-break" 2>/dev/null; then
-    [ "$(cat "$LOCK/pid" 2>/dev/null)" = "$owner" ] && rm -rf "$LOCK"
-    take_lock; rmdir "$LOCK-break"
+  owner=$(lock_owner)
+  # A dead holder's lock is broken under a second lock, and only if it still names that holder.
+  if [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null && ( set -C; : > "$LOCK-break" ) 2>/dev/null; then
+    [ "$(lock_owner)" = "$owner" ] && rm -rf "$LOCK"
+    take_lock; rm -f "$LOCK-break"
   fi
   if [ "$LOCKED" != 1 ]; then
     printf '%s: another red-proof run (pid %s) holds this repository'"'"'s lock; wait for it to finish.\n' "$PROG" "${owner:-?}" >&2
