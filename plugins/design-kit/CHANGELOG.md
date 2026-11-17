@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.19.2 — 2026-11-17
+
+- **`dk notes --shot` gives the browser 60 s (was 30).** On a CI runner the headless Chrome behind a note screenshot ran past 30 s on a cold first start, so the shot failed with exit 4 and nothing was captured; a warm browser takes well under a second (0.2 s, three local runs). A user's first `--shot` on a cold machine paid the same cost. A browser that truly hangs now waits 60 s before the same exit-4 line.
+- Standing: recorded — no test waits out the limit (it would cost a minute per run).
+
 ## 0.19.1 — 2026-11-17
 
 - **`/design-kit:in-codebase` no longer deletes the scratch page right after the pick.** The page stays up while any follow-up question about it is open, and cleanup is offered last as its own question ("Remove the scratch page now" / "Keep it while I build"). Kept, the skill says the `__design-kit__` paths remain and offers the cleanup again once the real page renders. Before, step 6 ran `scratch --cleanup` the moment the user picked, so the page vanished while the agent was still asking about it.

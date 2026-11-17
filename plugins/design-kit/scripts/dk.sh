@@ -57,6 +57,7 @@
 # verb against a temp project; the wrapped scripts keep their own harnesses.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/dk.sh
 set -euo pipefail
+SHOT_LIMIT_S=60
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -577,7 +578,8 @@ PY
     profile="$(mktemp -d)"
     # Chrome's sandbox stays on: off only as root, where Chrome refuses to start with it, or on DESIGN_KIT_BROWSER_NO_SANDBOX=1.
     sandbox=""; if [ "$(id -u)" = 0 ] || [ "${DESIGN_KIT_BROWSER_NO_SANDBOX:-}" = 1 ]; then sandbox="--no-sandbox"; fi
-    limit=""; if command -v timeout >/dev/null 2>&1; then limit="timeout 30"; fi
+    # 60 s: a cold first Chrome start alone ran past 30 s on a CI runner; a warm one shoots in under a second.
+    limit=""; if command -v timeout >/dev/null 2>&1; then limit="timeout $SHOT_LIMIT_S"; fi
     set +e
     $limit "$browser" --headless=new --disable-gpu $sandbox --hide-scrollbars --force-device-scale-factor=1 \
       --run-all-compositor-stages-before-draw --virtual-time-budget=3000 --no-first-run --no-default-browser-check \
@@ -587,7 +589,7 @@ PY
     rm -rf "$profile"
     if [ "$brc" != 0 ]; then
       rm -f "$out"
-      if [ "$brc" = 124 ] && [ -n "$limit" ]; then why="ran past 30 s"; else why="exited $brc"; fi
+      if [ "$brc" = 124 ] && [ -n "$limit" ]; then why="ran past $SHOT_LIMIT_S s"; else why="exited $brc"; fi
       fail "the browser $why for note $nid; no screenshot taken" "$nid" 4
     fi
     [ -s "$out" ] || fail "the browser wrote no PNG for note $nid" "$nid" 4
