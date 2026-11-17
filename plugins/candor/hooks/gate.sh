@@ -315,6 +315,9 @@ cc_strip_heredoc_bodies() {
 . "$(dirname "$0")/cite.sh" 2>/dev/null
 
 INFLIGHT_TTL_MIN=180
+# A running background shell counts as in-flight work only when its command or description names a check: a dev server or a sleep does not.
+# Probed on CLI 2.1.325: a background Bash is listed as type "shell", and a worker that ended its turn leaves only its shell listed.
+BG_CHECK_RE='\b(tests?|testing|suite|phpunit|pest|jest|vitest|pytest|playwright|dusk|phpstan|psalm|eslint|tsc|lint|behavioral-gate|mutation|infection|checks?)\b'
 # Only for a running.pid with no deadline: seven built-in runners at task-runner's 1800 s suite cap run 210 minutes.
 BG_PID_TTL_MIN=240
 DISCLOSURE_TAIL_LINES=200
@@ -439,8 +442,10 @@ run_item() { # <short label for the person> <action line for the model>
 
 inflight_count() {
   local n
-  n=$(printf '%s' "$input" | jq -r 'if (.background_tasks | type) == "array"
-        then [.background_tasks[] | select(.type == "subagent" or .type == "teammate")] | length
+  n=$(printf '%s' "$input" | jq -r --arg re "$BG_CHECK_RE" 'if (.background_tasks | type) == "array"
+        then [.background_tasks[] | select(.type == "subagent" or .type == "teammate"
+              or (.type == "shell" and .status == "running"
+                  and (((.command // "") + " " + (.description // "")) | test($re; "i"))))] | length
         else "absent" end' 2>/dev/null)
   case "$n" in '' | absent | *[!0-9]*) ;; *) printf '%s' "$n"; return 0 ;; esac
   # -O: a records dir another user created under a shared /tmp is not evidence.
@@ -1004,6 +1009,10 @@ clause_unevidenced_reversal
 ev_mode=$(cc_option CC_EVIDENCE_GATE block)
 # An edit to a prose file (.md, .txt, .rst, .adoc and kin), by Edit or by Bash, does not arm clause 3: no command's failure proves a README wrong.
 PROSE_EXTS='md|mdx|markdown|txt|rst|adoc|asciidoc'
+# A write to plugin run state (a task-runner scope file, a gate record) is neither an edit nor a run: it changes no code a check could prove.
+STATE_PATHS='(^|/)\.cc-artifacts/|(^|/)\.claude/task-runner/'
+# By Bash only as one printf, echo, cat or jq with a single > into such a path, alone or with one heredoc and nothing after it; anything else is judged as before.
+STATE_BASH_RE='\A\s*(printf|echo|cat|jq)\b[^>;&|\n]*>\s*[\x27\x22]?[^\s\x27\x22<>;&|]*(\.cc-artifacts/|\.claude/task-runner/)[^\s\x27\x22<>;&|]*[\x27\x22]?\s*(<<-?\s*[\x27\x22]?(?<t>\w+)[\x27\x22]?[ \t]*\n[\s\S]*\n\s*\k<t>\s*)?\z'
 
 # One line per command list of <command>, heredoc bodies dropped, LAST first: R when a pipeline element's command word runs
 # something (pytest | tee log, pytest > out.json), - when every word only writes, moves or announces files, a tab, then the text.
@@ -1074,8 +1083,11 @@ clause_naked_completion() {
     | tail -"$CLAIM_WINDOW_LINES")
   if [ -n "$said" ] && printf '%s' "$said" | grep -qiwE "$CLAIM" && ! printf '%s' "$said" | grep -qiwE "$ACK"; then
     # Each Bash call's command follows its entry's names as a JSON string line; only the last Bash call can be the last edit or run, so only it is read.
-    ev=$(tj -r 'select(.type=="assistant")
-               | [.message.content[]? | select(.type=="tool_use")] as $u
+    ev=$(tj -r --arg st "$STATE_PATHS" --arg sb "$STATE_BASH_RE" 'select(.type=="assistant")
+               | [.message.content[]? | select(.type=="tool_use")
+                  | if ((.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$")) and ((.input.file_path // "") | tostring | test($st)))
+                       or (.name == "Bash" and ((.input.command // "") | tostring | test($sb)))
+                    then .name = "StateWrite" else . end] as $u
                | ([$u[] | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$|apply_patch$|create_new_file$"))
                              then "@" + ((.input.file_path // "") | ascii_downcase | (if test("\\.[a-z0-9]+$") then sub(".*\\."; "") else "" end))
                              else "" end)]
