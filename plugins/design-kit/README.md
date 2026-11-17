@@ -12,7 +12,7 @@ machine unless a skill names the path and you say yes.
 |---|---|---|
 | Slides | `/design-kit:slides` | a self-contained HTML deck with speaker notes; PDF and PPTX by script |
 | Design | `/design-kit:design` | an artboard canvas of 3 directions by default (up to 5, never more than 6) with editable text, adjustment knobs, PNG/PDF export, and a "copy edits as prompt" bring-back |
-| Design in codebase | `/design-kit:in-codebase` | the design rendered with the project's OWN components on its dev server, cleaned up after the pick; intake of a Claude Design handoff bundle with a token-drift table |
+| Design in codebase | `/design-kit:in-codebase` | the design rendered with the project's OWN components on its dev server, cleaned up once the pick is final; intake of a Claude Design handoff bundle with a token-drift table |
 | Design System | `/design-kit:system` | `.cc-artifacts/design-kit/design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
 | Artifacts | `/design-kit:artifact` | one self-contained, versioned HTML page in a local gallery; LAN, pages-branch or zip sharing on explicit consent |
 | — (not in the picker) | `/design-kit:motion` | a static design — Figma frame, dashboard, card set, screenshot — rebuilt exactly and animated from empty to loaded with a story per visual, as a looping page plus an MP4 and two GIFs; or the same choreography on a site's bento and feature sections |
@@ -321,7 +321,7 @@ project's OWN components on its OWN dev server. `codebase-scaffold.sh --detect` 
 from disk (Vite React/Vue, Next.js App Router, Nuxt, Laravel Blade, Laravel + Inertia React/Vue)
 and `--create <slug>` writes a
 scratch entry under `__design-kit__/` paths, every file marked on line 1; the model fills it by
-importing real components and providers, opens it on the dev URL, and after the pick
+importing real components and providers, opens it on the dev URL, and once the user confirms the pick is final
 `codebase-cleanup.sh` removes every trace — `--verify` exits 1 if anything is left. An Inertia
 app gets a page that names its own bare layout (the starter kits' default `layout` would wrap it
 in the signed-in shell) and a `Route::inertia` line; Laravel's dev URL is `.env`'s `APP_URL`, the
