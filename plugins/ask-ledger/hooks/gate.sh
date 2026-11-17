@@ -1,5 +1,5 @@
 #!/bin/bash
-# gate.sh — Stop: sends the turn back (JSON block on stdout) when a name ledger.sh ledgered has no line in the final reply naming it with `as named`, `substituted` or `omitted`; twice a session at most, then warns; accounted names leave the ledger. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
+# gate.sh — Stop: sends the turn back (JSON block on stdout) when a name ledger.sh ledgered has no line in the final reply naming it with `as named`, `substituted`, `omitted` or `pending` (unfinished: it leaves the ledger too); twice a session at most, then warns; accounted names leave the ledger. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
 # Misses: whether "as named" is true (the model's word, agent-graded), and a later turn quietly undoing an accounted name it does not name again. Silent with no ledger, no final message, or while the payload's background_tasks lists a subagent, a teammate or a running shell naming a check (owed names wait for a later stop); a check named otherwise is missed.
 # Why, limits, history: rationale/derivations/plugin-ask-ledger.md § plugins/ask-ledger/hooks/gate.sh
 
@@ -49,7 +49,7 @@ exec 3>&2
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     esc=$(printf '%s' "$name" | sed 's/[][\.*^$/|+?(){}]/\\&/g')
-    printf '%s\n' "$final" | grep -iE "$esc.*\b(as named|substituted|omitted)\b" >/dev/null 2>&1 && continue
+    printf '%s\n' "$final" | grep -iE "$esc.*\b(as named|substituted|omitted|pending)\b" >/dev/null 2>&1 && continue
     missing="${missing}${missing:+, }$name"
     owed="${owed}${name}
 "
@@ -70,7 +70,7 @@ exec 3>&2
   fi
   echo $((n+1)) > "$dir/blocks"
   # The verdict leads the retry: it is the last thing the user reads, and name lines alone made users re-ask.
-  reason=$(printf 'ask-ledger: your final reply does not say what happened to %s, which the request named. Restate the answer'"'"'s one-line verdict first, then one line per name, then stop again:\n  `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why`\n  A substitution you never raised is "substituted", not "as named".\n' "$missing"
+  reason=$(printf 'ask-ledger: your final reply does not say what happened to %s, which the request named. Restate the answer'"'"'s one-line verdict first, then one line per name, then stop again:\n  `<name>: as named` | `<name>: substituted → what, why` | `<name>: omitted → why` | `<name>: pending → what remains`\n  A substitution you never raised is "substituted", not "as named".\n' "$missing"
     printf 'ask-ledger: CC_ASK_LEDGER=off turns this check off.\n')
   jq -cn --arg r "$reason" --arg m "ask-ledger sent the turn back: the reply does not say what happened to $missing." \
     '{decision:"block",reason:$r,systemMessage:$m}'

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke tests for ask-ledger/hooks/gate.sh — the Stop gate that refuses a final message
 # without an accounting line per ledgered name. Branches: no ledger → silent; every name
-# accounted → silent; one missing → a JSON block naming it; the three verbs all count; a
+# accounted → silent; one missing → a JSON block naming it; the four statuses all count; a
 # case-insensitive match; the two-block ceiling; the off switch; fail-open; an accounted
 # name is not owed by later turns unless a later prompt names it again.
 set -u
@@ -53,6 +53,13 @@ check "4 the block names the missing entry" "$r" "what happened to Digimon"
 check "4b the block asks for the answer's verdict before the name lines" "$r" "Restate the answer's one-line verdict first, then one line per name"
 ledger s1c Laravel "2D Sprites" Digimon
 check "5 omitted counts, case-insensitive" "$(run s1c $'laravel: OMITTED → out of scope\n2d sprites: as named\ndigimon: as named')" "rc=0"
+# 5p unfinished work: `pending` accounts for a name and clears it, so the next stop owes nothing (one long run repeated
+#    "<name>: in progress" on 71 replies when no status fitted).
+ledger s5p "provider login"
+is "5p pending accounts for an unfinished name" "$(run s5p 'Cards 05-08 are queued. provider login: pending → cards 05-08 build it')" "rc=0"
+is "5q a pending name is not owed on the next stop" "$(run s5p 'Card 05 committed.')" "rc=0"
+ledger s5r "provider login"
+check "5r 'in progress' is still not a status" "$(run s5r 'provider login: still in progress')" "what happened to provider login"
 ledger s2 Stripe
 run s2 'no accounting' >/dev/null; run s2 'still none' >/dev/null
 check "6 third stop after two blocks ends the turn with a warning" "$(run s2 'still none')" "rc=0"
