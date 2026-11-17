@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "0.63.1",
+  "version": "0.63.2",
   "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach (via the approaches plugin when installed: an inline slate of 2-3, or its blind four-persona panel for rework of existing code; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under .cc-artifacts/taskmaster/ (no collision with a project's own docs/).",
   "author": {
     "name": "Ivan-WG",

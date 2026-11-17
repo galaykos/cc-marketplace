@@ -458,5 +458,33 @@ ctx=$(edit_ctx "$L" "$L/other/file.js")
 check "legacy run: once copied, a scope file written to the old dir is not read (ctx=<$ctx>)" \
   "$(case "$ctx" in *"other/file.js was edited"*) echo 1 ;; esac)"
 
+# --- noise fixes: card labels, the preview server's scratch, another branch's run, a finished run ---
+N="$WS/noise"; mkdir -p "$N/.cc-artifacts/task-runner" "$N/cards"
+git init -q -b feature "$N" 2>/dev/null; git -C "$N" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init
+NA="$N/.cc-artifacts/task-runner/active-run.json"
+nstdin() { jq -cn --arg cwd "$N" --arg f "$1" '{cwd:$cwd, tool_name:"Edit", tool_input:{file_path:$f}}'; }
+register() { printf '{"slug":"n","branch":"%s","index_path":"cards/00-INDEX.md"}' "$1" > "$NA"; touch -t 202601010000 "$NA"; }
+register feature
+printf '| # | Title | Status |\n|---|---|---|\n| 01 | a | done |\n| 02 | b | pending |\n' > "$N/cards/00-INDEX.md"
+printf '{"allow":["src/a.js"],"task":"01"}' > "$N/.cc-artifacts/task-runner/scope-01.json"
+printf '{"allow":["src/b.js"],"task":"02"}' > "$N/.cc-artifacts/task-runner/scope-02.json"
+run_case "bare card ids read as cards in the warning" "$(nstdin "$N/other.js")" 0 envelope \
+  "NOT among the files cards 01, 02 declared"
+for i in 03 04 05; do printf '{"allow":["src/%s.js"],"task":"%s"}' "$i" "$i" > "$N/.cc-artifacts/task-runner/scope-$i.json"; done
+run_case "five or more ids collapse to a count" "$(nstdin "$N/other.js")" 0 envelope "5 cards (01 … 05)"
+run_case "the preview server's mockup scratch is exempt" \
+  "$(nstdin "$N/.cc-artifacts/taskmaster/mockups/.checks/current.html-1/1280.json")" 0 silent
+run_case "a taskmaster spec is still checked" "$(nstdin "$N/.cc-artifacts/taskmaster/specs/x.md")" 0 envelope "specs/x.md"
+register other-branch
+run_case "a run registered on another branch is silent here" "$(nstdin "$N/other.js")" 0 silent
+git -C "$N" checkout -q --detach
+run_case "a detached HEAD (a track leaf) still checks" "$(nstdin "$N/other.js")" 0 envelope "other.js"
+git -C "$N" checkout -q feature
+register feature
+printf '| # | Title | Status |\n|---|---|---|\n| 01 | a | done |\n| 02 | b | parked (blocked: x) |\n' > "$N/cards/00-INDEX.md"
+run_case "a run whose cards are all closed is silent" "$(nstdin "$N/other.js")" 0 silent
+printf '| # | Title | Status |\n|---|---|---|\n| 01 | a | done |\n| 02 | b | in_progress |\n' > "$N/cards/00-INDEX.md"
+run_case "one open card keeps the check on" "$(nstdin "$N/other.js")" 0 envelope "other.js"
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

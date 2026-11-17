@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.63.2 — 2026-11-16
+
+- **Mockups no longer trip secret-scanning's invisible-character check.** `skills/visual-decisions/assets/shell.html` carried two zero-width spaces inside a CSS comment, so every mockup built from it read as hiding characters. Removed; nothing visible changes.
+
 ## 0.63.1 — 2026-11-16
 
 - `shell-controls.test.sh`'s click helper re-measures a covered target for up to 1 s before failing: the sticky header reacts to `scrollIntoView` a frame or more later, so at 320 by 256 the "Note on variant B" button read as covered on one CI run. Test-only; no shipped behaviour changes. Standing: gate (the harness, 157 cases, 2 of 2 local runs green).

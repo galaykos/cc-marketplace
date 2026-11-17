@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.63.0 — 2026-11-16
+
+- **The scope-lock warning stays quiet where it was noise.** It is silent for a run registered on another branch (a detached HEAD, as in a track leaf, still checks) and for a run whose index has cards and none still open, whose scope files are leftovers until the next registration. Files under `.cc-artifacts/taskmaster/mockups/` (the preview server's pages, logs and check records) are exempt; a taskmaster spec is still checked. Bare card ids now read as cards: "NOT among the files cards 01, 02 declared", or "15 cards (01 … 15)" past four, where it used to print "the files 01, 02, … 15 declared". Why: in three real sessions it fired about 360 times, mostly for a finished run, a run on another branch or the preview server's scratch, and every warning was ignored.
+- Standing: gate (`scripts/__tests__/scope-hook.test.sh`, 8 new cases; 5 of them fail on 0.62.0).
+
 ## 0.62.0 — 2026-11-16
 
 - **Reviewers check a card's contract first.** Every per-card reviewer dispatch now carries the card's `<invariant>`, `<reuse>` and `<interface>` lines (taskmaster 0.63.0) with a fixed instruction: one `kept | broken` line per invariant, a broken invariant or a changed interface is high, and a symbol written beside a `<reuse>` symbol or repeating a helper is a `[duplication]` medium. Then the usual review. Same reviewers as before.

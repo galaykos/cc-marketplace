@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostToolUse (and PostToolUseFailure on Bash) in a registered run: warns when an edited path, a Bash write target or a file changed after an interpreter run (8 each) is outside the union of the run's live scope*.json allow lists; never checked: the run's index dir, taskmaster's ledgers, .cc-artifacts/<dir>/ other than taskmaster and .claude/<dir>/ state except skills, agents, commands, hooks, rules, output-styles, worktrees.
-# Misses: a worker in another worktree, scope files written mid-run (they widen the union), writes neither the parser nor git can name, absolute paths outside the root, any file in the index's dir (an index at the root exempts nothing); a malformed scope file disarms the call. Advisory; fails open.
+# Misses: a run registered on another branch or with every index card closed (silent by design), a worker in another worktree, scope files written mid-run (they widen the union), writes neither the parser nor git can name, absolute paths outside the root, any file in the index's dir (an index at the root exempts nothing); a malformed scope file disarms the call. Advisory; fails open.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/hooks/scope.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -217,6 +217,18 @@ tr_state_dir() {
   # No registered run: every scope file is a leftover; one older than active-run.json is from an earlier registration.
   sentinel="$tr_dir/active-run.json"
   [ -f "$sentinel" ] || exit 0
+  # A run registered on another branch is not this checkout's scope; a detached HEAD (a track leaf) still checks.
+  run_branch=$(jq -r '.branch // empty' "$sentinel" 2>/dev/null)
+  here=$(git -C "$root" symbolic-ref -q HEAD 2>/dev/null) && here=${here#refs/heads/} || here=""
+  [ -n "$run_branch" ] && [ -n "$here" ] && [ "$run_branch" != "$here" ] && exit 0
+  # A run whose index has cards and none still open is finished; its scope files are leftovers until the next registration.
+  run_index=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
+  case "$run_index" in '') ;; /*) ;; *) run_index="$root/$run_index" ;; esac
+  if [ -n "$run_index" ] && [ -r "$run_index" ]; then
+    open=$(awk -F'|' '/^[[:space:]]*\|[[:space:]]*[0-9][0-9][[:space:]]*\|/ { t++; s = $NF; if (s ~ /^[[:space:]]*$/ && NF > 1) s = $(NF - 1)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); if (tolower(s) !~ /^(done|parked|skipped)/) o++ } END { if (t > 0) print o + 0 }' "$run_index" 2>/dev/null)
+    [ "$open" = 0 ] && exit 0
+  fi
   scopes=()
   for s in "$tr_dir"/scope.json "$tr_dir"/scope-*.json; do
     [ -r "$s" ] || continue
@@ -251,6 +263,8 @@ tr_state_dir() {
       .claude/skills/* | .claude/agents/* | .claude/commands/* | .claude/hooks/* | .claude/rules/* | .claude/output-styles/* | .claude/worktrees/*) ;;
       # taskmaster's ledgers moved here from .claude/taskmaster/; its other files came from taskmaster-docs/, which was checked.
       .cc-artifacts/taskmaster/ledger-* | .cc-artifacts/taskmaster/goal-ledger-*) return 0 ;;
+      # The preview server's pages, logs and check records: scratch, never a card's deliverable.
+      .cc-artifacts/taskmaster/mockups/*) return 0 ;;
       .cc-artifacts/taskmaster/*) ;;
       .claude/*/* | .cc-artifacts/*/*) return 0 ;;
     esac
@@ -303,7 +317,13 @@ EOF
   fi
   [ "${#rels[@]}" -gt 0 ] || exit 0
 
-  task=$(jq -rs '[.[] | .task // empty] | unique | join(", ")' "${scopes[@]}" 2>/dev/null)
+  # Bare ids are card numbers: "card 01", "cards 01, 02", "15 cards (01 … 15)"; a written label ("card 07") stays as written.
+  task=$(jq -rs '[.[] | .task // empty] | unique as $t
+    | if ($t | length) == 0 then "the current task"
+      elif ([$t[] | select(test("^[0-9]+$"))] | length) < ($t | length) then ($t | join(", "))
+      elif ($t | length) == 1 then "card \($t[0])"
+      elif ($t | length) <= 4 then "cards \($t | join(", "))"
+      else "\($t | length) cards (\($t[0]) … \($t[-1]))" end' "${scopes[@]}" 2>/dev/null)
   [ -n "$task" ] || task="the current task"
 
   # Allowed when equal to an allow entry or under it as a directory: a raw startswith lets src/util.ts admit src/util.tsx. -s makes it the union: the payload carries a path, not a card id, so a per-card check would charge the wrong card.
