@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.63.1 — 2026-11-17
+
+- **`track-ports.sh`: concurrent claims no longer share a block.** Ubuntu 26.04 ships uutils coreutils, whose `mkdir` is not atomic under a race: two concurrent calls on one path both succeeded 10 times in 400 here, so a mkdir lock let two holders in. The lock is now a file bash creates under noclobber (`set -C`, O_EXCL in the shell itself): 0 double holders in 400. A lock directory from an older copy still ages out after a minute.
+- Standing: gate (`track-ports.test.sh`, eight claims at once; it failed 10 of 15 runs against the old lock).
+
 ## 0.63.0 — 2026-11-16
 
 - **The scope-lock warning stays quiet where it was noise.** It is silent for a run registered on another branch (a detached HEAD, as in a track leaf, still checks) and for a run whose index has cards and none still open, whose scope files are leftovers until the next registration. Files under `.cc-artifacts/taskmaster/mockups/` (the preview server's pages, logs and check records) are exempt; a taskmaster spec is still checked. Bare card ids now read as cards: "NOT among the files cards 01, 02 declared", or "15 cards (01 … 15)" past four, where it used to print "the files 01, 02, … 15 declared". Why: in three real sessions it fired about 360 times, mostly for a finished run, a run on another branch or the preview server's scratch, and every warning was ignored.

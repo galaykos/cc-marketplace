@@ -56,6 +56,14 @@ fi
 mkdir -p "$R/.cc-artifacts/task-runner/ports/.lock"; touch -d '5 minutes ago' "$R/.cc-artifacts/task-runner/ports/.lock"
 expect "a lock left by a killed run is taken over" 0 "this track's (late)" "$R" claim --id late --base $BASE
 
+# Eight claims started together: each gets its own block. A mkdir lock let two through under uutils mkdir.
+CR="$T/conc"; mkdir -p "$CR"
+git -C "$CR" init -q && git -C "$CR" config user.email t@t.t && git -C "$CR" config user.name t \
+  && echo a > "$CR/a.txt" && git -C "$CR" add a.txt && git -C "$CR" commit -qm seed || { printf 'FAIL: cannot build a repository\n'; exit 1; }
+for i in 1 2 3 4 5 6 7 8; do run "$CR" claim --id "c$i" --base 48100 > "$T/conc.$i" & done; wait
+starts=$(cat "$T"/conc.* | grep -o 'Ports [0-9]*' | sort -u | wc -l | tr -d ' ')
+[ "$starts" = 8 ] && ok "eight claims started together get eight blocks" || bad "eight concurrent claims got $starts distinct blocks: $(cat "$T"/conc.*)"
+
 expect "an id with a slash is a usage error" 3 "usage" "$R" claim --id ../x
 expect "claim with no id is a usage error" 3 "usage" "$R" claim
 expect "a privileged base is a usage error" 3 "usage" "$R" claim --id low --base 80

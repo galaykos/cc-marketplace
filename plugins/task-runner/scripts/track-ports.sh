@@ -62,14 +62,15 @@ if [ "$mode" = release ]; then
   exit 0
 fi
 
-# One claimer at a time: mkdir is atomic, and a lock older than a minute was left by a killed run.
+# One claimer at a time, and a lock older than a minute was left by a killed run. A noclobber (O_EXCL) file, not a mkdir:
+# uutils mkdir (Ubuntu 26.04) let two racing callers both succeed. A dir lock from an older copy is still aged out.
 lock="$dir/.lock"; tries=0
-until mkdir "$lock" 2>/dev/null; do
-  [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ] && { rmdir "$lock" 2>/dev/null; continue; }
+until ( set -C; : > "$lock" ) 2>/dev/null; do
+  [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ] && { rm -rf "$lock"; continue; }
   tries=$((tries + 1)); [ "$tries" -lt 100 ] || { printf '%s: another claim holds %s\n' "$PROG" "$lock" >&2; exit 1; }
   sleep 0.1
 done
-trap 'rmdir "$lock" 2>/dev/null' EXIT
+trap 'rm -f "$lock"' EXIT
 
 if [ -f "$dir/$id.claim" ]; then
   read -r b c < "$dir/$id.claim"
