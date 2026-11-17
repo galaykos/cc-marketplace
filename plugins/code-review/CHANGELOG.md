@@ -3,6 +3,10 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.38.1 — 2026-11-17
+
+- **`hooks/review-debt.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.
+
 ## 0.38.0 — 2026-11-14
 
 - **`/code-review:review` writes the reviewer diff to `.cc-artifacts/code-review/rv/diff-<short HEAD>.patch`** (was `.claude/code-review/rv/`), with the `*` `.gitignore` in `.cc-artifacts/code-review/`. Claude Code refuses a Write under `.claude/`; `.cc-artifacts/` is the one folder every marketplace plugin now writes its project artifacts to.

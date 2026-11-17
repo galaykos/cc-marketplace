@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.14.2 — 2026-11-17
+
+- **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.
+
 ## 0.14.1 — 2026-11-14
 
 - approach-deliberation's defer rule says grill and brainstorm run this deliberation, not always the panel: from taskmaster 0.61.0 brainstorm takes the slate by default, as grill does.

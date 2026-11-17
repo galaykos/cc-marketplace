@@ -47,7 +47,8 @@ cc_option() {
 cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
-    'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*|'<cross-session-message'*) return 0 ;;
+    '<ci-monitor-event'*|'<side-sessions-event'*) return 0 ;;
     '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
     *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
     *) return 1 ;;
@@ -112,7 +113,8 @@ cc_prompt_question() {
 
   scrub=$(printf '%s' "$prompt" | cc_prompt_unpaste \
     | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
-  head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-600 | tr 'A-Z' 'a-z')
+  # A mid-clause capitalised compound is a name, not a verb: "Turn on Auto-fix" asks for no fix.
+  head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-600 | sed -E 's/([[:alnum:],;)] +)[A-Z][[:alnum:]]*(-[[:alnum:]]+)+/\1X/g' | tr 'A-Z' 'a-z')
   verbs='\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write|make|ship|redo|replace|rename)\b'
   clauses=$(printf '%s' "$head" | awk '{gsub(/\?/," __Q__\n"); gsub(/\. /,"\n"); print}')
   printf '%s\n' "$clauses" | grep -iE "$verbs" \
