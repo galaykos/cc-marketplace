@@ -26,18 +26,22 @@ A row belongs here only if it passes both:
 
 ## The list
 
-| Plugin | Why any project |
-|---|---|
-| code-review | reviewing a diff for correctness and smells is stack-agnostic |
-| debugging | root-cause-before-fix discipline applies to every bug in every language |
-| testing | every project has (or needs) tests; pyramid, mocking, and flake discipline are cross-stack |
-| git-workflow | every repo here is git; branch-finish and review-exchange discipline has no stack |
-| code-architecture | plan-before-code, YAGNI, and verification-with-evidence are process, not stack |
-| secret-scanning | any repo can leak a key; the pre-write block hook is language-independent |
-| command-guard | irreversible data loss (`migrate:fresh`, `DROP DATABASE`, `rm -rf`) is language-independent, and its deny hook is the pair to secret-scanning's block |
-| candor | its Stop gate checks claims (a citation, a completion, a retraction) against what the session actually did — no language in it |
-| skill-router | it routes by file path and prompt to whichever skills are installed, so it is a floor under every other row, not a rubric of its own |
-| hindsight | it mines this project's own past sessions for repeated friction; every project has sessions |
+| Plugin | Job group | Why any project |
+|---|---|---|
+| code-review | Review & tests | reviewing a diff for correctness and smells is stack-agnostic |
+| debugging | Review & tests | root-cause-before-fix discipline applies to every bug in every language |
+| testing | Review & tests | every project has (or needs) tests; pyramid, mocking, and flake discipline are cross-stack |
+| git-workflow | Git & planning | every repo here is git; branch-finish and review-exchange discipline has no stack |
+| code-architecture | Git & planning | plan-before-code, YAGNI, and verification-with-evidence are process, not stack |
+| secret-scanning | Safety hooks | any repo can leak a key; the pre-write block hook is language-independent |
+| command-guard | Safety hooks | irreversible data loss (`migrate:fresh`, `DROP DATABASE`, `rm -rf`) is language-independent, and its deny hook is the pair to secret-scanning's block |
+| candor | Session discipline | its Stop gate checks claims (a citation, a completion, a retraction) against what the session actually did — no language in it |
+| skill-router | Session discipline | it routes by file path and prompt to whichever skills are installed, so it is a floor under every other row, not a rubric of its own |
+| hindsight | Session discipline | it mines this project's own past sessions for repeated friction; every project has sessions |
+
+**Job groups are the picker's core options** (`references/picker.md`): four at most, so every core
+row is a checkbox in one question however many tier-1 rows come first. A row added here takes an
+existing group, or a fifth group replaces a merge of two; never more than four.
 
 ## Deliberate exclusions (near misses)
 

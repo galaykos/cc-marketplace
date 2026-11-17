@@ -133,9 +133,10 @@ sample, layout, and why that table is the wrong rendering: `references/picker.md
 
 ## Install
 
-1. Without `--yes` or `--full`: **one** AskUserQuestion call. Questions 1-3 hold the tier-1
-signal-backed rows (evidence cited) then the tier-2 core rows, 4 options each;
-question 4 is the tier-3 door — browse the remainder / print its install commands /
+1. Without `--yes` or `--full`: **one** AskUserQuestion call. The tier-1 signal-backed rows
+come first, 4 options per question (evidence cited); the tier-2 core is then one question
+whose options are its job groups (`references/any-core.md`), so every core row is a checkbox;
+the last question is the tier-3 door — browse the remainder / print its install commands /
 just the picks above / stop. Every tier-3 row stays reachable by number, name or range
 through any Other, and via `scripts/pick.sh`. `--all` pages every row as an explicit
 option instead (one call per page of 15 rows). Installed rows are never options. Full contract:

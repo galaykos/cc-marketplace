@@ -75,8 +75,9 @@ Steps:
    print the commands and stop. Then install per leaf with the same `--scope`
    rules and the same exit-0 success rule below.
    Without `--full`: run the picker per the skill's `references/picker.md` contract: by
-   default ONE AskUserQuestion call — questions 1-3 hold tier-1 picks with
-   evidence then the core rows, 4 options each, and question 4 is the way into
+   default ONE AskUserQuestion call — tier-1 picks with evidence first, 4 options per
+   question, then one core question whose options are its job groups (every core row a
+   checkbox), and the last question is the way into
    everything else (browse the rest of the marketplace / print its install
    commands / just these / stop). With `--all`, page every eligible row as an explicit option
    instead, 15 per call with one "Stop — skip remaining" slot. Installed
