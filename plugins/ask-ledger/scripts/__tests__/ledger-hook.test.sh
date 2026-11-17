@@ -55,6 +55,13 @@ check "13b a subagent hand-back writes no ledger" "$(run 'Another Claude session
 check "13c a bare agent-message tag writes no ledger" "$(run '<agent-message from="a0d31354dca16ebac">Build the Stripe adapter next.</agent-message>' s13c)" ""
 check "13d a hand-back frame under a harness note writes no ledger" "$(run 'Note: relayed.
 [Subagent hand-back] Create PopoverContent for Card 03.' s13d)" ""
+check "17a a desktop-app CI event writes no ledger (shared prompt-shape list)" \
+  "$(run '<ci-monitor-event>"Auto-fix pull requests" is watching owner/repo PR #105 and detected the following. Fix and push.
+Failing checks: ci (php 8.4), ultra</ci-monitor-event>' s17a)" ""
+check "17b a cross-session message without the relay line writes no ledger" \
+  "$(run '<cross-session-message from="local_1" from-name="Domains area">Build the Navigation levels change.</cross-session-message>' s17b)" ""
+check "17c a capitalised hyphen compound is a name, not the verb fix" "$(run 'Turn on Auto-fix' s17c)" ""
+check "17d a lowercase fix beside it is still an ask" "$(run 'fix the Stripe webhook and turn on Auto-fix' s17d)" "Stripe,Auto-fix"
 check "13n a task notification carrying attributes writes no ledger (shared prompt-shape list)" \
   "$(run '<task-notification id="t42"><result>Add the Pagination fix. FAIL 0.</result></task-notification>' s13n)" ""
 check "13o an opening paste tag with no close cuts only itself, not the ask after it" "$(run 'build the Stripe adapter <pasted_content id="u7">
@@ -84,7 +91,7 @@ check "13m an apostrophe inside a quoted name stays as typed; possessives are no
 # frame; a re-fired prompt is matched to the call that scheduled it in the transcript.
 check "13q a host /loop tick writes no ledger" "$(run '# Autonomous loop tick (dynamic pacing)
 
-Run the autonomous check; add the Stripe retry if the Paddle job failed.' s13q)" ""
+Run the autonomous check; add the Stripe retry if the Paddle job failed.' s13u)" ""
 TXL="$TMP/loop-transcript.jsonl"
 printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"w1","name":"ScheduleWakeup","input":{"delaySeconds":1200,"reason":"fallback","prompt":"Continue: add the Stripe refund flow once the Paddle reviewer reports."}}]}}' > "$TXL"
 runtp() { # $1 prompt, $2 transcript → the ledger entries for that transcript's context

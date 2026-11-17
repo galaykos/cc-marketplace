@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.13.1 — 2026-11-17
+
+- **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.
+
 ## 0.13.0 — 2026-11-14
 
 - **The reminder hook reads the phase sentinel at `.cc-artifacts/cc-phase/<session>.json`, else the older `.claude/cc-phase/<session>.json`**, and sweeps expired sentinels in both. Regenerated from the shared phase-file and phase-guard blocks; this plugin writes nothing else into a project. Standing: gate (the marketplace repository's `scripts/smoke/hook-guard-tests.sh`).

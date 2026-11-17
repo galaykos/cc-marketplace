@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.63.4 — 2026-11-17
+
+- **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.
+
 ## 0.63.3 — 2026-11-17
 
 - **`preview.sh`: two starts at once no longer both start a server.** Ubuntu 26.04 ships uutils coreutils, whose `mkdir` is not atomic under a race: two concurrent calls on one path both succeeded 10 times in 400 here, so a mkdir lock let two holders in. The lock is now a file bash creates under noclobber (`set -C`, O_EXCL in the shell itself): 0 double holders in 400. Before, the loser's serve.py lost the port, it removed the winner's pid file, and `--stop` then said nothing was running while the winner's server stayed up. A `.preview.lock` directory left by an older copy is read and aged out as before.

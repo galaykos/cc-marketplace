@@ -2,6 +2,13 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.8 — 2026-11-17
+
+- **No ledger from desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame (shared prompt-shape block). Before, a CI event ledgered its check names (`Auto-fix pull requests`, `Failing checks`, `ci (php 8.4)`, `ultra`), and the next reply had to account for each.
+- **"Turn on Auto-fix" is not a fix request.** A capitalised hyphen compound mid-clause is a name, so the `fix` inside `Auto-fix` no longer makes the prompt work-shaped. A lowercase `fix the …` beside it still is.
+- **The Stop gate waits for a background check.** A running background shell whose command or description names a check (test, suite, phpunit, pest, phpstan, lint…) defers the demand like a running agent: the host lists a background Bash as `type: "shell"`, and a worker that ends its turn while its suite runs leaves only that shell listed (probed on CLI 2.1.325). A dev server still does not defer it.
+- Standing: gate (`ledger-hook.test.sh` 17a–17d, `gate-hook.test.sh` 13d–13e; 17a–17c and 13d fail against 0.4.7).
+
 ## 0.4.7 — 2026-11-05
 
 - **An offer cut stops at the next `and`/`then`/`but` clause.** A pre-merge review found `use Kenney packs or generate with Comfy and add Stripe` dropping `Stripe`. Pinned by `ledger-hook.test.sh` case 13z2. The Stop gate's deferral also counts every listed subagent or teammate, whatever its status, as candor's gate does (an entry leaves the list at hand-back).

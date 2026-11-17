@@ -96,4 +96,10 @@ check "13b the name is still owed once no agent runs" "$(runbg s13 'All done.' '
 ledger s13c unity-traps
 check "13c a background shell alone does not defer the demand" \
   "$(runbg s13c 'Waiting on the dev server.' '[{"id":"b1","type":"shell","status":"running","description":"npm run dev"}]')" "what happened to unity-traps, which"
+ledger s13d unity-traps
+is "13d a running background shell that runs the suite defers the demand" \
+  "$(runbg s13d 'The suite is running.' '[{"id":"b2","type":"shell","status":"running","command":"php artisan test --compact"}]')" "rc=0"
+ledger s13e unity-traps
+check "13e a finished test shell does not" \
+  "$(runbg s13e 'All done.' '[{"id":"b3","type":"shell","status":"completed","command":"vendor/bin/phpunit"}]')" "what happened to unity-traps, which"
 exit $rc

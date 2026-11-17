@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.14.2 — 2026-11-17
+
+- **`hooks/preamble.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.
+
 ## 0.14.1 — 2026-11-17
 
 - **Clause 4 waits for a background check, not only a background agent.** The host lists a background Bash job as `type: "shell"` (probed on CLI 2.1.325), and a worker that ends its turn while its own suite runs leaves only that shell listed. Clause 4 counted only `subagent` and `teammate`, so it blocked "waiting for the worker" stops. A running shell now counts when its command or description names a check (test, suite, phpunit, pest, phpstan, lint…); a dev server or a sleep still does not. In one reviewed run, 7 of 13 "no recorded gate pass" blocks came while a worker's or the orchestrator's suite was running.

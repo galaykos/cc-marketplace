@@ -83,7 +83,8 @@ cc_option() {
 cc_prompt_frame() {
   case "${1:-}" in
     '<system-reminder>'*|'<task-notification'*|'[SYSTEM NOTIFICATION'*|'Stop hook feedback:'*) return 0 ;;
-    'Another Claude session sent a message:'*|'<agent-message'*) return 0 ;;
+    'Another Claude session sent a message:'*|'<agent-message'*|'<cross-session-message'*) return 0 ;;
+    '<ci-monitor-event'*|'<side-sessions-event'*) return 0 ;;
     '# Autonomous loop check'*|'# Autonomous loop tick'*|'# /loop tick'*) return 0 ;;
     *'[Subagent hand-back]'*) printf '%s\n' "$1" | grep -qE '^[*_[:space:]]*\[Subagent hand-back\]' ;;
     *) return 1 ;;
