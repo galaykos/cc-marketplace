@@ -2,6 +2,12 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.9 — 2026-11-17
+
+- **`<name>: pending → what remains` accounts for unfinished work.** Only `as named`, `substituted` and `omitted` counted, and unfinished work fits none, so in one long run the model carried "<name>: in progress" on 71 replies. `pending` now counts like the others: the name leaves the ledger at that stop and later replies owe nothing for it. The trade-off, chosen deliberately: nothing checks at the end of the work that a pending name was built as named. "in progress" alone still does not count.
+- README: a running background shell that names a check defers the Stop gate (0.4.8); the line still said no shell counted.
+- Standing: gate (`gate-hook.test.sh` 5p–5r; 5p and 5q fail against 0.4.8).
+
 ## 0.4.8 — 2026-11-17
 
 - **No ledger from desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame (shared prompt-shape block). Before, a CI event ledgered its check names (`Auto-fix pull requests`, `Failing checks`, `ci (php 8.4)`, `ultra`), and the next reply had to account for each.
