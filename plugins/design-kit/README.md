@@ -175,7 +175,7 @@ and the page shows it on the next load. `dk notes --shot ID` (nothing else on th
 loads the page headless with the element outlined (`?_outline=<selector>`, honoured from
 loopback only) and saves a PNG under `.cc-artifacts/design-kit/.notes/`, in a throwaway browser profile,
 with Chrome's sandbox on (off only as root or with `DESIGN_KIT_BROWSER_NO_SANDBOX=1`) and
-30 s to finish; with no Chromium-family browser, or a browser that fails, it says so and
+60 s to finish (a cold first browser start can take most of that); with no Chromium-family browser, or a browser that fails, it says so and
 exits 4. The UserPromptSubmit hook adds a count of unread notes and the command to its one
 line, never note text, a selector or a page path; it names a pick's board only when the name
 is plain ASCII of at most 64 characters naming a file in `.cc-artifacts/design-kit/boards/`, and the
