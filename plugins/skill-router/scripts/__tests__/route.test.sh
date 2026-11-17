@@ -71,9 +71,6 @@ sb=$(skills <<<"$out_b"); se=$(skills <<<"$out_e")
 [ -n "$se" ] && [ "$sb" = "$se" ] && ok || bad "bash vs edit: skill sets differ — bash [$(echo $sb)] edit [$(echo $se)]"
 [ "$(printf '%s\n' "$out_b" | grep -c .)" = 1 ] && printf '%s' "$out_b" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1 \
   && ok || bad "bash heredoc: not exactly one PostToolUse envelope: ${out_b:0:200}"
-sf=$(statef "$A" "$WS/t-a-bash.jsonl")
-jq -e --arg f "$A/$CTRL" '.pending_low | any(.skill == "security-review" and .file == $f)' "$sf" >/dev/null 2>&1 \
-  && ok || bad "bash heredoc: content signal (token → security-review) not in pending_low of $sf"
 
 # 2. Bash with no write target → silent, no state
 B="$WS/b"; mkrepo "$B"
@@ -120,8 +117,7 @@ jq -e '(.fired | index("laravel-best-practices")) and (.fired | index("sql-best-
 #     files the ledger under the ROOT's slug.
 fl=$(jq -cn --arg c "$C/app/Http" --arg tp "$TC" '{hook_event_name:"UserPromptSubmit",prompt:"now add the status filter",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
-grep -qF 'Your recent edits may need these skills' <<<"$fl" && grep -qF 'Status.php' <<<"$fl" && ok \
-  || bad "flush from another subdir: digest missing; got: ${fl:0:200}"
+grep -qF 'may need these skills' <<<"$fl" && bad "prompt from another subdir printed a digest; got: ${fl:0:200}" || ok
 jq -cn --arg c "$C/app/Enums" --arg tp "$TC" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/summary.sh" HOME="$WS/home" >/dev/null
 [ ! -e "$(statef "$C" "$TC")" ] && ok || bad "summary from subdir: root state file not removed"
@@ -191,7 +187,6 @@ bashc() { # cwd command transcript [env...] — the hook only; the command is NO
       tool_input:{command:$cmd,description:"run"},tool_response:{stdout:"",stderr:"",interrupted:false}}' \
     | hook "$HOOK" "$@"
 }
-pend() { jq -e --arg s "$2" '.pending_low | any(.skill == $s)' "$1" >/dev/null 2>&1; }
 mkui() { # $1 dir, $2 package.json body — a front-end git repo
   mkdir -p "$1/src/pages/Deals"; git -C "$1" init -q; printf '%s\n' "$2" > "$1/package.json"
 }
@@ -210,7 +205,7 @@ silent() { # dir relpath content not-skill — a NEGATIVE for a content row; the
   has_skill "$o" "$avoid" && bad "$f: $avoid routed (wrong route)" || ok
 }
 
-# 10. a content row marked `high` fires INLINE, once per context, and never enters the digest
+# 10. a content row marked `high` fires INLINE, once per context
 U="$WS/u"; mkui "$U" '{"dependencies":{"react":"19.0.0","@mui/material":"7.0.0","@mui/x-data-grid":"8.0.0"}}'
 TU="$WS/t-u.jsonl"; mkdir -p "$U/src/features/orders"
 printf '%s\n' "import { DataGrid } from '@mui/x-data-grid'" \
@@ -221,20 +216,15 @@ has_skill "$out" mui-best-practices && ok || bad "content+high: mui-best-practic
 grep -qF 'skill for OrdersGrid.tsx' <<<"$out" && ok || bad "content+high: file-row subject text changed: ${out:0:200}"
 sf=$(statef "$U" "$TU")
 jq -e '.fired | index("mui-best-practices")' "$sf" >/dev/null 2>&1 && ok || bad "content+high: mui-best-practices not recorded in fired"
-pend "$sf" mui-best-practices && bad "content+high: mui-best-practices also landed in pending_low" || ok
-pend "$sf" observability-design && bad "observability: a JSX <span> still draws observability-design" || ok
 printf '%s\n' "import Button from '@mui/material/Button'" 'const token = session.token' > "$U/src/features/orders/OrderRow.tsx"
 out=$(edit "$U" "$U/src/features/orders/OrderRow.tsx" "$TU")
 has_skill "$out" mui-best-practices && bad "content+high: re-nudged mui-best-practices in the same context" || ok
-pend "$sf" mui-best-practices && bad "content+high: second file put mui-best-practices in pending_low" || ok
-pend "$sf" security-review && ok || bad "content+low: security-review (token) did not reach pending_low next to a high row"
-has_skill "$out" security-review && bad "content+low: security-review fired inline" || ok
+has_skill "$out" security-review && bad "token: security-review routed (its content row is gone)" || ok
 out=$(edit "$U" "$U/src/features/orders/OrderRow.tsx" "$WS/t-u-subagent.jsonl")
 has_skill "$out" mui-best-practices && ok || bad "content+high: a second context (subagent transcript) did not get it inline"
 fl=$(jq -cn --arg c "$U" --arg tp "$TU" '{hook_event_name:"UserPromptSubmit",prompt:"add a totals row",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
-grep -qF 'security-review' <<<"$fl" && ok || bad "digest: the low row did not flush; got: ${fl:0:200}"
-grep -qF 'mui-best-practices' <<<"$fl" && bad "digest: a high content row was flushed in the digest" || ok
+grep -qF 'may need these skills' <<<"$fl" && bad "prompt: a digest printed after a token edit; got: ${fl:0:200}" || ok
 out=$(bashw "$U" "cat > src/pages/Scene.tsx <<'TSX'
 import { Canvas } from '@react-three/fiber'
 export const Scene = () => <Canvas />
@@ -253,10 +243,8 @@ ScrollTrigger.create({ pin: true, scrub: 1 })" scroll-orchestration
 TM=$(fresh); printf '%s\n' "import LocomotiveScroll from 'locomotive-scroll'" > "$M/src/scroll/Loco.tsx"; out=$(edit "$M" "$M/src/scroll/Loco.tsx" "$TM")
 has_skill "$out" scroll-orchestration && ok || bad "locomotive-scroll import routes scroll-orchestration; got: ${out:0:200}"
 routes "$M" src/hero/Hero.tsx "import { motion } from 'motion/react'" motion-best-practices
-TM=$(fresh); printf '%s\n' "import { motion } from 'motion/react'" > "$M/src/hero/Hero2.tsx"; edit "$M" "$M/src/hero/Hero2.tsx" "$TM" >/dev/null
-pend "$(statef "$M" "$TM")" aceternity-best-practices && bad "aceternity: a Motion import still draws aceternity-best-practices" || ok
-TM=$(fresh); mkdir -p "$M/src/lib"; printf '%s\n' "const span = tracer.startSpan('checkout')" 'span.end()' > "$M/src/lib/trace.ts"; edit "$M" "$M/src/lib/trace.ts" "$TM" >/dev/null
-pend "$(statef "$M" "$TM")" observability-design && ok || bad "observability: startSpan/span.end() no longer reach the digest"
+TM=$(fresh); printf '%s\n' "import { motion } from 'motion/react'" > "$M/src/hero/Hero2.tsx"; out=$(edit "$M" "$M/src/hero/Hero2.tsx" "$TM")
+has_skill "$out" aceternity-best-practices && bad "aceternity: a Motion import still draws aceternity-best-practices" || ok
 
 # 12. skills that existed but were never reached
 routes "$M" src/mascot/Mascot.tsx "import { useRive } from '@rive-app/react-canvas'" motion-tiers
@@ -297,8 +285,8 @@ TM=$(fresh); printf '%s\n' "import { draggable } from '@atlaskit/pragmatic-drag-
 has_skill "$out" component-libraries && bad "pragmatic-drag-and-drop does not route component-libraries; got: ${out:0:200}" || ok
 TM=$(fresh); printf '%s\n' '// Spacing follows the GOV.UK Design System (`govuk-frontend`), not USWDS.' 'export const gap = 4' > "$M/src/ui/spacing.ts"; out=$(edit "$M" "$M/src/ui/spacing.ts" "$TM")
 has_skill "$out" component-libraries && bad "govuk text in prose does not route: a backticked name in a comment drew component-libraries" || ok
-TM=$(fresh); mkdir -p "$M/docs"; printf '%s\n' '# Forms' 'We compared `govuk-frontend`, `@carbon/react` and USWDS before building our own.' > "$M/docs/forms.md"; edit "$M" "$M/docs/forms.md" "$TM" >/dev/null
-pend "$(statef "$M" "$TM")" component-libraries && bad "govuk text in prose does not route: a backticked name in markdown queued component-libraries" || ok
+TM=$(fresh); mkdir -p "$M/docs"; printf '%s\n' '# Forms' 'We compared `govuk-frontend`, `@carbon/react` and USWDS before building our own.' > "$M/docs/forms.md"; out=$(edit "$M" "$M/docs/forms.md" "$TM")
+has_skill "$out" component-libraries && bad "govuk text in prose does not route: a backticked name in markdown drew component-libraries" || ok
 V="$WS/v"; mkui "$V" '{"dependencies":{"vue":"3.5.0","vuetify":"3.7.0"}}'
 routes "$V" src/pages/Tickets.vue '<template><v-data-table :items="tickets" /></template>' component-libraries
 V2="$WS/v2"; mkui "$V2" '{"dependencies":{"vue":"3.5.0"}}'
@@ -370,17 +358,14 @@ has_skill "$out" aceternity-best-practices && bad "quoted magicui install is a s
 out=$(bashc "$S3" 'echo "$(npx shadcn@latest add button)"' "$(fresh)")
 has_skill "$out" shadcn-best-practices && ok || bad "command row: \$(…) inside double quotes is live code and did not route; got: ${out:0:160}"
 
-# 15. content+high fires inline only on code and style files; any other file keeps its
-#     match in the digest (a doc file queues nothing, case 18) and does not spend the one-shot
+# 15. a content row fires inline on any file but prose: a doc file naming a library stays silent, a .py holding it fires
 N="$WS/n"; mkui "$N" '{"dependencies":{"react":"19.0.0"}}'; TN="$WS/t-n.jsonl"
 printf 'Hero timeline: port it to gsap next sprint.\n' > "$N/NOTES.md"
 out=$(edit "$N" "$N/NOTES.md" "$TN")
 has_skill "$out" motion-best-practices && bad "content+high: NOTES.md mentioning gsap fired inline" || ok
 mkdir -p "$N/tools"; printf 'SNIPPET = "const r = new THREE.WebGLRenderer()"\n' > "$N/tools/gen.py"
 out=$(edit "$N" "$N/tools/gen.py" "$TN")
-has_skill "$out" threejs-best-practices && bad "content+high: a .py containing 'new THREE.' fired inline" || ok
-pend "$(statef "$N" "$TN")" threejs-best-practices && ok || bad "content+high: gen.py's match did not fall through to the digest"
-pend "$(statef "$N" "$TN")" motion-best-practices && bad "doc file: NOTES.md's gsap match reached the digest" || ok
+has_skill "$out" threejs-best-practices && ok || bad "content+high: a .py holding 'new THREE.' did not fire inline; got: ${out:0:200}"
 printf "import gsap from 'gsap'\n" > "$N/src/pages/Hero.tsx"
 out=$(edit "$N" "$N/src/pages/Hero.tsx" "$TN")
 has_skill "$out" motion-best-practices && ok || bad "content+high: the one-shot was spent by NOTES.md — Hero.tsx did not fire; got: ${out:0:160}"
@@ -388,7 +373,7 @@ mkdir -p "$N/resources/views"; printf '<div x-data>{{ $title }}</div>\n<script>g
 out=$(edit "$N" "$N/resources/views/hero.blade.php" "$(fresh)")
 has_skill "$out" motion-best-practices && ok || bad "content+high: a .blade.php template did not fire inline; got: ${out:0:160}"
 
-# 16. each target is read once per call: the digest pass reuses the inline pass's read
+# 16. each target is read once per call
 HS="$WS/shim"; mkdir -p "$HS"
 printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$HEAD_LOG"\nexec %s "$@"\n' "$(command -v head)" > "$HS/head"; chmod +x "$HS/head"
 printf "import gsap from 'gsap'\nconst token = session.token\n" > "$N/src/pages/Reads.tsx"
@@ -408,40 +393,20 @@ for f in lib/tool.py cmd/main.go lib/util.ts; do
   [ -z "$out" ] && ok || bad "$f: a plain source file with no stack row must stay silent; got: ${out:0:200}"
 done
 
-# 18. doc and style files queue nothing; a harness frame does not flush the digest, a human prompt does
+# 18. no digest (skill-router 0.34.0): a code edit full of catch/throw/token/async routes no resilience or security skill, and the
+#     next prompt prints no "may need these skills" line. The digest was followed 8 times in 945 suggestions.
 D="$WS/d"; mkrepo "$D"; TD="$WS/t-d.jsonl"
-mkdir -p "$D/docs" "$D/resources/css" "$D/taskmaster-docs/mockups" "$D/.cc-artifacts/taskmaster/mockups"
-printf 'Rotate the api token before the release.\n' > "$D/docs/runbook.md"
-printf '.badge { color: var(--token-fg); }\n' > "$D/resources/css/badge.css"
-printf '<form><input type="password" name="password"></form>\n' > "$D/taskmaster-docs/mockups/login.html"
-cp "$D/taskmaster-docs/mockups/login.html" "$D/.cc-artifacts/taskmaster/mockups/login.html"
-printf 'Rotate the secret quarterly.\n' > "$D/docs/notes.txt"
-for f in docs/runbook.md resources/css/badge.css taskmaster-docs/mockups/login.html .cc-artifacts/taskmaster/mockups/login.html docs/notes.txt; do
-  edit "$D" "$D/$f" "$TD" >/dev/null
-  pend "$(statef "$D" "$TD")" security-review && bad "doc/style file: $f queued security-review" || ok
+printf '<?php\nclass ApiTokenController { public async function show() { try { return $this->token; } catch (\\Throwable $e) { throw $e; } } }\n' > "$D/app/Http/Controllers/ApiTokenController.php"
+out=$(edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$TD")
+for sk in security-review error-handling-design concurrency-safety observability-design resilience-design; do
+  has_skill "$out" "$sk" && bad "no digest: $sk routed from a content match" || ok
 done
-printf '<?php\nclass ApiTokenController { public function show() { return $this->token; } }\n' > "$D/app/Http/Controllers/ApiTokenController.php"
-edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$TD" >/dev/null
-pend "$(statef "$D" "$TD")" security-review && ok || bad "code file: a .php edit with token no longer queues security-review"
-prompt_d() { # prompt transcript
-  jq -cn --arg c "$D" --arg tp "$2" --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:"sess",transcript_path:$tp,cwd:$c}' \
-    | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS"; }
-for p in '<task-notification><task-id>t1</task-id><status>completed</status></task-notification>' \
-         'Stop hook feedback: run the suite first' '<system-reminder>a file changed</system-reminder>' \
-         $'Another Claude session sent a message:\n<agent-message from="a1">done</agent-message>' \
-         $'note above the frame\n[Subagent hand-back] all green' \
-         $'# Autonomous loop tick (dynamic pacing)\n\nRun the autonomous check; fix the failing build.'; do
-  t=$(fresh); edit "$D" "$D/app/Http/Controllers/ApiTokenController.php" "$t" >/dev/null
-  fl=$(prompt_d "$p" "$t")
-  grep -qF 'Your recent edits may need these skills' <<<"$fl" && bad "harness frame flushed the digest [${p:0:30}]" || ok
-  jq -e '.pending_low | any(.flushed != true)' "$(statef "$D" "$t")" >/dev/null 2>&1 && ok || bad "harness frame marked pending_low flushed [${p:0:30}]"
-done
-fl=$(prompt_d 'what does a <task-notification> prompt carry?' "$TD")
-grep -qF 'Your recent edits may need these skills' <<<"$fl" && grep -qF 'ApiTokenController.php' <<<"$fl" && ok \
-  || bad "human prompt quoting a frame marker did not flush; got: ${fl:0:200}"
-grep -qE 'runbook\.md|badge\.css|login\.html|notes\.txt' <<<"$fl" && bad "digest named a doc/style file: ${fl:0:200}" || ok
+fl=$(jq -cn --arg c "$D" --arg tp "$TD" '{hook_event_name:"UserPromptSubmit",prompt:"now add the rate limit",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
+grep -qF 'may need these skills' <<<"$fl" && bad "no digest: route-prompt printed one; got: ${fl:0:200}" || ok
+jq -e 'has("pending_low")' "$(statef "$D" "$TD")" >/dev/null 2>&1 && bad "no digest: route.sh still writes pending_low" || ok
 
-# 19. names are qualified plugin:skill in the nudge, the digest and the SessionEnd line: a bare name loaded a project's own
+# 19. names are qualified plugin:skill in the nudge: a bare name loaded a project's own
 #     .claude/skills copy of the same name (Laravel Boost ships several) instead of the plugin's file
 Q="$WS/q"; mkrepo "$Q"; TQ="$WS/t-q.jsonl"
 printf '<?php\nclass Token { public function show() { return $this->token; } }\n' > "$Q/app/Models/Token.php"
@@ -449,13 +414,6 @@ out=$(edit "$Q" "$Q/app/Models/Token.php" "$TQ")
 jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -qF 'Load the `laravel:laravel-best-practices` skill for Token.php' \
   && grep -qF 'and check your change against it.' <<<"$out" && ok || bad "qualified: nudge does not name laravel:laravel-best-practices; got: ${out:0:200}"
 grep -qF 'plugin)' <<<"$out" && bad "qualified: the old '(X plugin)' tail survived" || ok
-fl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"UserPromptSubmit",prompt:"next",session_id:"sess",transcript_path:$tp,cwd:$c}' \
-  | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
-grep -qF 'security:security-review (Token.php)' <<<"$fl" && ok || bad "qualified: digest does not name security:security-review; got: ${fl:0:200}"
-printf '<?php\n$secret = 1;\n' > "$Q/app/Models/Key.php"; edit "$Q" "$Q/app/Models/Key.php" "$TQ" >/dev/null
-sl=$(jq -cn --arg c "$Q" --arg tp "$TQ" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
-  | hook "$SR/hooks/summary.sh" HOME="$WS/home19")
-grep -qF 'security:security-review (1 file)' <<<"$sl" && ok || bad "qualified: SessionEnd line does not name security:security-review; got: ${sl:0:200}"
 
 # 20. no rubric for a file nobody reviews: gitignored scratch, anything under taskmaster-docs/, .claude/ or .cc-artifacts/ (bar its
 #     design-kit/, which design-kit's rows route), and a target outside the project root stay silent and queue nothing; the same
@@ -555,8 +513,6 @@ PY" "$TK")
   has_skill "$out_b" laravel-best-practices && ok || bad "effects: a python heredoc write did not route laravel-best-practices; got: ${out_b:0:200}"
   sb=$(skills <<<"$out_b"); se=$(skills <<<"$out_e")
   [ -n "$se" ] && [ "$sb" = "$se" ] && ok || bad "effects vs edit: skill sets differ — python [$(echo $sb)] edit [$(echo $se)]"
-  jq -e --arg f "$K/$AUTH" '.pending_low | any(.skill == "security-review" and .file == $f)' "$(statef "$K" "$TK")" >/dev/null 2>&1 \
-    && ok || bad "effects: the auth file written through python queued no security-review signal"
   mkdir -p "$K/database"; printf 'select 1;\n' > "$K/database/report.sql"
   edit "$K" "$K/database/report.sql" "$(fresh)" >/dev/null
   out=$(bashw "$K" "python3 - <<'PY'
@@ -648,43 +604,16 @@ printf '{"api_key": "x", "token": "y", "retry": "catch and throw"}\n' > "$AS/con
 printf 'Rotate the token; catch every throw.\n' > "$AS/docs/retro/session-review-2026-10-12.md"
 printf '## 1.0\n- throw on a bad secret\n' > "$AS/CHANGELOG.md"
 for f in config/settings.json docs/retro/session-review-2026-10-12.md CHANGELOG.md; do
-  t=$(fresh); edit "$AS" "$AS/$f" "$t" >/dev/null
-  { pend "$(statef "$AS" "$t")" security-review || pend "$(statef "$AS" "$t")" error-handling-design; } && bad "data/doc [$f]: a low row queued" || ok
+  out=$(edit "$AS" "$AS/$f" "$(fresh)"); [ -z "$out" ] && ok || bad "data/doc [$f]: routed; got: ${out:0:160}"
 done
 printf 'jobs:\n  steam:\n    steps:\n      - uses: game-ci/steam-deploy@v3\n        with:\n          token: ${{ secrets.STEAM }}\n' > "$AS/.github/workflows/release.yml"
 TA=$(fresh); out=$(edit "$AS" "$AS/.github/workflows/release.yml" "$TA")
 has_skill "$out" devops-practices && ok || bad "data rows: a workflow .yml no longer routes devops-practices; got: ${out:0:200}"
-pend "$(statef "$AS" "$TA")" steam-release && ok || bad "data rows: game-ci/steam-deploy in a workflow .yml no longer queues steam-release"
-pend "$(statef "$AS" "$TA")" security-review && bad "data rows: a workflow .yml queued the low security-review row" || ok
+has_skill "$out" steam-release && ok || bad "data rows: game-ci/steam-deploy in a workflow .yml does not route steam-release inline; got: ${out:0:200}"
 printf '{"frames": {}, "meta": {"frameTags": [], "note": "token"}}\n' > "$AS/sprites/hero.json"
-TA=$(fresh); edit "$AS" "$AS/sprites/hero.json" "$TA" >/dev/null
-pend "$(statef "$AS" "$TA")" pixel-art-pipeline && ok || bad "data rows: an Aseprite sheet .json no longer queues pixel-art-pipeline"
-pend "$(statef "$AS" "$TA")" security-review && bad "data rows: an Aseprite sheet .json queued the low security-review row" || ok
-printf '<?php\nclass PowerService { public function cast() { throw new \\RuntimeException(); } }\n' > "$AS/app/Models/PowerService.php"
-TA=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$TA" >/dev/null
-pend "$(statef "$AS" "$TA")" error-handling-design && ok || bad "code file: a .php throw no longer queues error-handling-design"
-
-# 28. retro 2026-11-05 issue 7: a short approval or a commit, push, merge, APK build or status ask holds the digest, its signals kept
-#     unflushed, and the next work prompt flushes them; a neighbour (a commit verb with code words, `build` without an APK, a question) flushes.
-prompt_h() { # prompt transcript
-  jq -cn --arg c "$AS" --arg tp "$2" --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:"sess",transcript_path:$tp,cwd:$c}' \
-    | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS"; }
-for p in 'Yes, commit' 'Commit and build APK' 'commit' 'What we got left?' 'give overview on how things work' 'ok thanks' 'show me the status of the run' \
-         'commit and push to origin main' 'LGTM, merge it'; do
-  TH=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$TH" >/dev/null
-  fl=$(prompt_h "$p" "$TH")
-  ! grep -qF 'Your recent edits may need these skills' <<<"$fl" \
-    && jq -e '.pending_low | any(.skill == "error-handling-design" and .flushed != true)' "$(statef "$AS" "$TH")" >/dev/null 2>&1 \
-    && ok || bad "hold: [$p] flushed the digest or dropped its signal; got: ${fl:0:160}"
-done
-fl=$(prompt_h 'now add the cooldown to cast()' "$TH")
-grep -qF 'error-handling-design (PowerService.php)' <<<"$fl" && ok || bad "hold: the work prompt after the holds did not flush; got: ${fl:0:200}"
-for p in 'commit the fix for the login bug' 'build the APK download page' 'merge the two helpers into one' \
-         'what is left to fix in the parser?' 'next' '/commit' 'show the status badge on the orders page'; do
-  t=$(fresh); edit "$AS" "$AS/app/Models/PowerService.php" "$t" >/dev/null
-  fl=$(prompt_h "$p" "$t")
-  grep -qF 'Your recent edits may need these skills' <<<"$fl" && ok || bad "hold neighbour: [$p] did not flush; got: ${fl:0:200}"
-done
+TA=$(fresh); out=$(edit "$AS" "$AS/sprites/hero.json" "$TA")
+has_skill "$out" pixel-art-pipeline && ok || bad "data rows: an Aseprite sheet .json does not route pixel-art-pipeline inline; got: ${out:0:200}"
+has_skill "$out" security-review && bad "data rows: an Aseprite sheet .json routed security-review" || ok
 
 # 29. retro 2026-11-05 issue 8: a Blender or Meshy MCP call routes gamedev:asset-pipeline by its tool name, in one line, once per
 #     context, and never by a path in its arguments; an unrelated MCP call, a Higgsfield call and a .png or .glb edit stay silent.
@@ -745,15 +674,15 @@ for f in Assets/Scripts/LicenseManager.cs Assets/UI/LicensesScreen.prefab; do
   has_skill "$out" game-assets && bad "licence row: $f is no licence file but routed game-assets" || ok
 done
 TP=$(fresh); printf 'import bpy\nbpy.ops.export_scene.gltf(filepath="build/hero.glb")\n' > "$GD/tools/export_hero.py"
-edit "$GD" "$GD/tools/export_hero.py" "$TP" >/dev/null
-pend "$(statef "$GD" "$TP")" asset-pipeline && ok || bad "export row: a Blender glTF export script queued no asset-pipeline signal"
+out=$(edit "$GD" "$GD/tools/export_hero.py" "$TP")
+has_skill "$out" asset-pipeline && ok || bad "export row: a Blender glTF export script did not route asset-pipeline inline; got: ${out:0:200}"
 TP=$(fresh); printf 'import bpy\nbpy.ops.export_scene.obj(filepath="print/hero.obj")\n' > "$GD/tools/print_hero.py"
-edit "$GD" "$GD/tools/print_hero.py" "$TP" >/dev/null
-pend "$(statef "$GD" "$TP")" blender-best-practices && ! pend "$(statef "$GD" "$TP")" asset-pipeline && ok \
-  || bad "export row: an OBJ export for printing queued asset-pipeline, or the bpy row stopped queuing"
+out=$(edit "$GD" "$GD/tools/print_hero.py" "$TP")
+has_skill "$out" blender-best-practices && ! has_skill "$out" asset-pipeline && ok \
+  || bad "export row: an OBJ export for printing routed asset-pipeline, or the bpy row stopped routing; got: ${out:0:200}"
 TP=$(fresh); printf 'using UnityEngine;\npublic class World { void Build(int seed) { Random.InitState(seed); } }\n' > "$GD/Assets/Scripts/World.cs"
-edit "$GD" "$GD/Assets/Scripts/World.cs" "$TP" >/dev/null
-pend "$(statef "$GD" "$TP")" seeded-generation && ok || bad "seed row: a Unity Random.InitState script queued no seeded-generation signal"
+out=$(edit "$GD" "$GD/Assets/Scripts/World.cs" "$TP")
+has_skill "$out" seeded-generation && ok || bad "seed row: a Unity Random.InitState script did not route seeded-generation inline; got: ${out:0:200}"
 
 # 9. every hook call exited 0 (fail-open contract)
 [ ! -s "$NONZERO" ] && ok || { bad "non-zero hook exit(s):"; cat "$NONZERO"; }

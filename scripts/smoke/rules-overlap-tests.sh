@@ -71,7 +71,9 @@ fi
 
 # 2. an unblessed row with a DISTINCT regex that overlaps on real code must fail
 cp plugins/skill-router/rules.tsv "$RT"
-printf 'content\t\\b(catch|rescue)\\b\tzz-probe\tzz\tlow\n' >> "$RT"
+# Two probe rows, distinct regexes, one corpus file: the shipped content rows no longer overlap the corpus (skill-router 0.34.0
+# removed the catch/token rows), so the pair is supplied here.
+printf 'content\t\\bclass\\b\tzz-probe\tzz\thigh\ncontent\t\\bfunction\\b\tzz-probe2\tzz\thigh\n' >> "$RT"
 if pc_rules_cofire "$RT" "$CORPUS" >/dev/null; then
   echo "FAIL[cofire]: distinct-regex overlap went undetected"; rc=1
 else
