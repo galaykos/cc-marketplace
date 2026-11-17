@@ -4,6 +4,13 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.35.0 — 2026-11-16
+
+- **A design-contract check on UI edits.** New PostToolUse hook `contract-check.sh`: when the project declares `.cc-artifacts/design-kit/design-system/contract.json` (design-kit 0.19.0 drafts it), it names the lines an Edit or Write ADDED to a markup file that build a surface by hand (`rounded` + `border` on a `div`, `section`, `article`, `aside` or `li`) instead of the contract's component, use a raw Tailwind palette class, or an arbitrary hex or px value. Advisory, never blocks; old lines are left alone; the contract's `primitives` and `shell.owner` paths are exempt from the surface check; silent without a contract. Option `cc_design_contract` / `CC_DESIGN_CONTRACT=off`. Why: one real frontend held about 230 hand-built boxes against 7 uses of its own `Card`, and its restyle became a sweep across pages.
+- `ui-ux-engineer` builds against the contract (surface component, semantic tokens, the shell owning frame geometry, tests by role or `data-test`); `ui-ux-reviewer` flags a line that breaks it as a `[convention]` medium, which task-runner 0.62.0 blocks in the card.
+- Standing: gate for the hook's patterns (`scripts/__tests__/contract-check.test.sh`, 20 cases, 11 of them must-stay-silent); agent-graded for the engineer and reviewer text.
+- Misses: a class split across lines or built at runtime, a surface made with other utilities (shadow and padding, no border), CSS and SCSS files, and writes made through Bash.
+
 ## 0.34.2 — 2026-11-16
 
 - **`ui-ux-engineer` and `a11y-engineer` check before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.

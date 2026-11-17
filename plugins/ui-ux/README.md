@@ -123,6 +123,14 @@ that looks great as a swatch can fail hard as a button.
   green. This is the reach half of a rule craft-layer owns the depth of; the hook's
   derivation is in the marketplace repository's `rationale/derivations/plugin-ui-ux.md` § `plugins/ui-ux/hooks/palette-default.sh`.
 
+  - `contract-check` (PostToolUse on a written markup file) — **advisory.** When the project
+    declares a design contract (`.cc-artifacts/design-kit/design-system/contract.json`, drafted by
+    `/design-kit:system`), it names the lines an edit ADDED that build a surface by hand (a `div`
+    with `rounded` and `border`) instead of the contract's component, use a raw Tailwind palette
+    class, or an arbitrary hex or px value. Old lines are left alone, and the contract's primitive
+    folders and shell files are exempt. Silent without a contract. It misses classes split across
+    lines or built at runtime, CSS files and Bash writes. Silence it with `CC_DESIGN_CONTRACT=off`.
+
 ## The contrast checker
 
 `scripts/contrast.mjs` measures every ink/accent/status/chart pairing in a token
