@@ -358,6 +358,16 @@ $unreach
 EOF_UNREACH
   fi
 
+  # Confidence (hard): route.sh reads only `high` rows since skill-router 0.34.0 (the next-prompt digest of `low` rows was followed 8 times in 945).
+  lowrows=$(awk -F'\t' '!/^#/ && NF >= 5 { c = $5; sub(/\r$/, "", c); if (c != "high") print NR ": " $3 " (" c ")" }' "$SR/rules.tsv" 2>/dev/null)
+  if [ -n "$lowrows" ]; then
+    while IFS= read -r lr; do
+      err "rules.tsv row not high-confidence ($lr) — route.sh ignores it; make it high or delete it"
+    done <<EOF_LOWROWS
+$lowrows
+EOF_LOWROWS
+  fi
+
   # rules.tsv col 4 names a plugin directory; route.sh skips rows whose owner is not installed (pc_rules_owner's header).
   owners=$(pc_rules_owner "$SR/rules.tsv" plugins) || true
   if [ -n "$owners" ]; then

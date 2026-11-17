@@ -1,6 +1,6 @@
 #!/bin/bash
-# PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run), the command itself, and an MCP call's tool name against rules.tsv; prints at most NUDGE_CAP `high` plugin:skill nudges, none already loaded, and queues other content matches as pending_low.
-# Silent on targets outside the root, under taskmaster-docs/, .claude/ or .cc-artifacts/ (not its design-kit/), git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; a .json/.y(a)ml queues no `low` row; an MCP call other than create_new_file routes by name only. Misses a concurrent pending_low write, a CLI run through a script or npm alias, Bash targets or changed files past the eighth, an MCP name hooks.json's matcher does not admit. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
+# PostToolUse (PostToolUseFailure on Bash): matches the edited file, each existing file a Bash command wrote under the root (named, or changed in git after an interpreter, cp, mv, install or patch run), the command itself, and an MCP call's tool name against rules.tsv; prints at most NUDGE_CAP plugin:skill nudges, none already loaded.
+# Silent on targets outside the root, under taskmaster-docs/, .claude/ or .cc-artifacts/ (not its design-kit/), git-ignored, or an image, audio, 3D, Unity, .csv/.tsv or .lock file; an MCP call other than create_new_file routes by name only. Misses a CLI run through a script or npm alias, Bash targets or changed files past the eighth, an MCP name hooks.json's matcher does not admit. Fails open. Off: CC_REMIND=off (or /config cc_remind); CC_ROUTE silences route-prompt.sh, not this.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route.sh
 MAX_BASH_TARGETS=8
 MAX_BASH_EFFECTS=8
@@ -305,7 +305,7 @@ route_cmd_mask() {
   fi
   [ -n "$session_id" ] || exit 0
 
-  # route_ext <path> <class> — status 0 when <path> ends, in any case, in an `asset` extension (no rules.tsv row names one) or a `data` one (no `low` row reads one).
+  # route_ext <path> asset — status 0 when <path> ends, in any case, in an `asset` extension (no rules.tsv row names one).
   route_ext() {
     local rc=1 was_off=1
     shopt -q nocasematch && was_off=0
@@ -313,7 +313,6 @@ route_cmd_mask() {
     case "$2:$1" in
       asset:*.png|asset:*.jpg|asset:*.jpeg|asset:*.gif|asset:*.webp|asset:*.svg|asset:*.blend|asset:*.fbx|asset:*.glb|asset:*.gltf) rc=0 ;;
       asset:*.meta|asset:*.mat|asset:*.controller|asset:*.anim|asset:*.wav|asset:*.mp3|asset:*.ogg|asset:*.csv|asset:*.tsv|asset:*.lock) rc=0 ;;
-      data:*.json|data:*.yaml|data:*.yml) rc=0 ;;
     esac
     [ "$was_off" -eq 1 ] && shopt -u nocasematch
     return "$rc"
@@ -328,7 +327,7 @@ route_cmd_mask() {
     ! git -C "$root" check-ignore -q -- "$1" 2>/dev/null
   }
 
-  # Two parallel arrays per target: rec, the spelling pending_low records; abs, the file on disk.
+  # Two parallel arrays per target: rec, the spelling a nudge names; abs, the file on disk.
   rec=(); abs=()
   if [ "$tool" = Bash ]; then
     while IFS= read -r t; do
@@ -375,12 +374,12 @@ EOF_TARGETS
     case "$target" in "$root"/*) rel="${target#"$root"/}" ;; esac
   }
 
-  # A code or style file, the only kind a `content`+`high` row fires inline on (nudge_high_matches).
+  # Any file but prose: a `content` row fires on it (nudge_high_matches). A NOTES.md naming gsap is not a three.js scene.
   inline_ext() {
-    case "$base" in
-      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte|*.astro|*.css|*.scss|*.sass|*.less|*.html|*.php|*.twig|*.erb) return 0 ;;
+    case "$(printf '%s' "$base" | tr 'A-Z' 'a-z')" in
+      *.md|*.mdx|*.markdown|*.txt|*.rst|*.adoc|*.asciidoc) return 1 ;;
     esac
-    return 1
+    return 0
   }
 
   plugin_installed() { # $1 owning_plugin — fire-if-uncertain
@@ -485,12 +484,10 @@ EOF_TARGETS
 
   nudge_high_matches() {
     fired_now=""; loaded_now=""
-    hcs=()
     i=0
     while [ "$i" -lt "${#abs[@]}" ]; do
       set_target "$i"; i=$((i + 1))
       hc=""; [ -r "$target" ] && hc=$(head -c 65536 "$target" 2>/dev/null)
-      hcs+=("$hc")
       inline=0; inline_ext && inline=1
       while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
         case "$stype" in ''|'#'*) continue ;; esac
@@ -541,36 +538,11 @@ EOF_CMD
     fi
   }
 
-  # Reads hcs, the one head per target nudge_high_matches read. Doc and style files queue nothing (`token` in a spec queued security-review), as database's guard.sh exempts them; a .json/.y(a)ml file queues only `high` rows, the signatures written for it.
-  queue_low_matches() {
-    pending_adds=""
-    i=0
-    while [ "$i" -lt "${#abs[@]}" ]; do
-      set_target "$i"; content="${hcs[$i]}"; i=$((i + 1))
-      [ -n "$content" ] || continue
-      case "$target" in *.md|*.mdx|*.markdown|*.txt|*.rst|*.css|*/taskmaster-docs/*|*/.cc-artifacts/taskmaster/*) continue ;; esac
-      inline=0; inline_ext && inline=1
-      data=0; route_ext "$target" data && data=1
-      while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
-        case "$stype" in ''|'#'*) continue ;; esac
-        conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
-        [ "$stype" = content ] || continue
-        [ "$conf" = high ] && [ "$inline" = 1 ] && continue
-        [ "$conf" = low ] && [ "$data" = 1 ] && continue
-        plugin_installed "$plugin" || continue
-        marker_ok "$marker" || continue
-        if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
-          pending_adds="${pending_adds}${skill}"$'\t'"${plugin}"$'\t'"${file_path}"$'\n'
-        fi
-      done < "$rules"
-    done
-  }
-
   persist_state() {
-    if [ -n "$fired_now" ] || [ -n "$loaded_now" ] || [ -n "$pending_adds" ]; then
+    if [ -n "$fired_now" ] || [ -n "$loaded_now" ]; then
       mkdir -p "$state_dir" 2>/dev/null || exit 0
       [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null
-      json='{"fired":[],"loaded":[],"pending_low":[]}'
+      json='{"fired":[],"loaded":[]}'
       if [ -r "$state_file" ]; then
         existing=$(cat "$state_file" 2>/dev/null)
         printf '%s' "$existing" | jq empty 2>/dev/null && json="$existing"
@@ -593,15 +565,6 @@ EOF_FIRED
 $loaded_now
 EOF_LOADED
       fi
-      if [ -n "$pending_adds" ]; then
-        while IFS=$'\t' read -r pskill pplug pfile; do
-          [ -n "$pskill" ] || continue
-          json=$(printf '%s' "$json" | jq --arg sk "$pskill" --arg pl "$pplug" --arg f "$pfile" \
-            'if (.pending_low | any(.skill==$sk and .file==$f)) then . else .pending_low += [{skill:$sk,plugin:$pl,file:$f}] end' 2>/dev/null) || break
-        done <<EOF
-$pending_adds
-EOF
-      fi
       printf '%s\n' "$json" > "$state_file" 2>/dev/null || exit 0
     fi
   }
@@ -609,7 +572,6 @@ EOF
   nudge_high_matches
   # Before persist_state: an unwritable state dir must not swallow a nudge the model should have seen.
   deliver_nudges
-  queue_low_matches
   persist_state
 } 2>/dev/null
 exit 0

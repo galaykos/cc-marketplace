@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # route-pins.test.sh — pins hooks/route.sh's Bash target cap on both sides and paths of each main-block step (nudge_high_matches's
-# one-nudge-per-skill and command-row installed filter, delivery before persistence, queue_low_matches's installed filter,
-# persistence's pending_low dedup) on scratch rules.
+# one-nudge-per-skill and command-row installed filter, delivery before persistence) on scratch rules.
 set -u
 unset CLAUDE_PROJECT_DIR CLAUDE_PLUGIN_DATA CC_REMIND CLAUDE_PLUGIN_OPTION_CC_REMIND
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/hooks/route.sh"
@@ -20,9 +19,7 @@ printf '%s\n' \
   $'glob\tdup.*\tdup-canary\tpinplug\thigh' \
   $'glob\t*.pind\tdeliver-canary\tpinplug\thigh' \
   $'command\t\\bpincmd\\b\tlivecmd-canary\tpinplug\thigh' \
-  $'command\t\\bpincmd\\b\tghostcmd-canary\tpinabsent\thigh' \
-  $'content\tPINLOW\tpresent-canary\tpinplug\tlow' \
-  $'content\tPINLOW\tabsent-canary\tpinabsent\tlow' > "$PR/rules.tsv"
+  $'command\t\\bpincmd\\b\tghostcmd-canary\tpinabsent\thigh' > "$PR/rules.tsv"
 
 ok()  { echo "PASS: $1"; pass=$((pass+1)); }
 bad() { echo "FAIL: $1 — $2"; fail=$((fail+1)); }
@@ -72,18 +69,6 @@ R="$WS/deliver"; mkrepo "$R"; : > "$R/x.pind"; : > "$WS/datafile"
 out=$(edit "$R" "$R/x.pind" "$WS/t-deliver" CLAUDE_PLUGIN_DATA="$WS/datafile")
 [ "$(nudges_for deliver-canary <<<"$out")" = 1 ] && ok "deliver: a nudge survives a state dir that cannot be created" \
   || bad "deliver: a nudge survives a state dir that cannot be created" "got: ${out:-<empty>}"
-
-R="$WS/low"; mkrepo "$R"; printf 'PINLOW\n' > "$R/note.pinl"
-edit "$R" "$R/note.pinl" "$WS/t-low" >/dev/null
-sf=$(statef "$R" "$WS/t-low")
-if jq -e '(.pending_low | any(.skill == "present-canary")) and (.pending_low | any(.skill == "absent-canary") | not)' "$sf" >/dev/null 2>&1
-then ok "low pass: a content row whose plugin is not installed stays out of pending_low"
-else bad "low pass: a content row whose plugin is not installed stays out of pending_low" "state: $(cat "$sf" 2>/dev/null)"; fi
-
-edit "$R" "$R/note.pinl" "$WS/t-low" >/dev/null
-if [ "$(jq --arg f "$R/note.pinl" '[.pending_low[] | select(.skill == "present-canary" and .file == $f)] | length' "$sf" 2>/dev/null)" = 1 ]
-then ok "persist: a low signal repeated on one file is queued once"
-else bad "persist: a low signal repeated on one file is queued once" "state: $(cat "$sf" 2>/dev/null)"; fi
 
 [ ! -s "$WS/nonzero" ] && ok "every hook call exited 0" || bad "every hook call exited 0" "$(cat "$WS/nonzero")"
 

@@ -1,44 +1,8 @@
 #!/bin/bash
-# UserPromptSubmit: on any prompt but a harness frame, a short approval or a commit, push, merge, APK build or status ask, prints once each the low-confidence signals route.sh queued for this context; then, on the session's first work-shaped prompt no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
-# Holds the digest on a hold-shaped clause that is code work (`merge it`); misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form; repeats a signal whose state file cannot be rewritten. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
+# UserPromptSubmit: on the session's first work-shaped prompt (not a harness frame) no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
+# Misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440
-
-# Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
-# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
-# cc_state_root <cwd> prints the root that holds hook state: the git toplevel above <cwd>, else
-# CLAUDE_PROJECT_DIR when <cwd> is under it, else <cwd>. A <cwd> that no longer exists: no output, status 1.
-# --show-cdup, not --show-toplevel: git resolves a symlinked /tmp there, breaking the caller's path-prefix compares.
-cc_state_root() {
-  [ -n "$1" ] && [ -d "$1" ] || return 1
-  local up pd="${CLAUDE_PROJECT_DIR:-}"; pd="${pd%/}"
-  if up=$(git -C "$1" rev-parse --show-cdup 2>/dev/null); then
-    [ -n "$up" ] || { printf '%s\n' "$1"; return 0; }
-    (CDPATH= cd -- "$1/$up" 2>/dev/null && pwd) && return 0
-  fi
-  if [ -n "$pd" ] && [ -d "$pd" ]; then
-    case "$1/" in "$pd"/*) printf '%s\n' "$pd"; return 0 ;; esac
-  fi
-  printf '%s\n' "$1"
-}
-
-# Shared block templates/blocks/plugin-state.md — edit there, re-paste byte-for-byte.
-# Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/plugin-state.md
-# cc_plugin_state <root> <name> prints the plugin's own state dir for <root>, a cc_state_root result:
-# CLAUDE_PLUGIN_DATA/<basename>-<cksum>/<name> if non-empty, else <root>/.cc-artifacts/<name>. Status 0; creates nothing.
-# The host keeps one data dir per plugin id, not per project (2.1.282); LC_ALL=C: a UTF-8 tr stops at an invalid byte.
-# Misses: state another plugin, a skill or the user reads must not use it; an event lacking the variable uses the repo.
-cc_plugin_state() {
-  local key sum
-  if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
-    key=$(printf '%s' "$(basename -- "$1")" | LC_ALL=C tr -c 'A-Za-z0-9_-' '-')
-    sum=$(printf '%s' "$1" | cksum | cut -d' ' -f1)
-    printf '%s/%s-%s/%s\n' "${CLAUDE_PLUGIN_DATA%/}" "$key" "$sum" "$2"
-  else
-    printf '%s/.cc-artifacts/%s\n' "$1" "$2"
-  fi
-  return 0
-}
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/option-resolver.md
@@ -138,31 +102,6 @@ cc_prompt_question() {
     | grep -qiE "(^|[.,;:!?]|(^|[^a-z])(and|but|then|so|also|first|just|now|please|to|should|must|can|could|will|would|let'?s))[^a-z0-9]*($2)"
 }
 
-# route_hold <prompt>: status 0 when every clause, approval words trimmed off both ends, is empty, a commit/push/merge, an APK/AAB/IPA build or a status ask.
-route_hold() {
-  printf '%s\n' "$1" | LC_ALL=C awk '
-    { t = t " " tolower($0) }
-    END {
-      ok = "^(please|yes|yeah|yep|yup|y|ok|okay|sure|lgtm|thanks|thank|you|thx|ty|great|good|perfect|cool|nice|alright|agreed|approved|sounds|looks|go|ahead|proceed|do|it|ship|now|so|also)$"
-      ship = "^(git )?(commit|push|merge)( (it|this|that|them|these|those|all|everything|changes|the|work|to|into|origin|master|main|remote|upstream|branch|now|too))*$"
-      build = "^(build|make)( (an?|the|new|debug|release|signed))* (apk|aab|ipa)s?$"
-      status = "^(whats|what)( (is|are|we|you|i|got|have|still))* (left|next|remaining|pending|outstanding)( to ?do)?$|^where (are|were) we( (at|now))?$|^(status|progress|recap|summary|overview)( (update|report|check))?$|^(give|show)( (me|us))?( (an|a|the))? (overview|summary|status|recap)( (of|on|about|for) .*)?$"
-      gsub(/\047|’/, "", t)
-      gsub(/[,;.!?:]+|[ \t]+(and|then|&)[ \t]+/, "\n", t)
-      n = split(t, c, "\n"); seen = 0
-      for (i = 1; i <= n; i++) {
-        w = split(c[i], a)
-        if (w > 0) seen = 1
-        lo = 1; while (lo <= w && a[lo] ~ ok) lo++
-        hi = w; while (hi >= lo && a[hi] ~ ok) hi--
-        r = ""; for (k = lo; k <= hi; k++) r = r (k > lo ? " " : "") a[k]
-        if (r == "" || r ~ ship || r ~ build || r ~ status) continue
-        exit 1
-      }
-      exit !seen
-    }'
-}
-
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -172,32 +111,10 @@ route_hold() {
   case "$(cc_option CC_REMIND on)" in off) exit 0 ;; esac
   case "$(cc_option CC_ROUTE on)" in off) exit 0 ;; esac
 
-  # A harness frame (the shared prompt-shape list) is not a human turn: skipped here, the flush waits for the next human prompt; a frame the list does not name still flushes.
+  # A harness frame (the shared prompt-shape list) is not a human turn.
   cc_prompt_frame "$prompt" && exit 0
 
-  # Key and root as route.sh spells them (`.transcript_path // .session_id`, hashed; cc_state_root): any other spelling misses its file.
-  sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
-  cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  ctx_f=$(printf '%s' "$sid_f" | cksum 2>/dev/null | cut -d' ' -f1)
-  root_f=""
-  [ -n "$cwd_f" ] && root_f=$(cc_state_root "$cwd_f")
-  state_f=""
-  [ -n "$root_f" ] && [ -n "$ctx_f" ] && state_f="$(cc_plugin_state "$root_f" skill-router)/fired-$ctx_f.json"
-  if [ -n "$sid_f" ] && [ -n "$state_f" ] && [ -r "$state_f" ] && ! route_hold "$prompt"; then
-    digest=$(jq -r '
-      [ (.pending_low // [])[] | select(.flushed != true) ]
-      | group_by(.skill)
-      | map((if .[0].plugin then .[0].plugin + ":" else "" end) + .[0].skill + " (" + ([.[].file | split("/") | last] | unique | join(", ")) + ")")
-      | join("; ")
-    ' "$state_f" 2>/dev/null)
-    if [ -n "$digest" ]; then
-      printf '[skill-router] Your recent edits may need these skills: %s. Load each one that applies.\n' "$digest"
-      upd=$(jq '(.pending_low // []) |= map(.flushed = true)' "$state_f" 2>/dev/null) \
-        && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
-    fi
-  fi
-
-  # Slash commands manage their own flow — but only AFTER the flush above ran.
+  # Slash commands manage their own flow.
   case "$prompt" in "/"*) exit 0 ;; esac
 
   # A paste is reference, its verbs not the ask; with nothing typed beside it, the paste is the ask, read whole.

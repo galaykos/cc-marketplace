@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.34.0 — 2026-11-17
+
+- **The "Your recent edits may need these skills" digest is gone.** Across local transcripts it suggested 945 skills on the next prompt and 8 were loaded (per-edit nudges: 31 of 322). Its 8 `low` content rows (`catch`/`throw`, `async`/`await`, `token`/`secret`, `logger`, `fetch(`…) matched almost every file. Removed: those rows, route.sh's `pending_low` queue, and route-prompt.sh's flush, which now runs only the tool-fit check. `scripts/validate.sh` fails a `rules.tsv` row whose confidence is not `high`.
+- **Content rows fire inline on any file but prose.** A `high` content row used to fire inline only on web and PHP source, and fell into the digest elsewhere. Now a bpy `.py`, a `game-ci/steam-deploy` workflow `.yml`, an Aseprite `.json` and a Unity `Random.InitState` script get their skill in the turn. `.md`, `.txt`, `.rst` and `.adoc` stay silent.
+- Standing: gate (`route.test.sh` case 18 and the converted data, export and seed cases; `validate.sh` high-only check). The SessionEnd ledger keeps empty `pending_low*` fields for older readers.
+
 ## 0.33.2 — 2026-11-17
 
 - **`hooks/route-prompt.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.

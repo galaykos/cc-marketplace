@@ -28,18 +28,6 @@
 # co-fire-ok: *.vue a11y-audit shadcn-best-practices
 # co-fire-ok: *.blade.php a11y-audit laravel-best-practices
 # co-fire-ok: *.tsx nextjs-best-practices react-native-best-practices
-# Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
-# These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
-# accumulate into one session digest (route.sh queue_low_matches). Several firing on one file is the
-# designed behaviour, not a collision — an ordinary React component with await, catch,
-# fetch( and a token legitimately touches all four concerns. Blessed so that a NEW
-# content row must be considered against the corpus rather than added blind.
-# co-fire-ok: content concurrency-safety error-handling-design
-# co-fire-ok: content concurrency-safety security-review
-# co-fire-ok: content concurrency-safety observability-design
-# co-fire-ok: content error-handling-design security-review
-# co-fire-ok: content error-handling-design observability-design
-# co-fire-ok: content security-review observability-design
 # 2026-08-12 addition. Both rows are `high` since 2026-09-26 (inline, not the digest);
 # pc_rules_cofire pairs content rows whatever their confidence, and a GSAP timeline
 # driving a three.js scene legitimately wants the animation skill and the scene skill.
@@ -125,13 +113,11 @@ command	\bjsrepo(@[^[:space:]]+)?[[:space:]]+add\b	shadcn-best-practices	ui-ux	h
 # No fixed install directory to glob (read 2026-10-06): 77 of 78 Magic UI ui items name no target, and React Bits targets only -CSS stylesheets, at the @components alias.
 # LIMITATION: a quoted argument is masked, so `add "@magicui/x"` routes shadcn alone. React Bits' jsrepo command passes a reactbits.dev/r/ URL.
 command	\b(shadcn|jsrepo)(@[^[:space:]]+)?[[:space:]]+add\b[^;&|]*[[:space:]](@(magicui|react-bits)/|https://reactbits\.dev/r/)	aceternity-best-practices	ui-libraries	high
-content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-libraries	low
 # A ReUI or Metronic port copies owned code that never imports `@reui/` (a 78-component `cp` drew shadcn and Tailwind only).
 # Probed 2026-10-15: route.sh's read of the files a `cp -r` wrote routes those generic rows, never this skill, so the command
 # is the signal. LIMITATION: a quoted path is masked and does not route; a `/cp/` path segment before a ReUI path does.
 command	\b(cp|rsync)\b[^;&|]*([Rr]e[Uu][Ii]|[Mm]etronic)	reui-best-practices	ui-libraries	high
 # Narrowed 2026-09-26: `motion/react|framer-motion` drew Aceternity on EVERY Motion file.
-content	(\baceternity\b|ui\.aceternity\.com|@aceternity/)	aceternity-best-practices	ui-libraries	low
 # The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a sibling skill
 # and a row of their own; a project on Mantine, Chakra, Ant Design, PrimeVue, Vuetify, Base UI, Ark,
 # Reka or Nuxt UI matched nothing, so the one skill written for that case never loaded. The
@@ -253,14 +239,8 @@ glob	eas.json	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	*.graphql	graphql-grpc	api-design	high
 glob	*.proto	graphql-grpc	api-design	high
 glob	**/workflows/**	devops-practices	devops	high
-content	(\b(async|await|mutex|goroutine|queue)\b|\bPromise\.all\b|\.[lL]ock\()	concurrency-safety	resilience	low
-content	\b(catch|throw|rescue)\b	error-handling-design	resilience	low
-content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
-content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	security-review	security	low
-content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low
 # Span API calls, not the word: `\bspan\b` matched JSX `<span>`, so nearly every component
 # put observability-design in the digest (routing review 2026-09-26, fixture S2).
-content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|startSpan|startActiveSpan|span\.(end|setAttribute|setStatus|recordException))\b	observability-design	resilience	low
 # LIBRARY ROWS — `high` since 2026-09-26: a content row marked `high` fires INLINE at the
 # first file whose contents match, once per signal per context, and never enters the
 # digest (route.sh nudge_high_matches). As `low` rows every one of them reached the model on the

@@ -332,6 +332,17 @@ unwritable state dir cannot swallow a nudge the model should have seen ----
 
 ### The low-confidence pass
 
+**Removed in 0.34.0 (2026-11-17).** Across every local transcript the next-prompt digest named 945
+skills and 8 were loaded within the following turn, against 31 of 322 for the per-edit nudges. Its 8
+`low` rows matched any `catch`/`throw`, `async`/`await`, `token`/`secret`, `logger`, `fetch(`, so one
+ordinary file tripped four at once (error-handling-design on game scripts, concurrency-safety on test
+files). The rows, the queue (`queue_low_matches`, `pending_low`) and route-prompt.sh's flush and
+`route_hold` went together; validate.sh now fails a non-`high` row. A `high` content row, which used to
+fall into the same digest on any file outside `inline_ext`, now fires inline on every non-prose file:
+the bpy, steam-deploy, Aseprite and Unity-seed rows were written for exactly those files. The text below
+is the pass as it stood before.
+
+
 ```text
 ---- low-confidence pass: accumulate content matches (no inline output) ----
 Read from the file ON DISK, so a Bash heredoc's body is judged exactly as an
