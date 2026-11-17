@@ -9,8 +9,8 @@ AskUserQuestion is hard-capped at 4 options per question and 4 questions per
 call — a tool limit, not a choice. One slot is reserved for stopping, so a call
 offers **15 suggestions, not 16**. Each question also carries a required short
 `header` (a few words, truncated hard in the UI). Name what the group IS, not
-which tier it is: `Your stack` (tier 1, signal-earned), `Any project 1/2`
-(tier 2, the curated core), `Everything else` (tier 3, the remainder). A header
+which tier it is: `Your stack` (tier 1, signal-earned), `Any project`
+(tier 2, the curated core, as job groups), `Everything else` (tier 3, the remainder). A header
 reading `Tier 1` is a number the user has no way to decode in the picker.
 
 The eligible set is every catalog plugin minus stack-scan itself
@@ -21,10 +21,16 @@ deep. Derive the cost from the eligible count, never from a written number.
 
 ## The contract
 
-1. **Max density on the offered set.** The default is ONE call using all 4
-   questions. Questions 1-3 hold the tier-1 signal-backed rows (evidence cited in
-   each option's description) and then the tier-2 core rows, 4 options each.
-   Never ask a 3-option question while a tier-1 or core row waits unoffered.
+1. **Max density on the offered set.** The default is ONE call. The tier-1
+   signal-backed rows come first, 4 options per question (evidence cited in each
+   option's description), in at most two questions. The tier-2 core is then ONE
+   question whose options are its job groups (`references/any-core.md`): each option
+   is labelled with the group and lists its rows by number and name ("Safety hooks —
+   #11 secret-scanning, #12 command-guard"), and picking it installs every
+   not-installed row in the group. A group whose rows are all installed is not an
+   option; a partly installed group lists only the rest. Dropping one row from a
+   picked group goes through Other ("all but 13"). Never ask a 3-option question
+   while a tier-1 row waits unoffered.
 2. **Coverage by reachability, not by paging.** Every eligible row is printed in
    the numbered report before the first question and is pickable by number, name
    or range through any question's Other, and through the `pick.sh` escape hatch.
@@ -94,12 +100,13 @@ TIER 3 — no signal in this repo
   laravel/framework ^11"). Tier-2 core rows follow, described as "any-project
   core" (`references/any-core.md`). Tier 3 gets no recommended framing anywhere,
   consistent with `--yes` never touching it (`--full` bypasses this picker entirely).
-- When coherence and density collide — 4 tier-1 rows and 8 core rows do not
-  divide into 3 questions of 4 — **coherence wins**, the under-filled question is
-  the last one on the page, and a question never mixes tiers. Without that
-  tiebreak two runs on one repo produce different pages. With any tier-1 row the
-  core cannot all fit in what is left of questions 1-3; the rows that spill stay
-  numbered and pickable through Other, and `--yes` installs every core row anyway.
+- A question never mixes tiers, and an under-filled tier-1 question is the last
+  tier-1 one. Without that tiebreak two runs on one repo produce different pages.
+  Core rows never spill: one per option, ten core rows left six of them reachable only
+  through Other in a reviewed run (5 tier-1 rows took two questions), and secret-scanning
+  went uninstalled in a repo whose own scan had flagged a committed key. Grouping is what
+  keeps every core row a checkbox. More than 8 tier-1 rows: the rest stay numbered and
+  pickable through Other, and `--yes` installs them anyway.
 - Under `--all`, reserve exactly one option slot per call for **"Stop — skip
   remaining"** on the last question. Picking it ends the picker; rows already
   selected on any page still install. Selecting nothing on a page just advances.
