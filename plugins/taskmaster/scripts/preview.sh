@@ -49,18 +49,19 @@ print("older" if theirs < mine else "newer" if theirs > mine else "same", theirs
 unnamed() { echo "preview.sh: pid $1 in $pidfile is alive and neither ps nor /proc says what it is; signalled nothing, kept the state files — check it, then delete $pidfile" >&2; exit 6; }
 
 # take_lock: one check-and-start (or stop) per docroot at a time. A lock whose owner is dead, or that names no owner for 2 s, is stale.
+# The lock is a file bash creates under noclobber (O_EXCL), not a mkdir: uutils mkdir (Ubuntu 26.04) let two racing callers both succeed.
 take_lock() {
-  lockdir="$docroot/.preview.lock"; local unowned=0 owner
+  lockfile="$docroot/.preview.lock"; local unowned=0 owner
   for _ in $(seq 1 150); do
-    if mkdir "$lockdir" 2>/dev/null; then
-      echo $$ > "$lockdir/owner"; trap 'rm -rf "$lockdir"' EXIT; trap 'exit 130' INT TERM HUP; return 0
+    if ( set -C; echo $$ > "$lockfile" ) 2>/dev/null; then
+      trap 'rm -f "$lockfile"' EXIT; trap 'exit 130' INT TERM HUP; return 0
     fi
-    owner="$(cat "$lockdir/owner" 2>/dev/null)"
+    owner="$(cat "$lockfile" 2>/dev/null || cat "$lockfile/owner" 2>/dev/null)"
     if [ -z "$owner" ]; then unowned=$((unowned + 1)); else unowned=0; fi
-    if { [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null; } || [ "$unowned" -ge 20 ]; then rm -rf "$lockdir"; continue; fi
+    if { [ -n "$owner" ] && ! kill -0 "$owner" 2>/dev/null; } || [ "$unowned" -ge 20 ]; then rm -rf "$lockfile"; continue; fi
     sleep 0.1
   done
-  echo "preview.sh: another start for $docroot has held $lockdir for 15 s; delete it if no preview.sh is running" >&2
+  echo "preview.sh: another start for $docroot has held $lockfile for 15 s; delete it if no preview.sh is running" >&2
   exit 4
 }
 
