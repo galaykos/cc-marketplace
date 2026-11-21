@@ -67,6 +67,15 @@ Two design rules carry the whole mechanism:
   raw evidence — never another panelist's verdict. The moment refuter
   two sees refuter one's "confirmed", you have one opinion echoed N
   times, and the vote measures anchoring, not truth.
+- **Votes buy less independence than N suggests.** Blind refuters still share a model's
+  errors. In one preprint (NLI tasks), nine judges from seven families carried about two
+  votes' worth of information, and the hindsight-best single judge matched or beat the
+  panel (https://arxiv.org/abs/2605.29800). Errors correlate across providers
+  (https://arxiv.org/abs/2506.07962), and majority voting accounts for most of what
+  multi-agent debate gains (https://arxiv.org/abs/2508.17536). So buy independence by
+  varying the EVIDENCE each refuter gets: a different file set, a tool run, an executed
+  check. Adding voters does not buy it. Widening past the table's N names what votes 4+
+  see that votes 1–3 do not. Standing: agent-graded.
 
 ## A panel verdict is a claim about process
 

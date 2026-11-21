@@ -1180,6 +1180,11 @@ flag appears, or once B's write has landed without waiting. So the cases are red
 b80faf31 every time (20 of 20) and need no timing race. The four-session case is real
 concurrency; it is the one that catches a lock primitive that is not atomic.
 
+
+### Clause 8, coverage overclaim (0.15.0, 2026-11-21)
+
+From the thinking-disciplines research run (OverclaimBench arXiv 2609.20812, 2026-09: 67.9% of review runs skipped requested files, and 52.8% of incomplete runs claimed completeness; Kaddour et al. arXiv 2602.06948: 22% success against 77% predicted). It is decidable only when the message names its set as paths, so it stays silent on a claim naming none. Coverage counts any non-writing tool input of the turn that names the file or one of its directories as a whole path token. That deliberately admits REPL scripts (code mode wraps every read in one REPL call) and delegated Agent prompts, trading misses for no false blocks. The first draft let a sibling's path count as its parent directory: `/src/real.ts` covered `src/other.ts`, because `src` occurred in it. The ancestor match now requires the directory to end its path token. Five pre-existing `gate.test.sh` cases fail on a host with no valid locale (perl's `shasum` warns on stderr); under `LC_ALL=C` the suite is 306/306.
+
 ## plugins/candor/hooks/mode.sh
 
 ### Header: the shebang

@@ -137,7 +137,8 @@ Sequencing holds one-question-at-a-time: the first visual/creative question
 carries the consent question, then each stages exactly ONE decision's options and
 the doc accretes only accepted picks — never a surface posing several at once.
 Creative variants are authored as N divergent directions in the main thread (not
-opinion-lens, which stays for design/architecture shapes), rendered side by side.
+opinion-lens, which stays for design/architecture shapes), rendered side by side. Each direction
+is drafted before any is refined, by the same blind-drafting rule as § Explore alternatives.
 Once a decision's own option set exists (never earlier) and consent allows mockups,
 ask ONE opt-in question: up to 2 matching starters plus gallery/INDEX.md matches when
 present, shown beside the decision's own options as reference, never the option set,
@@ -154,7 +155,14 @@ when the idea reworks existing code. Synthesize alternatives + recommendation, t
 round's marker `<repo root>/.cc-artifacts/approaches/deliberated.json`: unwritten, the
 double-run guard is unarmed and the question is re-litigated downstream.
 Its pick-approval is satisfied here by the design doc's approval gate below.
-Absent → propose 2–3 yourself with their tradeoffs, recommendation first and argued. If only one approach exists, say so — "alternatives considered: none viable
+Absent → propose 2–3 yourself with their tradeoffs, recommendation first and argued. Draft them
+before you pick one. Draft them blind to each other: one fresh subagent per candidate when the run
+already fans out, otherwise one step that lists k candidates, each with your estimated probability,
+and keeps at least one unlikely candidate (verbalized sampling, arXiv 2510.01171). Rank and
+criticise only after all exist. Why: one context drafting options in sequence fixates on its first.
+LLM ideas cluster across 22 models (arXiv 2501.19361) and fixate early (arXiv 2602.20408). Pooled
+solo ideation beat group ideation in 18 of 22 experiments (Diehl & Stroebe 1987). Debate beat
+"no criticism" rules (Nemeth et al. 2004). Standing: agent-graded. If only one approach exists, say so — "alternatives considered: none viable
 because X" is a legitimate answer; silence is not. YAGNI applies at design level: strike
 every capability the idea does not need this round; moved-to-later is a decision, not a loss.
 

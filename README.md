@@ -153,6 +153,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_COMPACT_STEER` | skill-router | on | When a phase sentinel, task-runner run or taskmaster ledger is on disk, tell the compaction summarizer t … |
 | `CC_CONFIG_GUARD` | command-guard | on | Ask before a write that would weaken settings, hooks, manifests or lint and test config: on or off |
 | `CC_CONVENTIONS` | code-review | on | Name the convention configs and the CI command enforcing them at the first code write: on or off |
+| `CC_COVERAGE_GATE` | candor | — | CC_COVERAGE_GATE=off\|warn (8); unset, /config.; clause 4 does not send back a turn whose last human prom … |
 | `CC_DB_GUARD` | database | on | Ask before a write that drops, truncates or mass-deletes data or takes a risky lock: on or off |
 | `CC_DESIGN_CONTRACT` | ui-ux | on | When the project declares .cc-artifacts/design-kit/design-system/contract.json, name UI lines an edit ad … |
 | `CC_DESIGN_KIT_PICK` | design-kit | on | Tell the session when an artboard picked on a design-kit board is waiting: on or off |

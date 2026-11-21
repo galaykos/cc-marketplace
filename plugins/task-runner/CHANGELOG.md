@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.63.2 — 2026-11-21
+
+- **`verification-panels`: votes buy less independence than N suggests.** "Refuter voting" now says blind refuters still share a model's errors. In one preprint on NLI tasks, nine judges from seven families carried about two votes' worth of information (arXiv 2605.29800). Errors correlate across providers (arXiv 2506.07962), and majority voting explains most multi-agent-debate gains (arXiv 2508.17536). Independence comes from varying the evidence each refuter gets, not from adding voters, and a panel widened past the table's N must name what the extra votes see. Standing: agent-graded.
+
 ## 0.63.1 — 2026-11-17
 
 - **`track-ports.sh`: concurrent claims no longer share a block.** Ubuntu 26.04 ships uutils coreutils, whose `mkdir` is not atomic under a race: two concurrent calls on one path both succeeded 10 times in 400 here, so a mkdir lock let two holders in. The lock is now a file bash creates under noclobber (`set -C`, O_EXCL in the shell itself): 0 double holders in 400. A lock directory from an older copy still ages out after a minute.

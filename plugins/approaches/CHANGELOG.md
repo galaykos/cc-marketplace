@@ -3,6 +3,10 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.14.3 — 2026-11-21
+
+- **Blind-panel synthesis weighs grounding, not count.** `references/blind-panel.md` step 1: blind dispatch removes anchoring, not shared errors. Four lenses on one model family are not four independent confirmations. One NLI preprint measured nine judges from seven families at about two effective votes (arXiv 2605.29800), and errors correlate across providers (Kim et al., ICML 2025). A lens citing a repo fact the others missed outweighs a 3–1 majority, and alignment is reported as a count of grounded takes, never as consensus. Standing: agent-graded.
+
 ## 0.14.2 — 2026-11-17
 
 - **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.

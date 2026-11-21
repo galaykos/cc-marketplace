@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # gate.test.sh — drives hooks/gate.sh with synthetic transcripts and Stop/SubagentStop payloads carrying transcript_path, asserting the verdict
-#   and its text: clauses 1, 2, 5, 6 and 7, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage, run ownership.
+#   and its text: clauses 1, 2, 5, 6, 7 and 8, clause 3 on Bash writes, clause 4 beside 1 and 3, the modes, fail-open, SubagentStop, the state root, in-flight workers, coverage, run ownership.
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/scripts/__tests__/gate.test.sh
 set -u
 
@@ -1262,6 +1262,36 @@ for i in 1 2 3 4; do jq -cn --arg tp "$WS/lk$i.jsonl" --arg cwd "$LKP" '{hook_ev
   | bash "$HOOK" >/dev/null 2>&1 & done; wait
 iso_is "lock: four sessions stopping at once each keep their line in last and blocked" \
   "$([ "$(wc -l < "$LKP/.cc-artifacts/candor/last" 2>/dev/null)" -eq 4 ] && [ "$(wc -l < "$LKP/.cc-artifacts/candor/blocked" 2>/dev/null)" -eq 4 ]; echo $?)"
+
+# Clause 8: a claim to have read or reviewed a whole named set, with members no tool input of the turn names.
+readf() { jq -cn --arg p "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Read",input:{file_path:$p}}]}}'; }
+grepd() { jq -cn --arg p "$1" '{type:"assistant",message:{content:[{type:"tool_use",name:"Grep",input:{pattern:"x",path:$p}}]}}'; }
+printf 'b\n' > "$CWD/src/other.ts"
+COV_SUB='says it read or reviewed every file in a set it names'
+T="$WS/k1.jsonl"; { user "review src"; readf "$CWD/src/real.ts"; tres; asst "I reviewed all 2 files: src/real.ts and src/other.ts. No bugs."; } > "$T"
+check "clause 8: one named file never opened blocks, naming it" "" "$T" 2 "src/other.ts"
+check_keep "clause 8: the same message re-stop passes (one-shot)" "" "$T" 0 "__NONE__"
+T="$WS/k2.jsonl"; { user "review src"; readf "$CWD/src/real.ts"; tres; readf "$CWD/src/other.ts"; tres; asst "I reviewed all 2 files: src/real.ts and src/other.ts. No bugs."; } > "$T"
+check "clause 8: every named file read passes" "" "$T" 0 "__NONE__"
+T="$WS/k3.jsonl"; { user "review src"; readf "$CWD/src/real.ts"; tres; asst "Reviewed every file in scope (src/real.ts, src/other.ts); not read: src/other.ts, it is generated."; } > "$T"
+check "clause 8: naming what was not read passes" "" "$T" 0 "__NONE__"
+T="$WS/k4.jsonl"; { user "review"; asst "I reviewed all the files and found nothing."; } > "$T"
+check "clause 8: a claim naming no path stands down" "" "$T" 0 "__NONE__"
+T="$WS/k5.jsonl"; { user "where"; asst "The guard lives in src/other.ts; see also src/real.ts."; } > "$T"
+check "clause 8: paths with no coverage claim stand down" "" "$T" 0 "__NONE__"
+T="$WS/k6.jsonl"; { user "review src"; bashc "cat src/real.ts src/other.ts"; tres; asst "Checked every file: src/real.ts, src/other.ts."; } > "$T"
+check "clause 8: a Bash read of each file counts" "" "$T" 0 "__NONE__"
+T="$WS/k7.jsonl"; { user "review src"; grepd "$CWD/src"; tres; asst "Audited all files in the set: src/real.ts, src/other.ts."; } > "$T"
+check "clause 8: a Grep over their directory counts" "" "$T" 0 "__NONE__"
+T="$WS/k8.jsonl"; { user "review"; readf "$CWD/src/real.ts"; tres; asst $'I went through each file:\n- src/real.ts\n- src/other.ts\n\nAll clean.'; } > "$T"
+check "clause 8: a bullet list under the claim names the set" "" "$T" 2 "src/other.ts"
+T="$WS/k9.jsonl"; { user "review"; readf "$CWD/src/real.ts"; tres; asst $'Plan:\n```\nreviewed all files: src/other.ts\n```\nDone with src/real.ts.'; } > "$T"
+check "clause 8: a claim inside a code fence is not read" "" "$T" 0 "__NONE__"
+T="$WS/k1.jsonl"
+check "clause 8: CC_COVERAGE_GATE=off passes" "CC_COVERAGE_GATE=off" "$T" 0 "__NONE__"
+check "clause 8: CC_COVERAGE_GATE=warn prints and passes" "CC_COVERAGE_GATE=warn" "$T" 0 "$COV_SUB"
+{ user "review src"; asst "placeholder"; } > "$A"
+sub_check "clause 8: a subagent report claiming every file read blocks on SubagentStop" "I read all files: src/real.ts, src/other.ts." 2 "$COV_SUB"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

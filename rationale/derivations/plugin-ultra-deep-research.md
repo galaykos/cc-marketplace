@@ -41,3 +41,10 @@ Added 2026-11-07 with sources-check.sh. SubagentStop fields used: `agent_type` (
 SubagentStop block is exit 2 with the reason on stderr, the same as candor's gate. The reason is built inside the
 fail-open `{ … } 2>/dev/null` block and printed after it; the first draft printed it inside, where it was swallowed.
 The bound of two blocks per agent keeps an agent that cannot fetch a page from looping.
+
+2026-11-21 (0.9.1): the hook linted `last_assistant_message` only. A verifier that returns through `SubagentHandback`
+leaves its report in that tool_use's `input.message` in its own transcript. Candor measured the same on 2.1.284
+(`rationale/candor-subagent-probe-2026-09-29.md`). In a live ultra run (24 verifier dispatches, CLI 2.1.330), 13 verdict
+blocks failed `verdict-lint.sh` and no verifier was bounced. Two `cc-udr-return-*` counters were written, both by
+researchers, which end in plain text. The hand-back is now read first, after the transcript's last user-text entry, with
+candor's jq filter. Not reproduced against the live host in a harness; the fixture mirrors the transcript shape observed.

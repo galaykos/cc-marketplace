@@ -55,6 +55,13 @@ CONFIDENCE: High | Medium | Low
 `VERDICT: confirmed` with `CORROBORATION: none found` is an impossible combination —
 if you have no independent source, the verdict is not `confirmed`.
 
+The `VERDICT:` line holds the bare token and nothing after it (the reason for
+`unverifiable-this-session` excepted, in parentheses). Caveats and scope notes go in
+`REASON`. `verdict-lint.sh` rejects an annotated line, `confirmed (with caveats)`
+included, and the hook sends the return back. If WebSearch refuses because the
+session's search budget is spent, say so in `COUNTER_EVIDENCE`. A claim you could not
+corroborate for that reason is not `confirmed`.
+
 ## Hard rules
 
 - **`confirmed` is gated — both MUST hold.** (i) `FETCH` carries a verbatim quote from
