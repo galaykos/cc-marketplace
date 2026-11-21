@@ -108,6 +108,13 @@ panel theater on trivia, and do not single-pass a decision that matters. Say, in
 report, how wide you actually went — silent narrow coverage reads as thoroughness it
 isn't.
 
+**A spent search budget is not a refutation.** WebSearch has a per-session budget, and a
+wide fan-out can spend it before the refute stage ends. A verifier that reports it could
+not search could not find a second source or hunt counter-evidence. Carry its claim as
+`unconfirmed` (or the panel's reduced verdict, whichever is weaker), and say in the
+report's Confidence & coverage which votes ran without search. Do not start a gap round
+that needs search on a spent budget; name the gaps instead.
+
 **The refute stage is capped at 24 verifier dispatches per round** — claims × votes, so
 24 single-refuter claims at standard depth or 8 claims × 3 votes at ultra. Facets are
 bounded 4–8 and rounds at 3, but nothing bounded the load-bearing claim count, which left

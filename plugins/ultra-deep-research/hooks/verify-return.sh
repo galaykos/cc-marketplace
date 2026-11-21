@@ -1,5 +1,5 @@
 #!/bin/bash
-# verify-return.sh — SubagentStop on this plugin's researcher and verifier: blocks (exit 2, reason on stderr) a return that cites a URL the agent never fetched (sources-check.sh), or a verifier verdict block that fails verdict-lint.sh; at most twice per agent, then lets it stop. Fails open.
+# verify-return.sh — SubagentStop on this plugin's researcher and verifier: blocks (exit 2, reason on stderr) a return that cites a URL the agent never fetched (sources-check.sh), or a verifier verdict block that fails verdict-lint.sh; at most twice per agent, then lets it stop. The return checked is the agent's last SubagentHandback message after its last user-text entry, else last_assistant_message. Fails open.
 # Misses: whether a fetched page supports its quote, a return with no url:/FETCH: line, and a third bad return from the same agent.
 # Why, limits, history: rationale/derivations/plugin-ultra-deep-research.md § plugins/ultra-deep-research/hooks/verify-return.sh
 reason=""
@@ -11,6 +11,18 @@ reason=""
   msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty')
   tp=$(printf '%s' "$input" | jq -r '.agent_transcript_path // empty')
   id=$(printf '%s' "$input" | jq -r '.agent_id // .agent_transcript_path // empty')
+  if [ -n "$tp" ] && [ -r "$tp" ]; then
+    hb=$(jq -rs '
+      def usertext: .type=="user" and ((.message.content // null) as $c
+        | if ($c|type)=="string" then $c
+          elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
+          else null end
+        | type=="string" and (test("^\\s*(<system-reminder>|<task-notification>|\\[SYSTEM NOTIFICATION|Stop hook feedback:)")|not));
+      . as $e | ([range(0; length) | select($e[.] | usertext)] | last // -1) as $b
+      | [ $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[]
+            | select(.type=="tool_use" and .name=="SubagentHandback") | .input.message // empty ] | last // empty' "$tp")
+    [ -n "$hb" ] && msg=$hb
+  fi
   [ -n "$msg" ] && [ -n "$id" ] || exit 0
   here=$(cd "$(dirname "$0")/.." && pwd)
   problems=""

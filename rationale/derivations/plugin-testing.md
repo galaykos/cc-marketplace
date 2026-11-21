@@ -159,6 +159,11 @@ Chunks of one command compose per target (`> f` then `>> f`), and each target is
 judged once on its final text, so a clear-then-append is not read as emptying f.
 ```
 
+
+### Shape 3, weakened assertions (0.18.0, 2026-11-21)
+
+Added from the thinking-disciplines research run (ImpossibleBench arXiv 2510.20270: 54% test special-casing on impossible tasks; METR 2025-06-05: anti-cheat prose had a negligible effect, one model, one task). It asks rather than denies, because a changed expected value is often the correct fix. It reads `permission_mode` and warns instead of asking outside default, acceptEdits and plan, following the authoring-hooks rule that an unanswered ask idles a background run 16 to 67 minutes and is a deny under `-p`. Literal comparison strips whitespace first, so a re-indent is silent. It then replaces strings, numbers and booleans with placeholders: a removed and an added assertion line that are equal after that are a changed expectation.
+
 ## plugins/testing/hooks/test-shape.sh
 
 ### Header

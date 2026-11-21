@@ -59,6 +59,32 @@ hook general-purpose "  url: https://invented.example.com/page" g1 2>/dev/null; 
 hook ultra-deep-research:verifier "$VERIFIER_UNFETCHED" a4 2>/dev/null
 hook ultra-deep-research:verifier "$VERIFIER_UNFETCHED" a4 2>/dev/null
 hook ultra-deep-research:verifier "$VERIFIER_UNFETCHED" a4 2>/dev/null; [ $? = 0 ] && ok "a third bad return from one agent is let through" || bad "bound"
+# Verifiers on current Claude Code return through a SubagentHandback tool_use; last_assistant_message is only the closing text.
+HB="$T/handback.jsonl"
+{ cat "$TR"
+  jq -cn --arg m "$VERIFIER_BADFORMAT" '{type:"assistant", message:{content:[{type:"tool_use", id:"h1", name:"SubagentHandback", input:{message:$m}}]}}'
+  jq -cn '{type:"user", message:{content:[{type:"tool_result", tool_use_id:"h1", content:"ok"}]}}'
+  jq -cn '{type:"assistant", message:{content:[{type:"text", text:"Report handed back."}]}}'
+} > "$HB"
+hookt() { # <transcript> <last_assistant_message> <agent_id>
+  jq -cn --arg tp "$1" --arg m "$2" --arg id "$3" \
+    '{session_id:"s", hook_event_name:"SubagentStop", agent_id:$id, agent_type:"ultra-deep-research:verifier", agent_transcript_path:$tp, last_assistant_message:$m}' | bash "$H"
+}
+err=$(hookt "$HB" "Report handed back." h1 2>&1 >/dev/null); rc=$?
+[ "$rc" = 2 ] && printf '%s' "$err" | grep -q 'verdict-lint' && ok "a malformed verdict inside a SubagentHandback blocks" || bad "handback lint (rc=$rc err=$err)"
+HB2="$T/handback-ok.jsonl"
+{ cat "$TR"; jq -cn --arg m "$VERIFIER_OK" '{type:"assistant", message:{content:[{type:"tool_use", id:"h2", name:"SubagentHandback", input:{message:$m}}]}}'; } > "$HB2"
+hookt "$HB2" "" h2 2>/dev/null; [ $? = 0 ] && ok "a well-formed handback with empty closing text stops" || bad "good handback"
+HB3="$T/handback-resumed.jsonl"
+{ cat "$HB"; jq -cn '{type:"user", message:{content:"one more question"}}'; jq -cn '{type:"assistant", message:{content:[{type:"text", text:"Answered."}]}}'; } > "$HB3"
+hookt "$HB3" "$VERIFIER_OK" h3 2>/dev/null; [ $? = 0 ] && ok "a hand-back from before a resume prompt is not judged again" || bad "resumed agent"
+VERIFIER_ANNOTATED='CLAIM: Product X shipped in 2026
+VERDICT: confirmed (with caveats below)
+FETCH: https://example.org/report — retrieved 2026-11-07T10:00Z — "Product X shipped in March 2026"
+CORROBORATION: https://new.example.com/a'
+err=$(hook ultra-deep-research:verifier "$VERIFIER_ANNOTATED" a5 2>&1 >/dev/null); rc=$?
+[ "$rc" = 2 ] && printf '%s' "$err" | grep -q 'invalid VERDICT' && ok "an annotated VERDICT line blocks" || bad "annotated verdict (rc=$rc err=$err)"
+
 out=$(printf 'not json' | bash "$H" 2>&1); rc=$?
 [ "$rc" = 0 ] && ok "malformed payload fails open" || bad "malformed (rc=$rc)"
 
