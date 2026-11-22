@@ -62,12 +62,15 @@ record the failure and continue.
   compliance gap ("the rule exists at X and was not followed"), never as
   a new rule — the approving user otherwise sees evidence FOR the rule
   and no evidence it already exists, which is how duplicates accumulate.
+  A gap seen in two or more sessions whose signal is mechanical also goes to the check
+  destination under Apply gate: prose that already failed twice is the case for a check.
 
 ## Report
 
 Produce exactly four sections:
 
-1. **Friction stats digest** — transcripts mined, top friction contexts,
+1. **Friction stats digest** — transcripts mined (full vs sampled, from each miner's
+   `coverage` line), top friction contexts,
    single-session candidates, plus any dropped or failed transcripts. When agent
    rows were mined, add a per-`agent_type` line (rows, findings) — attribution
    of WHERE friction landed, not proof of what caused it.
@@ -98,7 +101,8 @@ file). Reports are machine-local, beside the ledger — never in the project.
 
 Ask via AskUserQuestion with multiSelect, one question per non-empty
 category, each proposal a separate option and every question carrying a
-"Skip this category" option. On approval only:
+"Skip this category" option. A question holds four options, so a category offers its top
+three by distinct-session count; the rest are listed in the report as candidates. On approval only:
 
 - Rules → **four destinations, and the pick names which.** A rule that binds the
   REPO — a convention, a command to run, a constraint any contributor inherits —

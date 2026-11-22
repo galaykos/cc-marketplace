@@ -66,6 +66,20 @@ A pnpm/yarn/bun repo used to exit 3 with a message naming only two filenames, re
 as "no dependencies here" when the truth is "this lane cannot see yours".
 ```
 
+### Compound SPDX expressions (0.20.0)
+
+Every deny pattern is anchored `^(…)` and was matched against the whole declared string, so a denied licence that was not
+the first word read clean: `MIT AND LGPL-3.0-only` and `(MIT AND LGPL-3.0-only)` passed `distributed-binary` (reviewer
+finding, 2026-11-21, confirmed by fixture: three new cases fail against 0.19.4). `expr_denied` now evaluates any string
+holding a space or a parenthesis: AND binds tighter than OR, an AND is denied when any part is, an OR only when every
+alternative is, a `WITH` exception stays attached to its licence, and policy `allow`/`deny` entries apply to each term.
+
+The old whole-string match still runs first and still counts, so no verdict moved from denied to clean. That keeps one
+over-report on purpose: an OR led by a denied licence (`GPL-3.0 OR MIT`, and composer's licence arrays, joined with OR)
+reads denied though the licensee may pick the clean side. Clearing it is a policy change (fewer denials) that was not
+asked for; the harness pins it as a residual. An unparseable expression (unbalanced parentheses) falls back to the old
+match alone.
+
 ## plugins/stack-scan/scripts/pick.sh
 
 ### Header
@@ -279,3 +293,32 @@ load (the same three all-plugins' hint.sh skips), and not the install records �
 project-scope `true` for a plugin this machine never installed classes as enabled.
 ```
 
+## plugins/stack-scan/hooks/install-guard.sh
+
+Three install rules lived in prose only (reviewer report, 2026-11-21): vercel-skills-scout's "never pass `-g`/`--global`"
+and "`--skill '*'` … never use it here", plugin-scout's "Always pass `--scope`: the CLI's own default is `user`", and
+package-hygiene's "Never blanket `npm audit fix --force`". The signal is the command text, so a hook can decide it.
+
+- **Home.** A plain bash PreToolUse hook beside the `pins.ts` mod, not a `tool.call` handler in the mod: every command
+  guard in this marketplace is a bash PreToolUse hook (command-guard, git-workflow, secret-scanning, debugging), a bash
+  harness drives it without the mod kit, and the mod only loads on CLI 2.1.291+. secret-scanning and skill-router ship
+  `hooks` and `modules` in one hooks.json already.
+- **Deny vs ask.** The skills flags deny: the skill states the explicit-pick floor as absolute and a user can still run
+  the command themselves. The plugin-scope and audit rules ask: a user-scope install and a forced audit fix can be
+  meant.
+- **Defaults, measured.** `claude plugin install --help` and `uninstall --help` on 2.1.330 say `(default: "user")`;
+  `enable --help` and `disable --help` say `(default: auto-detect)`. The ask names the right one per verb.
+- **skills CLI flags** read from vercel-labs/skills `docs/commands.md` on 2026-11-21: `-g, --global`, `-s, --skill
+  <skills...>` ("use '*' for all skills"), `--all` ("Install all skills to all agents without prompts"); `skills install`
+  and `skills i` with a source behave like `add`. A single-dash cluster holding `g` (`-gy`) is read as global.
+- **Parsing.** `cc_strip_heredoc_bodies inert` (the shared block) drops heredoc bodies no shell reads; an awk splitter
+  then cuts the rest into simple commands outside quotes (`;` `&` `|` `(` `)` backtick `$(` newline), unquoting words.
+  Leading assignments and `sudo`, `env`, `command`, `exec`, `nohup`, `time`, `nice`, `timeout`, `xargs` and shell
+  keywords are skipped with their dash options; `bash|sh|zsh|dash|ksh -c '…'` and `eval …` recurse, three levels deep.
+- **Misses beyond the header.** A wrapper option taking a value (`sudo -u bob`, `xargs -n 1`) leaves the value as the
+  command word; a `$( )` inside double quotes is not split out; `npx --package=skills` spellings; redirections before
+  the command word other than `>`/`<`-led words. No off switch: the asks are answered per call and the deny covers a
+  rule stated as absolute; disabling the plugin lifts it.
+- **Lane.** `scripts/lane-vocabulary.txt` has no noun for an install-flag guard, and adding one is outside this plugin.
+  The row borrows `third-party-skill-suggestion` at phase `any` and yields to vercel-skills-scout.
+- **Latency.** Measured 2026-11-21, 10 runs each: about 2 ms for a command the prefilter drops, 6 ms for one it parses.

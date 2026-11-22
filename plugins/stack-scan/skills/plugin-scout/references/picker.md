@@ -197,9 +197,8 @@ numbers as row picks under the same rules as Other.
 
 - Headless (`references/flags.md` defines the term): no picker at all — print the exact
   install command for every not-installed suggestion, then stop.
-- **Standing: recorded and agent-graded — no script gates this contract.** Nothing
+- **Standing: recorded — no script gates this contract.** Nothing
   checks that the model used all 4 questions, honored the overlap pairs, or
   offered the door. The one exception is `scripts/pick.sh` itself, which is code:
-  `pc_pick_parity` gates that its two copies stay byte-identical, and
-  `scripts/__tests__/pick.test.sh` exercises its parser. Neither says anything
-  about the prose above.
+  there is one copy, and `scripts/__tests__/pick.test.sh` exercises its parser. That
+  harness says nothing about the prose above.

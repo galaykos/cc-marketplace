@@ -53,7 +53,9 @@ Then, per distinct tag:
 This axis stops at the tag. Layer contents, the `USER`, the build context, the compose
 topology and every other Dockerfile judgment belong to `/devops:review` — hand off to it
 by name when a Dockerfile or compose file is in scope, and do not re-derive its findings
-here. Standing: agent-graded. No script in this plugin reads an image tag.
+here. Standing: recorded. This lane runs no script: `scripts/scan.sh` (`/stack-scan:report`)
+lists `FROM` and compose `image:` tags and flags an unpinned one, but the trivy or EOL check
+here is the model's.
 
 ## Licence lane
 

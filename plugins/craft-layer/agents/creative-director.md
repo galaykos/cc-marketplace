@@ -41,9 +41,14 @@ hue and type family are kept: no departure may replace them, so K lands on the o
 
 ## Procedure
 
-1. **Generate N ≈ 4 blind candidates.** Each is { central metaphor · editorial voice · ONE
-   signature interaction }. Generate them independently — do not average them toward one
-   safe idea. On a marketing/campaign archetype no voice breaks toward restraint or
+1. **Draft N ≈ 4 candidates before you score any.** Each is { central metaphor · editorial
+   voice · ONE signature interaction }. One context is not blind: each candidate you write
+   pulls the next toward it, and one model's ideas cluster (arXiv 2501.19361). So write all N
+   in one pass with no comparison, give each your estimated probability that a typical answer
+   to this brief would be it, and keep at least one below 0.2 (verbalized sampling, arXiv
+   2510.01171). Two central metaphors of the same genus count as one: redraft the later one.
+   Do not average them toward one safe idea; scoring starts at step 3. Standing: agent-graded.
+   On a marketing/campaign archetype no voice breaks toward restraint or
    plainness unless the brief asks for restraint (`concept-deck.md` § The concept fork).
 2. **Seed each with the anti-corpus differential.** Every candidate must BREAK K
    sameness-fingerprint defaults, where K SCALES WITH THE PINNED AMBITION — `restrained` 1,
@@ -129,7 +134,10 @@ Return, as text:
 
 ## Anti-patterns
 
-- **Averaged concept** — blending the N candidates into one safe idea; generate them blind.
+- **Averaged concept** — blending the N candidates into one safe idea; draft all N before
+  scoring, one from the low-probability tail.
+- **Sequential fixation** — scoring or refining candidate 1 before candidate 4 exists; the
+  later candidates become variations on the first.
 - **Divergence for its own sake** — breaking a default with a worse interaction; the
   usability floor rejects it.
 - **Named-move catalog** — picking a finished move off a list instead of deriving one from a

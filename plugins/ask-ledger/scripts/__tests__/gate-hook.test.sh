@@ -2,7 +2,7 @@
 # Smoke tests for ask-ledger/hooks/gate.sh — the Stop gate that refuses a final message
 # without an accounting line per ledgered name. Branches: no ledger → silent; every name
 # accounted → silent; one missing → a JSON block naming it; the four statuses all count; a
-# case-insensitive match; the two-block ceiling; the off switch; fail-open; an accounted
+# case-insensitive match; the two-block ceiling, per ask; the off switch; fail-open; an accounted
 # name is not owed by later turns unless a later prompt names it again.
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
@@ -64,6 +64,16 @@ ledger s2 Stripe
 run s2 'no accounting' >/dev/null; run s2 'still none' >/dev/null
 check "6 third stop after two blocks ends the turn with a warning" "$(run s2 'still none')" "rc=0"
 is "6b the names a give-up warned about are not warned about again next turn" "$(run s2 'a later turn')" "rc=0"
+# 6c-6e the two-block limit is per ask: the count never reset, so after two blocks anywhere in a session
+#    every later ask only drew the give-up warning (review 2026-11-21).
+ledger s2 Digimon
+check "6c a new ask after a give-up is blocked again" "$(run s2 'no accounting')" "what happened to Digimon, which"
+ledger s6d Stripe
+run s6d 'no accounting' >/dev/null
+is "6d a retry that accounts for every name passes" "$(run s6d 'Stripe: as named')" "rc=0"
+ledger s6d Digimon
+run s6d 'no accounting' >/dev/null
+check "6e a later ask gets its own two blocks after an accounted one" "$(run s6d 'still none')" "what happened to Digimon, which"
 out=$(jq -n '{hook_event_name:"Stop",session_id:"s3",transcript_path:"/nowhere/s3.jsonl",last_assistant_message:"x"}' | hook CC_ASK_LEDGER=off)
 check "7 CC_ASK_LEDGER=off is silent" "$out" "rc=0"
 out=$(printf 'not json' | hook)

@@ -170,6 +170,80 @@ bash_allows "printf 'ask ^npm publish\\n' > .claude/command-guard-strict" "bash:
 bash_asks "rm .claude/command-guard-strict; sed -i s/a/b/ tsconfig.json" "bash: an absent strict file does not hide a later write" tsconfig.json
 mv "$T/strict.keep" "$T/.claude/command-guard-strict"
 
+# 0.10.2: an Edit of pyproject.toml or setup.cfg asks only when it touches a lint or test section; a Write or Bash write still asks.
+PY="$T/py"; mkdir -p "$PY"
+cat > "$PY/pyproject.toml" <<'EOF'
+[build-system]
+requires = ["hatchling"]
+
+[project]
+name = "demo"
+version = "1.2.3"
+dependencies = [
+  "requests>=2",
+]
+
+[tool.ruff]
+line-length = 100
+
+[[tool.mypy.overrides]]
+module = "x.*"
+ignore_errors = false
+
+[tool.pytest.ini_options]
+addopts = "-q"
+EOF
+cat > "$PY/setup.cfg" <<'EOF'
+[metadata]
+name = demo
+version = 1.2.3
+
+[flake8]
+max-line-length = 100
+
+[tool:pytest]
+addopts = -q
+
+[mypy-x.*]
+ignore_errors = False
+
+[coverage:run]
+branch = True
+EOF
+fire_edit() { # tool tool_input-json
+  jq -cn --arg c "$PY" --arg t "$1" --argjson i "$2" '{session_id:"cg",cwd:$c,tool_name:$t,tool_input:$i}' | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+py_edit() { # want file old new label
+  local out; out=$(fire_edit Edit "$(jq -cn --arg f "$PY/$2" --arg o "$3" --arg n "$4" '{file_path:$f,old_string:$o,new_string:$n}')")
+  case "$1:$out" in ask:*'"permissionDecision":"ask"'*|silent:) ok "$5" ;; *) bad "$5" "want $1, got: ${out:-<silent>}" ;; esac
+}
+py_edit silent pyproject.toml 'version = "1.2.3"' 'version = "1.2.4"' "pyproject: a [project] version edit is silent"
+py_edit silent pyproject.toml '"requests>=2",' '"requests>=3",' "pyproject: a dependency edit is silent"
+py_edit silent pyproject.toml 'requires = ["hatchling"]' 'requires = ["hatchling>=1"]' "pyproject: a [build-system] edit is silent"
+py_edit ask pyproject.toml 'line-length = 100' 'line-length = 200' "pyproject: a [tool.ruff] edit asks"
+py_edit ask pyproject.toml 'ignore_errors = false' 'ignore_errors = true' "pyproject: a [[tool.mypy.overrides]] edit asks"
+py_edit ask pyproject.toml 'addopts = "-q"' 'addopts = ""' "pyproject: a [tool.pytest.ini_options] edit asks"
+py_edit ask pyproject.toml $'  "requests>=2",\n]' $'  "requests>=2",\n]\n\n[tool.ruff.lint]\nignore = ["E501"]' "pyproject: a [project] edit that adds a lint header asks"
+py_edit ask pyproject.toml 'tool.ruff]' 'tool.rufx]' "pyproject: renaming a lint header asks"
+py_edit ask pyproject.toml 'not in the file' 'x' "pyproject: an old_string not in the file asks"
+py_edit ask pyproject.toml ' = ' '=' "pyproject: an old_string found more than once asks"
+mkdir -p "$PY/root"; printf 'top = 1\n[project]\nname = "x"\n' > "$PY/root/pyproject.toml"
+out=$(fire_edit Edit "$(jq -cn --arg f "$PY/root/pyproject.toml" '{file_path:$f,old_string:"top = 1",new_string:"top = 2"}')")
+case "$out" in *'"permissionDecision":"ask"'*) ok "pyproject: an edit above every header (the root table) asks" ;; *) bad "pyproject: an edit above every header (the root table) asks" "${out:-<silent>}" ;; esac
+py_edit silent setup.cfg 'version = 1.2.3' 'version = 1.2.4' "setup.cfg: a [metadata] edit is silent"
+py_edit ask setup.cfg 'max-line-length = 100' 'max-line-length = 200' "setup.cfg: a [flake8] edit asks"
+py_edit ask setup.cfg 'addopts = -q' 'addopts =' "setup.cfg: a [tool:pytest] edit asks"
+py_edit ask setup.cfg 'ignore_errors = False' 'ignore_errors = True' "setup.cfg: a [mypy-x.*] edit asks"
+py_edit ask setup.cfg 'branch = True' 'branch = False' "setup.cfg: a [coverage:run] edit asks"
+out=$(fire_edit MultiEdit "$(jq -cn --arg f "$PY/pyproject.toml" '{file_path:$f,edits:[{old_string:"version = \"1.2.3\"",new_string:"version = \"2\""},{old_string:"addopts = \"-q\"",new_string:"addopts = \"\""}]}')")
+case "$out" in *'"permissionDecision":"ask"'*) ok "pyproject: a MultiEdit with one lint edit asks" ;; *) bad "pyproject: a MultiEdit with one lint edit asks" "${out:-<silent>}" ;; esac
+out=$(fire_edit MultiEdit "$(jq -cn --arg f "$PY/pyproject.toml" '{file_path:$f,edits:[{old_string:"version = \"1.2.3\"",new_string:"version = \"2\""},{old_string:"name = \"demo\"",new_string:"name = \"demo2\""}]}')")
+[ -z "$out" ] && ok "pyproject: a MultiEdit only in [project] is silent" || bad "pyproject: a MultiEdit only in [project] is silent" "$out"
+out=$(fire_edit Write "$(jq -cn --arg f "$PY/pyproject.toml" '{file_path:$f,content:"x"}')")
+case "$out" in *'"permissionDecision":"ask"'*) ok "pyproject: a whole-file Write still asks" ;; *) bad "pyproject: a whole-file Write still asks" "${out:-<silent>}" ;; esac
+out=$(jq -cn --arg c "$PY" '{session_id:"cg",cwd:$c,tool_name:"Bash",tool_input:{command:"sed -i s/1.2.3/1.2.4/ pyproject.toml"}}' | "$BASH_BIN" "$HOOK" 2>/dev/null)
+case "$out" in *'"permissionDecision":"ask"'*) ok "pyproject: a Bash sed -i still asks" ;; *) bad "pyproject: a Bash sed -i still asks" "${out:-<silent>}" ;; esac
+
 printf '{}\n' > "$T/.claude-plugin-marker-absent"
 mkdir -p "$T/.claude-plugin" && printf '{"plugins":[]}\n' > "$T/.claude-plugin/marketplace.json"
 out=$(fire "$T/.claude/settings.json")

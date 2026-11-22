@@ -17,11 +17,11 @@ each strategy mapped to the risk it beats:
 | inversion | high stakes, unclear failure routes |
 | Polya | a genuinely hard problem, stuck |
 
-`/approaches:consult` gives a blind, stronger-model second opinion when you are stuck or
+`/approaches:consult` gives a blind second opinion at or above the session tier when you are stuck or
 about to do something irreversible.
 Claude Code's `/advisor` (extended in 2.1.300) overlaps it: a server-side stronger model
 consulted from inside the session's conversation. Consult keeps three things the advisor
-does not do: a blind, facts-only brief (`scripts/brief-lint.sh` rejects leaning phrasing),
+does not do: a blind, facts-only brief (`scripts/brief-lint.sh` rejects leaning phrasing when the skill runs it; nothing forces the run),
 a read-only investigation of the repo by the consultant itself, and the
 irreversible-command nudge. Whether the consult agent earns its place is open: no control-arm
 run has shown a blind brief beating the anchored advisor on the same stuck moment. If one
@@ -47,7 +47,7 @@ row shape is identical to a reader and the distinction matters only when editing
 | `/approaches:build-vs-buy [capability]` | Build-vs-buy check before implementing a capability — existing-solution search, health table, take/wrap/write verdict |
 | `/approaches:rollout [feature-description]` | Rollout plan for a feature about to ship — flag strategy, compatibility window, exposure stages, rollback trigger and path |
 | `/approaches:pattern [problem-description]` | Suggest (or reject) a design pattern for a described problem |
-| `/approaches:consult [topic]` | A blind stronger-model second opinion at a key moment — stuck debugging (from the second failed cycle) or an imminent irreversible action. Facts-only brief, `scripts/brief-lint.sh` rejects leaning phrasing mechanically; returns a Take, Risks and one Alternative. Advice only — never blocks, gates or edits |
+| `/approaches:consult [topic]` | A blind second opinion at or above the session tier, at a key moment — stuck debugging (from the second failed cycle) or an imminent irreversible action. Facts-only brief, `scripts/brief-lint.sh` rejects leaning phrasing when run (recorded that it runs; nothing forces the run); returns a Take, Risks and one Alternative. Advice only — never blocks, gates or edits |
 
 ## Example
 
@@ -66,7 +66,7 @@ row shape is identical to a reader and the distinction matters only when editing
 
 The consult nudge only suggests the command; it may repeat on later matching
 prompts, and ignoring it is always legitimate. The consult itself dispatches a
-stronger-model subagent — a spend decision, which is why this plugin is installed by
+subagent at or above the session tier — a spend decision, which is why this plugin is installed by
 name rather than in any any-project default.
 
 ## Pairs well with
@@ -85,7 +85,7 @@ toward `/approaches:build-vs-buy`. Nothing was dropped in the merge itself; the
 `estimation` skill and its `size` command were removed later, on 2026-09-22.
 
 The fresh-take plugin was merged into this one on 2026-09-14: `/approaches:consult` composes a
-facts-only brief and dispatches the blind `consultant` agent (stronger-model,
+facts-only brief and dispatches the blind `consultant` agent (at or above the session tier,
 read-only) at the two key moments — stuck after repeated failed fixes, or one
 keystroke from something irreversible — and its `hooks/consult-remind.sh` nudge
 on irreversible-command tokens came with it. Both are `decide`-phase blind second

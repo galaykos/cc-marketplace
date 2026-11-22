@@ -3,6 +3,11 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.12.2 — 2026-11-21
+
+- **The destructive-SQL guard no longer asks about a `deleteMany` wipe in a test or seed file.** A bare `deleteMany()` or `deleteMany({})` in `__tests__/`, a `.test.` or `.spec.` file, a `seeds/` or `seeders/` directory, or a file with `seed` in its name is teardown. With no prompt to answer, the ask was auto-denied, so a headless run writing test setup failed its turn. Migration, script and backfill paths run on real data and still ask, and so do `updateMany({})` and `remove({})` everywhere. Misses: a wipe in a seed file that runs in production. Standing: gate (`guard.test.sh`, 9 new cases).
+- **`references/galera.md` corrects two quorum claims.** A two-node cluster loses quorum when a node crashes or is cut off, but a node that leaves gracefully is subtracted from the count, so the survivor stays primary. A non-primary node rejects every query except SET and SHOW, reads included, unless `wsrep_dirty_reads=ON`. Checked against Galera's documentation on mariadb.com.
+
 ## 0.12.1 — 2026-11-16
 
 - **`database-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.

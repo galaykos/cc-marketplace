@@ -13,8 +13,10 @@ description: Use when working in an Unreal Engine 5 project (`*.uproject`, `Sour
   `Engine/Build/Build.version` for the version.
 - Keep advice to that version. The Zen and SDK items below are 5.8 facts that were different
   in 5.5. Never mix in UE4 or pre-5.1 input snippets (Project Settings axis/action mappings).
-- After editing `Config/*.ini` or `Source/`, run the checker. It reads the version itself and
-  needs `--engine-version 5.8` only for a source build. Exit 0 clean, 1 errors, 2 no single
+- The plugin's hook runs the checker after a Write or Edit of a `Config/*.ini` or a
+  `Source/**/*.cpp`/`.h` and adds that file's findings. After a Bash write, or on a source build
+  (a GUID `EngineAssociation`, which the hook skips), run it yourself; it reads the version itself
+  and needs `--engine-version 5.8` only for a source build. Exit 0 clean, 1 errors, 2 no single
   `.uproject` or no readable version:
 
   ```bash
@@ -62,8 +64,8 @@ Read from Epic's pages on 2026-11-09. Standing: **recorded**.
 | Rule | Standing |
 |---|---|
 | On 5.8, ship the staging directory's `.pak`/`.utoc`/`.ucas`, never `Saved/Cooked` | **recorded** |
-| CI and team machines keep zenserver alive (`LimitProcessLifetime=false`) | **gate where run** — `check_unreal_project.py` warns `zen-process-lifetime` on 5.8; running it is **recorded** |
-| No C++ name the release notes deprecate or remove for the project's version; no Zen/DDC key 5.8 renamed | **gate where run** — the same checker, 15 cited name rules; an alias or macro hides a name |
+| CI and team machines keep zenserver alive (`LimitProcessLifetime=false`) | **gate where run** — `check_unreal_project.py` warns `zen-process-lifetime` on 5.8; the plugin's hook runs it after a `Config/*.ini` edit (warn-only); after a Bash write, running it is **recorded** |
+| No C++ name the release notes deprecate or remove for the project's version; no Zen/DDC key 5.8 renamed | **gate where run** — the same checker, 15 cited name rules, which the plugin's hook runs after a `Source/` edit; an alias or macro hides a name |
 | Assets pass `-run=DataValidation` before a cook | **recorded** — runs only if your pipeline calls it |
 | Advice matches `EngineAssociation` | **agent-graded** |
 | A mapping context reaches remote clients and respawned pawns | **agent-graded** — only a multiplayer PIE session shows it |

@@ -137,3 +137,37 @@ The `[/Script/UnrealEd.ProjectPackagingSettings]` section name appears in the 5.
 - The two Epic sources differ on concurrency. The MCP page says calls run serially on the game thread and clients
   "should not issue overlapping Tool calls". The plugin says MCP "accepts concurrent requests", so callers should
   serialize dependent ones. The skill states neither.
+
+## plugins/unreal/hooks/unreal-check.sh
+
+Added 2026-11-21 (unreal 0.3.0), from the thinking-disciplines follow-up review (finding 4): unreal was the only
+engine plugin whose checker no hook ran, and the README said so ("Running it is **recorded**: no hook runs it").
+The user approved a warn-only hook in the shape of godot's `godot-check.sh`.
+
+Design:
+
+- **Trigger.** PostToolUse on Write, Edit and MultiEdit whose `tool_input.file_path` is a `Config/**/*.ini` or a
+  `Source/**/*.cpp`/`.h` (suffix case-insensitive, as the checker reads it) under the nearest folder holding a
+  `.uproject`, at most 32 folders up. A folder with two `.uproject` files is skipped, because the checker refuses
+  it. `Plugins/*/Source` and `.Build.cs` are skipped, because the checker never scans them. Bash is not matched.
+- **A scratch copy, not the project.** The checker blanks comments and strings character by character, so a whole
+  `Source/` tree is slow: 7.08–7.18 s on three warm runs on 2026-11-21, on a synthetic 5.8 project of 5,000 `.cpp`
+  files and 59 MB. Every source rule reads one file and every Config rule reads `Config/` only, so the hook copies
+  the `.uproject` plus either `Config/` or the one edited file into `mktemp -d` and checks that. The findings for
+  the edited file are the same as on the project; findings in other files are never shown, which is the point.
+  `CHECK_TIMEOUT=10`; hooks.json allows 20 s. The copy is removed on exit (a harness case asserts it).
+- **What is said.** The edited file's errors, then its warnings, one row per rule: the first line, plus "+N more in
+  this file". A finding is said once per context, keyed on `project|code|file`, because line numbers move on every
+  C++ edit and a line in the key would repeat the same rule. At most `MAX_SHOWN=5` per edit; the rest are counted
+  and recorded as said. Checker messages quote `.ini` values: control characters become spaces and each message is
+  capped at 300 characters, each fix at 212.
+- **State.** `cc_plugin_state` (CLAUDE_PLUGIN_DATA, else `<repo>/.cc-artifacts/unreal/` with a `*` `.gitignore`),
+  file `check-seen-<cksum of transcript_path // session_id>`, swept after 1440 minutes. Unwritable state: silence.
+- **Off switch.** `CC_UNREAL_CHECK=off`, or the `cc_unreal_check` option (default on). The variable wins.
+- **Limits** (also in the header): a Bash write, `Plugins/*/Source`, a source build's GUID `EngineAssociation`
+  (the checker exits 2 and the hook says nothing; the skill sends that case to a manual run with
+  `--engine-version`), a run past the timeout, and everything the checker misses (aliases, macros).
+
+Standing: the firing and silence cases are a **gate** in `plugins/unreal/scripts/__tests__/unreal-check-hook.test.sh`
+(31 cases, run by CI's plugin-harness loop) on payloads in the host's PostToolUse shape. No live `claude` session
+was run for this hook, so host delivery of the context is **unverified** here.

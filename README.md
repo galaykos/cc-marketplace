@@ -182,7 +182,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_PROTECT_TESTS` | testing | on | Refuse an edit that adds a skip or only marker to a test, or empties a test file: on or off |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
-| `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
+| `CC_ROUTE` | skill-router | on | Hand the model command-picking rules: on or off |
 | `CC_SECRET_COMMIT_SCAN` | secret-scanning | on | Refuse a git commit or push whose added lines hold a high-confidence secret: on or off |
 | `CC_SECRET_OUTPUT_SCAN` | secret-scanning | on | Name, by its label and never its value, a secret found in a tool's output, after the call: on or off |
 | `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box and ask before sending it (mask, send as typed, or can … |
@@ -196,8 +196,10 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
+| `CC_UNITY_API_CHECK` | unity-traps | on | Run check_unity_project.py after a Write or Edit of an Assets/**/*.cs, and add that file's findings for  … |
 | `CC_UNITY_META_CHECK` | unity-traps | on | Run check_unity_project.py after a Bash call moves, copies or deletes an Assets/ path, or a .meta is wri … |
 | `CC_UNITY_VISUAL_GATE` | candor | block | Stop-gate clause for Unity scene, prefab or Assets script work called done with no capture and no consol … |
+| `CC_UNREAL_CHECK` | unreal | on | Run check_unreal_project.py after a Write or Edit of a Config/*.ini or Source/**/*.cpp\|h under the neare … |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |

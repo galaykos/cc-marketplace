@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config or the command-guard-strict file (config_kind); on Bash, the first such target of the first eight, an rm/unlink/mv/git rm/git mv of an existing command-guard-strict (strict_removal), or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
-# Misses unlisted files, what the edit changes, new files, MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm of any other config, the strict file removed with its directory or by glob, a quoted regenerate flag or one in a heredoc body no shell reads, phpstan's -b behind a script name. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
+# PreToolUse on file writes and Bash: asks, never denies, before a write to an existing settings, hooks, hook-script, plugin-manifest, lint/test, analyzer-baseline, git-hook or CI config or the command-guard-strict file (config_kind), a pyproject.toml or setup.cfg Edit only inside a lint or test section; on Bash, the first such target of the first eight, an rm/unlink/mv/git rm/git mv of an existing command-guard-strict (strict_removal), or a flag that writes baseline entries (baseline_regen). Silent in a marketplace repository.
+# Misses unlisted files, what the edit changes, new files, a lint setting a pyproject.toml Edit puts under a non-lint header (a dotted key, a hatch or poe test script), MCP apply_patch, Bash writes the targets block misses or past the eighth, a target after an in-command cd, a plain rm of any other config, the strict file removed with its directory or by glob, a quoted regenerate flag or one in a heredoc body no shell reads, phpstan's -b behind a script name. Fail-open. Off: CC_CONFIG_GUARD=off or CLAUDE_DESTRUCTIVE_GUARD=off|deny-only; unset, /config decides.
 # Why, limits, history: rationale/derivations/plugin-command-guard.md § plugins/command-guard/hooks/config-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -367,6 +367,31 @@ strict_removal() {
     }' 2>/dev/null
 }
 
+# py_config_outside <file> <payload> prints "outside" when every Edit/MultiEdit old_string of a pyproject.toml or setup.cfg
+# occurs once, below a header that names no lint or test tool, and neither it nor its new_string touches such a header.
+py_config_outside() {
+  local ini=0
+  case "$(basename "$1")" in setup.cfg) ini=1 ;; pyproject.toml) ;; *) return 0 ;; esac
+  [ "$(wc -c < "$1")" -le 1048576 ] || return 0
+  printf '%s' "$2" | jq -r --rawfile f "$1" --argjson ini "$ini" '
+    def ishdr: if $ini == 1 then test("^\\[[^\\]]+\\][ \\t\\r]*([#;].*)?$")
+      else test("^[ \\t]*\\[\\[?[^\\]\\[,=]+\\]\\]?[ \\t\\r]*(#.*)?$") end;
+    def guarded: sub("[#;].*$"; "") | gsub("[\\[\\]\"\u0027 \\t\\r]"; "") | ascii_downcase
+      | test("^((tool[.:])?(ruff|mypy|pytest|flake8|coverage|pylint|pyright|basedpyright|black|isort|pydocstyle|pycodestyle|bandit|tox)([.:_-]|$)|tool$)");
+    def heads: split("\n") | map(select(ishdr));
+    [ (.tool_input.edits // [.tool_input])[] | (.old_string // "") as $o | (.new_string // "") as $n
+      | if $o == "" then "inside"
+        else ($f | split($o)) as $p
+        | if ($p | length) != 2 then "inside"
+          else ($p[0] | split("\n")) as $b | ($b | map(select(ishdr)) | last) as $h | ($p[1] | split("\n") | first) as $r
+          | if $h == null then "inside"
+            elif ([$h] + (($b | last) + $o + $r | heads) + (($b | last) + $n + $r | heads)) | any(guarded) then "inside"
+            else "outside" end
+          end
+        end ]
+    | if length > 0 and all(. == "outside") then "outside" else "inside" end' 2>/dev/null
+}
+
 MAX_BASH_TARGETS=8
 
 {
@@ -425,6 +450,7 @@ EOF_T
 
     # Nothing to weaken if it does not exist yet: creating a config is not relaxing one.
     [ -f "$file" ] || exit 0
+    case "$tool" in Edit|MultiEdit) [ "$(py_config_outside "$file" "$input")" = outside ] && exit 0 ;; esac
   fi
 
   # Exempt: a marketplace repository (manifest at its git root) edits these files as its product.

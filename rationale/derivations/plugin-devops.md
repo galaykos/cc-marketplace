@@ -97,6 +97,12 @@ Above `reason="$reason CC_WORKFLOW_GUARD=off turns this check off."`:
 Name the escape in the message that blocks you.
 ```
 
+### Rule 1 on an Edit reads the post-edit file (2026-11-21)
+
+Until devops 0.9.10 an Edit or MultiEdit was judged on its `new_string` text alone. The trigger line (`pull_request_target:`) sits in the file already, so the commonest way the hole opens, an Edit turning `ref: ${{ github.sha }}` into `${{ github.event.pull_request.head.sha }}`, was never denied, while the README called the rule a gate. The fix rebuilds the file as the call leaves it with the same jq `reduce` database's guard.sh uses for its rollback check, runs rule 1 on it, and denies only when the file before the edit was clean. An unrelated edit to a workflow that already checks out PR code is not denied: the edit did not add the shape, a deny there blocks work the agent was asked to do, and `workflow-audit.sh` reports the existing shape as critical. Rule 2 still reads the new text alone, so an injection an Edit adds inside an existing multi-line `run: |` block is not seen (checked by hand 2026-11-21, not pinned in the harness).
+
+The same change widened rule 1's ref pattern in both the guard and the audit: `refs/pull/<n>/merge` (and `/head`, in any spelling of the number, including `format()`), `github.event.pull_request.merge_commit_sha`, `workflow_run.pull_requests[0].head.*`, and a quoted value. All of them check out PR-authored code. A `refs/pull/` after a `#` on the line is a comment and stays silent. Neither file sees PR code fetched by a `run:` step (`gh pr checkout`, `git fetch origin pull/<n>/head`) or a ref passed through `env:`, a step output or a variable. Harness: `workflow-audit.test.sh`, the 0.9.10 cases; nine of them fail against the 0.9.9 scripts.
+
 ## plugins/devops/scripts/plan-audit.sh
 
 ### Header

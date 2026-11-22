@@ -5,7 +5,9 @@ have no entries rather than invented ones.
 
 ## 0.14.3 — 2026-11-21
 
+- The plugin description no longer calls `/approaches:consult` a "stronger-model" opinion: it runs at or above the session tier, so from an opus or fable session it is the same model.
 - **Blind-panel synthesis weighs grounding, not count.** `references/blind-panel.md` step 1: blind dispatch removes anchoring, not shared errors. Four lenses on one model family are not four independent confirmations. One NLI preprint measured nine judges from seven families at about two effective votes (arXiv 2605.29800), and errors correlate across providers (Kim et al., ICML 2025). A lens citing a repo fact the others missed outweighs a 3–1 majority, and alignment is reported as a count of grounded takes, never as consensus. Standing: agent-graded.
+- **Consult says what the consultant is.** It runs at or above the session tier: the same model from an opus or fable session, so its independence is the blind brief and a fresh context, not a stronger model (SKILL, README, `lane.tsv`). The consultant checks claims the code can settle and takes quoted runtime output as given, since it can run nothing. `brief-lint.sh` running before dispatch is labelled recorded, and the nudge is said to see the user's prompt only, not a command the model composes (command-guard's `destructive-guard.sh` sees those). Standing: recorded.
 
 ## 0.14.2 — 2026-11-17
 

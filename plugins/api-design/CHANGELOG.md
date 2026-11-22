@@ -2,6 +2,14 @@
 
 Consumer-facing changes only. Newest first. Started at 0.11.4; earlier versions have no entries rather than invented ones.
 
+## 0.12.2 — 2026-11-21
+
+- **`/api-design:review`'s self-refute pass drops or downgrades a finding only on a cited line or command output that contradicts it.** A doubt with no citation keeps the finding, marked `PLAUSIBLE`. Standing: recorded.
+- **`/api-design:review` dispatches PHP fixes to `laravel:backend-engineer` first when it is installed**, as `/api-design:scaffold` already did, then `web-dev:web-developer`, `task-runner:task-executor`, inline. web-developer's own lane is for a stack no framework plugin covers.
+- **`/api-design:scaffold`'s validation round-trip cites both sides.** Each constraint names the spec's `path:line` and the rule's `file:line`, and the step says a clean round-trip is not proof the endpoint validates. Standing: recorded.
+- `docs-upkeep`'s rename check no longer greps `CHANGELOG.md`, whose required rename line always matched, so the check could never pass.
+- The README and `lane.tsv` no longer say `/api-design:drift` joins task-runner's completion gate: nothing calls it, so run it by hand.
+
 ## 0.12.1 — 2026-11-17
 
 - **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.

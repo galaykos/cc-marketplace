@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.2; earlier versions have no entries rather than invented ones.
 
+## 0.14.1 — 2026-11-21
+
+- **`friction_events` stops counting the assistant's own prose.** `hooks/collect.sh` counts "rejected" only on `tool_result` lines, so a reply saying "the PR was rejected" no longer ranks a session higher. Standing: gate — `collect.test.sh` "agent friction" fails against the 0.14.0 hook. The README no longer claims the count only undercounts: two errors on one line count once, and a tool result that merely quotes "rejected" still counts.
+- **Each miner's return opens with a `coverage` line** (`full`, or what was sampled), and the digest reports transcripts mined as full vs sampled.
+- **The apply gate offers a category's top three by distinct-session count**, since a question holds four options and one is "Skip this category"; the rest are listed as candidates.
+- **A compliance gap seen in two or more sessions with a mechanical signal also goes to the check destination**, not only to the report. Standing: agent-graded for the last three, as for the rest of the synthesis.
+
 ## 0.14.0 — 2026-11-14
 
 - **Picked warnings go to `.cc-artifacts/hindsight/anti-patterns.md`**, not `.claude/hindsight/anti-patterns.md`. Claude Code refuses a Write into `.claude/` as a sensitive path, and `.cc-artifacts/` is the one folder a project gitignores for what plugins write during development. When only the old folder exists, the harvest copies it over once before the first pick and never touches it. The README says how a team tracks the file instead of ignoring it, and the proposed CLAUDE.md pointer may replace one that names the old path. Standing: agent-graded — the skill tells the model to copy, no script checks it.

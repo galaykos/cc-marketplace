@@ -32,7 +32,8 @@ graders:
 
       1. Rigour `lean` (or `standard` with a stated signal), never `adversarial`, and the reason
          is not card count, file count or novelty.
-      2. The brief carries a `Verify: range` line, and per card the run does only the worker's
+      2. The response adds a `Verify: range` line to the brief (the scaffolded brief has none) or
+         says it must carry one before the hand-off, and per card the run does only the worker's
          verify (reused by receipt) — no per-card reviewer pass and no per-card negative control.
          Once per milestone: the whole-range review, one red-team round with the
          does-the-test-have-teeth lens, the suite once (by receipt), then the acceptance walk.

@@ -2,6 +2,18 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.0 — 2026-11-21
+
+- **New hook: `hooks/unreal-check.sh`.** After a Write, Edit or MultiEdit of a `Config/**/*.ini` or a
+  `Source/**/*.cpp|h` under the nearest `.uproject`, it runs `check_unreal_project.py` and adds that file's
+  findings: the Zen and DDC keys 5.8 renamed or wants on CI, and the C++ names Epic deprecated or removed for the
+  project's version. Each rule is said once per file per context, at most 5 per edit, and it never blocks. It checks
+  a scratch copy holding the `.uproject` plus `Config/` or the one edited source file, since a whole `Source/` tree
+  took 7 s at 5,000 files. Off: `CC_UNREAL_CHECK=off`, or the new `cc_unreal_check` option.
+- **Standing.** Running the checker after a Config or Source edit moves from recorded to a gate where installed.
+  `scripts/__tests__/unreal-check-hook.test.sh`, 31 cases on host-shaped payloads, runs in this repo's CI. A Bash
+  write, `Plugins/*/Source` and a source build's GUID association are not seen. No live host session was run for it.
+
 ## 0.2.0 — 2026-11-09
 
 - **New script: `scripts/check_unreal_project.py`.** It reads the engine version from `EngineAssociation` (or `--engine-version` for a source build). On 5.8 it warns on these `Config/*.ini` keys: `[Zen.AutoLaunch] LimitProcessLifetime=false` missing, `AllowRemoteNetworkService` (renamed `RemoteNetworkService`), a `RemoteNetworkService` value other than `None`/`Unsecured`/`GeneratedStaticKey`, a `[DerivedDataBackendGraph]` section, and the deprecated `KeyLength`/`AsyncPut`/`Verify` DDC nodes. It also flags 15 C++ names in `Source/**/*.cpp|h` that Epic's 5.1–5.8 release notes deprecate (warning) or remove (error) for that version, each with its URL. It skips `#if 0` branches and every branch of an `#if` group on `ENGINE_*_VERSION` or `UE_VERSION_*`, because code that guards on the version has handled it. Exit 0/1/2; `--json`, `--strict`.

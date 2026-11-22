@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.2 — 2026-11-21
+
+- **config-guard stops asking on routine `pyproject.toml` and `setup.cfg` edits.** An `Edit` or `MultiEdit` of either asks only when an `old_string` sits under a lint, type-check, coverage or test header (ruff, mypy, pytest, flake8, coverage, pylint, pyright, basedpyright, black, isort, pydocstyle, pycodestyle, bandit, tox; `tool.`/`tool:` optional), under a bare `[tool]` or above every header, when the edit adds or renames such a header, or when an `old_string` is missing or repeated. A `[project]` version or dependency edit passes. A `Write` or Bash write to either still asks. Misses a lint setting placed under another header as a dotted key, and a test command in hatch or poe scripts. Standing: gate — `config-guard.test.sh` gains 20 checks (139); its 5 silent cases fail against 0.10.1.
+- **The deny reason no longer offers the allow-file.** It ended "or to allow this exact command with a regex line in .claude/destructive-guard-allow", while the skill says to propose a line only after the user has asked twice; it now ends "give the user the exact command to run themselves". The README still documents the file. Standing: gate — `destructive-guard.test.sh` pins the new text and that it names no allow-file (both fail against 0.10.1).
+- **Tests for four documented spellings that had none:** `gh pr review -c`, `-r` and `-F`, a GraphQL `submitPullRequestReview`, `-c core.hooksPath=…` before `revert`, and a PATCH of an existing `pulls/comments/N`. Each already asked; the README's "holds every spelling above" is now true for them (844 checks).
+- **Wording.** The README no longer says no hook payload field shows the permission mode: `permission_mode` names `dontAsk`, and the guard does not read it. `commands/check.md`'s "unfixed by design" and the README's "measured" are now the standing labels `unenforceable` and `recorded`, and the skill's three never-do rules carry their standing.
+
 ## 0.10.1 — 2026-11-16
 
 - **`scripts/settings-lint.sh` names `CC_SECRET_OUTPUT_SCAN` in place of the retired `CC_SECRET_REDACT`.** secret-scanning 0.19.0 removed tool-output masking (Code Mode refuses a mod that checks tool calls) and its switch; the lint now flags a project or user setting that turns off the PostToolUse flag that replaced it. Standing: gate — `settings-lint.test.sh` holds each name to the root README's off-switch table.

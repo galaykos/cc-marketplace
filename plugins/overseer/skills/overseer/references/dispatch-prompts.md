@@ -33,10 +33,14 @@ for this stack.` A miss is skipped silently, never invented.
 
 ## The model per seat — one line every prompt carries, bound by the program tier
 
-`MODEL: <value>` names the model the Agent call passes for this seat; `dispatch check`
+`MODEL: <value>` names the model the Agent call runs for this seat; `dispatch check`
 refuses a prompt without it, with a value above the program's tier (`init --model`,
-default `opus`), or with `inherit` on a worker under any tier. Without the line, an
-`inherit` agent silently runs on the session model.
+default `opus`), or with `inherit` on a worker under any tier. Pass the same value as the
+call's `model:`: an `inherit` agent (`task-runner:task-executor`) given none silently runs
+on the session model. While a program is open, `hooks/model-gate.sh` denies an Agent call
+whose prompt's `MODEL:` line names another model than it will run, the agent's frontmatter
+default counted when no `model:` is passed (**gate**; a prompt with no `MODEL:` line is
+outside it).
 
 | Seat | tier `opus` (default) | tier `auto` (`/overseer:start … --model auto`) |
 | --- | --- | --- |
@@ -152,7 +156,8 @@ whose marker is `Goal: true (boost=off)`) or no boost on an adversarial one (**W
 score itself is recorded). Budget
 left is not a rigour input. It is a ceiling: with `--budget-tokens` (or `program.sh budget
 --tokens`), `dispatch check` refuses every dispatch once this session's spend reaches it
-(**gate**; one session's transcripts only, so a fresh session counts from zero).
+(**gate**; one session's transcripts only, so a fresh session counts from zero; fail-open
+with a WARN when the spend cannot be read — no session id or no transcript).
 What the rule never cuts: the run's range review and
 teeth lens.
 
@@ -235,8 +240,10 @@ is for the direct-worker path and the extra lenses a `standard` profile adds.
 ## Follow-up to a worker that is still alive
 
 Every follow-up is one of the milestone's three fix dispatches; so is a fresh worker sent to
-fix, which you name `<n>-fix.md` so `dispatch check` counts it (**gate** on the count: the
-fourth is refused; a fix under another name is not counted, **recorded**). Batch the items.
+fix — name it `<n>-fix.md`. `dispatch check` also counts any worker gated once the milestone
+has an evidence row, an `accepting` status or a gated reviewer, whatever its name (**gate**
+on the count: the fourth is refused; a review-step fix sent before any reviewer was gated is
+not counted). Batch the items.
 
 A second message to a running worker IS a dispatch: one that skips `dispatch/` and the
 gate leaves the record with a fix cycle no prompt explains. Write it to `dispatch/<n>-followup.md`

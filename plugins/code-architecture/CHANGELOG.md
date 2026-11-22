@@ -2,6 +2,10 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.21.1 — 2026-11-21
+
+- `drift-review` check (a) names what testing 0.18.0's `protect-tests` hook now asks about (an Edit dropping assertion lines or changing an expected literal) and what stays with the review: Write or Bash rewrites, an assertion moved into a helper or loosened in meaning. `work-verification`'s checklist adds the read-every-file claim, which candor 0.15.0 clause 8 blocks when a named file was never opened. Standing: recorded (skill text); the hooks they cite are gates.
+
 ## 0.21.0 — 2026-11-16
 
 - **plan-before-code's interfaces step names shared state and reuse.** Where two units share state it names the one writer, every state's exit and the lock order, and the existing code each unit extends (grep first). In a taskmaster spec these become `## Shared state & invariants` and `## Module map` (taskmaster 0.61.0 grill `references/contracts.md`); taskmaster now runs this plan check on every multi-card spec.

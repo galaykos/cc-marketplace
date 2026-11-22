@@ -59,7 +59,11 @@ it is harmless — the hazard is the opposite habit, a bare `npx expo prebuild` 
 used to layer onto existing files and now wipes them. Every manual `Info.plist` key,
 every Gradle tweak, gone, with no warning that anything was lost. (The
 `workflow/prebuild` and `continuous-native-generation` guides still describe the
-pre-57 default; below SDK 57 they are right, at 57+ the changelog is.)
+pre-57 default; below SDK 57 they are right, at 57+ the changelog is.) This plugin's
+`hooks/expo-prebuild-guard.sh` asks before a prebuild without `--no-clean` when the native
+dirs hold uncommitted or untracked files, are committed and not gitignored, or sit outside
+git. Standing: **gate** for its patterns (`scripts/__tests__/expo-prebuild-guard.test.sh`, run
+in CI); it does not see `npm run prebuild` or other wrappers.
 
 Native changes therefore go through a **config plugin**, not through the native
 files. Before editing anything under `ios/` or `android/`, establish which regime

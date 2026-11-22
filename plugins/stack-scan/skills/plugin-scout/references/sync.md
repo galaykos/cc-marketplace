@@ -110,7 +110,7 @@ claude plugin install stack-scan@cc-plugins-marketplace --scope local   # or --s
 `scripts/sync-plan.sh` against fixture settings files: precedence (local over project
 over user), `held`, `duplicate`, project extras gated on `--persist`, foreign
 marketplaces ignored, the worktree note, the off-ramp, and every refusal.
-**Agent-graded** for everything around it: that Detection fed the script the right set,
+**Recorded** for everything around it: that Detection fed the script the right set,
 that the ask came before any change, that only column-four commands ran, that user scope
 was never touched. Not read: managed policy settings, a `--settings` file, a
 `--plugin-dir` load, and install records (a project-scope `true` this machine never

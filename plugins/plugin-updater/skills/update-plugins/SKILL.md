@@ -27,7 +27,9 @@ Then:
 
 1. **Never substitute your own `claude plugin update` calls**, to retry a failure or to finish a
    run. The script never passes `-y` or `--accept-command`, so a plugin whose marketplace-declared
-   command changed is left to the user; neither flag is yours to pass either.
+   command changed is left to the user; neither flag is yours to pass either. Standing: **gate** for
+   the flags (the `accept-guard` hook denies a Bash `claude plugin update|install` carrying `-y`,
+   `--yes` or `--accept-command`); **recorded** for a flagless call of your own.
 2. **Relay, do not re-derive.** Give the `Folder:` line and the `Summary` counts, then every `Failed` and `Need you`
    line with its reason and the command the script printed for it. Group `Skipped` by reason
    (orphaned entry, linked git worktree) with the folders, not the plugin lists.

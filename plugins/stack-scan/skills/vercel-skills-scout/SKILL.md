@@ -127,7 +127,7 @@ Print one numbered table, all queries merged, deduplicated by
    `CAUTION` (install anyway / skip) and on a "did not scan" line (install anyway / skip).
    Without it, one line offers it; never install it unasked. It exits 0 on every path past
    the usage check, so its absence never holds an install back. Standing: gate for the
-   script's paths (`scripts/__tests__/skill-vet.test.sh`, a stub scanner); agent-graded for
+   script's paths (`scripts/__tests__/skill-vet.test.sh`, a stub scanner); recorded for
    running it and re-asking.
 4. Per confirmed pick, TWO commands — `--skill` matches the display name
    the CLI itself lists, not the skills.sh `skillId`, and passing the
@@ -139,8 +139,11 @@ Print one numbered table, all queries merged, deduplicated by
    ```
 
    Project-level (the CLI's default inside a project) — never pass
-   `-g`/`--global`. The `-y` only skips the CLI's own prompt; consent
-   already happened at the pick. Fuller gotcha: `references/mechanics.md`.
+   `-g`/`--global`, `--skill '*'` or `--all`. The `-y` only skips the CLI's own prompt;
+   consent already happened at the pick. Fuller gotcha: `references/mechanics.md`.
+   Standing: gate where this plugin is installed — `hooks/install-guard.sh` denies a
+   Bash `skills add` carrying any of those four (`scripts/__tests__/install-guard.test.sh`);
+   a script, alias or variable that hides the command gets past it.
 5. Confirm each install with `npx -y skills ls` — exit 0 does not prove a
    skill landed (see step 4). Report per-skill success or failure as each
    finishes; one failure does not abort the rest. Finish with one line:
@@ -148,8 +151,8 @@ Print one numbered table, all queries merged, deduplicated by
 
 ## Boundaries
 
-Standing: recorded/agent-graded — nothing in this repo gates any of it but the paths of
-`scripts/skill-vet.sh` (the authoring-skills "say what has teeth" convention, a project skill of the marketplace repository). Discovers
+Standing: recorded — nothing in this repo gates any of it but the paths of
+`scripts/skill-vet.sh` and the four flags `hooks/install-guard.sh` denies (the authoring-skills "say what has teeth" convention, a project skill of the marketplace repository). Discovers
 and installs skills.sh skills only: no audit of installed skills, no update or removal (`npx skills remove`
 / `update` exist for that), and never touches `.claude/settings.json` — skills.sh
 tracks installs in `skills-lock.json`. No curation claim: suggestions rank by installs

@@ -19,7 +19,7 @@
 # HONEST LIMITATION. This is a line-oriented scan, not a YAML parser: it reads
 # what a workflow SAYS, and it can be fooled by an unusual layout, a composite
 # action outside `.github/actions/`, a composite that shells out to a script file,
-# or a reusable workflow called with `secrets: inherit`. Composites get rules 2 and 3 only.
+# a `secrets: inherit` reusable workflow, or a run: step fetching PR code (`gh pr checkout`). Composites get rules 2 and 3 only.
 # Treat a clean run as "none of the known shapes are present in these files", never as "this pipeline is safe".
 # Why, limits, history: rationale/derivations/plugin-devops.md § plugins/devops/scripts/workflow-audit.sh
 set -u
@@ -60,8 +60,8 @@ for wf in $files $cfiles; do
   # 1. CRITICAL — pull_request_target / workflow_run checking out the PR head runs fork code with the base repo's secrets and a write token.
   if [ "$composite" -eq 0 ] && grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf"; then
     ln=$(grep -nE '^[[:space:]]*(pull_request_target|workflow_run):' "$wf" | head -1 | cut -d: -f1)
-    if grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.event\.(pull_request\.head|workflow_run\.head)' "$wf" \
-       || grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.head_ref' "$wf"; then
+    # The ref names PR code: the head, the merge commit (merge_commit_sha), or refs/pull/N/merge|head.
+    if grep -qE '^[[:space:]]*ref:[^#]*(\$\{\{[^}]*github\.(head_ref|event\.(pull_request\.(head|merge_commit_sha)|workflow_run\.(head|pull_requests\[[0-9]*\]\.head)))|refs/pull/)' "$wf"; then
       finding critical "$wf" "$ln" \
         "pull_request_target/workflow_run checks out untrusted head" \
         "Fork code runs with base-repo secrets and a write token. Build from the PR context with no secrets, or check out the BASE ref and treat the PR tree as data."

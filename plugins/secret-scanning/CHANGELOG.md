@@ -3,6 +3,14 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.19.1 — 2026-11-21
+
+- **The skill's limits name the two later layers.** It said the guard "cannot see" an interpreter write or a `cp`/`mv` and left it there; it now says the same hook warns after such a run (since 0.15.0) and `commit-scan.sh` denies a commit or push that carries the secret (since 0.17.0), and what neither sees.
+- **The URL schemes are listed in full.** The skill and README named `postgres://`, `mysql://`, `mongodb://`, `redis://`, `amqp://` and `https://`, and said any other scheme passes; `patterns.tsv` also denies `postgresql://`, `rediss://`, `amqps://` and `http://` (checked against `scan.sh` on 2026-11-21). The skill now says its list is restated by hand and the file wins.
+- README: the "through Bash any other way" row was labelled unenforceable; most of those writes are in the command text a PreToolUse hook receives, so it now reads "not enforced before the write" and names what is truly out of sight (a script file, a value built at runtime). `unicode-scan.sh` needs `jq` and `python3` and is silent without them; the README now says so.
+- `hooks/patterns.tsv` and `hooks/redact-core.ts` comments: the reader, the probe and the repeated-character rule live in `hooks/patterns.sh`, not `scan.sh`. Behaviour unchanged.
+- Standing: recorded (wording and comments; no harness reads them).
+
 ## 0.19.0 — 2026-11-16
 
 - **Tool output is flagged, no longer masked.** Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`, CLI 2.1.323+) refuses to start while an installed mod checks tool calls, and the mod masked every tool result through one. `hooks/redact.ts` keeps only prompt masking (the prompt box, `@` mentions, attached files), now switched by `CC_SECRET_PROMPT` / `cc_secret_prompt` alone; the `tool.call` handler, the Higgsfield upload-URL exception, `redact-core.ts`'s `Kept` ranges and object walk, and the `cc_secret_redact` / `CC_SECRET_REDACT` option were removed. Standing: gate — `tests/redact.test.ts` now also asserts tool calls pass through untouched.

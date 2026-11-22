@@ -1,6 +1,6 @@
 #!/bin/bash
-# PostToolUse marks this context's scene changed after a Blender MCP execute_blender_code call and clears it after a successful forge render_review_set; Stop blocks once per change cycle when the scene changed since the last review and asset-forge is in use here.
-# Misses: changes made by hand in Blender, reviews done without render_review_set, execute calls that only read (they mark it changed too), a context that never touched forge (never blocked). Fail-open. Off: CC_FORGE_REVIEW=off, or /config.
+# PostToolUse marks this context's scene changed after a Blender MCP execute_blender_code call and clears it after a successful forge render_review_set whose blend_path is newer than the last execute call that was not a save_as_mainfile(copy=True) snapshot; Stop blocks once per change cycle when the scene changed since the last review and asset-forge is in use here.
+# Misses: changes made by hand in Blender, reviews done without render_review_set, execute calls that only read (they mark it changed too), one call that snapshots and then edits (counted as a snapshot), a context that never touched forge (never blocked); a blend_path it cannot stat clears nothing. Fail-open. Off: CC_FORGE_REVIEW=off, or /config.
 # Why, limits, history: rationale/derivations/plugin-asset-forge.md § plugins/asset-forge/hooks/review-state.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -29,12 +29,14 @@ cc_option() {
   command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
   [ "$(cc_option CC_FORGE_REVIEW on)" = off ] && exit 0
-  IFS=$'\x1f' read -r event key tool forge_code reviewed stop_active <<EOF
+  IFS=$'\x1f' read -r event key tool forge_code reviewed stop_active snapshot cwd blend <<EOF
 $(printf '%s' "$input" | jq -r '[.hook_event_name // "", .transcript_path // .session_id // "", .tool_name // "",
   ((.tool_input.code // "") | tostring | test("blender_lib|from forge|import forge")),
   ([.tool_response | .. | if type == "string" and startswith("{") then (try fromjson catch null) else . end
     | objects | select(.ok == true and (.contact_sheet | type) == "string")] | length > 0),
-  .stop_hook_active // false] | map(tostring) | join("\u001f")')
+  .stop_hook_active // false,
+  ((.tool_input.code // "") | tostring | test("save_as_mainfile") and test("copy\\s*=\\s*True")),
+  .cwd // "", .tool_input.blend_path // ""] | map(tostring) | join("\u001f")')
 EOF
   [ -n "$key" ] || exit 0
   base="${CLAUDE_PLUGIN_DATA:-${TMPDIR:-/tmp}/asset-forge}"
@@ -48,11 +50,17 @@ EOF
         mcp__*__execute_blender_code)
           [ "$forge_code" = true ] && : > "$dir/active"
           [ -f "$dir/dirty" ] || date +%s > "$dir/dirty"
+          # A snapshot changes nothing; any other call may have, so a review must open a file saved after it.
+          [ "$snapshot" = true ] || touch "$dir/last"
           ;;
         mcp__plugin_asset-forge_forge__*)
           : > "$dir/active"
           if [ "$tool" = mcp__plugin_asset-forge_forge__render_review_set ] && [ "$reviewed" = true ]; then
-            rm -f "$dir/dirty" "$dir"/blocked-*
+            case "$blend" in "~/"*) blend="$HOME/${blend#"~/"}" ;; esac
+            case "$blend" in /*) ;; ?*) blend="$cwd/$blend" ;; esac
+            if [ ! -f "$dir/last" ] || [ "$blend" -nt "$dir/last" ]; then
+              rm -f "$dir/dirty" "$dir"/blocked-*
+            fi
           fi
           ;;
       esac

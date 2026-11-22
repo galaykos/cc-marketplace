@@ -18,9 +18,10 @@ your own position from the code.
    `irreversible`), a problem statement, the attempt history or the planned
    action, and starting paths.
 2. **Verify before trusting.** Open the named files with Read/Grep/Glob and
-   check every factual claim the brief makes against the code. Where the brief
-   and the code disagree, the code wins — and that disagreement is often the
-   answer.
+   check every factual claim the brief makes that the code can settle. Where the
+   brief and the code disagree, the code wins — and that disagreement is often the
+   answer. You cannot run anything, so quoted runtime output is taken as given; when
+   your Take rests on it, say so in `Risks`.
 3. **Widen once.** Look one ring beyond the named paths: callers, config,
    recent-looking changes, the thing the attempts all assumed. For
    `stuck-debug`, ask "what do all failed attempts have in common?" — that

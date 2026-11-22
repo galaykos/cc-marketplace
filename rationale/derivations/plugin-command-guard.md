@@ -791,6 +791,16 @@ Measured through the hook, 25 interleaved runs each against 7234e0e5, median: `l
 24.1 → 24.2 ms, a 9-step build/commit/push/PR command with one `"$( )"` 413.1 → 421.5 ms, `git add`, a heredoc
 `git commit -m "$(cat <<'EOF' …)"` and `git push` 140.6 → 149.4 ms.
 
+### deny_reason drops the allow-file offer (0.10.2, 2026-11-21)
+
+The deny reason ended "or to allow this exact command with a regex line in .claude/destructive-guard-allow" from
+0.9.1, when it replaced a pointer to the whole-guard off switch. The skill says to propose an allow-file line only
+after the user has asked twice for the same blocked command, but the deny text reaches the model on every deny and
+the skill is optional reading, so the hook was inviting the loosening the skill holds back. The reason now ends
+"give the user the exact command to run themselves". The README still documents the allow-file for people. The
+allow-file's own write deny ("Ask the user to add the line") is unchanged: it fires only when a write to the file is
+already under way.
+
 ## plugins/command-guard/hooks/config-guard.sh
 
 ### Header
@@ -968,6 +978,26 @@ writes, not removals; heredoc bodies no shell reads are stripped first, as `base
 operands go through the same existence loop as the write targets, after them in priority, so an absent
 strict file does not hide a later write. A recursive removal of `.claude` or a glob is not read here;
 command-guard's own `rm -r` check judges the first.
+
+### py_config_outside (0.10.2, 2026-11-21)
+
+Written from the thinking-disciplines follow-up review of command-guard. Every Edit of an existing
+`pyproject.toml` or `setup.cfg` asked, a version bump or a dependency in `[project]` included. Those two files
+hold packaging metadata as well as lint and test config, and an ask that fires on routine dependency work is the
+one a person learns to approve unread. An Edit or MultiEdit of either file now asks only when one of its
+`old_string`s sits under a header naming a lint, type-check, coverage or test tool (`tool.` or `tool:` optional:
+ruff, mypy, pytest, flake8, coverage, pylint, pyright, basedpyright, black, isort, pydocstyle, pycodestyle, bandit,
+tox), under a bare `[tool]`, or above every header. It also asks when an `old_string` is missing from the file or
+occurs more than once, and when the edit adds or renames a lint header: the line around the match is read before and
+after the edit. The report named ruff, mypy, pytest, flake8 and coverage; the other tools were added because each
+reads its config from one of these files and a build can fail on it, and a longer list errs toward asking. A Write,
+a Bash write, `create_new_file` and a file over 1 MiB still always ask. It is one jq program over the file
+(`--rawfile`), no python; a jq without `--rawfile` prints nothing, and the hook then asks as before.
+
+Residual: a lint setting written as a dotted key under another header, a test command defined in
+`[tool.hatch.envs.*.scripts]` or `[tool.poe.tasks]`, a line inside a multi-line TOML string that looks like a
+header, and a MultiEdit whose later `old_string` only exists after an earlier edit (that one asks, since it is not
+in the file). Harness: `config-guard.test.sh` § 0.10.2; its five silent cases fail against 0.10.1.
 
 ## plugins/command-guard/scripts/__tests__/destructive-guard.test.sh
 

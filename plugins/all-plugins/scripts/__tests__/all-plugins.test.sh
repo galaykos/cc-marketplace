@@ -34,6 +34,8 @@ SCRIPT="$ROOT/plugins/all-plugins/scripts/all-plugins.sh"
 MK_NAME="cc-plugins-marketplace"
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available"; exit 0; }
+# A CLAUDE_CONFIG_DIR from the caller's shell would point the user-scope cases at a real config dir.
+unset CLAUDE_CONFIG_DIR
 [ -x "$SCRIPT" ] || { echo "FAIL: script not executable at $SCRIPT"; exit 1; }
 
 pass=0; fail=0
@@ -211,6 +213,17 @@ out_has "dry-run summary counts the opt-in skip" "dry-run: would install 1, enab
 installed "$(entry godot local true "$PROJ")"
 SHIM_MARKETPLACES="$MARKETS_OPTIN" run -- uninstall --no-budget
 calls_are "uninstall still removes a game plugin installed by name" "plugin uninstall godot@$MK_NAME -s local"
+# Every plugin in this repo whose plugin.json carries the gamedev keyword must be an opt-in skip: asset-forge was not (0.7.10).
+GAMES=$(for f in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do jq -r 'select((.keywords // []) | index("gamedev")) | .name' "$f" 2>/dev/null; done | LC_ALL=C sort)
+if [ -z "$GAMES" ]; then bad "the repo has gamedev-keyword plugins to check" "none found under $ROOT/plugins"; else
+  MKG="$WS/mk-games"; MARKETS_GAMES="$WS/marketplaces-games.json"; mkdir -p "$MKG/.claude-plugin"
+  printf '%s\n' "$GAMES" | jq -R . | jq -s '{name:"cc-plugins-marketplace",plugins:[.[] | {name:., source:("./plugins/" + .)}]}' > "$MKG/.claude-plugin/marketplace.json"
+  jq -n --arg loc "$MKG" '[{name:"cc-plugins-marketplace",source:"github",repo:"galaykos/cc-marketplace",installLocation:$loc}]' > "$MARKETS_GAMES"
+  installed
+  SHIM_MARKETPLACES="$MARKETS_GAMES" run -- install --no-budget
+  calls_are "every gamedev-keyword plugin in this repo is skipped ($(printf '%s' "$GAMES" | tr '\n' ' '))" ""
+  out_has "asset-forge is among the opt-in skips" "asset-forge  skip (opt-in: game plugin"
+fi
 
 # ---- 7. uninstall: all-plugins kept unless --self, and last with it ----------------------
 installed "$(entry alpha local true "$PROJ")" "$(entry beta local false "$PROJ")" "$(entry all-plugins local true "$PROJ")"
@@ -346,6 +359,18 @@ HOME="$WS/home" run -- install --budget --scope user
 if [ "$(fraction "$WS/home/.claude/settings.json")" = "0.02" ]; then ok "--scope user writes ~/.claude/settings.json"
 else bad "--scope user writes ~/.claude/settings.json" "got $(fraction "$WS/home/.claude/settings.json")"; fi
 if [ ! -e "$SETTINGS" ]; then ok "--scope user leaves the project file alone"; else bad "--scope user leaves the project file alone" "$(cat "$SETTINGS")"; fi
+# 0.7.10: the CLI keeps user settings under CLAUDE_CONFIG_DIR when it is set, as hooks/hint.sh reads them.
+rm -rf "$WS/home/.claude"; mkdir -p "$WS/cfgdir"
+CLAUDE_CONFIG_DIR="$WS/cfgdir" HOME="$WS/home" run -- install --budget --scope user
+if [ "$(fraction "$WS/cfgdir/settings.json")" = "0.02" ]; then ok "--scope user writes \$CLAUDE_CONFIG_DIR/settings.json when it is set"
+else bad "--scope user writes \$CLAUDE_CONFIG_DIR/settings.json when it is set" "got $(fraction "$WS/cfgdir/settings.json")"; fi
+if [ ! -e "$WS/home/.claude/settings.json" ]; then ok "--scope user under CLAUDE_CONFIG_DIR leaves ~/.claude alone"
+else bad "--scope user under CLAUDE_CONFIG_DIR leaves ~/.claude alone" "$(cat "$WS/home/.claude/settings.json")"; fi
+installed "$(entry alpha user true)" "$(entry beta user true)" "$(entry all-plugins user true)"
+CLAUDE_CONFIG_DIR="$WS/cfgdir" HOME="$WS/home" run -- uninstall --scope user
+if [ "$(fraction "$WS/cfgdir/settings.json")" = "absent" ]; then ok "uninstall --scope user reverts the CLAUDE_CONFIG_DIR file"
+else bad "uninstall --scope user reverts the CLAUDE_CONFIG_DIR file" "got $(fraction "$WS/cfgdir/settings.json")"; fi
+installed
 
 run "$PROJ/sub" -- install --budget --scope project
 if [ "$(fraction "$PROJ/.claude/settings.json")" = "0.02" ]; then ok "--scope project from a subdir writes the toplevel .claude/settings.json"

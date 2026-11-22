@@ -62,13 +62,22 @@ best-practices body:
   silently accepted no-op rather than the fix it was in 2024/2025.
 - `expo install` resolves against the SDK's compatibility matrix; `npm install` does
   not, and the failure surfaces later as a native crash.
-- Under CNG, `expo prebuild --clean` overwrites hand edits to `ios/`/`android/` —
-  native changes belong in a config plugin.
+- From SDK 57 a bare `expo prebuild` clears and regenerates `ios/`/`android/` (`--no-clean`
+  opts out), so hand edits there are lost — under CNG native changes belong in a config plugin.
 - An EAS Update published against a mismatched `runtimeVersion` is never delivered,
   with no error anywhere.
 
 The `/code-review:review` fan-in reads it when `expo` is in the manifest, and `skill-router` routes
 the skill on `app.config.*` and `eas.json` edits in an Expo project.
+
+## Hook
+
+`expo-prebuild-guard` (PreToolUse on Bash) — **asks, never denies.** Before `expo prebuild`
+without `--no-clean` (npx, bunx, pnpm, yarn or bare `expo`), it asks when `ios/` or `android/`
+holds uncommitted or untracked files, is committed and not gitignored (the bare workflow), or sits
+outside git. A CNG project whose native dirs are gitignored gets no ask, and below SDK 57 only a
+typed `--clean` asks. It misses `npm run prebuild` and other wrappers and `eas build --local`.
+Standing: **gate** for its patterns (`scripts/__tests__/expo-prebuild-guard.test.sh`, run in CI).
 
 ## Agents
 
@@ -85,8 +94,9 @@ the skill on `app.config.*` and `eas.json` edits in an Expo project.
 
 The worker recommends `/code-review:review` after implementing. The reviewer
 preloads ui-ux's `a11y-audit` skill through the host's `skills:` frontmatter
-(`skills: [ui-ux:a11y-audit]`). That adds a 7,140-byte body, about 1.8k tokens at 4
-bytes/token (about 2.4k at 3), to every spawn. The reviewer flags the rules that skill
+(`skills: [ui-ux:a11y-audit]`). That adds the skill's whole body to every spawn, about one token
+per 4 bytes of it; recount the bytes with
+`awk '/^---$/{c++; next} c>=2' plugins/ui-ux/skills/a11y-audit/SKILL.md | wc -c`. The reviewer flags the rules that skill
 lists in the same review, for example focus returning to a dialog's trigger on close,
 or a typeless button inside a form. It hands only a full WCAG audit to `/ui-ux:audit`,
 and design-system concerns to ui-ux's reviewer. With ui-ux not installed, the host

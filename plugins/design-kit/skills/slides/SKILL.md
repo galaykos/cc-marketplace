@@ -77,7 +77,7 @@ memory gets wrong.
 | The prose lives in `> notes:`; the slide shows the anchor, the notes carry what you would say | agent-graded — a slide the speaker reads aloud is a handout |
 | No decoration slides (section dividers with nothing to say, "Questions?", stock photo slides) | agent-graded |
 | Type and colour come from the design system (`.cc-artifacts/design-kit/design-system/`, else an older `design-system/`) when it exists, else the neutral built-in set — never a per-deck palette | recorded — the builder reads the design system; nothing checks you did not override it |
-| Contrast: the built-in tokens pass 4.5:1; a project theme is checked by `/design-kit:system`, not here | recorded — state it when a theme is applied |
+| Contrast: the built-in tokens pass 4.5:1; a project theme is measured only by `dk.sh check <deck>` (axe's `E3.color-contrast` on every slide, the first 60), not over a background image | recorded for the built-in tokens; for a theme, a gate on `check.test.sh`'s fixtures where step 2 runs it; state it when a theme is applied |
 
 ## Flow
 

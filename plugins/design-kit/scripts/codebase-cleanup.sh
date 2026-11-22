@@ -1,33 +1,22 @@
 #!/usr/bin/env bash
-# codebase-cleanup.sh — remove every scratch file codebase-scaffold.sh wrote.
-#
-# WHAT IT CATCHES. Any path containing `__design-kit__` under the project (skipping
-# node_modules, vendor, .git, .cc-artifacts, .design-kit) is deleted, and every line carrying the
-# `__design-kit__ scratch` marker is stripped from routes/web.php and from any .css
-# file (the scaffold's Tailwind v4 `@source` line), restoring each file's bytes —
-# including a missing final newline. `--verify` only lists leftovers and exits 1 if
-# any exist — the gate a command runs after the pick, so "cleaned up" is proven, not
-# asserted.
-#
-# WHAT IT DOES NOT CATCH. A scratch import the model added to an EXISTING file
-# (a provider registered in app.tsx, a route in a file other than routes/web.php)
-# carries no marker and survives; the skill forbids that edit and `git status`
-# is the check. A marked line in a .css under node_modules or vendor is not searched.
-# Standing: scripts/__tests__/codebase.test.sh drives remove and --verify on its
-# fixtures and cmp's the stylesheet and routes file against their originals.
+# codebase-cleanup.sh — remove every scratch file codebase-scaffold.sh wrote; --verify only lists leftovers and exits 1. dk.sh runs both from the project root.
+# Catches: any path holding `__design-kit__`, and every marked line in a .css or a routes/web.php, outside node_modules, vendor, .git, .cc-artifacts, .design-kit; each file's bytes come back.
+# Misses: a scratch edit to an unmarked existing file (a provider in app.tsx, a route in another file), which `git status` shows; a mark under node_modules or vendor; anything above the cwd.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/codebase-cleanup.sh
 set -euo pipefail
 
 MARK="__design-kit__ scratch"
 verify=0
-case "${1:-}" in --verify) verify=1 ;; "") ;; -h|--help) sed -n '2,16p' "$0"; exit 0 ;; *) echo "codebase-cleanup.sh: unknown argument $1" >&2; exit 2 ;; esac
+case "${1:-}" in --verify) verify=1 ;; "") ;; -h|--help) sed -n '2,5p' "$0"; exit 0 ;; *) echo "codebase-cleanup.sh: unknown argument $1" >&2; exit 2 ;; esac
 
 leftovers=()
 while IFS= read -r p; do leftovers+=("$p"); done < <(
   find . \( -name node_modules -o -name vendor -o -name .git -o -name .cc-artifacts -o -name .design-kit \) -prune -o -path '*__design-kit__*' -print 2>/dev/null | sort
 )
-marked=()  # real files carrying marked lines: the route file and an entry stylesheet
+marked=()  # real files carrying marked lines: a routes/web.php at any depth (an app in a subdirectory) and an entry stylesheet
 while IFS= read -r f; do marked+=("${f#./}"); done < <(
-  { [ -f routes/web.php ] && grep -lF "$MARK" routes/web.php
+  { grep -rlF --include=web.php --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git \
+      --exclude-dir=.cc-artifacts --exclude-dir=.design-kit --exclude-dir=__design-kit__ "$MARK" . | grep -E '(^|/)routes/web\.php$'
     grep -rlF --include='*.css' --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git \
       --exclude-dir=.cc-artifacts --exclude-dir=.design-kit --exclude-dir=__design-kit__ "$MARK" . ; } 2>/dev/null | sort -u
 )

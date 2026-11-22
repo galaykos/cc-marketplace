@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.3 — 2026-11-21
+
+- **Standing labels.** Running a checker yourself on a `.tsx`/`.tsj`/`.ldtkl` alone, or on a sheet JSON whose
+  stem differs from its PNG, is **recorded**, not agent-graded: no reviewer checks it (both skills and README).
+
 ## 0.2.2 — 2026-11-14
 
 - **`hooks/sheet-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no

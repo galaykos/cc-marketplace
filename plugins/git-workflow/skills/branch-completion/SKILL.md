@@ -122,7 +122,7 @@ match `git diff --name-only "$BASE...HEAD"` against its patterns — last matchi
 wins, as GitHub resolves it — and name the owning teams in the finish report. A PR that
 routes past its owners waits on a review request nobody knew to make.
 
-Standing for all three: agent-graded. No script checks the template, the body's evidence
+Standing for all three: recorded. No script checks the template, the body's evidence
 or reversibility line, or the ownership map; `hooks/no-ai-trailer.sh` reads the body only
 for an AI trailer.
 
@@ -162,9 +162,10 @@ in place, never a tracked path (that is warned, not ignored). `legacy` rows are 
 versions wrote; `state` rows (the older `brain/`, `design-system/`, `research/`) are left to the team.
 `plugin-data` rows are legacy in-repo paths of hook state now under `${CLAUDE_PLUGIN_DATA}`,
 kept in the block so old dirs stay ignored; `home` rows (`~/…`) are never touched.
-Standing: the check is a **gate** inside `/git-workflow:finish`; the inventory is
-**recorded** — a plugin that starts writing a new directory must add its row, and
-nothing proves the list complete.
+Standing: **gate** for the script's verdict (`scripts/__tests__/scratch-ignore.test.sh`);
+**recorded** for running it — `/git-workflow:finish` tells the model to, and "Leave it"
+continues. The inventory is **recorded** — a plugin that starts writing a new directory
+must add its row, and nothing proves the list complete.
 
 ## No zombies
 

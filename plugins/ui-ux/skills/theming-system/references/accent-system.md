@@ -145,11 +145,15 @@ ramps is `/ui-ux:theme`'s job.
 
 ## Verification lives elsewhere
 
-This file DERIVES the split; it does NOT check it. The accent-contrast gate is owned by
-`/craft-layer:audit` (via the `craft-reviewer` step that verifies the accent clears contrast
-on every surface AND size — large `≥3:1`, body `≥4.5:1`, and on a light theme a darker
-text/mark step distinct from the display accent). Derived here, verified there — owner and
-verifier stay split so neither drifts.
+This file DERIVES the split; it does NOT check it. The ratios are checked by
+`scripts/contrast.mjs`, which this plugin ships: its pairings hold `accent text` at `≥4.5:1`
+on each surface and the `display accent MARK` at `≥3:1`, in light and dark. `/ui-ux:theme` runs
+it on the accepted token set, `/ui-ux:audit` whenever a token source exists, and
+`/craft-layer:audit` runs its byte-identical twin. Standing: **gate** where run. The structural
+half (a distinct darker text/mark step declared beside the display accent, with small-text,
+icon and thin-mark usages pointing at it) is `craft-reviewer`'s inside `/craft-layer:audit`,
+which leaves the arithmetic to the script. Standing: **agent-graded**. Derived here, verified
+there — owner and verifier stay split so neither drifts.
 
 ## What this file does not do
 
@@ -158,7 +162,7 @@ verifier stay split so neither drifts.
   ratios only.
 - It does not NAME the accent tiers — `token-tiers.md` names display and text/mark as roles;
   this file only derives the step between them.
-- It does not add a checker or restate the audit's checklist — `/craft-layer:audit` owns
-  verification; this file points at it.
+- It does not add a checker or restate the audit's checklist — `scripts/contrast.mjs` and
+  `craft-reviewer` own verification (above); this file points at them.
 - It does not own the universal WCAG ratios — they are a shared external standard; this file
   owns only the accent SPLIT that applies them.

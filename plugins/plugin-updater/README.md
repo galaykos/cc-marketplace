@@ -94,7 +94,13 @@ the lock.
 
 - **It never accepts a marketplace-declared command.** It never passes `-y` or `--accept-command`,
   in the background or on demand. If a plugin's install command changed, the update is refused and
-  listed under "Need you" with the command to run yourself, so you see it before it runs.
+  listed under "Need you" with the command to run yourself, so you see it before it runs. The
+  `accept-guard` hook holds the model to the same rule: a Bash `claude plugin update` or `install`
+  (`plugins`, `i`) carrying `-y`, `--yes` or `--accept-command` is denied, and the model is told to
+  hand you the command without the flag. The CLI's own help says to pass `-y` when not interactive,
+  which is the shortcut this closes. It reads through quotes, `VAR=` and wrapper prefixes, a shell's
+  `-c` string, `eval` and a heredoc a shell reads; it misses the flag in a script file, a variable,
+  an alias, a `$( )` or an MCP shell tool. Your own terminal is not affected.
 - **It never updates another project folder on its own.** Only `--all` or `--project PATH`, typed
   by you, reaches past the current folder and user scope.
 - **It never updates an orphaned entry**, an install whose project folder no longer exists.
@@ -116,7 +122,9 @@ A plugin the marketplace has removed fails with `not_found`; its line carries th
 | Updates run one at a time, never with `-y` or `--accept-command`, never with a terminal on stdin | **gate**: `scripts/__tests__/update-all.test.sh` |
 | A default run and the background run call `claude plugin update` only for the current folder and user scope | **gate**: the same harness |
 | Orphaned, worktree and `managed` installs are skipped; filters, exit codes and the lock hold | **gate**: the same harness |
-| The hook returns before the background run ends, starts no run while one holds the lock or before the folder's interval, and reports a run once | **gate**: the same harness |
+| The session-start hook returns before the background run ends, starts no run while one holds the lock or before the folder's interval, and reports a run once | **gate**: the same harness |
+| A model's Bash `claude plugin update`/`install` with `-y`, `--yes` or `--accept-command` is denied | **gate**: `scripts/__tests__/accept-guard.test.sh` |
+| On demand, the model adds `--all` or `--project` only when you typed it, and runs no `claude plugin update` of its own to retry or finish a run | **recorded**: the skill says so; nothing reads it back |
 | How the real CLI resolves a folder to an install, and the exact JSON it prints | **recorded**: the harness answers from fixtures; seen on CLI 2.1.323 |
 | That the host lets a hook's detached child outlive the hook | **recorded**: the harness runs the hook script directly, not under the host |
 

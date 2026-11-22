@@ -652,8 +652,9 @@ stayed green, and a sibling session's reviewers caught bugs those tests had pass
   the earlier count. It recognises a review by its name, not by what the review covered.
 - **Off switch.** `CC_REVIEW_NUDGE=off` silences this nudge; `CC_REMIND=off` silences it
   along with every other advisory.
-- **Standing: advisory.** Nothing enforces the review. Whether a suggested review was worth
-  running is agent-graded.
+- **Standing:** gate for when the nudge fires and when it stays silent
+  (`scripts/__tests__/review-debt.test.sh`); recorded for the review itself, which nothing makes
+  run, and nothing measures whether a suggested review was worth running.
 
 ## Analyzer run (merged in from toolchain-experts on 2026-11-12) <!-- removed-ok -->
 

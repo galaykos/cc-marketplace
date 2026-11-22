@@ -127,6 +127,10 @@ new empty-notes-array case. Ran `npm run lint`: `0 problems`. Both criteria from
 - [ ] The output was compared line-by-line against the criterion, including warnings or partial
       failures that a quick skim might miss.
 - [ ] Any failing or skipped check is named explicitly, not omitted from the report.
+- [ ] A claim to have read or reviewed every file of a set names the set and rests on each file
+      opened this session; otherwise it names what was not read. Standing: **gate, with candor
+      installed** — clause 8 of its Stop gate blocks the claim when a named file was never
+      opened; a set described without paths is invisible to it.
 - [ ] Any zero-result check used as evidence of absence was first shown to report at least one
       hit against a known-positive.
 - [ ] If verification wasn't possible (e.g., no test harness exists), that limitation is stated

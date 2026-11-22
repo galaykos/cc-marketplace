@@ -530,8 +530,10 @@ printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecisionReason | lengt
 printf '%s' "$out" | grep -qi 'do not retry' \
   && ok || bad "deny reason lacks the no-retry instruction" "$out"
 r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason')
-[ "$r" = "BLOCKED by command-guard — this command drops every table in the configured database and re-runs migrations. Do not retry it in another form (other quoting, bash -c, a script file). Instead: \`php artisan migrate\` applies pending migrations without touching existing rows. If the task truly needs it, ask the user to run it, or to allow this exact command with a regex line in .claude/destructive-guard-allow." ] \
-  && ok || bad "deny reason: what was blocked, the alternative, and the user's narrow exception" "$r"
+[ "$r" = "BLOCKED by command-guard — this command drops every table in the configured database and re-runs migrations. Do not retry it in another form (other quoting, bash -c, a script file). Instead: \`php artisan migrate\` applies pending migrations without touching existing rows. If the task truly needs it, give the user the exact command to run themselves." ] \
+  && ok || bad "deny reason: what was blocked, the alternative, and the hand-over" "$r"
+# 0.10.2: the skill proposes an allow-file line only after the user asked twice, so the deny reason does not offer one.
+if printf '%s' "$r" | grep -q 'destructive-guard-allow'; then bad "deny reason does not offer the allow-file" "$r"; else ok; fi
 
 out=$(hook "$(bash_json 'git reset --hard')")
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "ask" ] \
@@ -1051,7 +1053,7 @@ for c in 'git commit --no-verify -m wip' 'git commit -n -m wip' 'git commit -anm
   'git commit "--no-verify" -m wip' 'git commit --no-veri -m wip' 'git push --no-verify origin main' 'git merge --no-verify feat' \
   'git rebase --no-verify main' 'git am -n x.patch' 'git am --no-verify x.patch' 'git cherry-pick --no-verify abc' \
   'git pull --no-verify' 'git -C /x commit --no-verify -m wip' 'git -c core.hooksPath=/dev/null commit -m wip' \
-  'git --config-env=core.hooksPath=H push' 'git config core.hooksPath /dev/null' 'git config --global core.hooksPath ~/.hooks' \
+  'git --config-env=core.hooksPath=H push' 'git -c core.hooksPath=/dev/null revert abc' 'git config core.hooksPath /dev/null' 'git config --global core.hooksPath ~/.hooks' \
   'git config --unset core.hooksPath' 'git config set core.hooksPath .githooks' 'git commit --no-gpg-sign -m wip' \
   'git -c commit.gpgsign=false commit -m wip' 'git -c commit.gpgSign=no merge feat' 'git config commit.gpgsign false' \
   'HUSKY=0 git commit -m wip' 'SKIP=flake8,mypy git commit -m wip' 'LEFTHOOK=0 git push' 'LEFTHOOK=false git push' \
@@ -1092,7 +1094,8 @@ expect ask 'x=$(git commit -n -m wip)'
 printf '== publishing review text\n'
 for c in 'gh pr review 12 --approve' 'gh pr review 12 -a' 'gh pr review --comment -b "looks good"' \
   'gh pr review 12 --request-changes --body "fix x"' 'gh pr review 12 --body-file r.md' 'gh pr comment 12 --body "thanks"' \
-  'gh pr comment 12 -F c.md' 'gh issue comment 7 -b hi' 'gh api repos/o/r/pulls/12/reviews -f event=APPROVE -f body=ok' \
+  'gh pr comment 12 -F c.md' 'gh issue comment 7 -b hi' 'gh pr review 12 -c' 'gh pr review 12 -r' 'gh pr review 12 -F r.md' \
+  'gh api -X PATCH repos/o/r/pulls/comments/55 -f body=x' 'gh api repos/o/r/pulls/12/reviews -f event=APPROVE -f body=ok' \
   'gh api -X POST repos/o/r/pulls/12/comments --input c.json' 'gh api --method PATCH /repos/o/r/issues/comments/99 -f body=x' \
   'gh api repos/{owner}/{repo}/issues/12/comments -f body=hi' 'gh api -XPOST repos/o/r/pulls/12/comments/55/replies -f body=hi' \
   'gh api repos/o/r/pulls/comments/55/replies -f body=hi' 'gh api -X POST repos/o/r/pulls/12/reviews/77/events -f event=COMMENT' \
@@ -1100,6 +1103,7 @@ for c in 'gh pr review 12 --approve' 'gh pr review 12 -a' 'gh pr review --commen
   "gh api graphql -f query='mutation { addPullRequestReview(input: {pullRequestId: \"x\", event: APPROVE}) { clientMutationId } }'" \
   "gh api graphql -f query='mutation { addPullRequestReviewThreadReply(input: {body: \"x\"}) { clientMutationId } }'" \
   "gh api graphql -f query='mutation { addComment(input: {subjectId: \"x\", body: \"hi\"}) { clientMutationId } }'" \
+  "gh api graphql -f query='mutation { submitPullRequestReview(input: {pullRequestReviewId: \"x\", event: APPROVE}) { clientMutationId } }'" \
   'bash -c "gh pr comment 1 -b hi"' 'git push && gh pr comment 1 -b "pushed"'; do
   expect ask "$c"
 done

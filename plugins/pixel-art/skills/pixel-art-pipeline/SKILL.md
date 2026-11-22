@@ -15,7 +15,7 @@ Not this skill when the asset is 3D: `meshy:meshy-generation` generates and meas
 
 | Rule | Standing |
 |---|---|
-| A sheet JSON agrees with its PNG and itself: image present and the declared size, frames inside it, tag ranges inside the frames array, positive durations, no repeated json-hash key | **gate** for what `check_sprite_sheet.py` reads (exit 1); the plugin's hook runs it when a sheet JSON or its PNG changes through a Write or an export command; warn-only. A JSON whose stem differs from its PNG: run it yourself, agent-graded |
+| A sheet JSON agrees with its PNG and itself: image present and the declared size, frames inside it, tag ranges inside the frames array, positive durations, no repeated json-hash key | **gate** for what `check_sprite_sheet.py` reads (exit 1); the plugin's hook runs it when a sheet JSON or its PNG changes through a Write or an export command; warn-only. A JSON whose stem differs from its PNG: run it yourself, recorded |
 | Per-file CLI options precede the file; `--list-tags` on every animated export | recorded; a missing `--list-tags` is a checker warning |
 | Generated art is reduced by area at the measured grid, never nearest-neighbour on a guessed one | recorded — no script here reads pixels |
 | Palette locks run without Pillow's default dither or WEB palette | recorded |

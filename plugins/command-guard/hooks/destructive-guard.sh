@@ -25,7 +25,7 @@ cc_option() {
   return 0
 }
 
-GUARD_VERSION=0.10.1
+GUARD_VERSION=0.10.2
 
 # Quotes and backslashes go so a quoted evasion (artisan "migrate:fresh") meets the rule the plain form does.
 norm_cmd() {
@@ -1547,7 +1547,7 @@ deny_reason() {
     printf '%s' "BLOCKED by command-guard — \`cd ${V_WHAT}\` will fail: the directory does not exist (a denied or failed earlier call created nothing), so the steps after its \`;\` would run in the live project. Fix: ${V_ALT}, then re-issue the corrected command."
     return 0
   fi
-  printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. Do not retry it in another form (other quoting, bash -c, a script file). Instead: ${V_ALT}. If the task truly needs it, ask the user to run it, or to allow this exact command with a regex line in .claude/${ALLOW_BASENAME}."
+  printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. Do not retry it in another form (other quoting, bash -c, a script file). Instead: ${V_ALT}. If the task truly needs it, give the user the exact command to run themselves."
 }
 
 # Silent unless devops' plan reader exists at that path: a hint naming a file the reader does not have is worse than none.

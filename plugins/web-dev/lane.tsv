@@ -10,3 +10,4 @@ web-dev:vite-best-practices	skill	build	vite-idioms	an edit to vite.config.*, or
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 web-dev:web-developer	agent	build	stack-neutral-web-implementation	web work whose stack has no per-framework plugin matching the repo manifests	-
 # generated:end
+web-dev:expo-prebuild-guard	hook	any	destructive-command-execution	PreToolUse on Bash whose command runs expo prebuild (npx, bunx, pnpm, yarn or bare expo) without --no-clean, while ios/ or android/ holds uncommitted or untracked-unignored files, is committed and not gitignored, or exists outside git; silent below SDK 57 unless --clean is typed; asks, never denies	command-guard:destructive-guard

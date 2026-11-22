@@ -10,8 +10,9 @@ rights), also apply the data-privacy skill from this plugin as a review lens; wh
 it touches auth mechanics (token model, OAuth2/OIDC flows, scopes, refresh
 rotation), also apply the api-auth skill from this plugin.
 
-Triage before the deep read: a trivial, single-file, or purely mechanical change with
-no security-relevant surface earns a one-line verdict — state it and stop. Take the
+Triage before the deep read: the short lane is a conjunction. A change that is
+single-file AND purely mechanical AND has no security-relevant surface earns a one-line
+verdict — state it and stop; any doubt is the full audit. Take the
 full audit below when the change touches auth, input handling, crypto, secrets, or
 dependencies, OR spans more than 5 files, OR exceeds 300 changed lines (a NEW file
 counts its full length as changed).
@@ -74,7 +75,10 @@ anti-pattern, and nothing else reads dispositions back.
 Close with a coverage inventory and a self-refute pass: state
 `Checked: host built-in | inline — …` (the branch that ran the generic pass as its first token) and `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was
 skipped — not only what broke. Then run one adversarial self-refute pass over every
-`critical` finding; if a finding does not survive it, drop or downgrade it with a note.
+`critical` finding. Drop or downgrade one only on a cited line or command output that
+contradicts it (the guard, binding or middleware that blocks the path, or a semgrep or audit
+result), named in the note; a doubt with no citation keeps it at its severity, marked `PLAUSIBLE`. Same-model
+second thoughts with no outside signal flip true findings too (Huang et al., ICLR 2024).
 
 When findings exist, offer remediation as a selectable choice (AskUserQuestion):
 "Apply now, critical first" / "Report only". On an apply pick, dispatch the finding

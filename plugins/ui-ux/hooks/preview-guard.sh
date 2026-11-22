@@ -90,7 +90,8 @@ command -v jq >/dev/null 2>&1 || exit 0
            + "presets, the version picker, and push-reload that a published page does "
            + "not, and it keeps unreleased design work off a remote host. Publish only "
            + "if the point is sharing with someone who cannot reach this machine. "
-           + "CC_PREVIEW_GUARD=off disables this guard for the session.")
+           + "Turn this guard off with the /config option cc_preview_guard, or CC_PREVIEW_GUARD=off "
+           + "in the environment Claude Code starts with; an export inside a Bash call never reaches a hook.")
       }
     }'
   else
@@ -104,7 +105,8 @@ command -v jq >/dev/null 2>&1 || exit 0
            + "convention here: the server carries the viewport presets, the version "
            + "picker, and push-reload a published page loses, and keeps the work off an "
            + "external host. Publish remotely ONLY if someone who cannot reach this "
-           + "machine must open it. " + "CC_PREVIEW_GUARD=off disables this guard for the session.")
+           + "machine must open it. " + "Turn this guard off with the /config option cc_preview_guard, or CC_PREVIEW_GUARD=off "
+           + "in the environment Claude Code starts with; an export inside a Bash call never reaches a hook.")
       }
     }'
   fi

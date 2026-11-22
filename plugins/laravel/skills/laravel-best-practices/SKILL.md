@@ -135,7 +135,7 @@ bloat/fragility risk is loaded relations (serialized recursively, re-fetched too
 appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write
 `handle()` so it's safe to run twice.
 
-The worked bad→good pair, the serialization edge cases and the retry/backoff matrix:
+The worked bad→good pair, with why the id and the idempotency key each matter:
 `references/queue-payloads.md`.
 
 ## Config/env discipline — `config()`, not `env()`, outside config files

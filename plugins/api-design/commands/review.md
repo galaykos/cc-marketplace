@@ -53,14 +53,17 @@ Review branch:
 4. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit what was covered, what was clean, and what
    was skipped — not only what broke. Then run one adversarial self-refute pass over
-   your highest-severity findings; if a finding does not survive it, drop or downgrade
-   it with a note.
+   your highest-severity findings. Drop or downgrade one only on a cited line or command output that
+   contradicts it, named in the note; a doubt with no citation keeps it, as `PLAUSIBLE`.
+   Same-model second thoughts with no outside signal flip true findings too (Huang et al.,
+   ICLR 2024).
 
 End with an offer, not a bare report. In the review branch, ask via AskUserQuestion
 "Apply these fixes now (Recommended)" / "Report only"; after an approved contract
 preview, ask "Start implementing this contract now (Recommended)" / "Stop here — spec
 only". On either apply pick, dispatch the work down the static chain
-`web-dev:web-developer if installed → task-runner:task-executor if installed →
+`laravel:backend-engineer if installed and the fixes land in .php files →
+web-dev:web-developer if installed → task-runner:task-executor if installed →
 inline` — api-design ships no worker agent of its own, so naming the chain is the
 only thing that keeps an approved contract from dying in chat.
 Headless: findings or approved contract only.

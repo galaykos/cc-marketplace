@@ -2,6 +2,14 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.10 — 2026-11-21
+
+- **`/devops:review`'s short lane is a conjunction.** "Trivial, single-file, or purely mechanical" let any one clause earn a one-line verdict; now the change must be single-file AND mechanical AND clear of every risk clause, and any doubt takes the deep pass (same fix as code-review 0.38.2).
+- **The workflow guard judges an Edit on the file it leaves.** An Edit or MultiEdit was judged on its new text alone, so an Edit turning `ref: ${{ github.sha }}` into the PR head under an existing `pull_request_target:` trigger was never denied. The guard now rebuilds the file as the edit leaves it and denies when the edit adds a privileged-trigger checkout of PR code. An unrelated edit to a workflow that already has one is not denied; `workflow-audit.sh` reports it. The `run:` injection rule still reads the new text alone, so an injection added inside an existing multi-line `run: |` block is not seen.
+- **The guard and `workflow-audit.sh` know more spellings of PR code.** `ref: refs/pull/<n>/merge` (or `/head`), `merge_commit_sha`, `workflow_run.pull_requests[0].head.sha` and a quoted ref now count as checking out the PR. Neither sees PR code fetched by a `run:` step (`gh pr checkout`), which the header and README now say. Standing: gate (`workflow-audit.test.sh`, 16 new cases).
+- `/devops:review`'s self-refute pass drops or downgrades a critical finding only on a cited line or command output that contradicts it; an uncited doubt keeps the finding as `PLAUSIBLE`. Standing: recorded.
+- `devops-practices` and the README label `plan-audit.sh` "gate where run; that it ran is recorded", the repository's wording for a script nothing runs on its own.
+
 ## 0.9.9 — 2026-11-16
 
 - **`devops-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.

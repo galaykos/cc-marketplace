@@ -68,6 +68,7 @@ check "run: slug named"        compact S1 "has:registered task-runner run \`2026
 check "run: branch named"      compact S1 "has:on branch feat/orders"
 check "run: index path named"  compact S1 "has:cards at .cc-artifacts/taskmaster/tasks/2026-09-10-orders/00-INDEX.md"
 check "run: gate reminder"     compact S1 "has:completion gate"
+check "run: gate owner named"  compact S1 "has:candor's Stop hook enforces it, only when candor is installed"
 check "run: file named"        compact S1 "has:— .cc-artifacts/task-runner/active-run.json"
 check "scope: named"           compact S1 "has:.cc-artifacts/task-runner/scope.json"
 check "ledger: named"          compact S1 "has:ledger-orders.md"

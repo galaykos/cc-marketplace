@@ -2,8 +2,10 @@
 
 An Obsidian-style **codebase map** for a project, kept in `.cc-artifacts/brain/`. A terse
 `INDEX.md` table of contents (one line per area) is injected at session start so a fresh
-Claude session is oriented immediately; per-area `<area>.md` detail files (key files,
-classes, entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
+Claude session starts with that map in context; per-area `<area>.md` detail files (key files,
+classes, entrypoints) load on demand via `/brain <area>`. Whether a session with the map
+re-scouts less than one without it is **unmeasured**; the marketplace repository's
+`rationale/marketplace-necessity-review-2026-11-12.md` counts 0 indexer runs in 1,195 agent rows.
 
 > **Status: map + decisions ledger (Phase 1a).** An anchored-notes + backlink layer (notes
 > you and Claude write against symbols, with staleness stamps) is planned as Phase 1b. This
@@ -14,7 +16,9 @@ classes, entrypoints) load on demand via `/brain <area>`. No more re-scouting fr
 
 - **Scans the code, in place.** The map is derived from reading your source. `brain`
   **never modifies, moves, or deletes any file outside `.cc-artifacts/brain/`** — not your
-  source, not docs, not other plugins.
+  source, not docs, not other plugins. Standing: **recorded** for the indexer agent, whose
+  instructions say so and which holds Write, Edit and Bash; no hook blocks a write
+  elsewhere.
 - **Auto-orients every session.** A `SessionStart` hook injects the terse `INDEX.md` table
   of contents (bounded ~30 lines / ~2 KB, delimited as project data) so Claude sees every
   area immediately; per-area depth loads on demand with `/brain <area>`.
@@ -103,9 +107,9 @@ over a stale map; git-workflow's `branch-completion` offers `/brain index` at fi
 the `built:` stamp is behind the merged result.
 
 **Standing.** The decisions area and the `## Notes` carry-over are written by the
-indexer agent — **agent-graded**: no script asserts the dedupe key, the entry shape, or
-that a rewrite preserved a note. The write boundary (`.cc-artifacts/brain/` only) is the same
-agent-graded rule the rest of this plugin already carries.
+indexer agent — **recorded**: no script asserts the dedupe key, the entry shape, or
+that a rewrite preserved a note, and no reviewer reads them. The write boundary
+(`.cc-artifacts/brain/` only) is recorded the same way.
 
 ## Where the map lives, and who shares it
 

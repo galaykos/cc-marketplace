@@ -134,8 +134,10 @@ project states in its `CLAUDE.md`, not this rule's.
 Standing: recorded for the rule itself. The one-bullet version is `code-review`'s
 code-smells; doc/comment staleness is api-design's `docs-upkeep`; naming and
 extraction are `code-architecture`, the destination a comment's content moves to.
-Every worker agent in this marketplace carries the same default in its "Code shape"
-section, so a fan-out cannot re-import the surrounding file's habits.
+Most code-writing worker agents of this marketplace, task-runner's task-executor among them,
+carry the same default in a "Code shape" section, so a fan-out to one cannot re-import the
+surrounding file's habits. Not every worker agent has that section; one without it gets the
+rule only from this skill and the hooks.
 
 ## What is enforced, and what is advice
 

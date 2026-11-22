@@ -102,9 +102,9 @@ package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
 ## Standing
 
-**Agent-graded.** No script checks that the exclusion was applied, that the
-evidence keys were matched exactly rather than by substring, that a domain leaf
-was held back, or that the typed-token line printed. Gated: plugin names in the
+**Recorded.** No script checks that the exclusion was applied, that the
+evidence keys were matched exactly rather than by substring, or that the
+typed-token line printed. Gated: plugin names in the
 table above (`pc_scout_names`, which reads this file by name) and catalog
 freshness (`generate.sh --check`). Residual worth naming: a wrong evidence key in
 this table silently installs or skips a plugin on every `--full` run — only a human

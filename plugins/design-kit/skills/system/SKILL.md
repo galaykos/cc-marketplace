@@ -135,7 +135,7 @@ repo; the full run writes `tokens.json`, `DESIGN-SYSTEM.md`, `kit.html` into `.c
 Claude Code's built-in artifact design skill "looks for an existing design system in
 your project before choosing its own", in the plain form `DESIGN-SYSTEM.md`'s
 `## Design system` block uses, and ranks it: **prompt > your design system > its own
-defaults**. Entry step 4 offers to append that block to `CLAUDE.md`; the default is to
+defaults**. Entry step 5 offers to append that block to `CLAUDE.md`; the default is to
 leave `CLAUDE.md` alone and point at `.cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md` instead. Either
 way, `/design-kit:design`, `/design-kit:slides` and `/design-kit:artifact` read the
 block first (agent-graded — nothing proves a sibling skill read it).

@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.13.5; earlier versions have no entries rather than invented ones.
 
+## 0.17.1 — 2026-11-21
+
+- **Standing labels say what holds them.** `--to` handling (`finish.md`, `references/destination-ahead.md`), the PR body and CODEOWNERS rules (`branch-completion`) and the PR-template read (`review-exchange`) were labelled agent-graded with no reviewer behind them; each now reads **recorded**. The scratch check was called a gate inside `/git-workflow:finish`, though running it is prose and "Leave it" continues: it is now **gate** for the script's verdict, **recorded** for running it.
+- **`review-exchange` drops "Self-review reliably catches the embarrassing third of findings"**, a figure with no source; it names the two mechanisms that catch part of that list where installed (debugging's probe-guard, code-review's comment guard).
+
 ## 0.17.0 — 2026-11-14
 
 - **`references/marketplace-scratch.tsv` opens with `.cc-artifacts/`**, the folder every plugin now writes its project artifacts to, so `scratch-ignore.sh --apply` ignores all of them in one line. The paths older versions wrote stay as `legacy` rows, so the directories they left stay ignored; `.claude/code-architecture/`, `.claude/security/` and `.claude/secret-scanning/` are added, and `.claude/hindsight/` is now ignored. `brain/`, `design-system/` and `research/` stay `state` rows, listed and never ignored, because a project's own directory can carry those names. The `plugin-data` rows are unchanged. Standing: gate for the block (`scratch-ignore.test.sh`); the inventory itself is recorded.

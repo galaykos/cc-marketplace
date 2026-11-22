@@ -1,6 +1,6 @@
 #!/bin/bash
 # collect.sh — SessionEnd: appends one stats row per ended session, then one `kind:"agent"` row per subagent transcript not yet ledgered (deduped by agent_id), to $HOME/.claude/hindsight/<slug>/ledger.jsonl, never the project tree. Fails silent: never blocks, never prints.
-# Misses: what the unstable transcript format hides (every parse undercounts rather than crash); agent rows past the hook timeout (the session row is written first).
+# Misses: what the unstable transcript format hides (a parse skips what it cannot read rather than crash); counts are per line, so two errors on one line count once and a tool_result line that only quotes "rejected" counts; agent rows past the hook timeout (the session row is written first).
 # Why, limits, history: rationale/derivations/plugin-hindsight.md § plugins/hindsight/hooks/collect.sh
 {
   input=$(cat)
@@ -37,7 +37,7 @@
         friction_events: ([$raw[]
           | select(
               test("\"is_error\"\\s*:\\s*true")
-              or test("rejected"; "i")
+              or (test("\"tool_result\"") and test("rejected"; "i"))
             )] | length)
       }'
   stats=$(jq -c -n -R "$stats_prog" <"$transcript_path" 2>/dev/null) || exit 0

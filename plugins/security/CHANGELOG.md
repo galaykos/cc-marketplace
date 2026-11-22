@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.6; earlier versions have no entries rather than invented ones.
 
+## 0.13.2 — 2026-11-21
+
+- **`/security:review`'s short lane is a conjunction**: single-file AND mechanical AND no security-relevant surface, or the full audit (same fix as code-review 0.38.2).
+- **`/security:review`'s self-refute pass drops or downgrades a `critical` finding only on a cited contradiction**: a line or command output (the guard, binding or middleware that blocks the path, a semgrep or audit result), named in the note. A doubt with no citation keeps the finding at its severity, marked `PLAUSIBLE`. Why: a same-model second look with no outside signal flips true findings as readily as false ones (Huang et al., ICLR 2024), so the pass could argue a real critical away.
+- Standing: recorded (the reviewing model follows it; nothing reads a review's notes back).
+
 ## 0.13.1 — 2026-11-16
 
 - **`security-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.

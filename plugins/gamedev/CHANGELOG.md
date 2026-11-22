@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.3 — 2026-11-21
+
+- **`asset-pipeline` standing, corrected.** Picking a budget row is **recorded**; meshy's hook measures only at
+  15,000 triangles / 2,048 px, when a model lands. Any other row or handoff is **recorded**, not agent-graded, since
+  no reviewer checks that `inspect_glb.py` ran. The capture-and-console rule is held by candor's Stop gate where
+  candor is installed, not by unity-traps. `game-assets` and the README carry the same fix.
+
 ## 0.3.2 — 2026-11-13
 
 - **The companion list no longer names `phaser`** (`plugin.json` description and README). The plugin was removed on 2026-11-13; stack-scan routes a `phaser` dependency to Phaser's own skills.

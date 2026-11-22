@@ -82,6 +82,40 @@ jobs:
     steps:
       - run: make test'
 
+# 0.9.10: the PR's merge commit is PR code too, spelled as refs/pull/N/merge or merge_commit_sha.
+PRT='on:
+  pull_request_target:
+permissions:
+  contents: read
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:'
+audit_case "pull_request_target + refs/pull/N/merge checkout" 2 "$PRT
+          ref: refs/pull/\${{ github.event.pull_request.number }}/merge"
+audit_case "pull_request_target + merge_commit_sha checkout" 2 "$PRT
+          ref: \${{ github.event.pull_request.merge_commit_sha }}"
+audit_case "pull_request_target + quoted head.sha checkout" 2 "$PRT
+          ref: '\${{ github.event.pull_request.head.sha }}'"
+audit_case "workflow_run + pull_requests[0].head.sha checkout" 2 'on:
+  workflow_run:
+    workflows: [ci]
+permissions:
+  contents: read
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.pull_requests[0].head.sha }}'
+audit_case "pull_request_target + base.sha checkout is warn, not critical" 0 "$PRT
+          ref: \${{ github.event.pull_request.base.sha }}"
+audit_case "refs/pull only in a comment is warn, not critical" 0 "$PRT
+          ref: main # not refs/pull/1/merge"
+
 # --- composite actions. Until 0.7.0 the identical injection was denied in
 #     workflows/ci.yml and allowed in .github/actions/*/action.yml, which runs with the
 #     calling workflow's token. Rules 2 and 3 apply there; 1, 4, 5 and 6 read fields a
@@ -199,6 +233,55 @@ hook_case "a clean composite action is allowed" allow \
 
 hook_case "a non-workflow file is out of scope" allow \
   "src/app.ts" 'const x = "${{ github.event.pull_request.title }}"'
+
+hook_case "refs/pull/N/merge under pull_request_target" deny ".github/workflows/ci.yml" "$PRT
+          ref: refs/pull/\${{ github.event.pull_request.number }}/merge"
+hook_case "merge_commit_sha under pull_request_target" deny ".github/workflows/ci.yml" "$PRT
+          ref: \${{ github.event.pull_request.merge_commit_sha }}"
+hook_case "base.sha under pull_request_target is allowed" allow ".github/workflows/ci.yml" "$PRT
+          ref: \${{ github.event.pull_request.base.sha }}"
+hook_case "refs/pull/N/merge under pull_request is allowed" allow ".github/workflows/ci.yml" 'on:
+  pull_request:
+jobs:
+  b:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.number }}/merge'
+
+# --- 0.9.10: an Edit is judged for rule 1 on the file as the edit leaves it. Its new_string
+#     alone never holds the trigger line, so until then this Edit was allowed.
+hook_edit_case() { # label want disk-yaml old new [old2 new2]
+  local label="$1" want="$2" f="$FX/repo/.github/workflows/ci.yml" out got
+  mkdir -p "$FX/repo/.github/workflows"; printf '%s\n' "$3" > "$f"
+  if [ $# -ge 7 ]; then
+    out=$(jq -nc --arg f "$f" --arg a "$4" --arg b "$5" --arg c "$6" --arg d "$7" \
+          '{tool_name:"MultiEdit",tool_input:{file_path:$f,edits:[{old_string:$a,new_string:$b},{old_string:$c,new_string:$d}]}}' | bash "$HOOK" 2>/dev/null)
+  else
+    out=$(jq -nc --arg f "$f" --arg a "$4" --arg b "$5" \
+          '{tool_name:"Edit",tool_input:{file_path:$f,old_string:$a,new_string:$b}}' | bash "$HOOK" 2>/dev/null)
+  fi
+  if printf '%s' "$out" | grep -q '"permissionDecision":"deny"'; then got=deny; else got=allow; fi
+  if [ "$got" = "$want" ]; then echo "PASS[hook]: edit: $label ($got)"
+  else echo "FAIL[hook]: edit: $label — want $want, got $got"; rc=1; fi
+}
+SAFE="$PRT
+          ref: \${{ github.sha }}"
+HEADCO="$PRT
+          ref: \${{ github.event.pull_request.head.sha }}"
+hook_edit_case "an Edit pointing ref: at the PR head is denied" deny "$SAFE" \
+  'ref: ${{ github.sha }}' 'ref: ${{ github.event.pull_request.head.sha }}'
+hook_edit_case "an Edit pointing ref: at base.sha is allowed" allow "$SAFE" \
+  'ref: ${{ github.sha }}' 'ref: ${{ github.event.pull_request.base.sha }}'
+hook_edit_case "an Edit adding the privileged trigger to a head checkout is denied" deny \
+  "$(printf '%s' "$HEADCO" | sed 's/pull_request_target:/pull_request:/')" '  pull_request:' '  pull_request_target:'
+hook_edit_case "a MultiEdit whose second edit adds refs/pull is denied" deny "$SAFE" \
+  'runs-on: ubuntu-latest' 'runs-on: ubuntu-24.04' 'ref: ${{ github.sha }}' 'ref: refs/pull/${{ github.event.pull_request.number }}/head'
+hook_edit_case "an unrelated Edit to a file already checking out the head is allowed" allow "$HEADCO" \
+  'runs-on: ubuntu-latest' 'runs-on: ubuntu-24.04'
+hook_edit_case "an Edit removing the head checkout is allowed" allow "$HEADCO" \
+  'ref: ${{ github.event.pull_request.head.sha }}' 'ref: ${{ github.sha }}'
+rm -rf "$FX/repo"
 
 hook_bash_case() { # label want command
   local label="$1" want="$2" cmd="$3" out got

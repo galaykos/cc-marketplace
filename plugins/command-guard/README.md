@@ -142,6 +142,14 @@ type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
 `phpstan-baseline.php`, `psalm-baseline.xml`, `eslint-suppressions.json`) and this plugin's own
 [strictness file](#making-one-project-stricter), `.claude/command-guard-strict`.
 
+An `Edit` of `pyproject.toml` or `setup.cfg` asks only when it touches a lint, type-check,
+coverage or test section (`[tool.ruff…]`, `[tool.mypy]`, `[[tool.mypy.overrides]]`,
+`[tool.pytest…]`, `[flake8]`, `[tool:pytest]`, `[mypy-…]`, `[coverage:…]`, and pylint, pyright,
+black, isort, bandit, tox and the pydoc/pycodestyle sections), adds or renames such a header, or
+cannot be placed: an `old_string` missing from the file, found twice, or above every header. A
+version or dependency edit in `[project]` passes. A `Write` or a Bash write to either file still
+asks, since neither says which section it changes.
+
 It asks on a Bash command that writes baseline entries too: `--generate-baseline` (and
 phpstan's `-b` after a `phpstan` word), psalm's `--set-baseline`, eslint's `--suppress-all`
 and `--suppress-rule`, read outside quotes, comments and heredoc bodies no shell reads. Shrink-only runs
@@ -155,8 +163,8 @@ off the rule, add an ignore, delete the hook — and in a diff summary that read
 task; the point is that it becomes a decision someone made.
 
 What it does not do, stated because an ask reads stronger than it is: it reads the
-**path, not the diff**, so adding a rule and deleting one look identical to it and the
-prompt says so. A file that does not exist yet is allowed through — creating a config
+**path, not the diff** (for a `pyproject.toml` or `setup.cfg` Edit, the path and the section), so
+adding a rule and deleting one look identical to it and the prompt says so. A file that does not exist yet is allowed through — creating a config
 is not relaxing one. An MCP `apply_patch` names no single path and passes silently.
 A Bash write onto one of these files (a redirect, `tee`, `sed -i`)
 is asked about too — not a python or php write, a `cp`/`mv` destination or a path held
@@ -256,10 +264,12 @@ Put that in the `settings.json` the automated run loads (project `.claude/settin
 or your CI image's user settings) — not in your interactive one, where the ask tier is
 doing its job.
 
-**Standing: `recorded`.** Nothing here is enforced or even detected: **no hook payload
-field exposes whether an interactive prompt can be shown**, so the guard cannot behave
-differently headless, cannot warn that it is about to be auto-denied, and no script
-checks that an automated run set the variable. The only mechanism is you setting it.
+**Standing: `recorded`.** Nothing here is enforced or even detected. The hook payload's
+`permission_mode` field does name `dontAsk` (code.claude.com/docs/en/hooks, common input
+fields), but this guard does not read it, and no field says whether a `claude -p` run or a
+subagent can show a prompt. So the guard behaves the same headless, does not warn that an ask
+is about to be auto-denied, and no script checks that an automated run set the variable. The
+only mechanism is you setting it.
 
 ### When another guard also fires
 
@@ -454,5 +464,5 @@ reads it never ran; `/plugin disable command-guard` does. An older CLI ignores t
 2.1.291, `claude plugin validate --strict` passes, the plugin installs, and
 `claude plugin details` lists its PreToolUse hook, where an invalid hook entry keeps the
 plugin from loading at all. Standing: **gate** for the key, the `bash` form and the
-12 s ask (`destructive-guard.test.sh`); **measured** that 2.1.300 blocks a run that fails or
-times out and that 2.1.291 runs the command (the runs above).
+12 s ask (`destructive-guard.test.sh`); **recorded** (measured 2026-10-15, one run each) that
+2.1.300 blocks a run that fails or times out and that 2.1.291 runs the command (the runs above).

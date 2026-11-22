@@ -37,15 +37,17 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    **recorded** for the extra care, which no check reads back; the scoring itself is a
    **gate** where run, by `scripts/__tests__/diff-risk.test.sh` in CI.
 
-2. Run a triage pass before the deep read. A trivial, single-file, or purely mechanical
-   change earns a one-line verdict — state it and stop. Treat the change as risky and
+2. Run a triage pass before the deep read. The short lane is a conjunction: a change that
+   is single-file AND purely mechanical (a rename, a move, a format) AND clear of every
+   risk clause below earns a one-line verdict — state it and stop; any doubt is the deep pass. Treat the change as risky and
    take the deep pass when it touches auth, data, migrations, concurrency, hot paths,
    queries, caching or the render path, OR spans more than 5 files, OR exceeds 300
    changed lines (a NEW file counts its full length as changed).
 
    **Hand up when the scope is not this plugin's alone.** If the resolved scope contains
    files outside this plugin's surface and `/code-review:review` is installed, hand the
-   WHOLE scope to it and stop. It is the fan-in for overlapping review surfaces and loads
+   WHOLE scope to it and stop. An explicit `--concern` skips this hand-up: the user picked
+   the rubric, and the fan-in takes no such flag. It is the fan-in for overlapping review surfaces and loads
    every matching stack skill — including the rubrics here the diff selects — in one pass; running the
    per-concern passes beside it produces the duplicate findings the fan-in exists to
    prevent. Deferring is not a smaller answer.
@@ -85,8 +87,10 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
 6. Close with a coverage inventory and a self-refute pass. State `Checked: …` (the
    rubrics loaded and the surfaces read) and `Not checked: … (why)` so it is explicit
    what was covered, what was clean, and what was skipped — not only what broke. Then
-   run one adversarial self-refute pass over every critical finding; if a finding does
-   not survive it, drop or downgrade it with a note.
+   run one adversarial self-refute pass over every critical finding. Drop or downgrade one
+   only on a cited line or command output that contradicts it, named in the note; a doubt
+   with no citation keeps it, as `PLAUSIBLE`. Same-model second thoughts with no outside
+   signal flip true findings too (Huang et al., ICLR 2024).
 
 7. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    Apply all / Apply critical+high only / Report only — with `performance-tuning` loaded,

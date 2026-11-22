@@ -12,7 +12,8 @@ mechanical rather than a judgement call.
 
 **Never run a destructive command on your own initiative.** Not to unstick a
 migration, not to get a clean slate, not because the schema looks wrong. The
-data belongs to someone who is not in this session.
+data belongs to someone who is not in this session. Standing: **gate** for the shapes
+the hook knows (it denies or asks); **recorded** for every other destructive command.
 
 ## The substitution table
 
@@ -62,10 +63,12 @@ The deny is a decision, not an obstacle:
   file**, an interpreter's heredoc (`python3 - <<EOF`), or splitting it across two
   calls, does defeat the guard; that makes it an evasion
   you chose, not a check you passed. Routing around a safety gate is never the
-  task you were given.
+  task you were given. Standing: **recorded** — nothing detects a rephrase.
 - **Do not disable the guard**, edit its allow-file, or suggest the user do
   either as a first move. The allow-file is theirs; propose a line for it only
-  after they have asked twice for the same blocked command.
+  after they have asked twice for the same blocked command. Standing: **gate** for your
+  own writes to the allow-file (denied) and to a settings file (config-guard asks);
+  **recorded** for suggesting either.
 - **Re-read the goal.** A denied command is usually a shortcut to a goal that
   has a longer, safe route. Take the longer route.
 - If the goal genuinely requires it, use the handover above.

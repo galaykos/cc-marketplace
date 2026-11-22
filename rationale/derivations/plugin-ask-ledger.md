@@ -35,6 +35,18 @@ CC_ASK_LEDGER=off: silent. Fail-open on missing jq or a bad payload.
 CC_ASK_LEDGER unset: the /config option cc_ask_ledger decides.
 ```
 
+### The two-block limit is per ask (2026-11-21)
+
+```text
+The header's reason for the limit, "so a model that will not comply cannot be held
+forever", needs a bound per ask, but the count lived in the session's state dir and only
+the 24-hour sweep removed it. After two blocks anywhere in a session, every later Stop
+with an owed name took the give-up branch. Found by the follow-up review of 2026-11-21
+(F4/F1). The count now goes when the ledger clears (every owed name accounted) and at
+the give-up. Not reset: a turn interrupted between blocks, whose count the next ask
+inherits; a reset in ledger.sh on new entries would cover it and was not added.
+```
+
 ### The retry's opening verdict
 
 ```text

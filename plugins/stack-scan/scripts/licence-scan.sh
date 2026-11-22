@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dependency-licence scan over every package-lock.json (v2+) and composer.lock entry, transitive ones included, judged by distribution mode: MPL/LGPL bite a distributed binary, AGPL bites SaaS. An npm lockfileVersion 1 has no licence field: reported UNRESOLVABLE (exit 3), never clean.
-# Misses: legal truth (DECLARED metadata only, not legal advice); a dual-licensed package declaring one side, vendored code with no manifest entry, a LICENSE file contradicting the SPDX id, a licence changed since the locked version; lockfiles deeper than three directory levels; pnpm, yarn and bun lockfiles (no per-package licence field).
+# Misses: legal truth (DECLARED metadata only, not legal advice); a dual-licensed package declaring one side, vendored code with no manifest entry, a LICENSE file contradicting the SPDX id, a licence changed since the locked version; lockfiles deeper than three directory levels; pnpm, yarn and bun lockfiles (no per-package licence field). An OR with a clean alternative is judged by its first licence, so `GPL-3.0 OR MIT` still reads denied.
 # Why, limits, history: rationale/derivations/plugin-stack-scan.md § plugins/stack-scan/scripts/licence-scan.sh (marketplace repository)
 
 #   licence-scan.sh [--dir DIR] [--distribution MODE] [--policy FILE] [--init]
@@ -70,6 +70,35 @@ if [ -f "$policy" ]; then
   extra_allow=$(jq -r '(.allow // []) | join("|")' "$policy" 2>/dev/null)
 fi
 
+# Status 0 when an SPDX expression is denied term by term: an AND is denied when any part is, an OR only when every
+# alternative is, parentheses group, and a WITH exception stays with its licence. Status 1 clean, 2 unparseable.
+expr_denied() {
+  printf '%s\n' "$1" | awk -v dre="$deny_re" -v xd="$extra_deny" -v xa="$extra_allow" '
+    function bad(t) { if (xa != "" && t ~ ("^(" xa ")$")) return 0; return t ~ dre || (xd != "" && t ~ ("^(" xd ")$")) }
+    function atom(   v) {
+      if (tok[p] == "(") { p++; v = any(); if (tok[p] == ")") p++; else err = 1; return v }
+      if (p > nt || tok[p] == ")" || tok[p] == "AND" || tok[p] == "OR") { err = 1; return 0 }
+      return bad(tok[p++])
+    }
+    function all(   v, w) { v = atom(); while (tok[p] == "AND") { p++; w = atom(); v = v || w }; return v }
+    function any(   v, w) { v = all(); while (tok[p] == "OR") { p++; w = all(); v = v && w }; return v }
+    {
+      s = $0; gsub(/\(/, " ( ", s); gsub(/\)/, " ) ", s); n = split(s, wd, /[ \t]+/); cur = ""
+      for (i = 1; i <= n; i++) {
+        if (wd[i] == "") continue
+        u = toupper(wd[i])
+        if (u == "AND" || u == "OR" || wd[i] == "(" || wd[i] == ")") {
+          if (cur != "") tok[++nt] = cur
+          cur = ""; tok[++nt] = (u == "AND" || u == "OR") ? u : wd[i]
+        } else cur = (cur == "" ? wd[i] : cur " " wd[i])
+      }
+      if (cur != "") tok[++nt] = cur
+      p = 1; v = any()
+      if (err || p <= nt) exit 2
+      exit v ? 0 : 1
+    }'
+}
+
 WORK=$(mktemp -d) || exit 3
 trap 'rm -rf "$WORK"' EXIT
 : > "$WORK/pkgs"          # name<TAB>licence<TAB>source
@@ -132,6 +161,8 @@ while IFS=$'\t' read -r name lic src; do
   hit=0
   printf '%s' "$lic" | grep -qE "$deny_re" && hit=1
   [ -n "$extra_deny" ] && printf '%s' "$lic" | grep -qE "^($extra_deny)$" && hit=1
+  # A compound expression is judged term by term as well, so a denied licence after an AND, or inside ( ), is not missed.
+  case "$lic" in *[\ \(]*) [ "$hit" -eq 0 ] && expr_denied "$lic" && hit=1 ;; esac
   [ "$hit" -eq 1 ] && denied="$denied$(printf '  %-46s %-16s %s' "$name" "$lic" "$src")
 "
 done < "$WORK/pkgs"

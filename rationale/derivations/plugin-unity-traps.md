@@ -141,6 +141,39 @@ not `api-removed`. No harness case pins it, because the smoke harness is outside
 **Live host check, 2026-11-02.** One headless `claude -p` session (CLI 2.1.316, haiku), with unity-traps and meshy loaded by `--plugin-dir`, ran `mv` of an `Assets/` script without its `.meta`, then `cp` of a 60,000-triangle `.glb`. Its final reply named both findings: the `.meta` left behind, and "60,000 triangles, over the 15,000 budget". So the host delivered both hooks' context, and the PreToolUse/PostToolUse `tool_use_id` bracket held. blender and pixel-art were driven only through the harness. What the agent does with a finding is
 **agent-graded**.
 
+## plugins/unity-traps/hooks/api-check.sh
+
+Added 2026-11-21 (unity-traps 0.7.0), from the thinking-disciplines follow-up review (finding 5). `meta-check.sh`
+filters `api-*` findings out (2026-11-09, above), and it ignores every Write/Edit that is not an `Assets/*.meta`. So
+writing `GetInstanceID()` on 6000.5, `UxmlFactory` on 6.6 or a Cinemachine 2 type never reached the checker's name
+rules unless someone ran it by hand. The user approved a warn-only hook in the shape of blender's `bpy-check.sh`:
+a written file, that file's findings only.
+
+Design:
+
+- **Trigger.** PostToolUse on Write, Edit and MultiEdit of a `.cs` whose path, relative to the nearest folder holding
+  both `Assets/` and `ProjectSettings/` (the checker's own root test), starts with `Assets/`. Bash is not matched.
+  A separate script rather than a branch of `meta-check.sh`: its closing advice is about `.meta` files, its
+  smoke harness pins that a written `.cs` stays silent there, and each hook keeps its own off switch.
+- **What is said.** Only `api-removed` and `api-deprecated` rows whose file is the edited one, errors first. Move
+  damage in the same file (a class/file name mismatch, a missing `.meta`) is `meta-check.sh`'s and stays out. A rule
+  is said once per context, keyed on `project|code|file|fix`; the fix names the replacement and the docs page, so it
+  identifies the rule, while the line and the use count in the message change on every edit. At most
+  `MAX_SHOWN=5` per edit; the rest are counted and recorded as said.
+- **Cost.** The checker scans the whole project: 0.74 s on the 40,201-file synthetic project (meta-check's
+  measurement above). `CHECK_TIMEOUT=20`; hooks.json allows 30 s.
+- **State.** `cc_plugin_state` (the same `unity-traps` dir as meta-check), file `api-seen-<ctx>`, swept after
+  1440 minutes. Unwritable state: silence.
+- **Off switch.** `CC_UNITY_API_CHECK=off`, or the `cc_unity_api_check` option (default on). `CC_UNITY_META_CHECK`
+  does not silence it (a harness case).
+- **Limits** (also in the header): a Bash write, a name under an `#if UNITY_*`/`CINEMACHINE` guard, an alias or a
+  call through a variable, a project with no readable version for that owner, a `.cs` outside `Assets/`
+  (embedded packages are scanned by a manual run only), a run past the timeout.
+
+Standing: the firing and silence cases are a **gate** in
+`plugins/unity-traps/scripts/__tests__/api-check-hook.test.sh` (25 cases, run by CI's plugin-harness loop), on
+host-shaped payloads. No live `claude` session was run for it.
+
 ## scripts/smoke/game-checker-hooks-tests.sh
 
 One harness for the four checker hooks added on 2026-11-02: unity-traps `meta-check.sh`, meshy

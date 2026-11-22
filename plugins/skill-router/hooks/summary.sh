@@ -1,5 +1,5 @@
 #!/bin/bash
-# SessionEnd: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl, prints the signals no prompt flushed (transcript residue) and removes the context's state and dispatch files. Fails open. CC_SURFACED_LOG=off skips the ledger; unset, /config decides.
+# SessionEnd: appends what the router surfaced in this context to $HOME/.claude/skill-router/<root-slug>/surfaced.jsonl and removes the context's state and dispatch files. Fails open. CC_SURFACED_LOG=off skips the ledger; unset, /config decides.
 # Misses a context whose payload cwd no longer exists: its state file stays, orphaned.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/summary.sh
 
@@ -78,15 +78,6 @@ cc_option() {
   rm -f "${state_file%/*}/dispatch-$ctx.tsv" 2>/dev/null # subagent-skills.sh's dispatch record
   [ -r "$state_file" ] || exit 0
 
-  line=$(jq -r '
-    [ (.pending_low // [])[] | select(.flushed != true) ]
-    | group_by(.skill)
-    | map((if .[0].plugin then .[0].plugin + ":" else "" end) + .[0].skill + " (" + (length | tostring) + " file" + (if length == 1 then "" else "s" end) + ")")
-    | join(", ")
-  ' "$state_file" 2>/dev/null) || { rm -f "$state_file" 2>/dev/null; exit 0; }
-
-  [ -n "$line" ] && printf '[skill-router] Low-confidence signals seen this session — consider: %s.\n' "$line"
-
   case "$(cc_option CC_SURFACED_LOG on)" in
     off) : ;;
     *)
@@ -101,7 +92,7 @@ cc_option() {
             session_id: $sid,
             fired: ((.fired // []) | unique),
             loaded: ((.loaded // []) | unique),
-            # pending_low is the union an older reader expects; the two below split it on whether route-prompt.sh printed the digest.
+            # route.sh has written no pending_low since 0.34.0: the three fields stay, empty, for older readers.
             pending_low: ((.pending_low // []) | map(.skill) | unique),
             pending_low_flushed: ((.pending_low // []) | map(select(.flushed == true) | .skill) | unique),
             pending_low_unflushed: ((.pending_low // []) | map(select(.flushed != true) | .skill) | unique)

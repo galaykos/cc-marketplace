@@ -4,6 +4,16 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.35.1 — 2026-11-21
+
+- **`preview-guard.sh` names the off switch that works**: the /config option `cc_preview_guard`, or `CC_PREVIEW_GUARD=off` in the environment Claude Code starts with. The old message offered the env var "for the session", which an export inside a Bash call cannot reach (the hook inherits Claude Code's environment, not the Bash tool's). Twin of taskmaster's copy.
+- **`/ui-ux:audit` measures contrast on any token file the checker reads.** Step 5 ran `contrast.mjs` only for `oklch()` tokens in five named files and called every other colour space "not measured". The script reads hex, `rgb()`, `hsl()` and bare HSL triplets and tries its own list of token files, so a Tailwind v3 HSL theme was skipped for nothing. Step 5 now runs it whenever a token file exists and trusts its exit code.
+- **After the a11y-engineer applies fixes, `/ui-ux:audit` re-runs its scripts.** The post-fix check was the same model re-reading its own fixes. It now re-runs axe-run, finish lint and `contrast.mjs` where they ran the first time, and re-reads the checklist only for what no script covers.
+- **`/ui-ux:build` labels the offered review agent-graded.** `ui-ux-reviewer` is `model: inherit`, a second read by the same model family; the browser render `ui-check` asks for and the axe run are named as the outside signals.
+- **theming-system names the real contrast gate.** `accent-system.md` said `craft-reviewer` verifies the accent ratios; that agent's own text leaves the arithmetic to the script. Verification now points at `scripts/contrast.mjs` (gate where run, shipped here) for the ratios and at `craft-reviewer` (agent-graded) for the structural half.
+- README: the eval run command gains `--allow-tools Write Edit`, which `marquee-carousel-pause` needs, and that case is described; the stale token cost of the preloaded `a11y-audit` body is replaced by a recount command.
+- Standing: recorded (command, skill and README text; no harness reads it).
+
 ## 0.35.0 — 2026-11-16
 
 - **A design-contract check on UI edits.** New PostToolUse hook `contract-check.sh`: when the project declares `.cc-artifacts/design-kit/design-system/contract.json` (design-kit 0.19.0 drafts it), it names the lines an Edit or Write ADDED to a markup file that build a surface by hand (`rounded` + `border` on a `div`, `section`, `article`, `aside` or `li`) instead of the contract's component, use a raw Tailwind palette class, or an arbitrary hex or px value. Advisory, never blocks; old lines are left alone; the contract's `primitives` and `shell.owner` paths are exempt from the surface check; silent without a contract. Option `cc_design_contract` / `CC_DESIGN_CONTRACT=off`. Why: one real frontend held about 230 hand-built boxes against 7 uses of its own `Card`, and its restyle became a sweep across pages.

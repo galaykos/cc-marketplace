@@ -99,7 +99,7 @@ tree: on the `--to` path, run the suite again (the receipt check first) before t
 destination. A `--to` the destination protocol does not offer here (`merge` when the
 base is the default branch), or any other value, `discard` included, is not applied:
 say so and ask as above. Discard is never reached through `--to`. Standing:
-agent-graded — no script reads the flag.
+recorded — no script reads the flag.
 
 Headless fallback: if AskUserQuestion is unavailable or the session is
 non-interactive, report the verification result, the state evidence, and the

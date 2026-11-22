@@ -2,6 +2,12 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.4.10 — 2026-11-21
+
+- **The Stop gate's two-block limit is per ask, not per session.** The block count was never reset, so after two blocks anywhere in a session every later ask that left a name unaccounted drew only the give-up warning: the gate stopped gating in exactly the long sessions where names pile up. The count now resets when a final message accounts for every owed name, and when the gate gives up. Residual: a turn interrupted between blocks carries its count into the next ask.
+- README: the gate needs a line naming each owed name with one of the four words, not one line per name; one line can cover several names, and prose like "Laravel was not substituted" passes. `lane.tsv` and the plugin description now name `pending`, the check-shell deferral (0.4.8) and the per-ask limit, and say the ledger grows on every work-shaped prompt, not only the first.
+- Standing: gate (`gate-hook.test.sh` 6c–6e; 6c and 6e fail against 0.4.9).
+
 ## 0.4.9 — 2026-11-17
 
 - **`<name>: pending → what remains` accounts for unfinished work.** Only `as named`, `substituted` and `omitted` counted, and unfinished work fits none, so in one long run the model carried "<name>: in progress" on 71 replies. `pending` now counts like the others: the name leaves the ledger at that stop and later replies owe nothing for it. The trade-off, chosen deliberately: nothing checks at the end of the work that a pending name was built as named. "in progress" alone still does not count.
