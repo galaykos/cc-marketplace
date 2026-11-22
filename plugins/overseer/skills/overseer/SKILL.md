@@ -109,8 +109,9 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    screen) — `dispatch/<n>-review-<name>.md`, `--kind reviewer`. **Only a reproduced
    `critical`/`high`, or a failed acceptance line, buys a fix**; anything lower, or already
    on the base branch, is a `program.sh suggestion add` row. One batched fix dispatch
-   (`<n>-followup.md`; fresh worker `<n>-fix.md`); a milestone's fourth is refused and it
-   parks (**gate**).
+   (`<n>-followup.md`; fresh worker `<n>-fix.md`). A follow-up, and any worker gated once the
+   milestone has evidence, an `accepting` status or a gated reviewer, is a fix whatever its
+   name; the fourth is refused (**gate**) and you park it (**agent-graded**).
    Independent milestones may run in parallel (`references/worktree.md`).
 5. **Accept.** Status → `accepting`. Run `references/acceptance.md`: suite green (the run's
    fresh receipts, re-run only if stale), then the
@@ -119,8 +120,10 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    (a `headless` kind: suite + `run-log`, no walk) — each
    artifact `Read`, then `program.sh evidence add --file <artifact>`. Then `program.sh accept --id
    <id>`: exit 0 closes it; exit 2 lists what is missing —
-   produce it, never edit the evidence file; evidence older than the last worker/follow-up dispatch
-   is re-walked, not re-dated. Every state the charter promised is checked against what
+   produce it, never edit `program.json` (each write seals it; the next write, accept, close or
+   dispatch check refuses a state changed outside `program.sh`, **gate**); evidence older than
+   the last worker/follow-up dispatch, or recorded before the branch's last commit, is
+   re-walked, not re-dated. Every state the charter promised is checked against what
    shipped: a mismatch is a fix or a recorded amendment.
 6. **Finish.** With git-workflow installed, offer `/git-workflow:finish`; else offer three
    destinations via AskUserQuestion, each spelled out: **merge locally** (into the base,
@@ -158,23 +161,27 @@ form in `references/dispatch-prompts.md`): skills and files by absolute path, re
 you; return shape and verify commands stated; a worker's discipline preamble `cat`-ed in,
 never retyped. A prompt naming a plugin the scan showed missing is ignored — use the fallback.
 
-**Model per seat is a line, not a default.** Every dispatch file carries `MODEL: <value>`,
-the Agent call passes the same `model:`, and the program tier bounds it (**gate**,
-`dispatch check`; seat table and tiers in `dispatch-prompts.md`). It binds only your
-prompts; taskmaster's seats follow the session model (residual).
+**Model per seat is a line, not a default.** Every dispatch file carries `MODEL: <value>`
+and the program tier bounds it (**gate when run**, `dispatch check`; seat table and tiers in
+`dispatch-prompts.md`). The Agent call runs that model: pass `model:` unless the agent's own
+frontmatter already names it (`task-executor` inherits); `hooks/model-gate.sh` denies a
+mismatch while a program is open (**gate**). It binds only your prompts; taskmaster's seats
+follow the session model (residual).
 
 ## Rules with teeth, and rules without
 
 | Rule | Standing |
 | --- | --- |
-| No `done` without the kind's evidence set — the nine of Deliver 5 with a screen, `tests` + `run-log` without one (`kinds.tsv` profile) — each a file that exists, recorded after the last gated worker | **gate** — `accept` exits 2 |
+| No `done` without the kind's evidence set — the nine of Deliver 5 with a screen, `tests` + `run-log` without one (`kinds.tsv` profile) — each a file that exists, recorded after the last gated worker and at the milestone branch's current tip | **gate** — `accept` exits 2; a branch that does not resolve is a WARN; edits left uncommitted after the walk are not seen |
 | Milestone id, status and evidence kind come from the fixed vocabularies | **gate** — `program.sh` refuses others |
 | The Deliver step-3 prompt rules (preamble, scope lock, verify, return shape, `MODEL:`, an existing skill path) | **gate when run** — `dispatch check`; running it is **agent-graded**; unrun, the prompt is outside the record |
 | A milestone of kind K reaches `done` only once a checked, unchanged dispatch or brief pins a skill from each of K's groups by an existing path | **gate** — `accept` exits 2; an uninstalled group is a WARN |
-| A milestone buys three fix dispatches (follow-ups, `*fix*` workers) | **gate** — `dispatch check` exits 2; the severity floor is **agent-graded**; a taskmaster run's own cycles are task-runner's |
+| A milestone buys three fix dispatches (follow-ups, `*fix*` workers, any worker gated after its first evidence, `accepting` or gated reviewer) | **gate** — `dispatch check` exits 2; parking and the severity floor are **agent-graded**; a taskmaster run's own cycles are task-runner's |
+| Every Agent call runs the model its prompt's `MODEL:` line names | **gate** — `hooks/model-gate.sh` denies; a prompt without the line is outside it |
+| `program.json` changes only through `program.sh` | **gate** — its checksum seal; `reseal --reason` records a deliberate edit; a sum forged with the state passes |
 | An M+ milestone goes through taskmaster; a direct worker on one is recorded | **WARN** — `dispatch check --milestone`; the row is **recorded** |
 | Every milestone has a rigour profile; a surface kind is never lean; the index's boost marker agrees with it | **WARN** on form — `dispatch check --milestone`; the four-signal score is **agent-graded** |
-| Every brief carries `Verify: range`: its run owes a range review and a teeth lens, no per-card review or control | **gate** (candor clause 4); writing the line is **agent-graded** |
+| Every brief carries `Verify: range`: its run owes a range review and a teeth lens, no per-card review or control | the line: **gate when run** (`dispatch check --kind brief`); the owed review: **gate** when candor is installed (clause 4) |
 | A hands-off program delivers every runnable milestone; an unused installed command has a decision row | **recorded** |
 | A fresh session learns a program is open | **hook** — SessionStart, one line |
 | Discover ran before Clarify; Clarify asked nothing the project answered; CI was inventoried | **agent-graded** |

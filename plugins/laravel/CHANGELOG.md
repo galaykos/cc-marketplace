@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first. Started at 0.10.3; earlier versions have no entries rather than invented ones.
 
+## 0.11.2 — 2026-11-21
+
+- **The queued-job example is idempotent now.** The "good" `ChargeOrder` in `laravel-best-practices`' `references/queue-payloads.md` guarded the charge with `if ($order->isPaid()) return;`, a check-then-act that lets two concurrent runs both charge. It now passes an idempotency key fixed per order to the payment provider and says what holds without one: a unique claimed row inserted before the charge. Stripe's key behaviour (`Idempotency-Key`, keys prunable after 24 hours) was checked against its API docs.
+- The skill's pointer to that file no longer promises serialization edge cases and a retry/backoff matrix the file never held.
+- The README labels `i18n_parity.py` "gate where run (exit 1); that it ran is recorded", as the skill already did.
+
 ## 0.11.1 — 2026-11-16
 
 - **`backend-engineer` checks before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer. Its own verify step now reads "tests and `php artisan` checks, then the project checks", no longer "or a static analyzer".

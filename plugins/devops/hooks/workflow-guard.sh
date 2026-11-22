@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on writes to a .github/workflows/ file or a .github/actions/*/action.yml (Write, Edit, MultiEdit, Bash heredoc/echo): denies a privileged-trigger checkout of the PR head, and a PR-author ${{ github.event.* }} field in a run: step. Fail-open; CC_WORKFLOW_GUARD=off disables; unset, /config cc_workflow_guard decides.
-# Misses what workflow-audit.sh only warns on; text piped to a command that writes no file (`yq eval - <<EOF`); an appended `ref:` completing a rule-1 trigger; on echo, a flag or extra space before the quote, `printf '%s\n' '…'` (format first), a run line holding `<<`, an escaped or multi-line echo (`echo -e`, `$'…'`), a quoted string spanning lines; interpreter writes, cp/mv/install, `sed -i`/`perl -i`, `{ …; } > f`, a path in a variable or relative to a `cd` or a cwd under .github/, a here-string, a second heredoc on one line, printf format substitution, tee's later targets; an action.yml elsewhere, a composite shelling out to a script.
+# PreToolUse on writes to a .github/workflows/ file or a .github/actions/*/action.yml (Write, Edit, MultiEdit, Bash heredoc/echo): denies a privileged-trigger checkout of PR code (head, merge_commit_sha, refs/pull/N/*), judged for an Edit on the file as the edit leaves it and only when the edit adds it, and a PR-author ${{ github.event.* }} field in a run: step. Fail-open; CC_WORKFLOW_GUARD=off disables; unset, /config cc_workflow_guard decides.
+# Misses what workflow-audit.sh only warns on; text piped to a command that writes no file (`yq eval - <<EOF`); a Bash append (`>>`) completing a rule-1 trigger; a rule-1 shape the file held before an Edit (workflow-audit.sh reports it); a field an Edit adds inside an existing multi-line run: block (rule 2 reads the new text alone); PR code fetched by a run: step (`gh pr checkout`, `git fetch origin pull/N/head`) or a ref passed through env:, outputs or a variable; on echo, a flag or extra space before the quote, `printf '%s\n' '…'` (format first), a run line holding `<<`, an escaped or multi-line echo (`echo -e`, `$'…'`), a quoted string spanning lines; interpreter writes, cp/mv/install, `sed -i`/`perl -i`, `{ …; } > f`, a path in a variable or relative to a `cd` or a cwd under .github/, a here-string, a second heredoc on one line, printf format substitution, tee's later targets; an action.yml elsewhere, a composite shelling out to a script.
 # Why, limits, history: rationale/derivations/plugin-devops.md § plugins/devops/hooks/workflow-guard.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -206,15 +206,19 @@ in_scope() {
   return 1
 }
 
+# Status 0 when $text has a privileged trigger and a ref: naming PR code (head, merge commit, refs/pull/N/*).
+untrusted_checkout() {
+  printf '%s' "$text" | grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' \
+    && printf '%s' "$text" | grep -qE '^[[:space:]]*ref:[^#]*(\$\{\{[^}]*github\.(head_ref|event\.(pull_request\.(head|merge_commit_sha)|workflow_run\.(head|pull_requests\[[0-9]*\]\.head)))|refs/pull/)'
+}
+checkout_reason="devops blocked this write: the workflow checks out the pull request's code under pull_request_target or workflow_run, which runs it with the repository's secrets and a write token. Build the PR under pull_request with no secrets, or check out the base ref and treat the PR tree as data."
+
 # Reads $text; sets $reason, empty when neither shape is present.
 judge_workflow() {
   reason=""
 
   # 1. Untrusted checkout under a privileged trigger.
-  if printf '%s' "$text" | grep -qE '^[[:space:]]*(pull_request_target|workflow_run):' \
-     && printf '%s' "$text" | grep -qE '^[[:space:]]*ref:[[:space:]]*\$\{\{[[:space:]]*github\.(head_ref|event\.(pull_request\.head|workflow_run\.head))'; then
-    reason="devops blocked this write: the workflow checks out the pull request's code under pull_request_target or workflow_run, which runs it with the repository's secrets and a write token. Build the PR under pull_request with no secrets, or check out the base ref and treat the PR tree as data."
-  fi
+  if untrusted_checkout; then reason=$checkout_reason; fi
 
   # 2. Matched by leaf: base.sha and number are GitHub-generated and safe; denying them would fire on ordinary CI.
   if [ -z "$reason" ]; then
@@ -274,6 +278,19 @@ EOF_C
       ] | join("\n")' 2>/dev/null) || exit 0
     [ -n "$text" ] || exit 0
     judge_workflow
+    # An Edit's trigger line sits in the file, not the new text: judge rule 1 on the file as this call leaves it, deny only what it adds.
+    case "$tool" in Edit|MultiEdit)
+      if [ -z "$reason" ] && [ -f "$file" ]; then
+        post=$(printf '%s' "$input" | jq -r --rawfile d "$file" '.tool_input | reduce ((.edits // [{old_string, new_string, replace_all}])[] | select((.old_string // "") != "")) as $e ($d;
+          split($e.old_string) as $p | if ($p | length) < 2 then . elif $e.replace_all == true then $p | join($e.new_string // "")
+          else $p[0] + ($e.new_string // "") + ($p[1:] | join($e.old_string)) end)' 2>/dev/null) || post=""
+        text=$post
+        if [ -n "$post" ] && untrusted_checkout; then
+          text=$(cat -- "$file")
+          untrusted_checkout || reason=$checkout_reason
+        fi
+      fi ;;
+    esac
   fi
 
   [ -n "$reason" ] || exit 0

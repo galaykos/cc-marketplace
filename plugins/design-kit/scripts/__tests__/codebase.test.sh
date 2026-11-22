@@ -198,6 +198,16 @@ grep -q '@source "../js/pages/__design-kit__";' resources/css/app.css || fail "v
 bash "$cleanup" >/dev/null
 cmp -s resources/css/app.css "$tmp/inv.css" || fail "vue stylesheet not restored"
 
+# --- an app in a subdirectory, cleaned from above it (dk.sh runs cleanup from the project root) ---
+mono="$tmp/mono"; mkdir -p "$mono/apps"; cp -R "$lar" "$mono/apps/api"; cd "$mono/apps/api"; cp routes/web.php "$tmp/mono.web"
+bash "$scaffold" --create sub >/dev/null
+cd "$mono"
+vout="$(bash "$cleanup" --verify 2>/dev/null || true)"
+grep -qx 'leftover=apps/api/routes/web.php (1 marked line(s))' <<<"$vout" || fail "verify from above the app missed its routes/web.php: $vout"
+bash "$cleanup" >/dev/null
+cmp -s apps/api/routes/web.php "$tmp/mono.web" || fail "cleanup from above the app left its routes/web.php changed: $(cat apps/api/routes/web.php)"
+bash "$cleanup" --verify >/dev/null || fail "verify after cleanup from above the app"
+
 # --- unknown stack ---
 mkdir -p "$tmp/empty"; cd "$tmp/empty"
 grep -q '^stack=unknown$' <<<"$(bash "$scaffold" --detect)" || fail "empty dir should be unknown"

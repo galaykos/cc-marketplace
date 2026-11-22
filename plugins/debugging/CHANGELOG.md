@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.13.2 — 2026-11-21
+
+- **The ship rule states its standing.** The README's "the fix only ships after the original reproduction passes again AND the full suite is green" and the skill's verification steps 1 and 2 now say **recorded**: no script runs either, and candor's Stop gate, where installed, checks that something ran after the last edit, not what.
+
 ## 0.13.1 — 2026-11-17
 
 - **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.

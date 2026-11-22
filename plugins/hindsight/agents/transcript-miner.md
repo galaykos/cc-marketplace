@@ -29,7 +29,8 @@ tag a redirect there as `correction` only when a human is quoted, else `friction
    - **Failed approaches** — 3+ fix attempts on the same problem, reverts,
      abandoned strategies.
    - **Friction contexts** — what was happening around tool denials and errors.
-3. **Return COMPRESSED findings only.** One line per finding, in this exact
+3. **Return COMPRESSED findings only.** First line, always: `coverage | full` or
+   `coverage | sampled: head N, tail N, K grep hits`. Then one line per finding, in this exact
    shape:
    `type | one-sentence pattern | strongest evidence quote | confidence`
    where type is one of `correction`, `chore`, `failed-approach`, `friction`

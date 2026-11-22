@@ -72,6 +72,14 @@ delegation-contracts skill; otherwise the contract above suffices.
    does not count toward convergence, so four aligned takes with one ungrounded
    are three-way agreement, and four ungrounded ones are no evidence at all.
    Standing: agent-graded; nothing counts the tool calls but the reader.
+   Blind dispatch removes anchoring, not shared errors. Four lenses on one model family
+   share training data and blind spots, so "4 of 4 aligned" is not four independent
+   confirmations. In one preprint (NLI tasks), nine judges from seven families carried
+   about two votes' worth of information (Kohli 2026, https://arxiv.org/abs/2605.29800).
+   Errors correlate across providers, more so for stronger models (Kim et al., ICML 2025,
+   https://arxiv.org/abs/2506.07962). Weigh by grounding, not count. A lens that cites a
+   repo fact the others missed outweighs a 3–1 majority. Report alignment as a count of
+   grounded takes, never as consensus. Standing: agent-graded.
 2. Synthesize ONE pick — what was taken from whom, what was given up. Same output
    shape as the inline slate, so downstream handling is identical, and the same
    step-4 bar: it elevates UX, DX and AX without breaking anything. With

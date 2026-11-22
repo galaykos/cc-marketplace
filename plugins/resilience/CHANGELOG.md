@@ -8,6 +8,14 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.9.2 — 2026-11-21
+
+- **`/resilience:review`'s short lane is a conjunction**: single-file AND mechanical AND clear of every risk clause, or the deep pass (same fix as code-review 0.38.2).
+- **Batch performance fixes go to `performance-engineer`**, the worker that measures before and after, not the shared `task-executor` (`performance-tuning` now agrees with `/resilience:review` step 7).
+- **`/resilience:review`'s self-refute pass drops a finding only on a cited line or command output that contradicts it**; a doubt with no citation keeps the finding as `PLAUSIBLE`. Same-model second thoughts flip true findings too (Huang et al., ICLR 2024). An explicit `--concern` now skips the hand-up to `/code-review:review`, which takes no such flag.
+- **One owner per rule.** `observability-design` points to `error-handling-design` § Report once instead of a third copy that contradicted its wrap-at-boundary rule. The Boundaries lines of three skills name `resilience-design` as the owner of retry, timeout and failure-path policy (`/resilience:review` only audits). `resilience-design` drops a cross-reference claiming `/approaches:compare` generates failure routes; it does not.
+- The README and `performance-tuning` now label the measure-before-and-after rule. Standing: recorded — no hook checks the order of measurement and edit. All of the above: agent text, recorded.
+
 ## 0.9.1 — 2026-11-16
 
 - **`observability-engineer` and `performance-engineer` check before writing new code and before handing back.** Before adding a helper, class, component, factory or status list it greps the repo for one and extends what exists; it extracts a shape on its second use; after fixing a pattern it greps sibling files for the same pattern; it keeps a card's `<invariant>`, `<reuse>` and `<interface>` lines and reports how each invariant holds. Before hand-back it runs the project's own linters and analyzers on every touched file, tests included, in addition to the tests, and reports an analyzer whose config skips one of them. Why: reviews of two real runs traced most post-build fix rounds to cross-card contract gaps and code rewritten beside an existing helper, and one run never ran its configured analyzer.

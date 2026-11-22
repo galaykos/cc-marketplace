@@ -317,6 +317,8 @@ The bare-parens alternative is scoped to `deleteMany` alone on purpose: extendin
 it to `remove` would fire on every DOM `element.remove()`.
 ```
 
+2026-11-21 (database 0.12.2): a bare or empty-filter `deleteMany` in a test or seed file no longer asks. Prisma's test teardown and `prisma/seed.ts` both open with `deleteMany()`, and with no prompt to answer an ask is auto-denied, so a headless run writing test setup failed its turn. The path test reads `__tests__/`, a `.test.` or `.spec.` file, a `seeds/` or `seeders/` directory, or `seed` in the file's own name; it is anchored to path parts because the absolute path also holds the project's own directory (a checkout under `seedbank/` must still ask). The DynamoDB Scan arm's wider list (`script`, `migration`, `backfill`, `bin/`, `tools/`) was not copied: those paths run on real data, so a wipe there still asks. `updateMany({})` and `remove({})` still ask on every path. Residuals: a wipe placed in a seed file that runs in production; a teardown under `tests/` or `test/` with no `.test.` or `.spec.` in its name still asks. Harness: `guard.test.sh`, the 0.12.2 cases; five fail against 0.12.1.
+
 ### The Bash branch: a chunk fed to a SQL client (sqlcli)
 
 ```text

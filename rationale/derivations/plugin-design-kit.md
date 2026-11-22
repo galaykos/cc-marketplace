@@ -188,6 +188,17 @@ rules, never import them.
   reads use `O_NOFOLLOW`, and the rewrite goes through `mkstemp`. Red: `FAIL: --reply dropped a line it
   could not parse`, `FAIL: --reply wrote through a symlinked temp file`.
 
+### scratch --cleanup and --verify from the root (0.19.3)
+
+`$DK` was anchored at the project root in 0.5.1, but `dk scratch --cleanup` and `--verify` still ran
+`codebase-cleanup.sh` in the shell's cwd, which scans from there down. Run from `src/` after a
+`--create` at the root, `--verify` printed `cleanup: clean` while `__design-kit__/hero.html` and
+the route line stayed: a false clean in the check the in-codebase skill treats as proof (reviewer
+finding, 2026-11-21). Both now run from `$ROOT` in a subshell. `--detect` and `--create` keep the
+cwd on purpose: the scaffold reads `package.json`, `artisan` and `vite.config.*` there, and in a
+monorepo the app's own directory is not the git root. Red against the 0.19.2 script:
+`FAIL: scratch --verify from a subdirectory missed the root's scratch` (`dk.test.sh`).
+
 ## plugins/design-kit/scripts/snapshot.sh
 
 Moved verbatim on 2026-10-28. The header is what `--help` prints (`usage` echoes line 2 down to `set -euo pipefail`), so it keeps its usage text and loses only the history: the two paragraphs below are as they stood, and the file keeps them minus the session finding, the measurement date and the scattered-dir story. The pointer sits after `set -euo pipefail`, out of the help. The `#` lines inside the python heredocs are code and stay.
@@ -284,6 +295,39 @@ mark_line <file> <line>: append once, after a newline only when the file ends wi
 the wrapper (<x-app-layout> vs a standalone page with the layout's @vite) is
 evidence-based, so the plain template also goes through scaffold-fill.py
 ```
+
+## plugins/design-kit/scripts/codebase-cleanup.sh
+
+Moved verbatim on 2026-11-21, when the header went to three lines (`--help` prints lines 2-5).
+
+### Header before 0.19.3
+
+```text
+codebase-cleanup.sh — remove every scratch file codebase-scaffold.sh wrote.
+
+WHAT IT CATCHES. Any path containing `__design-kit__` under the project (skipping
+node_modules, vendor, .git, .cc-artifacts, .design-kit) is deleted, and every line carrying the
+`__design-kit__ scratch` marker is stripped from routes/web.php and from any .css
+file (the scaffold's Tailwind v4 `@source` line), restoring each file's bytes —
+including a missing final newline. `--verify` only lists leftovers and exits 1 if
+any exist — the gate a command runs after the pick, so "cleaned up" is proven, not
+asserted.
+
+WHAT IT DOES NOT CATCH. A scratch import the model added to an EXISTING file
+(a provider registered in app.tsx, a route in a file other than routes/web.php)
+carries no marker and survives; the skill forbids that edit and `git status`
+is the check. A marked line in a .css under node_modules or vendor is not searched.
+Standing: scripts/__tests__/codebase.test.sh drives remove and --verify on its
+fixtures and cmp's the stylesheet and routes file against their originals.
+```
+
+### routes/web.php at any depth (0.19.3)
+
+Only `./routes/web.php` was read. Once `dk.sh` ran cleanup from the project root, a Laravel app in a
+subdirectory (`apps/api/routes/web.php`) would have kept its marked route line while `--verify`
+said clean, so the route file is now found at any depth, by name, outside the pruned directories.
+Red against the 0.19.2 script: `FAIL: verify from above the app missed its routes/web.php`
+(`codebase.test.sh`).
 
 ## plugins/design-kit/scripts/handoff-drift.py
 

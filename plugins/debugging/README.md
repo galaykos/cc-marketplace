@@ -33,7 +33,10 @@ suite is green; the reproduction graduates into a regression test, and one
 that can only sit at a seam shallower than the bug's real call pattern ships with
 that missing seam reported as a structural finding. Three
 failed fix cycles stop the run and question the diagnosis instead of
-attempting a fourth.
+attempting a fourth. Standing: **recorded** — the skill and the debugger agent require
+each step, and no script runs the reproduction or the suite before a fix ships; candor's
+Stop gate, where installed, refuses a completion claim after edits with nothing run since,
+not a run of the wrong command.
 
 Credit: the caller rule in `systematic-debugging`'s fix section adapts a rule from [dietrichgebert/ponytail](https://github.com/dietrichgebert/ponytail) v4.10.0 (MIT), rewritten here rather than copied.
 

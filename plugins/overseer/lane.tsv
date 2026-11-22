@@ -9,3 +9,4 @@ overseer:status	command	any	program-board	invoked as /overseer:status	-
 overseer:overseer	skill	any	program-level-delivery-ownership	a program is open under .cc-artifacts/overseer/ or /overseer:start was just invoked; owns the milestone loop, never a phase inside it	taskmaster:ultra,candor:gate
 overseer:announce	hook	any	open-program-announcement	SessionStart while .cc-artifacts/overseer/program.json (else, with no such dir, .claude/overseer/program.json) exists with a milestone neither done nor parked	-
 overseer:track-read	hook	any	read-ledger-for-evidence	PostToolUse Read while .cc-artifacts/overseer/program.json exists in the session project	-
+overseer:model-gate	hook	any	subagent-model-floor	PreToolUse Agent or Task while .cc-artifacts/overseer/program.json exists in the session project and the prompt has a line-start MODEL: line the call will not run (the model passed, else the agent type's frontmatter default); denies	-

@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.34.1 — 2026-11-21
+
+- **Text that described removed features now matches the plugin.** The `plugin.json` description no longer lists plain `.ts`/`.js`/`.py`/`.go`/`.rb`/`.rs` routing (removed in 0.32.0) or a next-prompt digest (removed in 0.34.0), and the `cc_route` option no longer says it flushes low-confidence signals. `summary.sh` drops its SessionEnd "Low-confidence signals" line, dead since route.sh stopped writing `pending_low`; the ledger keeps its empty `pending_low*` fields. Pinned by `route.test.sh` case 18b.
+- **The post-compaction run line names who enforces the completion gate.** It said the gate "still requires" a behavioral-gate pass. task-runner registers no Stop hook; only candor's gate (clause 4, off under `TASK_RUNNER_STOP_GATE=off`) checks it. The line now says candor's Stop hook enforces it, only when candor is installed. Pinned by `compact-capsule.test.sh` case 4.
+- README standing labels corrected. Whether the model loads a nudged skill, and which command it picks after the tool-fit note, are `recorded`: no script or reviewer reads them back. The rule that a `tool` or `command` row is `high` is a gate (`validate.sh` high-only check), not recorded. Removed: the 0.23.0 `low-cognitive-load` assertions (case 17 now asserts their absence) and the pre-0.18.0 baseline rider (the dynamic baseline was re-measured four times after 0.18.0). The `rules.tsv` comments that named the removed `*.js`/`*.ts` and language-wide rows, and `route-prompt.sh`'s header sentence, are reworded.
+
 ## 0.34.0 — 2026-11-17
 
 - **The "Your recent edits may need these skills" digest is gone.** Across local transcripts it suggested 945 skills on the next prompt and 8 were loaded (per-edit nudges: 31 of 322). Its 8 `low` content rows (`catch`/`throw`, `async`/`await`, `token`/`secret`, `logger`, `fetch(`…) matched almost every file. Removed: those rows, route.sh's `pending_low` queue, and route-prompt.sh's flush, which now runs only the tool-fit check. `scripts/validate.sh` fails a `rules.tsv` row whose confidence is not `high`.

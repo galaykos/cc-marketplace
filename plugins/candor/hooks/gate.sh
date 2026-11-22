@@ -1,6 +1,6 @@
 #!/bin/bash
-# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 7, 5: an incomplete task-runner run this session registered (or one naming no session), a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a Unity scene/prefab/Assets script change claimed done with no capture and console read after it while a route exists (unity CLI on PATH or a Unity MCP tool), lockfile drift.
-# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_UNITY_VISUAL_GATE=off|warn (7); unset, /config.; clause 4 does not send back a turn whose last human prompt was a pause or a question with no work verb (it names the owed run).
+# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 7, 8, 5: an incomplete task-runner run this session registered (or one naming no session), a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a Unity scene/prefab/Assets script change claimed done with no capture and console read after it while a route exists (unity CLI on PATH or a Unity MCP tool), a claim to have read or reviewed every file of a named set when no tool input of the turn names a member or its directory, lockfile drift.
+# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_UNITY_VISUAL_GATE=off|warn (7), CC_COVERAGE_GATE=off|warn (8); unset, /config.; clause 4 does not send back a turn whose last human prompt was a pause or a question with no work verb (it names the owed run).
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -1207,6 +1207,84 @@ EOF_CALLS
 }
 clause_unity_visual
 
+# Clause 8: the final message claims a whole named set was read or reviewed (all/every/each … files) and names its members as paths
+# that resolve, yet no tool input of this turn names a member or one of its directories. A named directory expands to its tracked files.
+COVER_CLAIM='(read|reviewed|checked|audited|inspected|went through|scanned)[^.!?]{0,40}(all|every|each)[^.!?]{0,30}(files?|modules?|scripts?|tests?|hooks?|skills?|agents?|docs?|pages?|chapters?)|(all|every|each)( of the| one of the)?( [0-9]+)? (files?|modules?|scripts?|tests?|hooks?|skills?|agents?|docs?|pages?)[^.!?]{0,40}(read|reviewed|checked|audited|inspected|covered)'
+COVER_ACK='not read|unread|did not read|didn.t read|haven.t read|have not read|not opened|skipped|not reviewed|did not review|didn.t review|only (read|reviewed|skimmed)|partial(ly)? read|sample of'
+COVER_DIR_CAP=40
+clause_coverage_overclaim() {
+  [ -z "$verdict" ] && [ -n "$have_tail" ] && [ -n "$last_msg" ] && [ "$skip" != "coverage" ] && [ "$cov_mode" != "off" ] || return 0
+  local body claim tokens tok p rel inputs members m uncovered="" nunc=0 d anc base
+  body=$(printf '%s\n' "$last_msg" | awk '/^[[:space:]]*(```|~~~)/{f=!f; next} !f')
+  printf '%s' "$body" | grep -qiE "$COVER_CLAIM" || return 0
+  printf '%s' "$body" | grep -qiE "$COVER_ACK" && return 0
+  # The claim line and a bullet or numbered list straight after it name the set.
+  claim=$(printf '%s\n' "$body" | awk -v hits="$(printf '%s\n' "$body" | grep -inE "$COVER_CLAIM" | cut -d: -f1 | tr '\n' ' ')" '
+    BEGIN { n = split(hits, h, " "); for (i = 1; i <= n; i++) hit[h[i]] = 1 }
+    NR in hit { on = 1; print; next }
+    on && /^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]/ { print; next }
+    { on = 0 }')
+  [ -n "$claim" ] || return 0
+  tokens=$(printf '%s\n' "$claim" | grep -oE '[A-Za-z0-9_@.~-]*[A-Za-z0-9_@-](/[A-Za-z0-9_@.-]+)+/?|[A-Za-z0-9_@-]+/|[A-Za-z0-9_@-]+\.[A-Za-z][A-Za-z0-9]{0,7}' \
+    | sed -E 's/:[0-9]+(-[0-9]+)?$//; s/[.,;:)]+$//' | awk '!seen[$0]++' | head -n 60)
+  [ -n "$tokens" ] || return 0
+  members=""
+  while IFS= read -r tok; do
+    [ -n "$tok" ] || continue
+    case "$tok" in http*|*://*) continue ;; esac
+    p=""
+    for base in "$root" "$cwd"; do
+      [ -n "$base" ] && [ -e "$base/$tok" ] && { p="$base/${tok%/}"; break; }
+    done
+    [ -n "$p" ] || continue
+    case "$p" in "$root"/*) rel=${p#"$root"/} ;; *) continue ;; esac
+    if [ -d "$p" ]; then
+      m=$(git -C "$root" ls-files -- "$rel" 2>/dev/null | head -n $((COVER_DIR_CAP + 1)))
+      [ "$(printf '%s\n' "$m" | grep -c .)" -le "$COVER_DIR_CAP" ] || return 0
+      members="$members$m
+"
+    else
+      members="$members$rel
+"
+    fi
+  done <<EOF_TOK
+$tokens
+EOF_TOK
+  members=$(printf '%s' "$members" | grep . | awk '!seen[$0]++')
+  [ -n "$members" ] || return 0
+  # Every non-writing tool input of this turn, one JSON line each; a member counts as read when one names it, or a directory of it, as a path.
+  inputs=$(tj -rs '
+    def usertext: .type=="user" and (.isMeta != true) and (.isCompactSummary|not) and ((.message.content // null) as $c
+      | if ($c|type)=="string" then $c
+        elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
+        else null end
+      | type=="string" and (test("^\\s*(<system-reminder>|<task-notification>|\\[SYSTEM NOTIFICATION|Stop hook feedback:)")|not));
+    . as $e | ([range(0; length) | select($e[.] | usertext)] | last // -1) as $b
+    | $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[] | select(.type=="tool_use")
+    | select((.name | test("^(Edit|Write|MultiEdit|SubagentHandback)$")) | not) | (.input // {} | tojson)' 2>/dev/null)
+  while IFS= read -r m; do
+    [ -n "$m" ] || continue
+    d=$m; anc=0
+    while [ -n "$d" ]; do
+      if printf '%s' "$inputs" | grep -qE "(^|[^A-Za-z0-9_.-])$(printf '%s' "$d" | sed 's/[][\.*^$+?(){}|/]/\\&/g')/?([^A-Za-z0-9_./-]|$)"; then anc=1; break; fi
+      case "$d" in */*) d=${d%/*} ;; *) d="" ;; esac
+    done
+    [ "$anc" = 1 ] && continue
+    nunc=$((nunc + 1))
+    [ "$nunc" -le 5 ] && uncovered="$uncovered
+  - $m"
+  done <<EOF_MEM
+$members
+EOF_MEM
+  [ "$nunc" -gt 0 ] || return 0
+  [ "$nunc" -gt 5 ] && uncovered="$uncovered
+  - … and $((nunc - 5)) more"
+  verdict="coverage"
+  detail="$nunc|$uncovered"
+}
+cov_mode=$(cc_option CC_COVERAGE_GATE block)
+clause_coverage_overclaim
+
 # Armed only by a dependency-shaped change; the $skip test is load-bearing, as in clauses 1-3, or the clause re-fires on its own continuation.
 clause_lockfile_drift() {
   [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "$(cc_option CC_LOCKFILE_GATE on)" != "off" ] || return 0
@@ -1280,6 +1358,7 @@ report_verdict() {
   case "$verdict" in
     evidence) case "$ev_mode" in warn) mode=warn ;; esac ;;
     visual) case "$uv_mode" in warn) mode=warn ;; esac ;;
+    coverage) case "$cov_mode" in warn) mode=warn ;; esac ;;
   esac
 
   # Loop guard: one block per clause and final text, a line per context and clause, so two clauses on one unchanged text cannot take turns.
@@ -1345,6 +1424,13 @@ report_verdict() {
         printf '  With MCP for Unity: manage_camera action screenshot, then read_console. Or say what was not captured and why.\n'
         printf '  CC_UNITY_VISUAL_GATE=off turns this check off (=warn only prints).\n')
       note="candor sent the turn back: Unity scene or prefab work was called done without a capture and a console read." ;;
+    coverage)
+      what="This turn"; [ "$evt" = "SubagentStop" ] && what="This report"
+      msg=$(printf '[candor] %s says it read or reviewed every file in a set it names, but %s of them were not opened by any tool call this turn:%s\n' "$what" "${detail%%|*}" "${detail#*|}"
+        printf '  Read them now, or restate the claim and name what was not read (e.g. "not read: <path>, because …").\n'
+        [ "$evt" = "SubagentStop" ] && printf '  Then re-send your COMPLETE report, corrected: only your last message reaches the caller.\n'
+        printf '  CC_COVERAGE_GATE=off turns this check off (=warn only prints).\n')
+      note="candor sent the turn back: the reply claims a whole set was read, and some of it was never opened." ;;
   esac
 
   [ "$mode" = "block" ] || { printf '%s\n' "$msg" >&2; pass_turn; }

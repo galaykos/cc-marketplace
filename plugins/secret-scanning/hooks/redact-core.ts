@@ -20,11 +20,11 @@ type Lines = {
 
 type Shape = 'blank' | 'filled' | 'closed'
 
-// The rules and messages of scan.sh's load_patterns, read against the pattern with `\\` pairs dropped.
+// The rules and messages of patterns.sh's load_patterns, read against the pattern with `\\` pairs dropped.
 const DIALECT = /\[\[(:|\.|=)|\[:[A-Za-z]+:\]|(^|[^\\])\(\?|\\[1-9]/
 const ESCAPE = /\\[^\].[+*?(){}|^$\/-]/
 
-// scan.sh's probe: no placeholder word, and every character class an assigned value can carry.
+// patterns.sh's probe: no placeholder word, and every character class an assigned value can carry.
 const PROBE = 'Kq7Zt9_Wm2-Rp4/Lx8+Vn3=Bc6'
 
 const OPERATOR = /^[^:=]*[:=]["' ]*/
@@ -129,7 +129,7 @@ export function parsePatterns(tsv: string): Pattern[] {
   return patterns
 }
 
-/** Reads `s` as one line: scan.sh's placeholder() only ever receives one grep -o match. */
+/** Reads `s` as one line: patterns.sh's placeholder() only ever receives one grep -o match. */
 export function isPlaceholder(s: string, pats: Pattern[]): boolean {
   if (pats.some(pattern => pattern.kind === 'placeholder' && s.search(pattern.re) !== -1)) {
     return true

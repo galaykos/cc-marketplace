@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.7.1; earlier versions have no entries rather than invented ones.
 
+## 0.7.10 — 2026-11-21
+
+- **`install` skips `asset-forge`, a game plugin it was installing into every project.** It prints the same `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row. Standing: gate — the harness now reads every plugin in this repo whose `plugin.json` carries the `gamedev` keyword and fails unless `install` skips it; that case and the `asset-forge` row fail against 0.7.9.
+- **`--budget --scope user` writes the user settings file under `CLAUDE_CONFIG_DIR` when it is set,** the file the CLI and the startup hint read; it wrote `~/.claude/settings.json` regardless, and `uninstall` reverted that file. Standing: gate — three harness cases, which fail against 0.7.9.
+
 ## 0.7.9 — 2026-11-13
 
 - **`phaser` is no longer in the game-plugin opt-in list.** The plugin was removed on 2026-11-13.

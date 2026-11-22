@@ -1,6 +1,6 @@
 #!/bin/bash
-# PreToolUse on Write/Edit/MultiEdit/NotebookEdit/apply_patch/create_new_file and Bash heredoc or echo writes to a test file: denies a newly added skip/only marker (.skip, xit, @pytest.mark.skip, t.Skip, #[ignore], Pest ->skip()…) with no same-line reason, and a Write removing every test.
-# Misses: a weakened assertion, a marker already there, rm, a skip whose argument is unquoted, an expression or on the next line, interpreter/cp/mv/sed -i writes, a target in a variable or after a cd; a marker in a string literal denies. CC_PROTECT_TESTS=off, else /config cc_protect_tests; fails open.
+# PreToolUse on Write/Edit/MultiEdit/NotebookEdit/apply_patch/create_new_file and Bash heredoc or echo writes to a test file: denies a newly added skip/only marker (.skip, xit, @pytest.mark.skip, t.Skip, #[ignore], Pest ->skip()…) with no same-line reason, and a Write removing every test; asks (warns in auto/bypass/-p modes) when an Edit drops assertion lines or rewrites an assertion's expected literal.
+# Misses: a weakened assertion written by Write or Bash, one moved into a helper or loosened in meaning (toBe → toBeTruthy), a marker already there, rm, a skip whose argument is unquoted, an expression or on the next line, interpreter/cp/mv/sed -i writes, a target in a variable or after a cd; a marker in a string literal denies. CC_PROTECT_TESTS=off, else /config cc_protect_tests; fails open.
 # Why, limits, history: rationale/derivations/plugin-testing.md § plugins/testing/hooks/protect-tests.sh
 
 # Shared block templates/blocks/option-resolver.md — edit there, re-paste byte-for-byte.
@@ -408,7 +408,7 @@ cc_strip_heredoc_bodies() {
     fi
   }
 
-  hit=""
+  hit=""; weak=""
   if [ "$tool" = Bash ]; then
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
     [ -n "$cmd" ] || exit 0
@@ -482,9 +482,38 @@ EOF_C
         ( .tool_input.edits // [] | map(.old_string // empty) | join("\n") )
       ] | join("\n")' 2>/dev/null)
     judge_tests
+
+    # Shape 3: an Edit that drops assertion lines or rewrites the expected literal on one. Asks; it cannot tell a wrong test from gaming.
+    if [ -z "$hit" ] && [ -n "$old" ] && [ "$tool" != Write ]; then
+      assert_re='(\bexpect[[:space:]]*\(|\bassert[A-Za-z_]*[[:space:]]*[(!]|->assert[A-Za-z]*[[:space:]]*\(|\bself\.assert[A-Za-z]*\(|\bt\.(Error|Errorf|Fatal|Fatalf)\(|\b(require|assert)\.[A-Z][A-Za-z]*\(|\.should\b|\bXCTAssert[A-Za-z]*\(|\bassert[[:space:]])'
+      oa=$(printf '%s\n' "$old" | grep -E "$assert_re")
+      na=$(printf '%s\n' "$new" | grep -E "$assert_re")
+      no=$(printf '%s' "$oa" | grep -c . || true); nn=$(printf '%s' "$na" | grep -c . || true)
+      case "$no" in ''|*[!0-9]*) no=0 ;; esac
+      case "$nn" in ''|*[!0-9]*) nn=0 ;; esac
+      if [ "$nn" -lt "$no" ]; then
+        weak="removes $((no - nn)) assertion line(s)"
+      elif [ "$no" -gt 0 ]; then
+        ws() { sed -E 's/[[:space:]]+//g' | sort -u; }
+        lit() { sed -E "s/\"([^\"\\]|\\.)*\"/S/g; s/'([^'\\]|\\.)*'/S/g; s/(^|[^A-Za-z_])[0-9]+(\.[0-9]+)?/\1N/g; s/\b(true|false|null|nil|None|True|False)\b/B/g" | sort -u; }
+        rem=$(comm -23 <(printf '%s\n' "$oa" | ws) <(printf '%s\n' "$na" | ws))
+        add=$(comm -13 <(printf '%s\n' "$oa" | ws) <(printf '%s\n' "$na" | ws))
+        if [ -n "$rem" ] && [ -n "$add" ] && [ -n "$(comm -12 <(printf '%s\n' "$rem" | lit) <(printf '%s\n' "$add" | lit))" ]; then
+          weak="changes the expected value on an assertion line"
+        fi
+      fi
+    fi
   fi
 
-  [ -n "$hit" ] || exit 0
+  if [ -z "$hit" ]; then
+    [ -n "$weak" ] || exit 0
+    msg="testing: this edit to $base $weak. Is the test wrong, or the code? Keep the assertion and fix the code unless the expected behaviour really changed. CC_PROTECT_TESTS=off turns this check off."
+    case "$(printf '%s' "$input" | jq -r '.permission_mode // empty' 2>/dev/null)" in
+      default|acceptEdits|plan) jq -cn --arg m "$msg" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$m}}' 2>/dev/null ;;
+      *) jq -cn --arg m "$msg" '{systemMessage:$m,hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$m}}' 2>/dev/null ;;
+    esac
+    exit 0
+  fi
 
   reason="testing: blocked $hit in $base, which would let the suite pass without running those tests. Fix the code instead, or if the skip is right, put the reason on the same line, e.g. \`it.skip('…')  // skip: flaky on CI, see #1421\`. CC_PROTECT_TESTS=off turns this check off."
 

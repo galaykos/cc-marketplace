@@ -89,3 +89,37 @@ A shim `claude` on PATH answers `plugin list` from a fixture and logs every call
 lock that records PARALLEL if two updates overlap. The hook cases run `session-start.sh` directly
 and wait for the detached run to write its state. Mutation-checked on 2026-11-13: adding `-y` to
 the update call fails 2 cases, and removing the worktree skip fails 7.
+
+## plugins/plugin-updater/hooks/accept-guard.sh
+
+Added in 0.3.0 (2026-11-21) from the thinking-disciplines follow-up review of plugin-updater. The skill said
+"neither flag is yours to pass either" about `-y` and `--accept-command`, and only prose held the model to it,
+while the script prints a hand-run `claude plugin update` line for every "Need you" install. The CLI's help, read on
+2.1.330, invites the shortcut: `--json` says "pass -y when not interactive", and `-y` is "required when stdin or
+stdout is not a TTY", which is always true of the Bash tool. Both flags accept a marketplace-declared command (a
+changed install command, or the headersHelper that fetches the archive) that no person has seen, so the hook denies
+rather than asks: the command is for the user's own terminal, where the CLI shows it and prompts.
+
+It is a deny with no off switch on purpose. The rule has no legitimate model-side exception, and the user is never
+blocked, since a command they type in their own terminal does not pass through the hook. An off switch would also
+add a row to the root README's generated off-switch table.
+
+Reading: jq pulls the command and the hook exits unless it holds `claude` and `plugin` (about 3 ms a call on the
+fast path, 15 ms when python runs, 21 runs each on the author's machine). Python's `shlex` then splits it into
+segments on `; & | ( )` and newlines, after dropping each heredoc body whose opener line names no shell, `eval` or
+`source`. A segment counts when its first word is the CLI (by basename, or `@anthropic-ai/claude-code` through npx),
+a `VAR=` assignment or a wrapper (sudo, env, timeout, xargs, npx and the like), and its words after the CLI read
+`plugin|plugins` then `update|install|i`; any later word before `--` that is `-y`, `--yes`, `--accept-command`
+(spaced or `=`) or a short cluster holding `y` denies. A shell's `-c` string and `eval`'s words are read the same
+way, three levels deep. An unbalanced quote or any exception prints nothing.
+
+Residual: the flag in a script file, a variable or an alias; the command inside `$( )`; a heredoc body piped to a
+shell on a later line; an MCP shell tool (the matcher is `Bash`); and a `grep claude plugin update -y`-shaped line
+after a wrapper, which would over-deny.
+
+## plugins/plugin-updater/scripts/__tests__/accept-guard.test.sh
+
+Added with the hook. 17 spellings must deny, 14 neighbours must stay silent: the flagless command the script itself
+runs, other subcommands, `--` before the flag, and text that only names the flag (a commit message, `echo`, `grep`,
+a heredoc nothing runs). Plus the reason's wording, one line of output, fail-open on garbage, on an unbalanced quote
+and with no python3 on PATH, and the hooks.json entry run through `/bin/sh -c` as the host runs it.

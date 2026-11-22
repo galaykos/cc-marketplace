@@ -716,6 +716,8 @@ A host /loop tick is a frame, above.
 
 ## plugins/skill-router/hooks/summary.sh
 
+Editor's note (2026-11-21, 0.34.1): the SessionEnd print of unflushed `pending_low` entries ("Low-confidence signals seen this session — consider: …") is removed, with its header clause. route.sh has written no `pending_low` since 0.34.0 (`route.test.sh` case 18 asserts it), so the block could not fire; `route.test.sh` case 18b asserts the hook prints nothing. The three `pending_low*` ledger fields stay, empty, because `scripts/turn-cost.sh --skills` still reads them from older rows. The header text below describes the hook before that change.
+
 Editor's note (2026-10-04, card 03): route.sh's "CONTEXT KEY block" is now a one-line "Context key" comment in its main block (its text: § plugins/skill-router/hooks/route.sh, ### CONTEXT KEY).
 
 ### Header: shebang, contract and state
@@ -950,6 +952,8 @@ Qualified names: a bare `Skill("testing-best-practices")` loaded a project's own
 ```
 
 ## plugins/skill-router/hooks/compact-capsule.sh
+
+Editor's note (2026-11-21, 0.34.1): the run line said "the completion gate still requires a recorded behavioral-gate pass". task-runner registers no Stop hook; the only enforcer is candor's `hooks/gate.sh` clause 4, which `TASK_RUNNER_STOP_GATE=off` turns off. The line now names candor's Stop hook and says it applies only when candor is installed, as task-runner's own `task-execution` skill words it. It is printed unconditionally rather than gated on `pr_plugin_installed candor`, because the requirement is still task-runner's rule (`commands/run.md` step 4) without candor.
 
 ### Header: shebang and what it re-states
 

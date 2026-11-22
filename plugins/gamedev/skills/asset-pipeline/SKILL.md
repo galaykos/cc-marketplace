@@ -14,7 +14,7 @@ Higgsfield's own `higgsfield-generate` skill. Every vendor fact below, with its 
 
 | Rule | Standing |
 |---|---|
-| Pick the asset's budget row before the first paid call, and measure the model against it at every handoff | **gate** (warn-only hook) where meshy's hook fires (15,000 triangles, 2,048 px). Any other row: run `inspect_glb.py` with its numbers, **agent-graded** |
+| Pick the asset's budget row before the first paid call, and measure the model against it at every handoff | Picking the row: **recorded**. Measuring: **gate** (warn-only hook) at 15,000 triangles / 2,048 px when a model lands through meshy's hook (a Write, a Bash call naming glb/gltf/meshy, Meshy's MCP download). Any other row, or a handoff the hook does not see: run `inspect_glb.py` with its numbers, **recorded** |
 | State the credit cost of each call, and the total of a batch, and get a yes before submitting | **agent-graded**. Higgsfield's help center: "There's no native credit cap." Nothing refuses a call for you |
 | Never create a Meshy task again because your own request timed out; list tasks first | **recorded**. Meshy: "Don't create a new task when your own request times out" |
 | Download each result as soon as it succeeds; keep the concept, prompt, references and task ids in a manifest | **recorded**. Meshy keeps API models "at most 3 days", Higgsfield's API keeps request files seven days |
@@ -62,7 +62,7 @@ platform's or the project's own budget wins. Pass the row to the checker as
 5. **Unity import.** Copy the model into `Assets/` without a `.meta`, and let Unity create one. Never
    copy a `.meta` from another project, because it carries that project's GUID. unity-traps' hook
    runs `check_unity_project.py` after the copy. Before calling the import done, capture the scene
-   and read the console, as unity-traps' done-gate says.
+   and read the console, as unity-traps' skill asks; candor's Stop gate holds that where candor is installed.
 
 ## Credit caps: the cap is yours
 

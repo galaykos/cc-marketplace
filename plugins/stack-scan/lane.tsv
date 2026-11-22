@@ -16,6 +16,8 @@
 # territory and yields to both skills; the two skills are a mutual pair between two
 # territories — plugin-scout routes uncovered stacks to --skills, vercel-skills-scout
 # leaves marketplace plugins to plugin-scout — not a cycle.
+# install-guard borrows vercel-skills-scout's noun: its deny holds that skill's explicit-pick floor, and its two asks
+# (plugin scope, npm audit fix --force) have no noun of their own in scripts/lane-vocabulary.txt yet.
 stack-scan:report	command	understand	installed-stack-inventory	invoked as /stack-scan:report [path]	stack-scan:installed-versions
 stack-scan:installed-versions	skill	understand	installed-stack-inventory	version-dependent advice is about to be given, or work starts in an unfamiliar repo, and what is actually installed has not been read from manifests, lockfiles, runtime binaries or container images	stack-scan:plugin-scout,devops:compose-init,taskmaster:context-scout
 stack-scan:suggest	command	understand	marketplace-plugin-suggestion	invoked as /stack-scan:suggest, with --skills for the third-party mode and --sync to reconcile this project's enabled set by scope	stack-scan:plugin-scout,stack-scan:vercel-skills-scout
@@ -24,3 +26,4 @@ stack-scan:vercel-skills-scout	skill	understand	third-party-skill-suggestion	the
 stack-scan:audit	command	review	dependency-audit	invoked as /stack-scan:audit; the user asks for vulnerabilities, outdated packages or licences across composer/npm dependencies	security:security-review
 stack-scan:package-hygiene	skill	build	dependency-management-discipline	editing composer.json or package.json, adding/updating/removing a dependency, bumping versions, resolving a lockfile conflict, or acting on audit output	approaches:build-vs-buy,api-design:api-docs-first
 stack-scan:pins	mod	any	installed-version-pins	skill.prompt of any skill whose text carries a Last verified stamp naming an npm package (npm:<pkg>@<version>) installed in node_modules or locked in package-lock.json, pnpm-lock.yaml or yarn.lock, or a composer package (composer:<vendor>/<package>@<version>) installed in vendor or locked in composer.lock, from the session cwd up to the repository root, on CLI 2.1.291+ with CC_VERSION_PINS (or cc_version_pins) not off; prepends the installed version and its drift from the stamp	-
+stack-scan:install-guard	hook	any	third-party-skill-suggestion	a Bash skills add, install or i (npx, bunx, pnpx, pnpm dlx, yarn dlx, bun x, npm exec or bare skills) with -g, --global, --skill '*' or --all is denied; a claude plugin install, uninstall, enable or disable with no -s or --scope, or an npm audit fix --force, is asked	stack-scan:vercel-skills-scout

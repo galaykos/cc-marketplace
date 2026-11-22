@@ -1,5 +1,5 @@
 #!/bin/bash
-# gate.sh — Stop: sends the turn back (JSON block on stdout) when a name ledger.sh ledgered has no line in the final reply naming it with `as named`, `substituted`, `omitted` or `pending` (unfinished: it leaves the ledger too); twice a session at most, then warns; accounted names leave the ledger. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
+# gate.sh — Stop: sends the turn back (JSON block on stdout) when a name ledger.sh ledgered has no line in the final reply naming it with `as named`, `substituted`, `omitted` or `pending` (unfinished: it leaves the ledger too); twice per ask at most, then warns (the count resets when the ledger clears or it gives up); accounted names leave the ledger. Off: CC_ASK_LEDGER=off (unset: /config option cc_ask_ledger). Fails open.
 # Misses: whether "as named" is true (the model's word, agent-graded), and a later turn quietly undoing an accounted name it does not name again. Silent with no ledger, no final message, or while the payload's background_tasks lists a subagent, a teammate or a running shell naming a check (owed names wait for a later stop); a check named otherwise is missed.
 # Why, limits, history: rationale/derivations/plugin-ask-ledger.md § plugins/ask-ledger/hooks/gate.sh
 
@@ -55,7 +55,8 @@ exec 3>&2
 "
   done < "$dir/entries"
   printf '%s' "$owed" > "$dir/entries"
-  [ -n "$missing" ] || exit 0
+  # The two-block limit counts per ask, not per session: a cleared ledger ends the ask and the count with it.
+  [ -n "$missing" ] || { rm -f "$dir/blocks"; exit 0; }
   # A running background agent hands back and wakes this session, so this reply is interim. So is a running shell that names a check (a worker
   # that ended its turn leaves only its suite's shell listed); a shell that names none may be a server that never ends.
   waiting=$(printf '%s' "$input" | jq -r '[.background_tasks? // [] | .[]? | select(.type == "subagent" or .type == "teammate"
@@ -65,7 +66,7 @@ exec 3>&2
   n=$(cat "$dir/blocks" 2>/dev/null || echo 0)
   if [ "$n" -ge 2 ]; then
     printf 'ask-ledger: after two tries the final reply still does not say what happened to %s; ending the turn anyway, so treat those as unverified.\n' "$missing" >&3
-    : > "$dir/entries"
+    : > "$dir/entries"; rm -f "$dir/blocks"
     exit 0
   fi
   echo $((n+1)) > "$dir/blocks"

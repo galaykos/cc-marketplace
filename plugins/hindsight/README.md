@@ -87,9 +87,10 @@ Agent rows carry the same fields plus `"kind":"agent"`, `"agent_id"`, and
 `"agent_type"` (e.g. `code-review:code-reviewer`); a row without `kind` is a
 session.
 
-`friction_events` is a best-effort heuristic count of tool-result
-error/rejection markers — it undercounts rather than crashes, and a session that
-was quiet and wrong ranks low.
+`friction_events` is a best-effort heuristic count of lines carrying an error or
+rejection marker. It never crashes, but it can miss or over-count: two errors on one line
+count once, and a tool result that only quotes the word "rejected" (a file read, say)
+counts. A session that was quiet and wrong ranks low.
 
 Reports are saved beside the ledger at `reports/YYYY-MM-DD.md`. The one file this
 plugin writes into the project is `<project>/.cc-artifacts/hindsight/anti-patterns.md`,

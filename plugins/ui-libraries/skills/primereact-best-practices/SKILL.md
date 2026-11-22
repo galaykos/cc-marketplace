@@ -171,7 +171,9 @@ v11 also has a component named `Sidebar`, but it is an app navigation shell. v10
   and `primereact/resources/themes/…` are correct.
 - `npm install primereact` now resolves to `11.x`: a new licence and a rewrite. Pin `primereact@^10`, or
   install `primereact@v10-stable`. Adding `@primereact/ui` or `@primeuix/themes@3` is the same migration by
-  another route.
+  another route (`@primeuix/themes` bare also resolves 3.x). This plugin's `hooks/package-command-guard.sh` asks
+  before such an install while the lockfile resolves primereact 10.x; hand edits to `package.json`, `npm update`
+  and Renovate pass it unseen.
 - A migration is its own task. Settle the licence first, then migrate screen by screen with the reference open.
 
 ## Defer rule
@@ -189,7 +191,7 @@ v11 also has a component named `Sidebar`, but it is an app navigation shell. v10
 - **Assumed virtualization:** `virtualScrollerOptions` carried into v11.
 - **shadcn's `--primary` on the PrimeReact registry**, whose tokens are `--p-*`.
 
-Standing: every rule is **recorded** — read from the docs and npm on the stamp date; no script checks a lockfile
-against them. They are **agent-graded** where `ui-ux:ui-ux-reviewer` and `/code-review:review` apply them, and
+Standing: every rule is **recorded** — read from the docs and npm on the stamp date — except § 9's install rule,
+whose ask patterns are a **gate** (`scripts/__tests__/package-command-guard.test.sh`, run in CI). They are **agent-graded** where `ui-ux:ui-ux-reviewer` and `/code-review:review` apply them, and
 §§ 2–5 by `evals/primereact-v11-screen` (run by hand, not in CI). Only the route that loads this skill is
 a **gate** (`skill-router`'s `route.test.sh`).

@@ -153,6 +153,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_COMPACT_STEER` | skill-router | on | When a phase sentinel, task-runner run or taskmaster ledger is on disk, tell the compaction summarizer t … |
 | `CC_CONFIG_GUARD` | command-guard | on | Ask before a write that would weaken settings, hooks, manifests or lint and test config: on or off |
 | `CC_CONVENTIONS` | code-review | on | Name the convention configs and the CI command enforcing them at the first code write: on or off |
+| `CC_COVERAGE_GATE` | candor | — | CC_COVERAGE_GATE=off\|warn (8); unset, /config.; clause 4 does not send back a turn whose last human prom … |
 | `CC_DB_GUARD` | database | on | Ask before a write that drops, truncates or mass-deletes data or takes a risky lock: on or off |
 | `CC_DESIGN_CONTRACT` | ui-ux | on | When the project declares .cc-artifacts/design-kit/design-system/contract.json, name UI lines an edit ad … |
 | `CC_DESIGN_KIT_PICK` | design-kit | on | Tell the session when an artboard picked on a design-kit board is waiting: on or off |
@@ -181,7 +182,7 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_PROTECT_TESTS` | testing | on | Refuse an edit that adds a skip or only marker to a test, or empties a test file: on or off |
 | `CC_REMIND` | api-design, approaches, code-review, debugging, design-kit, secret-scanning, security, skill-router, task-runner, taskmaster, testing, ui-ux | on | Reminder hooks that add guidance to the session: on or off |
 | `CC_REVIEW_NUDGE` | code-review | on | Suggest an independent review once enough unreviewed or sensitive code has changed: on or off |
-| `CC_ROUTE` | skill-router | on | Hand the model command-picking rules and flush pending low-confidence skill signals: on or off |
+| `CC_ROUTE` | skill-router | on | Hand the model command-picking rules: on or off |
 | `CC_SECRET_COMMIT_SCAN` | secret-scanning | on | Refuse a git commit or push whose added lines hold a high-confidence secret: on or off |
 | `CC_SECRET_OUTPUT_SCAN` | secret-scanning | on | Name, by its label and never its value, a secret found in a tool's output, after the call: on or off |
 | `CC_SECRET_PROMPT` | secret-scanning | on | Mark a secret typed or pasted into the prompt box and ask before sending it (mask, send as typed, or can … |
@@ -195,8 +196,10 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
+| `CC_UNITY_API_CHECK` | unity-traps | on | Run check_unity_project.py after a Write or Edit of an Assets/**/*.cs, and add that file's findings for  … |
 | `CC_UNITY_META_CHECK` | unity-traps | on | Run check_unity_project.py after a Bash call moves, copies or deletes an Assets/ path, or a .meta is wri … |
 | `CC_UNITY_VISUAL_GATE` | candor | block | Stop-gate clause for Unity scene, prefab or Assets script work called done with no capture and no consol … |
+| `CC_UNREAL_CHECK` | unreal | on | Run check_unreal_project.py after a Write or Edit of a Config/*.ini or Source/**/*.cpp\|h under the neare … |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |

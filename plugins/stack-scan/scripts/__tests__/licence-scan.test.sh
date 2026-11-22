@@ -47,6 +47,23 @@ ec "GPL is fine for a copyleft project"          0 --dir "$FX/gpl" --distributio
 mklock "$FX/clean" MIT ISC Apache-2.0 BSD-3-Clause
 ec "permissive set is clean everywhere"          0 --dir "$FX/clean" --distribution distributed-binary
 
+# --- compound SPDX expressions ----------------------------------------------
+# Each deny pattern is anchored at the start of the declared string, so before 0.20.0 a denied licence after an
+# AND, or inside ( ), read clean: `MIT AND LGPL-3.0-only` passed a distributed binary.
+mklock "$FX/and" "MIT AND LGPL-3.0-only"
+ec "a denied licence after AND is denied"         2 --dir "$FX/and" --distribution distributed-binary
+ec "the same AND stays clean where LGPL is routine" 0 --dir "$FX/and" --distribution saas
+mklock "$FX/andp" "(MIT AND LGPL-3.0-only)"
+ec "a parenthesised AND is read term by term"     2 --dir "$FX/andp" --distribution distributed-binary
+mklock "$FX/orp" "(GPL-3.0-only OR LGPL-2.1-only)"
+ec "an OR with every alternative denied is denied" 2 --dir "$FX/orp" --distribution distributed-binary
+mklock "$FX/or" "MIT OR LGPL-3.0-only"
+ec "an OR with a clean first choice stays clean"  0 --dir "$FX/or" --distribution distributed-binary
+mklock "$FX/orlead" "LGPL-3.0-only OR MIT"
+ec "residual: an OR led by a denied licence is still denied" 2 --dir "$FX/orlead" --distribution distributed-binary
+printf '{"allow":["LGPL-3.0-only"]}\n' > "$FX/and/allow.json"
+ec "an allow entry clears one term of an AND"     0 --dir "$FX/and" --distribution distributed-binary --policy "$FX/and/allow.json"
+
 # --- the silent-false-pass trap ---------------------------------------------
 mkdir -p "$FX/v1"
 printf '{"lockfileVersion":1,"dependencies":{"p1":{"version":"1.0.0"}}}\n' > "$FX/v1/package-lock.json"

@@ -132,8 +132,7 @@ the code before the first webhook arrives.
 ## Boundaries
 
 Standing: recorded — owns application-level failure handling. Infra HA and
-failover are the devops plugin; `/approaches:compare` generates the failure routes
-this skill mitigates; injection and authz gaps go to `/security:review`.
+failover are the devops plugin; injection and authz gaps go to `/security:review`.
 
 ## Anti-patterns
 

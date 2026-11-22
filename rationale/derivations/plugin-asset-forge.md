@@ -20,3 +20,15 @@ first execute call after a review and ends at the next successful `render_review
 `contact_sheet`). Read-only execute calls also mark a change; the pipeline skill sends read-only inspection to the
 summary tools for that reason. Harness: `scripts/__tests__/review-state.test.sh`, 16 cases with the host's payload
 shapes.
+
+**2026-11-21 (0.7.1): a review of a stale snapshot no longer clears the gate.** The dirty flag held only the time of
+the first change in a cycle, and any successful `render_review_set` removed it, whatever `blend_path` it rendered.
+So snapshot, more live edits, then a review of the old snapshot let Stop pass on a scene nobody had reviewed. A
+reviewer found it by reading the hook (thinking-disciplines follow-up, finding 1). Now every `execute_blender_code`
+call except a snapshot (its code names `save_as_mainfile` and `copy=True`) touches a `last` file, and a review
+clears the flag only when its `blend_path` (`~/` expanded, a relative path read from the payload's `cwd`) is newer
+than `last` (`[ -nt ]`, sub-second where the file system keeps it). No `last` yet means no live edit was seen, and
+the review clears as before. A path the hook cannot stat clears nothing, so the gate fails toward one reminder.
+Residuals: one call that saves the snapshot and then edits counts as a snapshot; a snapshot written by another route
+than an execute call is judged by its file time alone. Two harness cases: a review of the older of two snapshots
+still blocks (it failed on the 0.7.0 hook, run from a copy), and a review of the newer one clears. 18 cases.

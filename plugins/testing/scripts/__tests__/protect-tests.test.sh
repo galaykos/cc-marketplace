@@ -240,5 +240,42 @@ bash_denies "no cd: a cd in a body a subshell runs moves nothing" \
 bash_denies "no cd: cat > t/foo.test.js adding an it.skip is still judged" \
   $'cat > t/foo.test.js <<EOF\nit.skip(\'b\',()=>{});\nit.skip(\'n\',()=>{});\nit(\'c\',()=>{});\nEOF'  # skip: the fixture this case must deny
 
+# Shape 3: weakened assertions ask (interactive) or warn (auto, bypass, -p); they never deny.
+fire_pm() { # mode tool json
+  python3 - "$1" "$2" "$3" <<'PY' | "${BASH:-bash}" "$HOOK" 2>/dev/null
+import json,sys,os
+print(json.dumps({"session_id":"pt","cwd":os.environ.get("T",""),"permission_mode":sys.argv[1],"tool_name":sys.argv[2],"tool_input":json.loads(sys.argv[3])}))
+PY
+}
+expect_out() { # name pattern mode tool json
+  out=$(fire_pm "$3" "$4" "$5")
+  case "$out" in *"$2"*) ok "$1" ;; *) bad "$1" "expected $2, got: ${out:-<silent>}" ;; esac
+}
+expect_silent() { # name mode tool json
+  out=$(fire_pm "$2" "$3" "$4")
+  [ -z "$out" ] && ok "$1" || bad "$1" "expected silence, got: $out"
+}
+W_OLD="it('a',()=>{\n  expect(sum(1,2)).toBe(3);\n  expect(sum(0,0)).toBe(0);\n});"
+expect_out "weak: an Edit dropping an expect line asks" '"permissionDecision":"ask"' default Edit \
+  "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"$W_OLD\",\"new_string\":\"it('a',()=>{\\n  expect(sum(1,2)).toBe(3);\\n});\"}"
+expect_out "weak: an Edit rewriting the expected literal asks" 'changes the expected value' acceptEdits Edit \
+  "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"  expect(sum(1,2)).toBe(3);\",\"new_string\":\"  expect(sum(1,2)).toBe(4);\"}"
+expect_out "weak: python assert removed in a MultiEdit asks" '"permissionDecision":"ask"' default MultiEdit \
+  "{\"file_path\":\"$T/test_calc.py\",\"edits\":[{\"old_string\":\"    assert add(1, 2) == 3\\n    assert add(0, 0) == 0\",\"new_string\":\"    assert add(1, 2) == 3\"}]}"
+expect_out "weak: auto mode warns instead of asking" '"systemMessage"' auto Edit \
+  "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"$W_OLD\",\"new_string\":\"it('a',()=>{});\"}"
+out=$(fire_pm bypassPermissions Edit "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"$W_OLD\",\"new_string\":\"it('a',()=>{});\"}")
+case "$out" in *'"ask"'*|*deny*) bad "weak: bypass mode never asks or denies" "$out" ;; *) ok "weak: bypass mode never asks or denies" ;; esac
+expect_silent "weak: an added assertion stays silent" default Edit \
+  "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"  expect(sum(1,2)).toBe(3);\",\"new_string\":\"  expect(sum(1,2)).toBe(3);\\n  expect(sum(2,2)).toBe(4);\"}"
+expect_silent "weak: re-indenting an assertion stays silent" default Edit \
+  "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"  expect(sum(1,2)).toBe(3);\",\"new_string\":\"    expect(sum(1,2)).toBe(3);\"}"
+expect_silent "weak: renaming the subject (no literal change) stays silent" default Edit \
+  "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"  expect(sum(1,2)).toBe(3);\",\"new_string\":\"  expect(add(1,2)).toBe(3);\"}"
+expect_silent "weak: a non-test file dropping an assert stays silent" default Edit \
+  "{\"file_path\":\"$T/src/calc.ts\",\"old_string\":\"$W_OLD\",\"new_string\":\"it('a',()=>{});\"}"
+out=$(CC_PROTECT_TESTS=off fire_pm default Edit "{\"file_path\":\"$T/w.test.ts\",\"old_string\":\"$W_OLD\",\"new_string\":\"it('a',()=>{});\"}")
+[ -z "$out" ] && ok "weak: CC_PROTECT_TESTS=off stays silent" || bad "weak: off switch" "$out"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

@@ -134,7 +134,8 @@ Verification is three-part, all mandatory:
 
 1. The ORIGINAL Phase 1 reproduction now passes — not a related test, not a
    re-description of it, the exact one.
-2. The full suite passes — the fix broke nothing else.
+2. The full suite passes — the fix broke nothing else. Standing for 1 and 2: recorded;
+   nothing here runs either for you.
 3. `grep` for the investigation's `[DEBUG-…]` prefix returns nothing — every probe
    is gone. Standing: recorded; a hook asks only at a `git commit` that stages one; any other survivor is yours to find.
 

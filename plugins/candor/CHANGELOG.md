@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.15.0 — 2026-11-21
+
+- **Clause 8, coverage overclaim.** `hooks/gate.sh` sends back a final message (Stop, or a subagent's hand-back on SubagentStop) that claims it read or reviewed every file of a set it names, when no tool input of the turn names one of those files or a directory of it. The block lists up to 5 unopened files. Saying what was not read ("not read: <path>", "skipped", "only read") passes. A named directory stands for its tracked files, and the clause stands down above 40. Why: in OverclaimBench (arXiv 2609.20812) agents skipped files they were asked to review in 67.9% of runs, and 52.8% of the incomplete runs claimed a complete review. `CC_COVERAGE_GATE=off|warn`. Standing: gate; `gate.test.sh` 14 new cases. Misses: a claim that names no paths, a file a tool touched but did not read in full, reads older than the transcript tail.
+
 ## 0.14.2 — 2026-11-17
 
 - **`hooks/preamble.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.

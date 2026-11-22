@@ -35,7 +35,8 @@ The step order is `analyzer-triage`'s; this file adds what is specific to these 
 - Design-system, token and component-library correctness → `ui-ux`'s ui-ux-reviewer.
 - Applying accessibility fixes → `ui-ux`'s a11y-engineer.
 - Component and view logic → `web-dev`'s frontend-reviewer.
-- Motion and animation review → `ui-ux`'s motion skill via `/code-review:review`.
+- Motion and animation review → `ui-ux`'s motion-best-practices skill, loaded directly;
+  `/code-review:review`'s fan-in does not route motion.
 
 ## Before finishing
 

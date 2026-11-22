@@ -9,7 +9,7 @@
 # asserted by a shell test. What is gated here is the mechanism around the judgment —
 # that the directive carries the discipline that keeps it from nagging; that every
 # guard silences the hook; that it costs its tokens once per session. Which command
-# the model then picks is agent-graded, per CLAUDE.md's has-teeth convention. Do not
+# the model then picks is recorded (no reviewer grades it), per CLAUDE.md's has-teeth convention. Do not
 # add a test here that claims otherwise.
 #
 # The hook BUILT a 60-row catalog until 2026-09-22, and the assertions that measured
@@ -383,7 +383,7 @@ fi
 # paragraph and `git show` for the cases.
 
 if [ "$rc" -eq 0 ]; then
-  printf '\nAll tool-fit check cases passed (mechanism only — the routing verdict is agent-graded).\n'
+  printf '\nAll tool-fit check cases passed (mechanism only — the routing verdict is recorded; no reviewer grades it).\n'
 else
   printf '\nSome tool-fit check cases FAILED.\n'
 fi

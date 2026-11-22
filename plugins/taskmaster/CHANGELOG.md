@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.64.0 — 2026-11-21
+
+- **`preview-guard.sh` names the off switch that works**: the /config option `cc_preview_guard`, or `CC_PREVIEW_GUARD=off` in the environment Claude Code starts with; an export inside a Bash call never reaches a hook. Twin of ui-ux's copy.
+- **Brainstorm drafts its alternatives blind before it ranks them.** With approaches not installed, and for creative directions, the 2–3 candidates are drafted before any pick. Each comes from a fresh subagent when the run already fans out. Otherwise one step lists k candidates with estimated probabilities and keeps at least one unlikely one. Critique comes after all exist. Evidence, cited in the command: LLM ideas cluster across 22 models (arXiv 2501.19361) and fixate on early outputs (arXiv 2602.20408); pooled solo ideation beat group ideation in 18 of 22 experiments (Diehl & Stroebe 1987); debate beat "no criticism" (Nemeth et al. 2004). The approaches route is unchanged. Standing: agent-graded.
+
 ## 0.63.4 — 2026-11-17
 
 - **`hooks/remind.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.

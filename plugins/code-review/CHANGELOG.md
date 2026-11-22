@@ -3,7 +3,13 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
-## 0.38.1 — 2026-11-17
+## 0.38.2 — 2026-11-21
+
+- **The short lane is a conjunction in both commands.** `/code-review:review` and `/code-review:comment-review` read "a trivial, single-file, or purely mechanical change earns a one-line verdict", so a 400-line single-file change could end unread, and any single-file `comment-review` target was skipped. Both now take the one-line verdict only for a change that is single-file AND purely mechanical AND under the 5-file, 300-line thresholds, as the `code-reviewer` agent already did; `comment-review` on a path is always the deep pass. Standing: agent-graded.
+- **`[CONFIRMED]` says what it carries.** In `/code-review:review` it means a fresh-context reader with Read, Grep and Glob only could not refute the finding; it ran nothing, and the review now says so. `comment-review`'s self-refute drops or downgrades a critical finding only on a cited line or command output that contradicts it; an uncited doubt keeps it as `PLAUSIBLE`. Standing: agent-graded.
+- **`comment-review` hands up when the ask is wider than comments**, a bug, smell or convention review of the same scope, instead of on files "outside this plugin's surface", which never decided anything. The ultra-assess suggestion is offered only when task-runner is installed.
+- Labels and routes: the debt ratchet's "never `--update-baseline` to go green" rule is `recorded` (was `unenforceable`; no hook asks before it, though one could); the review-debt nudge's README standing is gate for when it fires (`review-debt.test.sh`), not "advisory"; `analyzer-triage`'s UI reference sends motion review to `ui-ux`'s motion-best-practices skill directly, since the review fan-in does not route motion; `comment-discipline` no longer claims every worker agent carries a "Code shape" section.
+
 
 - **`hooks/review-debt.sh` ignores desktop-app events.** A `<ci-monitor-event>` (Auto-fix's CI report), a `<side-sessions-event>` or a bare `<cross-session-message>` prompt is now a harness frame in the shared prompt-shape block, so it no longer draws this hook's prompt-time reminder. Standing: gate for the block's byte-identity (`validate.sh`); the frame case is exercised in ask-ledger's `ledger-hook.test.sh` 17a–17b.
 

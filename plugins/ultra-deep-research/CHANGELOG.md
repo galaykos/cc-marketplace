@@ -4,6 +4,12 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.9.1 — 2026-11-21
+
+- **The SubagentStop check now reads the report a verifier actually hands back.** On current Claude Code a verifier returns through a `SubagentHandback` tool_use, and `last_assistant_message` holds only its closing text, so `verdict-lint.sh` never saw the verdict. In a live ultra run on 2026-11-21, 13 of 24 verdict blocks failed the lint and none was sent back. `hooks/verify-return.sh` now checks the last hand-back after the agent's last user-text entry first (the rule candor's gate uses, so a resumed agent is not judged again on an old report), then falls back to `last_assistant_message`. Standing: gate; `scripts/__tests__/verify-return.test.sh`, 15 cases (4 new).
+- **`VERDICT:` carries the bare token.** `agents/verifier.md` says caveats go in `REASON`; the lint already rejected `confirmed (with caveats below)`. Standing: gate (lint) once the hook sees the return.
+- **A spent WebSearch budget lands as `unconfirmed`, never as disagreement.** `references/orchestration.md`. Standing: recorded.
+
 ## 0.9.0 — 2026-11-14
 
 - **Reports are saved to `.cc-artifacts/ultra-deep-research/<topic>-<date>.md`** (was `research/`), the one folder a project gitignores for what plugins write during development. The skill, the report template, the command and the plugin description name the new path; reports from before this version stay in `research/`, which nothing writes or deletes. Standing: recorded — no script checks where a report is written.

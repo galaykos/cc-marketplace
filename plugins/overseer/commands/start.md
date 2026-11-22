@@ -10,7 +10,8 @@ trailing `--hands-off`, `--program`, `--model <tier>` and `--budget-tokens <n>` 
 text; pass the tier to `program.sh init --model` (default `opus`: no seat runs above opus;
 `auto`: the user chose to let judgment seats inherit the session model) and the budget to
 `program.sh init --budget-tokens` (after it, `dispatch check` refuses every dispatch once this
-session has spent that many tokens since the program began; **gate**). `--hands-off` with no
+session has spent that many tokens since the program began; **gate**, fail-open with a WARN when
+this session's transcript cannot be read). `--hands-off` with no
 budget draws a WARN from `init`: relay it, and suggest a budget once. Then:
 
 1. Refuse to start when `"${CLAUDE_PLUGIN_ROOT}/scripts/program.sh" status` reports a

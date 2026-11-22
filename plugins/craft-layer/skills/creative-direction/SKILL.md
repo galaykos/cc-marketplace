@@ -59,12 +59,12 @@ rule live in `references/archetypes.md`.
 ## Generate the concept — dispatch the creative-director agent
 
 The concept is DIVERGENT reasoning, so it is an agent, not a checklist: dispatch the
-`creative-director` agent (`agents/creative-director.md`). It generates N blind concepts —
+`creative-director` agent (`agents/creative-director.md`). It drafts N concepts before scoring any, one from the low-probability tail —
 each a central metaphor, an editorial voice, and ONE signature interaction — seeded by the
 anti-corpus differential (each must break K sameness-fingerprint defaults on K DIFFERENT
 axes — K scales with the pinned ambition, `restrained` 1 / `standard` 2 / `maximal` 3), scores them on
 distinctiveness × brief-fit × feasibility (feasibility includes a usability floor), and
-returns the winner plus a **structured divergence record** the audit later checks. The
+returns a ranked fork set of 2–3 candidates plus a **structured divergence record** per candidate, which the audit later checks for the pick. The
 agent owns the rubric; this skill only says WHEN to run it and WHAT it feeds.
 
 **The main thread draws before it dispatches; the agent cannot.** It has `Read, Grep, Glob`

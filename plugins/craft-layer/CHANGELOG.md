@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.62.0 — 2026-11-21
+
+- **The creative-director drafts every candidate before it scores any, and keeps one unlikely one.** Its procedure said "generate N blind candidates", but one agent writes them one after another in one context, where each pulls the next toward it. It now writes all N in one pass with no comparison, gives each its estimated probability of being the typical answer, and keeps at least one below 0.2 (verbalized sampling, arXiv 2510.01171); two metaphors of one genus count as one. `creative-direction` also said the agent returns "the winner"; it returns a ranked 2–3 candidate fork set. Standing: agent-graded.
+
 ## 0.61.2 — 2026-11-15
 
 - `section-decisions` says why a question round offers two or three options (the question dialog holds four beside your own answer, and each must be a structurally different page). A round staged on a drawing page (taskmaster's mockup page, a design-kit board) may hold up to 5 options, never more than 6: that page's own count rule, which taskmaster 0.62.0 and design-kit 0.18.0 raised. A pick still stops after two revisions, staged or asked in the dialog; on taskmaster's page that is a layout or creative pass's three passes, the first included (any other pass kind there allows two passes). Standing: recorded.

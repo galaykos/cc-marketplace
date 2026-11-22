@@ -83,7 +83,7 @@ rule and the typed-token rule; this section does not restate them.
   by construction (an installer of
   everything inside a curated plan defeats the plan — name it instead, once, as
   the door for a user who wants everything); already-installed leaves.
-  **Standing: agent-graded** — `--full` is prose the model follows.
+  **Standing: recorded** — `--full` is prose the model follows.
 - What prints, in this order: the report header line (eligible count, installed
   count, detected stack with evidence); any fired `references/signals.md` `—`
   routing line; the **plan block** below; then the `Beyond this marketplace` block
@@ -210,7 +210,8 @@ covers only what actually got installed this run. Mutually exclusive with
   `--scope project` instead of this skill's default `--scope local`. Note the
   CLI's OWN default is `user` (machine-wide): this skill always passes
   `--scope` explicitly and must never omit it, or an install silently goes
-  machine-wide.
+  machine-wide. Where this plugin is installed, `hooks/install-guard.sh` asks before a
+  Bash `claude plugin install`, `uninstall`, `enable` or `disable` with no `--scope`.
 - Marketplace scope follows: run the Preflight add as
   `claude plugin marketplace add galaykos/cc-marketplace --scope project` under
   `--persist`, so the declaration lands in the same team-shared file. Without the
@@ -300,13 +301,13 @@ repo worked in worktrees, `--persist` is the scope that follows the work.
 
 ## Standing
 
-**Agent-graded, all of it.** No script checks that `--yes` stopped at tier 2,
+**Recorded, all of it.** No script checks that `--yes` stopped at tier 2,
 that the marketplace-add prompt fired, that the `--persist` merge preserved
 unrelated keys, that the machine-wide notice printed, that `--full` applied the
 exclusion table, computed the listing figure, disclosed every hook and MCP
 server, or asked before installing. `pc_scout_names` gates the names in
 `references/stack-relevance.md`'s table and nothing else about it. Those are model
-behaviours a reviewer judges, and the absolute-sounding wording above ("never",
+behaviours nothing reads back, and the absolute-sounding wording above ("never",
 "always") states a contract, not a guarantee.
 
 Two residuals worth naming. Headless `--full --yes --persist` is the one path that

@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.0 — 2026-11-21
+
+- **New PreToolUse Bash hook `package-command-guard.sh`, this plugin's first.** It denies `npx astryx`, `bunx astryx` or `npm exec astryx` when no `package.json` at or above the working directory declares `@astryxdesign/cli`, and `pnpm dlx astryx`, `yarn dlx astryx` or `astryx@<version>` always: each runs the unrelated npm package named `astryx`. The reason names `npx @astryxdesign/cli …` as the fix. It asks before an npm, pnpm, yarn or bun install naming `primereact` bare, `@latest` or `@11`, `@primereact/ui`, or `@primeuix/themes` bare, `@latest` or `@3`, while the nearest lockfile resolves `primereact` 10.x: that install moves the project onto v11 and its keyed licence.
+- **Astryx: the CLI rule matches the install set.** The skill said to use the bare CLI only when `@astryxdesign/cli` is in `devDependencies`, while its own install set puts it in `dependencies`. Either section now counts; npx runs the local bin from both.
+- Standing: gate for the hook's patterns (`scripts/__tests__/package-command-guard.test.sh`, 29 cases, 15 of them must stay silent). Misses: hand edits to `package.json`, `npm update`, ncu, Renovate, `bun.lockb`, `npx -p`, and a CLI declared but not yet installed.
+
 ## 0.5.0 — 2026-11-11
 
 - **Single-purpose components in the library map**: Sonner (toasts), Vaul (bottom drawer), cmdk (command menu) and NumberFlow (animated numbers), each with its package, version, styling channel and docs URL. `component-libraries` now says these four jobs are not hand-built: use what the manifest has, else the one library the map names. Vaul's own README calls the repo unmaintained, so the row sends new Base UI work to the library's own Drawer.

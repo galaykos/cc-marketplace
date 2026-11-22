@@ -152,7 +152,8 @@ suggestion, then stop. With `--yes`: skip the picker — see Flags.
 That is the only install command this scout RUNS (official-directory rows are printed,
 never run). `--scope local` keeps installs repo-only (`.claude/settings.local.json`); `--persist` →
 `--scope project`, `--global` → `--scope user` (Flags). Always pass `--scope`: the CLI's
-own default is `user`.
+own default is `user`. `hooks/install-guard.sh` asks before a `claude plugin install`,
+`uninstall`, `enable` or `disable` with no `--scope` (gate where installed).
 
 3. Success is **exit status 0**; a missing plugin or unknown marketplace exits 1 and
    prints `✘ Failed to install`. Never infer success from stdout. Report each result as it
@@ -189,7 +190,7 @@ suggestion is already installed, say so and stop.
 
 ## Standing
 
-**Agent-graded.** No script checks that a tier-1 row cited its evidence, that the sweep
+**Recorded.** No script checks that a tier-1 row cited its evidence, that the sweep
 ran, that detection stayed read-only, that the picker offered the door, or that the
 relevance pass gave reasons instead of padding. Gated by name only: catalog freshness
 (`generate.sh --check`), plugin names in the four TABLE lists of this file,

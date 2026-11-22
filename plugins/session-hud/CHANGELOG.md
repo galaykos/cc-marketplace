@@ -2,6 +2,10 @@
 
 All notable changes to the session-hud plugin.
 
+## 0.3.2 — 2026-11-21
+
+- **A code comment in `hooks/hud.tsx` no longer says a throw in a `tool.call` hook fails the call closed.** The host skips a failed hook and each of this module's hooks has a `.catch` that replays its `next`, so a throw only leaves the figures stale. No behaviour change. Standing: recorded.
+
 ## 0.3.1 — 2026-11-16
 
 - **Documented as Code Mode incompatible.** The README and the plugin description say the module hooks tool calls, which Code Mode (`CLAUDE_CODE_EXPERIMENTAL_CODE_MODE=1`) refuses to start with, so the plugin must be uninstalled for Code Mode; its options do not stop the module loading. No behaviour change. Standing: recorded.

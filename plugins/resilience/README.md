@@ -62,7 +62,8 @@ rubrics the diff selects in one pass.
   leaving infra-layer wiring to devops.
 - **performance-engineer** (worker) — profiling, bundle size, caching, Core Web
   Vitals, N+1 queries, load testing — and never ships an optimization without a
-  before/after measurement.
+  before/after measurement. Standing: recorded — the agent's own rule; no hook checks
+  that it measured before its first edit and after its last.
 
 ## Evals
 

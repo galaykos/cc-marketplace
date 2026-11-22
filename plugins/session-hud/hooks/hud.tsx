@@ -53,7 +53,8 @@ async function switchesOf($: EngineInterface, options: PluginOptions): Promise<S
   }
 }
 
-// The pane calls answer a safe default rather than throw: a throw inside a tool.call hook fails the person's call closed.
+// The pane calls answer a safe default rather than throw, so one failed lookup does not end the refresh; a throw would not
+// fail the call (each hook's .catch replays its next), it would leave the figures stale.
 async function hudPane($: EngineInterface) {
   return $.ui.panes().then(panes => panes.find(pane => pane.id === PANE.id), () => undefined)
 }

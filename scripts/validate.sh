@@ -388,7 +388,7 @@ $cofires
 EOF_COFIRES
   fi
 
-  # route-prompt.sh: no literal command token, at most four prompt greps (pc_route_prompt_literals/_greps); which command the model picks is agent-graded.
+  # route-prompt.sh: no literal command token, at most four prompt greps (pc_route_prompt_literals/_greps); which command the model picks is recorded (no reviewer grades it).
   RP="$SR/hooks/route-prompt.sh"
   if [ -f "$RP" ]; then
     prompt_lits=$(pc_route_prompt_literals "$RP") \

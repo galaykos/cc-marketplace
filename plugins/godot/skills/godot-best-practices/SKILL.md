@@ -102,7 +102,7 @@ description: Use when writing, reviewing or debugging Godot 4 code or project fi
 |---|---|
 | Read the minor before advising; never mix majors | **recorded** — nothing checks which version an answer targets |
 | Every trap above and in `references/` | **recorded** — nothing in this plugin runs Godot or lints `.gd`; **agent-graded** only when a reviewer applies them to a diff |
-| Broken `res://` paths, uids and scene parent paths after a move or rename | a script with an exit code — `godot:godot-project-check`; nothing runs it unless someone does |
+| Broken `res://` paths, uids and scene parent paths after a move or rename | **gate** for whoever runs `godot:godot-project-check`'s checker (exit 1); the plugin's hook runs it after a Write/Edit of a `.tscn`, `.tres` or `.gd` (warn-only). A move or rename from Bash it does not see: running it then is **recorded** |
 
 ## Anti-patterns
 

@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use when a game asset in Blender needs judging (after a blockout, after texturing, before export, or when asked whether it reads well), with turntable, silhouette, game-distance, wireframe and UV-checker renders of a snapshot plus validation, critiqued by an independent art reviewer.
+description: Use when a game asset in Blender needs judging (after a blockout, after texturing, before export, or when asked whether it reads well), with turntable, silhouette, game-distance, wireframe and UV-checker renders of a snapshot plus validation, critiqued by a context-blind art reviewer.
 disable-model-invocation: true
 ---
 

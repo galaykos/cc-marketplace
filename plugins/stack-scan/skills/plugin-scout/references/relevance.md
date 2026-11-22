@@ -102,7 +102,7 @@ reason is visible and arguable, where `universal` was neither.
 
 ## Standing
 
-**Agent-graded, entirely — with not one gate, not even the name one.** No
+**Recorded, entirely — with not one gate, not even the name one.** No
 script checks that the pass ran, that a lifted row got a reason rather than a
 description, that the reason is true, or that zero was reported honestly
 instead of padded.

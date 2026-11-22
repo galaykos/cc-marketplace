@@ -47,7 +47,7 @@ claude plugin install gamedev@cc-plugins-marketplace
 | The checkers' own behaviour | **gate** — `scripts/__tests__/*.test.sh` run their unittest suites in this marketplace's CI; they prove the checks fire, not that steamcmd or itch.io behave the same today. The meter's suite runs EBU Tech 3341 cases 1, 2, 4–6 and 15–19, and compares with ffmpeg's `ebur128` only where ffmpeg is installed |
 | Store timelines, review order, upload limits, HTML5 limits | **recorded** — dated by each skill's `Last verified` stamp; nothing re-reads the Steamworks or itch.io pages |
 | Content Survey answers, store-page feature parity with the build | **agent-graded** — only a reader of the game's assets and store page can judge them |
-| An AI-generated model meets its budget row at each handoff | **gate** where meshy's PostToolUse hook fires (15,000 triangles, 2,048 px); any other row is **agent-graded**, since the agent runs `inspect_glb.py` with its numbers |
+| An AI-generated model meets its budget row at each handoff | **gate** (warn-only) where meshy's PostToolUse hook fires when a model lands (15,000 triangles, 2,048 px). Picking the row, any other row, and a handoff the hook does not see (a Blender export through MCP) are **recorded**: the agent runs `inspect_glb.py` with its numbers, and nothing checks that it did |
 | A paid Higgsfield or Meshy call is priced and confirmed first | **agent-graded** — Higgsfield documents no native credit cap, and nothing here refuses a call |
 
 Measured: nothing — no control-arm eval covers any skill here, so whether each one changes what

@@ -18,6 +18,7 @@ directory.
 .cc-artifacts/overseer/
   .gitignore              # "*"
   program.json            # the machine-read state (schema below) — written ONLY by program.sh
+  program.json.sum        # its checksum after program.sh's last write: a state changed outside it is refused (gate)
   charter.md              # raw goal, upgraded statement, users, must-haves, non-goals, product decisions, suggestions
   discovery.md            # project inventory (stack, features, components, tests, tooling, CI)
   capabilities.tsv        # capability-scan.sh output at start time
@@ -26,7 +27,9 @@ directory.
     brief.md              # the milestone brief handed to the pipeline (dispatch-prompts.md § Brief)
     dispatch/<n>.md       # every prompt dispatched directly, as sent, after `program.sh dispatch check`
                           # (a follow-up message to a live worker too: <n>-followup.md, --kind followup;
-                          # a fresh worker sent to fix: <n>-fix.md — both count toward the three-fix cap)
+                          # a fresh worker sent to fix: <n>-fix.md — both count toward the three-fix cap,
+                          # and so does any worker gated after the milestone's first evidence row,
+                          # accepting status or gated reviewer, whatever its name)
     findings.md           # reviewer findings and what was done with each; points at decisions.md rows
     evidence/             # screenshots, console dumps, test output the accept step recorded
   archive/<slug>-<at>/    # a closed program: its program.json (evidence paths rewritten to the
@@ -57,7 +60,7 @@ directory.
       "history": [ { "status": "queued", "at": "…" }, { "status": "building", "at": "…" } ],
       "status": "queued",
       "reason": "",
-      "evidence": [ { "kind": "tests", "note": "pest 42 · pint · phpstan · tsc · build", "file": "/abs/…/tests.txt", "at": "…" } ]
+      "evidence": [ { "kind": "tests", "note": "pest 42 · pint · phpstan · tsc · build", "file": "/abs/…/tests.txt", "at": "…", "sha": "<branch tip at record time>" } ]
     }
   ]
 }
@@ -105,9 +108,16 @@ required kind needs `--file`, a non-empty regular file, stored as an absolute pa
 re-checked by `accept`, and Read in this session since it last changed (**gate** — the
 `.reads` ledger `hooks/track-read.sh` writes; no session id or no row for the session → a
 WARN and the row is recorded); every required row must be newer than the last gated worker or
-follow-up dispatch (**gate** — a walk before the last fix cycle walked older code; record
-the kinds again, the newest row counts). Nine kinds on one file draws a WARN. See
+follow-up dispatch and carry the sha the milestone branch has at accept (**gate** — a walk
+before the last fix cycle or the last commit walked older code, on the taskmaster route too;
+record the kinds again, the newest row counts; a branch that does not resolve is a WARN). Nine kinds on one file draws a WARN. See
 `acceptance.md` for what each must contain.
+
+`program.json` is edited only by `program.sh`: each write records the file's `cksum` in
+`program.json.sum`, and the next write, `accept`, `close` or `dispatch check` exits 2 on a
+state that no longer matches (`status` and `next` WARN). Undo the edit, or record a deliberate
+one with `program.sh reseal --reason "<why>"` (a decisions.md row). A program without the file
+is sealed by its first write (**gate**; a checksum forged with the state passes).
 
 `hands_off` is set by `init --hands-off --reason "<why>"`; `accept` refuses a hands-off
 program until `decisions.md` carries at least one ASSUMED row (**gate**).

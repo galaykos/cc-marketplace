@@ -158,7 +158,7 @@ internal log entry carries the same id plus everything else.
 ## Boundaries
 
 Standing: recorded — owns how errors are typed, propagated, and reported once at
-the boundary. Retry, timeout and circuit-breaker policy is `/resilience:review`;
+the boundary. Retry, timeout and circuit-breaker policy is `resilience-design`;
 log and metric shape is the sibling `observability-design` skill.
 
 ## Anti-patterns

@@ -140,8 +140,9 @@ are a gate (`dk.test.sh`); acting on a note and replying are agent-graded.*
 - **Accessibility floor is not a knob.** 44px targets (`dk-btn`, `dk-input` default),
   visible focus (the shell provides it), body text on `--dk-bg` at the shell's contrast,
   `aria-current` on the active nav item, labels bound to inputs. A hand-written body can
-  undo all of it; check yours. *Standing: recorded — nothing here measures contrast; the
-  craft-layer audit does when it is installed.*
+  undo all of it; check yours. *Standing: measured where `dk.sh check <board>` runs (step 3):
+  axe's serious and critical rules, text contrast among them (`E3.color-contrast`), and 24px
+  targets; not contrast over a background image, and not the shell's 44px.*
 - **A sprite is a character, not a glyph.** A brief that says sprite, mascot or character
   wants a drawn thing with states (idle, placed, win, lose) built from a small shape
   vocabulary, in `dk-cells`; a stroked X in the accent is a glyph. Two sides need two

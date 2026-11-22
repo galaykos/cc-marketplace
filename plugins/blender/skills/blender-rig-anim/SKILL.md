@@ -22,7 +22,7 @@ target Blender version first, as `blender-best-practices` says; the API removals
 | A headless bake keys visual transforms of every bone | **recorded** — `references/animation.md` |
 | Engine-side import (Humanoid T-pose, retarget maps, root motion, import fps, compression) | **recorded**, owned by the engine plugins: `unity-traps`, `godot`, `unreal` |
 
-Whether any script runs is **agent-graded**: nothing forces the call.
+Whether any script runs is **recorded**: nothing forces the call, and no reviewer checks it.
 
 ## Run the checks
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# route.test.sh — runs hooks/route.sh, and the route-prompt.sh flush and summary.sh ledger that share its state root, on host-shaped
+# route.test.sh — runs hooks/route.sh, and the route-prompt.sh and summary.sh hooks that share its state root, on host-shaped
 #   payloads in temp git repos; each numbered case names the behaviour it asserts.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/scripts/__tests__/route.test.sh
 set -u
@@ -112,8 +112,8 @@ has_skill "$out" sql-best-practices && ok || bad "subdir edit: sql-best-practice
 jq -e '(.fired | index("laravel-best-practices")) and (.fired | index("sql-best-practices"))' "$(statef "$C" "$TC")" >/dev/null 2>&1 \
   && ok || bad "subdir: one context from two directories did not land in ONE root state file"
 
-# 4b. the three-hook contract survives the drift: route-prompt flushes, from yet another
-#     directory, what route.sh wrote from app/Enums; summary.sh finds and removes it and
+# 4b. the three-hook contract survives the drift: route-prompt, from yet another directory,
+#     prints no digest; summary.sh finds and removes what route.sh wrote from app/Enums and
 #     files the ledger under the ROOT's slug.
 fl=$(jq -cn --arg c "$C/app/Http" --arg tp "$TC" '{hook_event_name:"UserPromptSubmit",prompt:"now add the status filter",session_id:"sess",transcript_path:$tp,cwd:$c}' \
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
@@ -405,6 +405,19 @@ fl=$(jq -cn --arg c "$D" --arg tp "$TD" '{hook_event_name:"UserPromptSubmit",pro
   | hook "$SR/hooks/route-prompt.sh" TMPDIR="$WS")
 grep -qF 'may need these skills' <<<"$fl" && bad "no digest: route-prompt printed one; got: ${fl:0:200}" || ok
 jq -e 'has("pending_low")' "$(statef "$D" "$TD")" >/dev/null 2>&1 && bad "no digest: route.sh still writes pending_low" || ok
+
+# 18b. summary.sh prints nothing at SessionEnd (0.34.1): its "Low-confidence signals" line went with the digest. A state file an
+#      older route.sh wrote, carrying an unflushed pending_low entry, still files its ledger row with the pending_low* fields.
+E="$WS/e"; mkrepo "$E"; TE="$WS/t-e.jsonl"; SE="$(statef "$E" "$TE")"; mkdir -p "${SE%/*}"
+printf '{"fired":["sql-best-practices"],"pending_low":[{"skill":"error-handling-design","plugin":"resilience","file":"a.php"}]}\n' > "$SE"
+sm=$(jq -cn --arg c "$E" --arg tp "$TE" '{hook_event_name:"SessionEnd",session_id:"sess",transcript_path:$tp,cwd:$c}' \
+  | hook "$SR/hooks/summary.sh" HOME="$WS/home-e")
+[ -z "$sm" ] && ok || bad "summary.sh printed at SessionEnd; got: ${sm:0:200}"
+slug=$(printf '%s' "$E" | tr -c '[:alnum:]' '-')
+tail -n 1 "$WS/home-e/.claude/skill-router/$slug/surfaced.jsonl" 2>/dev/null \
+  | jq -e '(.fired == ["sql-best-practices"]) and (.pending_low_unflushed == ["error-handling-design"]) and has("pending_low_flushed")' >/dev/null 2>&1 \
+  && ok || bad "summary.sh: the ledger row lost a field"
+[ ! -e "$SE" ] && ok || bad "summary.sh: state file not removed"
 
 # 19. names are qualified plugin:skill in the nudge: a bare name loaded a project's own
 #     .claude/skills copy of the same name (Laravel Boost ships several) instead of the plugin's file

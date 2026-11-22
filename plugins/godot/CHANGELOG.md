@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.2 — 2026-11-21
+
+- **`godot-best-practices` no longer says nothing runs the project checker.** Since 0.2.0 the plugin's hook runs it
+  after a Write/Edit of a `.tscn`, `.tres` or `.gd`; a move or rename from Bash it still does not see.
+
 ## 0.2.1 — 2026-11-14
 
 - **`hooks/godot-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no

@@ -125,7 +125,7 @@ state_of() { # state_of <name> — installed | disabled | absent
 
 opt_in() { # opt_in <name> — why `install` leaves it out by construction; empty for every other leaf
   case "$1" in
-    godot|unity-traps|unreal|gamedev|blender|meshy|pixel-art)
+    godot|unity-traps|unreal|gamedev|blender|asset-forge|meshy|pixel-art)
       printf 'opt-in: game plugin, /stack-scan:suggest installs it in a game repo' ;;
   esac
 }
@@ -160,7 +160,7 @@ report_failures() { # report_failures <count> <lines>
 settings_file() { # stdout: the settings file the CLI writes for SCOPE — measured: local and
   local top          # project land at the git toplevel even when installing from a subdir
   case "$SCOPE" in
-    user) printf '%s/.claude/settings.json' "$HOME" ;;
+    user) printf '%s/settings.json' "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" ;;
     *) top=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)
        if [ "$SCOPE" = local ]; then printf '%s/.claude/settings.local.json' "$top"; else printf '%s/.claude/settings.json' "$top"; fi ;;
   esac

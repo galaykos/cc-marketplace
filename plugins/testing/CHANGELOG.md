@@ -6,6 +6,10 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.18.0 — 2026-11-21
+
+- **`protect-tests.sh` now asks before an Edit weakens an assertion.** When an Edit or MultiEdit to a test file drops assertion lines (`expect(`, `assert`, `->assert…(`, `self.assert…`, `t.Error/Fatal`, `require./assert.X(`, `.should`, `XCTAssert…`), or keeps an assertion line but rewrites its expected literal (string, number, boolean or null), the hook asks whether the test or the code is wrong. It never denies, because a changed expectation is often the right fix. Under `auto`, `bypassPermissions` and `-p` (any mode other than default, acceptEdits or plan) it warns through `systemMessage` and `additionalContext` instead: an unanswered ask idles a background run and is a deny under `-p`. Why: on deliberately impossible tasks GPT-5 special-cased the tests in 54% of runs (ImpossibleBench, arXiv 2510.20270), and METR found that telling a model not to cheat barely moved its hacking rate (metr.org, 2025-06-05). Re-indenting or renaming the subject stays silent. Standing: gate (ask); `protect-tests.test.sh`, 10 new cases. Misses: a weakening written by Write or Bash, an assertion moved into a helper, a looser matcher (`toBe` → `toBeTruthy`).
+
 ## 0.17.2 — 2026-11-17
 
 - **`red-proof.sh`: two runs at once no longer both revert the fix.** Ubuntu 26.04 ships uutils coreutils, whose `mkdir` is not atomic under a race: two concurrent calls on one path both succeeded 10 times in 400 here, so a mkdir lock let two holders in. The lock is now a file bash creates under noclobber (`set -C`, O_EXCL in the shell itself): 0 double holders in 400. Before, both runs reverted and restored the same files at once, so one reported the test passing without the fix. A `.git/red-proof/.lock` directory from an older copy is still read for its pid and broken when that pid is dead.

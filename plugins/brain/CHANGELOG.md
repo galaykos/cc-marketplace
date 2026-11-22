@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.4.6; earlier versions have no entries rather than invented ones.
 
+## 0.5.1 — 2026-11-21
+
+- **Standing labels say what holds them.** The indexer's `## Notes` carry-over and decisions entries, and its `.cc-artifacts/brain/`-only write boundary, were labelled agent-graded with no reviewer behind them; `agents/indexer.md` and the README now say **recorded**, and the README names that the indexer holds Write, Edit and Bash with no hook on its writes. The README's "oriented immediately … no more re-scouting" now says the effect is unmeasured. No behaviour change.
+
 ## 0.5.0 — 2026-11-14
 
 - **The map moved from `brain/` to `.cc-artifacts/brain/`**, the one folder a project gitignores for what plugins write during development. `/brain index` writes only there. A map built before this version still works: the SessionStart hook reads `brain/INDEX.md` until `.cc-artifacts/brain/` exists, and the next `/brain index` copies `brain/` into it once and never touches `brain/` again. A commit that changes only either folder is not drift. Standing: gate for the hook (`scripts/__tests__/inject-hook.test.sh`, 16 cases, three of them the fallback); agent-graded for the indexer's copy.

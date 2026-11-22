@@ -32,13 +32,16 @@ in payments" is a decision. If no baseline exists, say that `--update-baseline`
 starts the ratchet and that the first run only establishes a line to hold — do not
 present the initial numbers as findings.
 
-Standing of the ratchet: `unenforceable` as a gate against the model itself —
-`--update-baseline` is runnable by any session, so the line can be reset by the
-same session that crossed it. Never run `--update-baseline` to make a red debt
+Standing of the ratchet: not a gate against the model itself — `--update-baseline`
+is runnable by any session, so the line can be reset by the same session that crossed
+it. The rule that follows is `recorded`: no hook asks before `--update-baseline` runs
+or the baseline file is written. Never run `--update-baseline` to make a red debt
 report green; growth is accepted by the user, not by the reviewer that caused it.
 
-Triage before the deep read: a trivial, single-file, or purely mechanical change
-earns a one-line verdict — state it and stop. Take the full pass below when the change
+Triage before the deep read: the short lane is a conjunction, and every clause must
+hold. A change that is single-file AND purely mechanical (a rename, a move, a format, a
+constant swap) AND under the thresholds below earns a one-line verdict — state it and
+stop; any doubt on any clause is the full pass. Take the full pass below when the change
 touches correctness-sensitive code (auth, data, migrations, concurrency), OR spans
 more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
 changed).
@@ -214,12 +217,14 @@ the phrase that puts the agent in its refute mode, then the finding, the patch f
 checklist below: "Refute check: <finding line>. Try to prove this finding wrong against the working
 file. Reply with one line, CONFIRMED — <evidence> or REFUTED — <reason>." A REFUTED finding is
 dropped, or downgraded with a one-line note when only its severity fails; a CONFIRMED one opens
-its problem clause with `[CONFIRMED]`. Anything not re-checked, or downgraded — `medium` and `low`,
-every finding when the agent or the Agent tool is absent (headless) — gets the checklist here and
-opens with `[PLAUSIBLE]`. A refuter whose reply opens with neither word, or that returns nothing,
-leaves its finding to that same checklist and `[PLAUSIBLE]`; it never makes the review
-`incomplete`. Standing: agent-graded. The checklist is the false-positive taxonomy; a finding
-matching any row is dropped, not downgraded:
+its problem clause with `[CONFIRMED]`. That label means a second reader in a fresh context, with
+Read, Grep and Glob only, named the line and the failing input and could not refute it; it ran
+nothing, so it filters one reader's error and is not a reproduction. Anything not re-checked, or
+downgraded — `medium` and `low`, every finding when the agent or the Agent tool is absent
+(headless) — gets the checklist here and opens with `[PLAUSIBLE]`. A refuter whose reply opens
+with neither word, or that returns nothing, leaves its finding to that same checklist and
+`[PLAUSIBLE]`; it never makes the review `incomplete`. Standing: agent-graded. The checklist is
+the false-positive taxonomy; a finding matching any row is dropped, not downgraded:
 
 - pre-existing: the problem is on a line the diff did not touch, or existed before it
 - silenced: the code carries a lint-ignore / suppression comment for exactly this

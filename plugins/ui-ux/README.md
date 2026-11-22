@@ -83,7 +83,9 @@ that looks great as a swatch can fail hard as a button.
 - **Agents**: ui-ux-reviewer, ui-ux-engineer, a11y-engineer (applies an audit's fix
   list, preferring native semantics over ARIA patches, each change tagged with its
   WCAG criterion). The reviewer and the engineer preload `a11y-audit` through the host's
-  `skills:` frontmatter, which costs about 1.8k tokens per spawn, so its rules are in
+  `skills:` frontmatter, which costs its whole body per spawn (about one token per 4
+  bytes; recount the bytes with `awk '/^---$/{c++; next} c>=2' skills/a11y-audit/SKILL.md | wc -c`
+  from this plugin's root), so its rules are in
   context even when nothing injects a Read path. They flag or apply those rules in the
   same pass and leave `/ui-ux:audit` for a full audit.
 - **Hooks**, and they are not the same tier:
@@ -200,15 +202,18 @@ come out JSON-quoted.
 
 ## Evals
 
-`evals/` holds two cases, and they are not the same kind of thing:
+`evals/` holds cases of different kinds (count them: `ls -d evals/*/`). Run them with the
+write grant:
 
 ```bash
 claude plugin eval ./plugins/ui-ux --ablation with-without --runs 5 \
-  --no-publish --trust-plugin
+  --allow-tools Write Edit --no-publish --trust-plugin
 ```
 
-No `--allow-tools` grant is needed (both declare `Read, Glob, Grep, Skill`, none
-gated) and no `--scaffold`. `--max-cost-usd 0` load-checks the suite for free, which
+`marquee-carousel-pause` writes files, and `Write`/`Edit` are gated tools the runner will
+not hand a plugin without the grant: without it the suite still loads and then declines that
+case, so a clean-looking run has measured nothing. The others declare only
+`Read, Glob, Grep, Skill`. No `--scaffold` is needed. `--max-cost-usd 0` load-checks the suite for free, which
 is what `scripts/eval-cases.sh` does in CI; nothing runs a model there.
 
 - **`a11y-older-criteria`** has headroom: a checkout form whose easy defects are
@@ -224,7 +229,14 @@ is what `scripts/eval-cases.sh` does in CI; nothing runs a model there.
   control did NOT produce have already moved into `theming-system`, so the removal
   would lose nothing. Until the run happens the skill stays.
 
-Neither delta is measured. State the run count and the vote spread with a number or
+- **`marquee-carousel-pause`** asks for a logo marquee and an auto-advancing carousel; a
+  pass needs a visible pause control on both (SC 2.2.2) and the duplicate marquee track hidden
+  from assistive technology. Its `case.yaml` records a 2026-09-26 run, 5 runs per arm, deterministic
+  re-grade: control 3/5 on the marquee pause control, 5/5 carousel, 5/5 duplicate hidden; with
+  ui-ux 5/5 on all three. The case notes that the haiku judge scored correct with-arm files 1/5,
+  so check scores against `--keep-temp` traces.
+
+The `a11y-older-criteria` and `design-tokens-control` deltas are not measured. State the run count and the vote spread with a number or
 do not state the number.
 
 ## Pairs well with

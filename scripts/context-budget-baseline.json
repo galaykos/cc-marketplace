@@ -1,7 +1,7 @@
 {
   "all-plugins": 0,
   "api-design": 339,
-  "approaches": 551,
+  "approaches": 555,
   "ask-ledger": 0,
   "asset-forge": 1322,
   "blender": 157,
@@ -13,7 +13,7 @@
   "craft-layer": 1083,
   "database": 205,
   "debugging": 143,
-  "design-kit": 625,
+  "design-kit": 627,
   "devops": 381,
   "gamedev": 612,
   "git-workflow": 211,

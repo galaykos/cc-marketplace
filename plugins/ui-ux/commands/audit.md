@@ -63,14 +63,15 @@ argument-hint: [files-or-diff]
    the ARIA rules, keyboard operability, focus management, contrast (AA
    ratios and every interaction state), forms, media, and touch targets.
    Read the actual markup and styles — never infer from file names.
-   **Contrast is measured when a token source exists.** If `src/index.css`,
-   `src/app.css`, `app/globals.css`, `resources/css/app.css` or
-   `assets/css/main.css` holds `oklch()` tokens under `:root`/`.dark`, run
-   `node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"` from the project root
-   (`CRAFT_TOKEN_SOURCE=<path>` for any other location) and report each FAIL line
-   as an SC 1.4.3 / 1.4.11 violation in step 6. It exits 2 when it resolves no
-   token — including every non-`oklch()` colour space — and that is not a clean
-   run: say contrast was read, not measured, and leave it in step 7's manual list.
+   **Contrast is measured when a token source exists.** Whenever the project has a CSS
+   file of colour custom properties under `:root`/`.dark`, run
+   `node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"` from the project root. It looks
+   for the usual token files itself (its `TOKEN_CANDIDATES` list); set
+   `CRAFT_TOKEN_SOURCE=<path>` for any other location. It reads `oklch()`, hex, `rgb()`,
+   `hsl()` and bare HSL triplets, so a Tailwind v3 HSL theme is measured too. Trust its
+   exit code: report each FAIL line as an SC 1.4.3 / 1.4.11 violation in step 6. Exit 2
+   (no token resolved) is not a clean run: say contrast was read, not measured, and leave
+   it in step 7's manual list, as for any token it prints as not measured.
 6. **Report one line per violation** in the format
    `path:line — severity — WCAG criterion — violation — fix`, sorted by
    severity (critical, high, medium, low) — critical means the surface is
@@ -83,6 +84,9 @@ argument-hint: [files-or-diff]
    (AskUserQuestion): "Apply the fixes now (Recommended)" / "Blockers
    only" / "Stop here". On apply, dispatch the `a11y-engineer` worker with the
    violation list — it prefers the semantic fix over the ARIA patch and tags each
-   change with the WCAG criterion it satisfies. Then re-audit the changed files
-   against the same checklist items before reporting done — the worker's diff is
-   not the evidence, the re-checked violation list is. In headless runs, report only.
+   change with the WCAG criterion it satisfies. Then, before reporting done, re-run on
+   the changed scope each script that ran in steps 3–5 (`axe-run.mjs`, finish lint,
+   `contrast.mjs`) and report its new exit code and lines; re-read the checklist only
+   for the violations no script covers. The worker's diff is not the evidence: the
+   re-run output is, plus the re-checked list for the rest, which is agent-graded. In
+   headless runs, report only.

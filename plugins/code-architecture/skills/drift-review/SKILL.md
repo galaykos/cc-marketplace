@@ -86,7 +86,9 @@ Independence breaks the self-grading loop, but it is **best-effort, not guarante
 Whichever path, apply this to every hunk. Flag it when the change:
 
 - **(a)** weakened or **deleted an assertion / test** to make something pass — gaming, not
-  progress;
+  progress. With testing installed, its `protect-tests` hook asks before an Edit that drops
+  assertion lines or changes an expected literal (gate); a Write or Bash rewrite, an assertion
+  moved into a helper, or one loosened in meaning (`toBe` → `toBeTruthy`) is yours to catch here;
 - **(b)** silently **skipped a success criterion** of X — declared work left undone;
 - **(c)** substituted a **cheaper, off-task approach** not cleared with the user;
 - **(d)** left a **stub / `TODO` / `pass` / `NotImplemented` / placeholder** where real

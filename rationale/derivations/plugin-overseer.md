@@ -309,6 +309,50 @@ A name is the only signal available without a new field in `.gated`, whose rows 
 dispatched under another name, and task-runner's own cycles. The stale-evidence gate was left as it is: a narrower
 "only the kinds the fix touched" rule would need the worker to declare its own blast radius.
 
+**2026-11-21, three gates the thinking-disciplines follow-up review found missing (0.14.0).** Each was read in the
+code, reproduced in the harness against the 0.13.0 `program.sh`, and approved by the user as a build item.
+
+- *Stale evidence on the taskmaster route.* The only stale-evidence line compared each row with the newest gated
+  worker/follow-up file, and on the taskmaster route the only gated file is the brief (kind `brief`), so `lastw`
+  stayed empty and the check never ran: a walk recorded before the run's last commit, or before a main-thread commit,
+  was accepted. `evidence add` now stores `git rev-parse <branch>^{commit}` in the row; `accept` refuses when the
+  newest row of a required kind carries another sha than the branch's tip, on every route. A row with no sha (before
+  0.14.0) is refused while the branch resolves; a branch that does not resolve is a WARN, because the harness repos and
+  a deleted branch have none. The reviewer also proposed a dirty-tree flag; it was not built, since acceptance leaves
+  untracked scratch (`.playwright-mcp/`, other plugins' dirs) in a normal walk and nobody measured how often a tracked
+  file is dirty at a legitimate walk. Misses: edits left uncommitted after the walk, and a walk served from another
+  checkout than the branch.
+- *The state file had no guard.* "Only writer" was written in four places and nothing read it back: one Write set
+  `"status":"done"` or added evidence rows. A path guard on Write/Edit would miss every Bash write, so the decidable
+  check sits in the one writer: `write()` stores the state's `cksum` in `program.json.sum` under the lock, and the
+  next write, `accept`, `close` or `dispatch check` exits 2 on a mismatch (read under the lock, so a concurrent writer
+  between its `mv` and its seal is never misread). `reseal --reason` is the recorded override, the same shape as
+  `--over-cap` and `--divergent-ok`. A missing sum passes so a 0.13.0 program keeps working; its first write seals it.
+  Misses: a sum forged with the state, and `.gated`, `.reads` and `decisions.md`, which carry no seal.
+- *A fix under another name escaped the cap.* `fix_cycles` now also counts any worker gated after `fix_since` — the
+  earliest of the milestone's first evidence row, its first `accepting` status and its first gated reviewer — unless
+  the same file with the same checksum was gated by then (a re-check is not a cycle). Every one of those times is
+  already recorded, so `.gated` gained no field. Stamps are whole seconds and a tie counts as "before", so a card
+  gated in the same second as a reviewer is not a fix. Misses: a review-step fix sent before any reviewer was gated.
+
+The no-session-id branch of `evidence add` skipped the read gate in silence since 0.4.0, while the code comment, the
+CHANGELOG, this file and three docs said it WARNs; the harness had asserted the silence. It now WARNs, as documented.
+
+## plugins/overseer/hooks/model-gate.sh
+
+**2026-11-21 (0.14.0).** The skill said "the Agent call passes the same `model:`" and labelled it a gate, but
+`dispatch check` reads only the file and never sees the Agent call. That is the simulation-3 failure: two thirds of the
+subagent turns ran on the session model unasked, because `task-runner:task-executor` declares `model: inherit` and the
+call passed none. The hook reads the prompt's first line-start `MODEL:` (the same reading as `dispatch check`, a
+trailing period dropped) and compares it with what the call will run: `tool_input.model`, else the agent type's
+frontmatter `model:` when every cached copy agrees (no key reads `inherit`). It denies rather than asks: the signal is
+decidable, the fix is one argument, and an unanswered ask under `-p` or a hands-off run is a deny anyway. On
+2026-11-21 a grep found no line-start `MODEL:` in any other plugin's prompts, so taskmaster's and task-runner's own
+dispatches stay silent. Run against this machine's cache the same day, `task-runner:task-executor` and
+`web-dev:web-developer` resolve to `inherit` (deny without `model:`) and `code-review:code-reviewer` passes. Not built:
+the reviewer's optional second check, that the prompt's checksum is a `.gated` row. Not verified: whether the host
+fires PreToolUse for an Agent call made inside a Code Mode REPL.
+
 ## plugins/overseer/scripts/capability-scan.sh
 
 ### Header

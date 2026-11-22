@@ -1,5 +1,5 @@
 #!/bin/bash
-# UserPromptSubmit: on the session's first work-shaped prompt (not a harness frame) no ScheduleWakeup or CronCreate call scheduled, the rules for judging the host's command listing. It picks no command; fails open.
+# UserPromptSubmit: on the session's first work-shaped prompt (not a harness frame) that no ScheduleWakeup or CronCreate call scheduled, hands the model the rules for judging the host's command listing. It picks no command; fails open.
 # Misses a symptom without a state verb; fires on a chat sentence carrying one, or a ?-ended one naming a making verb; waits out a ?-ended symptom with no making verb or request form. Off: CC_REMIND=off or CC_ROUTE=off; unset, /config.
 # Why, limits, history: rationale/derivations/plugin-skill-router.md § plugins/skill-router/hooks/route-prompt.sh
 MARKER_TTL_MIN=1440

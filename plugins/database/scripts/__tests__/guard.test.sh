@@ -220,6 +220,19 @@ check "deleteMany WITH a filter"      allow src/repo.ts      'await col.deleteMa
 # missed the commonest shape. Scoped to deleteMany: `el.remove()` is a DOM call.
 check "bare deleteMany()"             ask   src/repo.ts      'await prisma.user.deleteMany()'
 check "DOM element.remove()"          allow src/ui.ts        'el.remove()'
+# 0.12.2: a deleteMany wipe in a test or seed file is teardown, not data loss; asking there
+# auto-denies a headless run's test setup. Migration, script and backfill paths still ask.
+# The call names come from variables so this file's own Edit payload is not a wipe.
+dm=deleteMany; um=updateMany
+check "bare deleteMany in __tests__"  allow src/__tests__/user.ts "await prisma.user.${dm}()"
+check "empty-filter deleteMany in a .test. file" allow src/user.test.ts "await col.${dm}({})"
+check "bare deleteMany in a .spec. file" allow src/user.spec.ts "await prisma.user.${dm}()"
+check "bare deleteMany in prisma/seed.ts" allow prisma/seed.ts "await prisma.user.${dm}()"
+check "empty-filter deleteMany under seeds/" allow db/seeds/01_users.js "await knex.${dm}({})"
+check "bare deleteMany in a script still asks" ask scripts/reset.ts "await prisma.user.${dm}()"
+check "empty-filter deleteMany in a migration still asks" ask migrations/20260101-wipe.js "await users.${dm}({})"
+check "seed in a parent dir name is no seed file" ask /home/u/seedbank/src/repo.ts "await prisma.user.${dm}()"
+check "updateMany empty filter in a test still asks" ask src/user.test.ts "await col.${um}({}, { \$set: { x: 1 } })"
 check "collection drop()"             ask   src/repo.ts      'await col.drop()'
 check "dropDatabase()"                ask   src/repo.ts      'await db.dropDatabase()'
 check "ordinary find()"               allow src/repo.ts      'await col.find({ id })'

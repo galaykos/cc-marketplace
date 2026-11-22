@@ -47,7 +47,8 @@ skipped. Attach the final contact sheet.
 ## Rules
 
 - Never claim a step done from a forge `ok` alone: look at the screenshot or the returned image. Standing: recorded.
-- Every headless call takes a fresh snapshot made after the last live change. Standing: recorded.
+- Every headless call takes a fresh snapshot made after the last live change. Standing: recorded; for `render_review_set`
+  a **gate** at Stop: `hooks/review-state.sh` clears the review gate only for a snapshot saved after the last live change.
 - Credits (Meshy) are spent only after the user confirms the cost. Standing: recorded.
 
 ## Limitations

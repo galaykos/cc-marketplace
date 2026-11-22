@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.3 — 2026-11-21
+
+- **Standing labels.** "Run it yourself" for an interpreter-written script, whether `blender_qa.py` runs, and whether
+  any rig or animation script runs were labelled agent-graded with no reviewer behind them. They are **recorded**,
+  as the README already said for the first.
+
 ## 0.3.2 — 2026-11-14
 
 - **`hooks/bpy-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no

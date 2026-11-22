@@ -42,7 +42,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py" <bundle> [--repo .] [--
 |---|---|
 | `match` | use that token by name |
 | `near (Δn)` | use the nearest token; say so in the reply with the Δ |
-| `no token` | one question per row: adopt as a new token via `/design-kit:system`, map to the nearest by name, or record as a gap |
+| `no token` | adopt as a new token via `/design-kit:system`, map to the nearest by name, or record as a gap; asked in one round (SKILL.md procedure step 2), not one call per row |
 
 The script extracts colours and font families only. Spacing, radius, shadow and
 type scale drift are read by eye from the `.html` and reported in prose.

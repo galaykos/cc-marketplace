@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.2 — 2026-11-21
+
+- **Standing label.** Running `inspect_glb.py` yourself for another budget or a model the hook did not see is
+  **recorded**, not agent-graded: no reviewer checks it (skill and README).
+
 ## 0.3.1 — 2026-11-14
 
 - **`hooks/glb-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no

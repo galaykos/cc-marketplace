@@ -83,7 +83,7 @@ session forever.
 `## Notes` is optional and is NOT yours: hindsight's harvest appends approved codebase
 findings there and people write there by hand. On every rewrite of an area file, carry the
 existing `## Notes` section over **verbatim** (read it first, write it back last). Dropping
-it loses a fact someone approved. Standing: agent-graded — no script diffs the section.
+it loses a fact someone approved. Standing: recorded — no script diffs the section.
 
 **`.cc-artifacts/brain/decisions.md`** — append-only, one entry per pick (see Decisions area):
 

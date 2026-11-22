@@ -1,4 +1,5 @@
-# Secret patterns read by hooks/scan.sh. Data rows carry four TAB-separated fields:
+# Secret patterns, read by hooks/patterns.sh (sourced by scan.sh, output-scan.sh and scripts/scan-range.sh)
+#   and by the mod's hooks/redact-core.ts. Data rows carry four TAB-separated fields:
 #   kind  label  flags  pattern
 # kind: secret (the whole match is the value), assigned (the value is what follows the first : or =,
 #   past quotes and spaces) or placeholder (a value any placeholder row matches is released, not flagged).
@@ -8,12 +9,12 @@
 #   (never inside brackets), no space at either end (write an edge space as [ ]). No field may hold a tab.
 # Lines starting with # and blank lines are skipped. Secret and assigned rows are tried in file order;
 #   the first with a non-placeholder match names the deny. A value of one repeated character is also
-#   a placeholder; that rule is code in scan.sh, not a row.
+#   a placeholder; that rule is code in patterns.sh and redact-core.ts, not a row.
 # scan.sh denies every write it scans when this file is missing, any line carries a carriage return,
 #   a row is not four non-empty fields, a kind or flag is unknown, a pattern starts or ends with a space,
 #   holds [[: [[. [[= a [:class:] (? or \1-\9, escapes a character outside the list above, does not
 #   compile under grep -E or matches the empty string, a placeholder row matches the secret-shaped probe
-#   in scan.sh, or no secret row exists.
+#   in patterns.sh, or no secret row exists.
 #   Not checked: a backslash inside brackets, a collating element later in a bracket ([a[.x.]]), a
 #   placeholder word a real secret can contain.
 secret	an AWS access key ID	-	(A3T[A-Z0-9]|AKIA|ASIA|ABIA|ACCA)[0-9A-Z]{16}

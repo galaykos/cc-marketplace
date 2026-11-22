@@ -94,8 +94,9 @@ Two entry shapes, one procedure:
    rendering and act on every row: `match` uses that token; `near` uses the nearest
    token and says so; `no token` is a question — adopt it as a new token via
    `/design-kit:system` or map it to the nearest — never a literal in the tree.
-   Standing: **gate** for the table's existence (the script runs or this skill
-   stops); the mapping decision is the user's.
+   Standing: **gate** for the table's content (`handoff.test.sh` drives the script);
+   that it runs before rendering is **recorded**, since nothing checks the order; the
+   mapping decision is the user's.
 7. **A named palette utility is drift too.** `bg-indigo-500` reaches a colour without
    passing the token layer at all, so it never appears in a stylesheet and every
    token-reading check stays green over it. `dk.sh drift <paths>` reads it and the
@@ -116,8 +117,10 @@ Two entry shapes, one procedure:
    layout so the app's default one stays out; keep that line. Laravel's `dev_url` is
    `.env`'s `APP_URL`; when that is not where the app is served, say so and use the real URL.
 2. Handoff bundle only: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/handoff-drift.py" <dir>`
-   and put the table in front of the user with one AskUserQuestion per `no token`
-   row (adopt / map to nearest / leave as a gap). `references/handoff-bundle.md`
+   and put the table in front of the user, then settle every `no token` row in one
+   AskUserQuestion round: a question per row (adopt / map to nearest / leave as a gap)
+   while they fit in one call, else one question for all of them (map each to its nearest
+   / adopt them all / leave them as gaps / go row by row). `references/handoff-bundle.md`
    says what to read in the bundle and what to ignore.
 3. Consent, once per session (AskUserQuestion): the scratch files will be written
    into the project tree under `__design-kit__/` paths and removed once the pick is final.

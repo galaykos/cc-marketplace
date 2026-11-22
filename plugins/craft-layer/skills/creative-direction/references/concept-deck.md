@@ -14,7 +14,7 @@ favourite.
 **A draw is a constraint, not a design.** The five drawn options are the STARTING
 CONSTRAINT the concept must work inside. They are not a description of the finished page,
 not a section list, and not a substitute for the concept: the creative-director still
-generates blind candidates, still scores them, and still has to break the anti-corpus. The
+drafts its candidates before scoring any, still scores them, and still has to break the anti-corpus. The
 draw only decides which room that reasoning happens in.
 
 **The kill-trigger.** Every option here is a STRATEGY — a way of organising, of carrying

@@ -41,7 +41,7 @@ Classify `$ARGUMENTS` without executing anything.
    `PreToolUse` hook reads it and sees the deny-tier target quoted inside — and
    denies it. For a deny-tier target this step therefore fails, which is the case
    where "a command was blocked and the reason needs unpacking" applies. Standing:
-   **unfixed by design**: any self-exemption skips classifying a segment the shell
+   **unenforceable** as a fix: any self-exemption skips classifying a segment the shell
    still evaluates (substitution, backticks, redirection, `bash -c`), and a
    convenience command does not justify a hole in a deny gate.
 

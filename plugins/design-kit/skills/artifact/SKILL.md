@@ -65,8 +65,8 @@ stays on this machine until a share step is chosen. The bundler
 Standing, per rule: the bundler's checks (inlining, UTF-8, stamp, versions, network
 report, unresolved-link report, 16 MiB warning) are **gates** — a harness drives each.
 Page quality — hierarchy, honesty of the data shown, restraint — is **agent-graded**.
-Reading comments left on a page is **out of scope**: nothing here has a comment
-channel, and a page cannot grow one by wishing.
+Notes left with the Notes button (step 2) stay in `.cc-artifacts/design-kit/`: they do not
+travel with a zipped or published page, so a shared copy has no comment channel.
 
 ## When a page earns it, and when it does not
 

@@ -20,7 +20,7 @@ is turned into pixel art (`pixel-art:pixel-art-pipeline`).
 
 | Rule | Standing |
 |---|---|
-| Run `asset_report.py` on every generated or sourced raster before calling it shippable | **gate** for what it checks (exit 1); no hook runs it, so whether it runs is **agent-graded** |
+| Run `asset_report.py` on every generated or sourced raster before calling it shippable | **gate** for what it checks (exit 1); no hook runs it, so whether it runs is **recorded** |
 | A generated "transparent" image is not transparent until its alpha is checked | **gate** via `--require-alpha`, with the one-pixel residual below |
 | No purchased pack goes into a public repo unless its licence allows redistributing the files | **agent-graded** — read the licence; no script reads one |
 | Every shipped asset made with AI tools is recorded as pre-generated or live-generated | **recorded** — a manifest column; nothing reads it back |

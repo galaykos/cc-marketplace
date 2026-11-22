@@ -206,8 +206,8 @@ glob	composer.json	package-hygiene	stack-scan	high
 command	\b(composer|npm)[[:space:]]+(update|upgrade)\b	package-hygiene	stack-scan	high
 glob	next.config.*	nextjs-best-practices	web-dev	high
 glob	vite.config.*	vite-best-practices	web-dev	high
-# The @base exclusion on the *.js/*.ts rows suppresses design-principle nudges on
-# `*.config.*`, so a tool config routes ONLY via its own row — next and vite had one,
+# A tool config matches no extension row (0.32.0 removed the *.js/*.ts rows and the
+# `@base` exclusion they carried), so it routes ONLY via its own row — next and vite had one,
 # tailwind did not, and tailwind-best-practices' own description names "config tokens".
 # prime.sh already sniffs `tailwind.config.*` for the SessionStart index, so the two
 # signals now agree. Tailwind v4 is CSS-first and a v4 project may ship no config file
@@ -242,8 +242,8 @@ glob	**/workflows/**	devops-practices	devops	high
 # Span API calls, not the word: `\bspan\b` matched JSX `<span>`, so nearly every component
 # put observability-design in the digest (routing review 2026-09-26, fixture S2).
 # LIBRARY ROWS — `high` since 2026-09-26: a content row marked `high` fires INLINE at the
-# first file whose contents match, once per signal per context, and never enters the
-# digest (route.sh nudge_high_matches). As `low` rows every one of them reached the model on the
+# first file whose contents match, once per signal per context (route.sh nudge_high_matches).
+# As `low` rows, in the digest 0.34.0 removed, every one of them reached the model on the
 # next user prompt, after the build turn, and inside a subagent never.
 content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-libraries	high
 content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-libraries	high
@@ -299,7 +299,6 @@ glob	**/.cc-artifacts/design-kit/film/**	film	design-kit	high
 # that plugin is installed. The generic .cs extension carries a `?` marker on the engine's own
 # manifest: a .cs file is Unity's only beside ProjectVersion.txt and Godot's only beside project.godot.
 # blender, meshy and pixel-art rows added 2026-10-30 — rationale/gamedev-art-import-2026-10-30.md.
-# The blender *.py row co-fires with the two language-wide discipline rows on purpose: nudge-last ranks them after it.
 glob	*.gd	godot-best-practices	godot	high
 glob	*.gdshader	godot-best-practices	godot	high
 glob	export_presets.cfg	godot-best-practices	godot	high

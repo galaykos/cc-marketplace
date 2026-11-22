@@ -23,7 +23,8 @@ jobs belong to neighbours:
   brief; theming-system derives the coherent SYSTEM that brief carries into generation.
 
 The net-new value here is the derivation: turning a concept + its mood into a token SYSTEM
-of roles and contrast rules, so a build passes the existing accent-contrast gate and the
+of roles and contrast rules, so a build passes the existing accent-contrast gate
+(`scripts/contrast.mjs`, run by `/ui-ux:theme` and `/ui-ux:audit`) and the
 `dataviz` validator BY CONSTRUCTION rather than in an audit. This skill adds no checker.
 
 Where it applies: the derivation lands in the theme brief `design-research` emits at the
@@ -144,6 +145,7 @@ theme-BUILDER and its rules, never a built theme.
 - **Re-teaching a neighbour** — restating `/ui-ux:theme` generation, `design-tokens` scales,
   `shadcn-theming` dark-mode mechanics, or `dataviz` colour rules instead of citing them.
 - **A new coherence gate** — adding an audit checker for what this derives; the existing
-  accent-contrast gate and the `dataviz` validator already verify it. This skill has no gate.
+  accent-contrast gate (`scripts/contrast.mjs`) and the `dataviz` validator already verify it.
+  This skill has no gate.
 - **Folding this into design-research** — re-owning the coherent derivation inside the
   mining skill; design-research MINES and briefs, theming-system DERIVES the system it carries.

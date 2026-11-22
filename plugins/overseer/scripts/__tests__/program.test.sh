@@ -23,7 +23,10 @@
 # without a budget WARNs; capability-scan flags a CI trigger that misses the base branch, never emits
 # `unknown` as an installed name, and lists every plugin kinds.tsv names; a program still under .claude/overseer/
 # (before 2026-11-14) is announced from there, copied once by program.sh's first call, written only in
-# .cc-artifacts/overseer/ and archived with its paths rewritten, the original untouched. The harness never touches the live repo (mktemp only).
+# .cc-artifacts/overseer/ and archived with its paths rewritten, the original untouched. 0.14.0: a state edited outside program.sh is refused by
+# the next write, accept, close and dispatch check until resealed; evidence rows carry the branch sha and accept refuses a walk older than the
+# branch's tip on the taskmaster route; a worker gated after evidence, accepting or a gated reviewer counts toward the fix cap whatever its name;
+# no session id WARNs at evidence add. The harness never touches the live repo (mktemp only).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 PS="$here/../program.sh"; SCAN="$here/../capability-scan.sh"; HOOK="$here/../../hooks/announce.sh"
@@ -45,6 +48,8 @@ expect() { # expect <code> <desc> -- cmd...
   [ "$got" = "$want" ] && ok || bad "$desc (want $want, got $got): $(cat "$WS/err" "$WS/out" | head -3)"
 }
 mkfile() { printf 'x\n' > "$1"; }
+# forge_seal <program.json>: the harness edits state with jq to reach a case; it re-records the checksum as program.sh would (the residual the seal names)
+forge_seal() { cksum < "$1" > "$1.sum"; }
 
 # ---- init -------------------------------------------------------------------------------
 expect 3 "status before init" -- "$PS" status
@@ -161,8 +166,9 @@ payload s1 "$WS" "$WS/shot.png" | bash "$TR"
 expect 0 "evidence add passes again once re-Read" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind browser-happy --note "looked again" --file "$WS/shot.png"
 expect 0 "evidence add fails open for a session with no tracked Read" -- env CLAUDE_CODE_SESSION_ID=s2 "$PS" evidence add --id m1 --kind browser-happy --note "no hook" --file "$WS/unread.png"
 grep -q "read gate inactive" "$WS/err" && ok || bad "fail-open is said: $(head -1 "$WS/err")"
-expect 0 "evidence add without a session id skips the gate silently" -- "$PS" evidence add --id m1 --kind browser-happy --note "terminal" --file "$WS/unread.png"
-grep -q "read gate" "$WS/err" && bad "no session id → no gate talk" || ok
+# 0.14.0: the docs always said fail-open "says so"; the code skipped the gate in silence with no session id
+expect 0 "evidence add without a session id records, fail-open" -- "$PS" evidence add --id m1 --kind browser-happy --note "terminal" --file "$WS/unread.png"
+grep -q "read gate inactive — no session id" "$WS/err" && ok || bad "no session id → the fail-open is said: $(head -1 "$WS/err")"
 expect 0 "an optional kind without --file is outside the gate" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind review --note "clean"
 
 # gated dispatches: accept counts only files `dispatch check` passed (dispatch/.gated) and that are unchanged since
@@ -193,8 +199,8 @@ expect 2 "accept refuses evidence older than the last gated worker dispatch" -- 
 grep -q "recorded before the last gated worker" "$WS/err" && grep -q " tests" "$WS/err" && ok || bad "stale-evidence refusal names the kinds: $(head -1 "$WS/err")"
 sleep 1
 rewalk() { for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop keyboard motion; do
-  f="$WS/$k.png"; [ "$k" = tests ] && f="$WS/rel.txt"; "$PS" evidence add --id m1 --kind "$k" --note "re-walked" --file "$f" >/dev/null; done
-"$PS" evidence add --id m1 --kind console-clean --note "re-walked" --file "$WS/console.txt" >/dev/null; }
+  f="$WS/$k.png"; [ "$k" = tests ] && f="$WS/rel.txt"; "$PS" evidence add --id m1 --kind "$k" --note "re-walked" --file "$f" >/dev/null 2>&1; done
+"$PS" evidence add --id m1 --kind console-clean --note "re-walked" --file "$WS/console.txt" >/dev/null 2>&1; }
 rewalk
 # a follow-up to a live worker is a dispatch too: gated in .gated, and a walk older than it is stale (0.3.2 — the
 # followup branch used to exit before the record, so no fix cycle ever moved the stale-evidence line)
@@ -260,7 +266,7 @@ grep -q "no milestones registered" "$WS/out" && ok || bad "status explains empty
 mkdir -p "$SD/milestones/m1/dispatch"; wprompt "$SD/milestones/m1/dispatch/1.md" "$STACKSK" "$TESTSK"
 env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1.md" --milestone m1 >/dev/null 2>&1 || bad "hands-off worker dispatch gates"
 for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion; do
-  "$PS" evidence add --id m1 --kind "$k" --note n --file "$WS/console.txt" >/dev/null
+  "$PS" evidence add --id m1 --kind "$k" --note n --file "$WS/console.txt" >/dev/null 2>&1
 done
 expect 2 "hands-off accept refused without ASSUMED decision" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -q "ASSUMED" "$WS/err" && ok || bad "refusal names ASSUMED"
@@ -509,6 +515,7 @@ expect 0 "log again" -- env OVERSEER_ROOT="$W2" "$PS" log
 grep -qE "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:]+Z	-	decision keep vanilla css$" "$WS/out" && grep -qE "^20[0-9]{2}-[^	]+	m1	suggestion pagination on the index$" "$WS/out" && ok || bad "log parses decision and suggestion rows into at/milestone/event: $(grep -E 'decision|suggestion' "$WS/out")"
 # force both done through the state file (accept needs nine evidence files; the divergence gate is what is under test)
 jq '(.milestones[]) |= (.status="done" | .history = [{status:"queued",at:"2026-01-01T00:00:00Z"},{status:"building",at:"2026-01-01T00:05:00Z"},{status:"done",at:"2026-01-01T01:00:00Z"}])' "$W2/.cc-artifacts/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.cc-artifacts/overseer/program.json"
+forge_seal "$W2/.cc-artifacts/overseer/program.json"
 expect 0 "status shows wall time" -- env OVERSEER_ROOT="$W2" "$PS" status
 grep -q "55 min" "$WS/out" && ok || bad "wall column (want 55 min): $(sed -n 4,6p "$WS/out")"
 expect 2 "close refuses divergent done branches" -- env OVERSEER_ROOT="$W2" "$PS" close
@@ -525,6 +532,7 @@ ls "$W2"/.cc-artifacts/overseer/archive/g2-*/suggestions.md >/dev/null 2>&1 && o
 P2 init --goal g3 --slug g3 >/dev/null
 P2 milestone add --id m1 --title A --branch ov/a >/dev/null; P2 milestone add --id m2 --title B --branch ov/b >/dev/null; P2 milestone add --id m3 --title I --branch main --kind integration >/dev/null
 jq '(.milestones[]) |= (.status="done")' "$W2/.cc-artifacts/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.cc-artifacts/overseer/program.json"
+forge_seal "$W2/.cc-artifacts/overseer/program.json"
 expect 0 "close passes with a done integration milestone" -- env OVERSEER_ROOT="$W2" "$PS" close
 rm -rf "$W2"
 
@@ -629,7 +637,7 @@ ready() { # ready <id>: one gated worker dispatch, then both headless evidence k
   P10 evidence add --id "$1" --kind tests --note n --file "$W10/$1-tests.txt" >/dev/null 2>&1
   P10 evidence add --id "$1" --kind run-log --note n --file "$W10/$1-run.txt" >/dev/null 2>&1
 }
-at() { jq --arg id "$1" --arg st "$2" --arg at "$3" '(.milestones[]|select(.id==$id)|.history[]|select(.status==$st)|.at) = $at' "$S10/program.json" > "$S10/pj" && mv "$S10/pj" "$S10/program.json"; }
+at() { jq --arg id "$1" --arg st "$2" --arg at "$3" '(.milestones[]|select(.id==$id)|.history[]|select(.status==$st)|.at) = $at' "$S10/program.json" > "$S10/pj" && mv "$S10/pj" "$S10/program.json"; forge_seal "$S10/program.json"; }
 gat() { # gat <id> [<time>]: rewrite the milestone's .gated rows to carry <time>, or no time (a row written before 0.7.4)
   local g="$S10/milestones/$1/dispatch/.gated"; awk -v t="${2:-}" '{print $1, $2, $3 (t == "" ? "" : " " t)}' "$g" > "$g.tmp" && mv "$g.tmp" "$g"; }
 rec10() { printf '{"type":"assistant","timestamp":"%s","message":{"id":"%s","model":"m","content":[],"usage":{"input_tokens":%s}}}\n' "$@"; }
@@ -687,7 +695,7 @@ L() { sed -n "$1p" "$WS/out"; }
 five() { # five <case>: exit 0, exactly five lines, none over 100 characters (code points, not bytes), stderr empty
   [ "$(cat "$WS/code")" = 0 ] && [ "$(wc -l < "$WS/out" | tr -d ' ')" = 5 ] && [ "$(jq -R length "$WS/out" | sort -n | tail -1)" -le 100 ] && [ ! -s "$WS/err" ] \
     && ok || bad "$1: want exit 0 and five lines of at most 100 characters: $(cat "$WS/code" "$WS/out" "$WS/err")"; }
-setst() { jq --arg id "$1" --arg st "$2" '(.milestones[]|select(.id==$id)|.status) = $st' "$S11/program.json" > "$S11/pj" && mv "$S11/pj" "$S11/program.json"; }
+setst() { jq --arg id "$1" --arg st "$2" '(.milestones[]|select(.id==$id)|.status) = $st' "$S11/program.json" > "$S11/pj" && mv "$S11/pj" "$S11/program.json"; forge_seal "$S11/program.json"; }
 
 R11
 [ "$(cat "$WS/code")" = 0 ] && [ "$(wc -l < "$WS/out" | tr -d ' ')" = 1 ] && grep -q "No overseer program here" "$WS/out" && grep -q "/overseer:start" "$WS/out" && [ ! -s "$WS/err" ] \
@@ -887,6 +895,7 @@ mkdir -p "$NEW15/milestones/m1/evidence"; printf 'x' > "$NEW15/milestones/m1/evi
 P15 evidence add --id m1 --kind review --note "in dir" --file "$NEW15/milestones/m1/evidence/shot.png" >/dev/null
 mkdir -p "$W15/.claude"; mv "$NEW15" "$OLD15"; rmdir "$W15/.cc-artifacts"; printf '1\ts0\t/x\n' > "$OLD15/.reads"
 jq '(.milestones[].evidence[].file) |= sub("/\\.cc-artifacts/overseer/"; "/.claude/overseer/")' "$OLD15/program.json" > "$W15/pj" && mv "$W15/pj" "$OLD15/program.json"
+forge_seal "$OLD15/program.json"
 snap15() { (cd "$OLD15" && find . -type f -exec cksum {} + | sort); }
 before15=$(snap15)
 hook_out=$(printf '{"cwd":"%s"}' "$W15" | "$HOOK")
@@ -916,6 +925,76 @@ jq -r '.milestones[].evidence[].file' "$arch15" | while read -r f; do [ -f "$f" 
 W16=$(mktemp -d); env OVERSEER_ROOT="$W16" "$PS" resume >/dev/null 2>&1
 [ ! -e "$W16/.cc-artifacts" ] && ok || bad "control: resume with no program anywhere creates nothing"
 rm -rf "$W15" "$W16"
+
+# ---- 0.14.0: program.json changes only through program.sh — every write seals its checksum ------------------
+W17=$(mktemp -d); git -C "$W17" init -q -b main 2>/dev/null || git -C "$W17" init -q
+P17() { env OVERSEER_ROOT="$W17" "$PS" "$@"; }; J17="$W17/.cc-artifacts/overseer/program.json"
+P17 init --goal g --slug seal >/dev/null 2>&1; P17 milestone add --id m1 --title t --branch ov/m1 >/dev/null 2>&1
+[ "$(cksum < "$J17")" = "$(cat "$J17.sum")" ] && ok || bad "init and every write leave the state's checksum in program.json.sum"
+expect 0 "control: a write through program.sh passes the seal" -- P17 milestone set --id m1 --status building
+jq '.milestones[0].status = "done"' "$J17" > "$W17/pj" && mv "$W17/pj" "$J17"
+expect 2 "a status edited into program.json outside program.sh is refused by the next write" -- P17 milestone set --id m1 --status accepting
+grep -q "changed outside program.sh" "$WS/err" && grep -q "program.sh reseal --reason" "$WS/err" && ok || bad "the refusal names the edit and the reseal: $(head -1 "$WS/err")"
+expect 2 "accept refuses an edited state" -- P17 accept --id m1
+grep -q "changed outside program.sh" "$WS/err" && ok || bad "accept's refusal is the seal, not another gate: $(head -1 "$WS/err")"
+expect 2 "close refuses an edited state" -- P17 close
+grep -q "changed outside program.sh" "$WS/err" && ok || bad "close's refusal is the seal, not another gate: $(head -1 "$WS/err")"
+mkdir -p "$W17/sk"; printf 'x\n' > "$W17/sk/SKILL.md"; wprompt "$W17/d.md" "$W17/sk/SKILL.md"
+expect 2 "dispatch check refuses while the state is edited" -- P17 dispatch check "$W17/d.md"
+expect 0 "status still prints an edited state" -- P17 status
+grep -q "WARN .* changed outside program.sh" "$WS/err" && ok || bad "status WARNs on an edited state: $(head -1 "$WS/err")"
+expect 3 "reseal needs --reason" -- P17 reseal
+expect 0 "reseal records why" -- P17 reseal --reason "repaired a typo by hand"
+grep -q "program.json edited outside program.sh, resealed | - | repaired a typo by hand |" "$W17/.cc-artifacts/overseer/decisions.md" && ok || bad "reseal writes a decisions.md row"
+expect 0 "after a reseal the next write passes" -- P17 suggestion add --text s
+expect 0 "a sealed state reseals to nothing" -- P17 reseal --reason again
+grep -q "nothing to reseal" "$WS/out" && ok || bad "reseal on a matching state says so: $(cat "$WS/out")"
+rm -f "$J17.sum"; jq '.goal = "older program"' "$J17" > "$W17/pj" && mv "$W17/pj" "$J17"
+expect 0 "a program from before 0.14.0 (no checksum yet) is sealed by its first write" -- P17 milestone add --id m2 --title t --branch ov/m2
+[ -f "$J17.sum" ] && ok || bad "the first write of an unsealed program seals it"
+P17 milestone set --id m1 --status parked --reason r >/dev/null 2>&1; P17 milestone set --id m2 --status parked --reason r >/dev/null 2>&1
+expect 0 "close of a sealed program" -- P17 close
+[ ! -e "$J17.sum" ] && ok || bad "close leaves no checksum behind for the next init"
+rm -rf "$W17"
+
+# ---- 0.14.0: evidence is tied to the milestone branch's tip, on the taskmaster route too ------------------
+# Before 0.14.0 the only stale-evidence line was "newer than the last gated worker/follow-up", and on the taskmaster
+# route the only gated file is the brief — so a walk recorded before the run's last commit still passed.
+W18=$(mktemp -d); H18=$(mktemp -d); git -C "$W18" init -q -b main 2>/dev/null || git -C "$W18" init -q
+git -C "$W18" -c user.email=t@t -c user.name=t commit -q --allow-empty -m base; git -C "$W18" branch ov/m1
+P18() { env OVERSEER_ROOT="$W18" HOME="$H18" "$PS" "$@"; }; S18="$W18/.cc-artifacts/overseer"
+P18 init --goal g --slug sha >/dev/null 2>&1
+P18 milestone add --id m1 --title t --branch ov/m1 --kind library --size M --rigour lean >/dev/null 2>&1; P18 milestone set --id m1 --status building >/dev/null 2>&1
+mkdir -p "$W18/.claude/skills/proj" "$S18/milestones/m1"; printf 'x\n' > "$W18/.claude/skills/proj/SKILL.md"
+printf '# m1\n## Acceptance\n- [ ] x\n## Scope\nTouch: a\n## Skills to read\n- %s\n## Verify\nmake test\nVerify: range\n' "$W18/.claude/skills/proj/SKILL.md" > "$S18/milestones/m1/brief.md"
+P18 dispatch check "$S18/milestones/m1/brief.md" --kind brief >/dev/null 2>&1
+printf 'suite ok\n' > "$W18/t.txt"; printf 'run ok\n' > "$W18/r.txt"
+P18 evidence add --id m1 --kind tests --note n --file "$W18/t.txt" >/dev/null 2>&1; P18 evidence add --id m1 --kind run-log --note n --file "$W18/r.txt" >/dev/null 2>&1
+[ "$(jq -r '.milestones[0].evidence[0].sha' "$S18/program.json")" = "$(git -C "$W18" rev-parse ov/m1)" ] && ok || bad "evidence add stores the branch sha: $(jq -c '.milestones[0].evidence[0]' "$S18/program.json")"
+git -C "$W18" checkout -q ov/m1 && git -C "$W18" -c user.email=t@t -c user.name=t commit -q --allow-empty -m "run's last fix" && git -C "$W18" checkout -q main
+expect 2 "taskmaster route: a walk recorded before the branch's last commit is refused" -- P18 accept --id m1
+grep -q "not recorded at ov/m1's current tip" "$WS/err" && grep -q " tests" "$WS/err" && grep -q " run-log" "$WS/err" && ok || bad "the refusal names the tip and the kinds: $(head -1 "$WS/err")"
+sleep 1; P18 evidence add --id m1 --kind tests --note n --file "$W18/t.txt" >/dev/null 2>&1; P18 evidence add --id m1 --kind run-log --note n --file "$W18/r.txt" >/dev/null 2>&1
+expect 0 "control: re-recorded at the tip, the same milestone is accepted" -- P18 accept --id m1
+grep -q "does not resolve" "$WS/err" && bad "a resolving branch drew the unresolved-branch WARN" || ok
+rm -rf "$W18" "$H18"
+
+# ---- 0.14.0: the fix cap counts a fix worker whatever its file is called --------------------------------
+W19=$(mktemp -d); H19=$(mktemp -d); git -C "$W19" init -q -b main 2>/dev/null || git -C "$W19" init -q
+P19() { env OVERSEER_ROOT="$W19" HOME="$H19" "$PS" "$@"; }; D19="$W19/.cc-artifacts/overseer/milestones/m1/dispatch"
+P19 init --goal g --slug cap >/dev/null 2>&1; P19 milestone add --id m1 --title t --branch ov/m1 --kind library --size S --rigour lean >/dev/null 2>&1
+mkdir -p "$W19/sk"; printf 'x\n' > "$W19/sk/SKILL.md"
+for n in 1-card.md 2-card.md; do wprompt "$D19/$n" "$W19/sk/SKILL.md"; printf 'card %s\n' "$n" >> "$D19/$n"; expect 0 "card worker $n before any review is not a fix" -- P19 dispatch check "$D19/$n" --kind worker; done
+sleep 1; rprompt "$D19/3-review-a.md" "$W19/sk/SKILL.md"; expect 0 "a gated reviewer" -- P19 dispatch check "$D19/3-review-a.md" --kind reviewer; sleep 1
+expect 0 "re-checking an unchanged card worker after the review is not a fix" -- P19 dispatch check "$D19/1-card.md" --kind worker
+for n in 4-polish.md 5-tidy.md 6-again.md; do wprompt "$D19/$n" "$W19/sk/SKILL.md"; printf 'items %s\n' "$n" >> "$D19/$n"; expect 0 "worker $n after a gated reviewer counts as a fix, within the cap" -- P19 dispatch check "$D19/$n" --kind worker; done
+wprompt "$D19/7-last.md" "$W19/sk/SKILL.md"
+expect 2 "a fourth fix worker with no fix in its name is refused" -- P19 dispatch check "$D19/7-last.md" --kind worker
+grep -q "spent its 3 fix dispatches" "$WS/err" && grep -q "4-polish.md" "$WS/err" && ok || bad "the cap names the renamed fixes it counted: $(head -1 "$WS/err")"
+printf 'changed after the review\n' >> "$D19/2-card.md"
+expect 2 "a card worker rewritten after the review is a fix too" -- P19 dispatch check "$D19/2-card.md" --kind worker
+expect 0 "control: re-checking a counted fix dispatch is not a new cycle" -- P19 dispatch check "$D19/5-tidy.md" --kind worker
+rm -rf "$W19" "$H19"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -42,9 +42,8 @@ Levels are a contract, not decoration:
 - debug — development diagnostics; off in production, or the logging
   bill starts competing with the compute bill.
 
-No log-and-rethrow. Handle an exception (log it, act, swallow
-deliberately) or propagate it untouched — never both. Double reporting
-makes one failure look like five and buries the real count.
+No log-and-rethrow: `error-handling-design` § Report once owns where a failure is
+logged; this skill owns what that one log line carries.
 
 ## Log hygiene
 
@@ -130,7 +129,7 @@ web server can write bytes while every real request fails behind it.
 ## Boundaries
 
 Standing: recorded — owns what application code emits. Node, ingress and pipeline
-telemetry is the devops plugin; designing the failure paths is `/resilience:review`;
+telemetry is the devops plugin; designing the failure paths is `resilience-design` (`/resilience:review` audits them);
 secrets beyond keep-it-out-of-logs is `/security:review`.
 
 ## Anti-patterns

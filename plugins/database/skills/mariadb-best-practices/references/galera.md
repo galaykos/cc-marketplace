@@ -46,10 +46,16 @@ for a single primary) silently corrupts expectations.
 ## Quorum and split-brain
 
 - The cluster requires a PRIMARY COMPONENT: >50% of nodes (weighted, `pc.weight`).
-  A two-node cluster therefore cannot survive either node failing cleanly — the
-  survivor loses quorum and refuses writes. Minimum honest deployment is 3 nodes or
-  2 + garbd (arbitrator daemon, votes without storing data).
-- A non-primary partition answers reads (stale) and refuses writes with
+  A two-node cluster therefore cannot survive either node crashing or being cut off —
+  the survivor holds 50%, not a majority, loses quorum and stops serving queries. A clean
+  shutdown is the exception: a node that leaves gracefully is subtracted from the count,
+  so the survivor stays primary. Minimum honest deployment is 3 nodes or 2 + garbd
+  (arbitrator daemon, votes without storing data). Checked 2026-11-21 against
+  Galera's docs, now on mariadb.com: "Quorum Control with Weighted Votes" and
+  "Understanding Quorum, Monitoring, and Recovery".
+- A non-primary partition rejects every query but SET and SHOW, reads included, unless
+  `wsrep_dirty_reads=ON` lets stale SELECTs through (`wsrep_dirty_reads`, Galera system
+  variables, checked 2026-11-21). The error reads
   `WSREP has not yet prepared node for application use` — application error handling
   must distinguish this (fail over) from a query bug (do not retry forever).
 - WAN clusters: use `gmcast.segment` so replication crosses the WAN once per segment,

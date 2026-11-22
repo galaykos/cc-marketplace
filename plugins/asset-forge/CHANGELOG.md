@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.1 — 2026-11-21
+
+- **A review of a stale snapshot no longer clears the review gate.** `hooks/review-state.sh` cleared the change
+  flag on any successful `render_review_set`, so snapshot, more live edits, then a review of the old snapshot let
+  Stop pass on a scene nobody had reviewed. Every `execute_blender_code` call that is not a
+  `save_as_mainfile(copy=True)` snapshot now records its time, and a review clears the flag only when its
+  `blend_path` was saved after that. A call that saves the snapshot and then edits still counts as a snapshot.
+  Standing: gate, `scripts/__tests__/review-state.test.sh`, now 18 cases; the new stale-snapshot case fails on 0.7.0.
+- **Wording.** The art reviewer is called context-blind, not independent: it runs on the session's own model in a
+  fresh context. The README no longer counts the library's modules, a number that had drifted (it said 14; there are 16).
+
 ## 0.7.0 — 2026-11-08
 
 - **Evals.** Six cases under `evals/` (run with `--scaffold`). Three runs per arm: `pipeline-asks-engine` 3/3 with the plugin against 1/3 without. `review-structured-verdict` scores 0.67 with against 0.5 without; the art-reviewer was dispatched in 2 of 3 runs once its description named review renders. The other four cases pass without the plugin too, so they are regression guards. Standing: recorded (nothing runs evals in CI).

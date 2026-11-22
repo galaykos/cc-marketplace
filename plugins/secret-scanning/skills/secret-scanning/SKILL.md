@@ -12,8 +12,8 @@ pattern — chosen so real secrets trip it and placeholders do not. It sees the 
 `Edit` family and, since 0.9.0, `Bash`: a heredoc body or `echo`/`printf` arguments whose
 pipeline writes a file (`cat > f <<EOF`, `cat <<EOF | tee f`, `echo "K=…" >> .env.example`),
 denied with the same patterns and the same placeholder escape. The source of both is the
-plugin's `hooks/patterns.tsv`; the list below mirrors it, and when that file is missing or
-malformed the guard denies every write it would scan, naming the file:
+plugin's `hooks/patterns.tsv`; the list below restates its rows by hand (nothing checks the two
+agree, so the file wins), and when that file is missing or malformed the guard denies every write it would scan, naming the file:
 
 - **AWS access key ID** — `AKIA`/`ASIA`/`ABIA`/`ACCA` (or `A3T` + one) + 16 uppercase letters or digits.
 - **Private key block** — `-----BEGIN … PRIVATE KEY-----`.
@@ -25,8 +25,8 @@ malformed the guard denies every write it would scan, naming the file:
   `sk-ant-admin01-`, OpenAI `sk-proj-`/`sk-svcacct-`/`sk-admin-` holding `T3BlbkFJ`,
   GitHub fine-grained `github_pat_`, GitLab `glpat-`, Hugging Face `hf_`, SendGrid `SG.`,
   npm `npm_`, PyPI `pypi-AgEI…`. Test-mode Stripe keys and anything shorter pass.
-- **Credential in a URL** — a `postgres://`, `mysql://`, `mongodb://` (plus `+srv`),
-  `redis://`, `amqp://` or `https://` scheme whose authority carries inline userinfo with a
+- **Credential in a URL** — a `postgres://`/`postgresql://`, `mysql://`, `mongodb://` (plus
+  `+srv`), `redis://`/`rediss://`, `amqp://`/`amqps://` or `http://`/`https://` scheme whose authority carries inline userinfo with a
   password of 6+ characters. A `${VAR}` or `{{ … }}` password is the correct shape and
   passes, as does a scheme outside that list.
 - **Slack webhook URL** — `hooks.slack.com/services/T…/B…/` + 16+ chars.
@@ -114,12 +114,16 @@ is tuned for precision, a human review can afford suspicion:
 
 - **Regex, not entropy** — a novel token format the patterns do not cover slips
   through. The guard is a high-value backstop, not a proof of absence.
-- **Write-time only, and only the writes it can read** — the Write/Edit tools, and
-  Bash heredoc bodies and echo/printf arguments that land in a file. It cannot see an
+- **Denied before the write: only the writes it can read** — the Write/Edit tools, and
+  Bash heredoc bodies and echo/printf arguments that land in a file. It does not read an
   interpreter write (`python open()`), a `cp`/`mv`, `sed -i` replacement text, a
-  downloaded file, or a key in a command that writes no file (`curl -H`). The on-demand
-  scan and a real pre-commit scanner (gitleaks, trufflehog) complement it; the hook does
-  not replace them.
+  downloaded file, or a key in a command that writes no file (`curl -H`). Two later layers
+  narrow that. After a Bash python, node, php, ruby, perl, deno, bun, `cp`, `mv`, `install`
+  or `patch` run, the same hook **warns** on a secret in what each file git reports changed
+  added; the write has landed, so it cannot deny. And `hooks/commit-scan.sh` **denies** a
+  `git commit` or `git push` whose added lines match (gate). Neither sees a gitignored file,
+  a repo with no git, or a shape `patterns.tsv` lacks, so a full scanner (gitleaks,
+  trufflehog) in CI still complements them.
 - **High-confidence by design** — tuned to avoid false denials, so it under-flags
   rather than over-blocks. Pair with a full scanner in CI for coverage.
 
@@ -131,7 +135,7 @@ is tuned for precision, a human review can afford suspicion:
   `API_KEY=<real value>_sample`. The exemption exists for fixtures; spent on a live
   credential it is the one bypass this guard cannot see, and it is deliberate, not
   an accident the hook can forgive.
-- **Rerouting a denied write** through a route the guard cannot read — `python3 -c
+- **Rerouting a denied write** through a route the guard does not read — `python3 -c
   "open(…).write(…)"`, a `cp` from a scratch file, a `sed -i` — is the same smuggle as
   splitting the literal. A deny means move the value out or make it announce itself.
 - **Treating a pass as proof of no secrets** — it is a backstop, not a guarantee.

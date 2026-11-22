@@ -8,7 +8,8 @@ description: Use when optimizing or profiling what is slow or heavy — endpoint
 The iron rule: **measure before, measure after.** An optimization without a
 before/after number is a guess, and guesses do not ship. If you cannot measure the
 cost, your first task is to build the measurement — a profiler trace, a timed run, a
-bundle report, an `EXPLAIN` plan — not to start optimizing.
+bundle report, an `EXPLAIN` plan — not to start optimizing. Standing: recorded — no check
+reads a before/after number back.
 
 ## The loop
 
@@ -100,8 +101,8 @@ check the failure modes:
   MariaDB dialect skill when detected). This skill counts the queries and reads the plan; the SQL skills fix the statement.
 - Framework-idiom performance (React re-renders, Eloquent hydration) → the same fan-in, which loads the
   laravel and web-dev stack skills. Recommend, do not duplicate.
-- Applying a batch of fixes → the shared `task-executor`; this skill decides *what* is
-  slow and *why*, not the mechanical application.
+- Applying a batch of fixes → `resilience:performance-engineer`, the worker that measures
+  before and after; this skill decides *what* is slow and *why*, not the application.
 
 ## Anti-patterns
 

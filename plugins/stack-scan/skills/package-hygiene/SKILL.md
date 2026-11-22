@@ -73,7 +73,9 @@ Three fix lanes, in order of preference:
    coming. That decision is a task, not a hotfix.
 
 Never blanket `npm audit fix --force`: it applies semver-major bumps across
-the tree — an unreviewed upgrade-everything PR wearing a security hat.
+the tree — an unreviewed upgrade-everything PR wearing a security hat. Standing:
+gate where this plugin is installed — `hooks/install-guard.sh` asks before a Bash
+`npm audit fix --force` (or `-f`); recorded for the rest of this skill.
 
 ## Upgrade strategy
 

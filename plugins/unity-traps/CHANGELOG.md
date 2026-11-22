@@ -2,6 +2,20 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.0 — 2026-11-21
+
+- **New hook: `hooks/api-check.sh`.** After a Write, Edit or MultiEdit of an `Assets/**/*.cs`, it runs
+  `check_unity_project.py` on the project and adds that file's `api-*` findings: `GetInstanceID()` and the other
+  InstanceID members on 6000.3–6000.5, UXML Factory/Traits, Cinemachine 2 types on Cinemachine 3. Each rule is said
+  once per file per context, at most 5 per edit. It never blocks. Until now only a manual run reported these, because
+  `meta-check.sh` leaves them out. Off: `CC_UNITY_API_CHECK=off`, or the new `cc_unity_api_check` option.
+- **The skill's Unity 6 names row** is a warn-only gate for the names the checker knows; the physics and finder
+  renames stay recorded (it said agent-graded, with no reviewer behind it).
+- **Standing.** Gate where installed. `scripts/__tests__/api-check-hook.test.sh`, 25 cases on host-shaped payloads:
+  it fires on a removed and a deprecated name and stays silent on a clean file, a name outside its version window or
+  under an `#if UNITY_*` guard, another file's finding, move damage in the same file and a `.cs` outside `Assets/`.
+  No live host session was run for it.
+
 ## 0.6.1 — 2026-11-14
 
 - **`hooks/meta-check.sh` keeps its fallback state under `.cc-artifacts/`.** When the host passes no

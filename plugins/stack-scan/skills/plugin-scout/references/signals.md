@@ -115,7 +115,7 @@ covered, and silencing the row there is how an Astro repo never heard it was unc
 
 ## Standing
 
-**Agent-graded, with one gate.** No script checks that the model cited the
+**Recorded, with one gate.** No script checks that the model cited the
 evidence for these rows, that a signal was read from the file it names, or that
 a `—` row routed onward instead of padding tier 3 — the same standing tier-1
 carries.
@@ -123,7 +123,7 @@ carries.
 The one mechanical check is `pc_scout_names` (`scripts/lib/plugin-checks.sh`):
 it fails the build when a name in the Suggest column — or the Companions table's
 `Plugin` column — is not a live `marketplace.json` entry. Whether the companion line was
-printed, and whether the pairing is still true, is agent-graded like the rest. That gate exists because this table shipped a row
+printed, and whether the pairing is still true, is recorded like the rest. That gate exists because this table shipped a row
 suggesting `i18n` for two days after the plugin was deleted, and `pc_removed_refs`
 returned 0 on it — a bare backticked table cell matches none of its reference
 shapes. **It gates the NAME only.** Whether the signal pattern is correct, whether

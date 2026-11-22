@@ -102,10 +102,11 @@ also touch:
     CHANGELOG.md   — "Renamed --out to --output (breaking)"
     src/cli.py     — the one docstring whose example still shows `--out`
 
-The check is mechanical: grep for the old flag name across all docs and
-docstrings; zero hits means the rename is complete.
+The check is mechanical: grep for the old flag name across the docs and
+docstrings; zero hits means the rename is complete. Leave `CHANGELOG.md` out:
+its rename line names the old flag on purpose, so it always matches.
 
-    grep -rn -- '--out\b' README.md CHANGELOG.md docs/ src/
+    grep -rn -- '--out\b' README.md docs/ src/
 
 ## Boundaries
 

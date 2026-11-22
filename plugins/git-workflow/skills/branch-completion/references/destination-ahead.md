@@ -22,4 +22,4 @@ answers the destination question and nothing else.
   discard keeps its type-the-branch-name step.
 - **Headless ignores it**: report and touch nothing, as without `--to`.
 
-Standing: agent-graded — no script reads the flag.
+Standing: recorded — no script reads the flag.

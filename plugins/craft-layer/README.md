@@ -181,7 +181,7 @@ source; when the rubric moves, fix and re-date it here first.
 ## Skills
 
 - **creative-direction** — the concept-first anti-sameness layer: generates a divergent
-  concept (metaphor, editorial voice, one signature interaction), scores blind candidates,
+  concept (metaphor, editorial voice, one signature interaction), drafts its candidates before scoring any,
   and records a divergence the audit checks; owns the offer-contract, ambition-tier,
   content-depth and sameness-fingerprint checks. **Of those four, only sameness-fingerprint
   has a script behind it.** `template/craft-gates/divergence.mjs` is the entire scripted

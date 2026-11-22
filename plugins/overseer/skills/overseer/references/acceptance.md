@@ -4,9 +4,10 @@
 kinds are recorded — these nine for every kind with a screen (the `ui` evidence profile,
 `kinds.tsv` column 4, the default; a kind with no screen is "Headless kinds" below) —
 each with a `--file` that exists at record time and still exists at
-accept time, and each recorded after the last gated worker or follow-up dispatch (**gate**,
-exit 2 otherwise; a screenshot deleted after recording un-accepts; a walk before the last
-fix cycle is re-run, not re-dated). Nine rows on one file, and a milestone with neither a
+accept time, and each recorded after the last gated worker or follow-up dispatch and at the milestone
+branch's current tip (**gate**, exit 2 otherwise; a screenshot deleted after recording
+un-accepts; a walk before the last fix cycle or the last commit is re-run, not re-dated;
+an edit left uncommitted after the walk is not seen). Nine rows on one file, and a milestone with neither a
 gated reviewer dispatch nor a gated brief, each draw a WARN, not a refusal.
 That the file was LOOKED AT is a **gate** since 0.4.0: `hooks/track-read.sh` ledgers every
 `Read` while a program is open, and `evidence add` refuses a file no Read in this session
@@ -27,7 +28,7 @@ never silent.
 | `viewport:desktop` | same at 1280 px | screenshot |
 | `console-clean` | browser console and network panel read after the walk, since the last navigation | the dump — zero errors the milestone introduced; one that also shows on the base branch is named in the note and recorded as a suggestion, not fixed here |
 | `keyboard` | the full path driven with Tab, Enter, Space and Escape only, from page load to the success feedback, including the destructive action's confirm | screenshot with the focus ring visible on the primary action, plus the key sequence in the note |
-| `motion` | `prefers-reduced-motion: reduce` emulated — Playwright MCP: `browser_run_code_unsafe` with `await page.emulateMedia({ reducedMotion: 'reduce' })` (verified; `browser_evaluate` cannot), Chrome MCP: DevTools rendering — and the walk repeated | screenshot; the note says which animations stopped and that none looped |
+| `motion` | `prefers-reduced-motion: reduce` emulated — Playwright MCP: `browser_emulate_media` with `reducedMotion: "reduce"` (an older MCP without it: `browser_run_code_unsafe`, RCE-equivalent, with `await page.emulateMedia({ reducedMotion: 'reduce' })`; `browser_evaluate` cannot), Chrome MCP: DevTools rendering — and the walk repeated | screenshot; the note says which animations stopped and that none looped |
 
 ## Headless kinds — the milestone with no screen
 
@@ -111,9 +112,9 @@ the loading state the charter promised must be seen, not inferred from the code)
    - Send ALL the fixes as ONE dispatch (`<n>-followup.md` to a live worker, `<n>-fix.md`
      to a fresh one), then walk again. The second walk is a regression pass over the same
      lines: a new observation below the bar is a suggestion, not another cycle.
-   - A milestone buys three fix dispatches, counted across review and acceptance
-     (**gate** — `dispatch check` refuses the fourth). Then park it with the failing line as
-     the reason. `--over-cap "<why>"` is for the user who asked for one more; hands-off parks.
+   - A milestone buys three fix dispatches, counted across review and acceptance — every
+     worker gated during acceptance is one, whatever its name (**gate** — `dispatch check`
+     refuses the fourth). Then park it with the failing line as the reason (**agent-graded**). `--over-cap "<why>"` is for the user who asked for one more; hands-off parks.
 7. **Record**, one call per item. A browser tool writes screenshots only inside its own
    allowed roots (the Playwright MCP: its `.playwright-mcp/` dir under the session cwd);
    save there, then move the files into `milestones/<id>/evidence/`, `Read` each one (the

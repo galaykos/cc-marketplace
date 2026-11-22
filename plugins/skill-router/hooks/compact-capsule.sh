@@ -91,7 +91,7 @@ cc_phase_file_legacy() {
     slug=$(jq -r '.slug // empty' "$f" 2>/dev/null)
     branch=$(jq -r '.branch // empty' "$f" 2>/dev/null)
     idx=$(jq -r '.index_path // empty' "$f" 2>/dev/null)
-    add "registered task-runner run${slug:+ \`$slug\`}${branch:+ on branch $branch}${idx:+, cards at $idx} — ${f#"$root"/} (the completion gate still requires a recorded behavioral-gate pass before this run may stop clean)"
+    add "registered task-runner run${slug:+ \`$slug\`}${branch:+ on branch $branch}${idx:+, cards at $idx} — ${f#"$root"/} (the completion gate owes a recorded behavioral-gate pass before this run may stop clean; candor's Stop hook enforces it, only when candor is installed)"
   fi
 
   f="$trd/scope.json"

@@ -1,11 +1,12 @@
 ---
 name: consult
-description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — a blind stronger-model consultant returns an independent take, risks, one alternative. Advice only — never blocks.
+description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — a blind consultant at or above the session tier returns an independent take, risks, one alternative. Advice only — never blocks.
 ---
 
 ## What this is
 
-A "fresh take" at a key moment: an independent, stronger-model second opinion
+A "fresh take" at a key moment: a blind second opinion from a fresh context at or above the
+session tier (the same model from an opus or fable session; see Dispatch)
 pulled into the session exactly when the session's own judgment is least
 trustworthy — deep in a failed-fix loop, or one keystroke from something
 irreversible. The consultant forms its opinion blind from the code, not from
@@ -42,8 +43,8 @@ The consult brief carries exactly four fields:
 4. **Relevant paths** — repo-relative files the consultant should start from.
 
 Facts only. Quote real output; name real files. The consultant has read-only
-repo access and will verify every claim in the code — a brief the code
-contradicts wastes the consult.
+repo access and checks every claim it can by reading the code; it runs nothing, so
+quoted output is taken as given — a brief the code contradicts wastes the consult.
 
 ## The blind rule
 
@@ -57,7 +58,8 @@ because it cannot be removed after.
 
 **Mechanical check (run it, don't self-certify):** write the brief to a scratch
 file and run `bash "${CLAUDE_PLUGIN_ROOT}/scripts/brief-lint.sh" <file>`; rewrite
-until it exits 0. The lint catches conclusion PHRASING only — a hypothesis
+until it exits 0. Standing: recorded — nothing checks that the lint ran before dispatch.
+The lint catches conclusion PHRASING only — a hypothesis
 smuggled as a neutral fact ("the stale cache layer at src/cache.ts") still
 passes, so a clean lint is necessary, never sufficient; reread for framing.
 
@@ -71,8 +73,8 @@ verification-panels deliberately, paying that cost on purpose.
 
 The consultant ships `model: inherit` / `effort: high`, and the caller RESOLVES its tier
 at dispatch: **the session model or opus, whichever is higher on
-`haiku<sonnet<opus<fable` — escalate, never downgrade.** A static pin cannot deliver the
-"stronger model" promise: from a fable session opus is strictly weaker. The floor is
+`haiku<sonnet<opus<fable` — escalate, never downgrade.** A static pin cannot keep the
+"at or above the session" promise: from a fable session opus is strictly weaker. The floor is
 relative to the session, so never dispatch it BELOW the session model to save tokens — a
 cheap fresh take is the session's own take with extra steps.
 
@@ -105,7 +107,9 @@ session, server-side, consulted mid-generation. It is cheaper to reach and needs
 brief. What a consult keeps: the brief is blind and facts-only, so the consultant never
 sees the session's hypothesis — the advisor is consulted from inside the session's own
 conversation; the consultant reads the repo itself, read-only, and checks every claim; and
-the passive nudge fires on irreversible-command tokens, which `/advisor` does not watch.
+the passive nudge fires on irreversible-command tokens in the user's prompt, which `/advisor`
+does not watch (not on a command the model composes; command-guard's `destructive-guard.sh`
+is the point that sees those).
 Admission, stated plainly: if a blind brief does not beat an anchored advisor on the same
 stuck moment, the consult agent duplicates `/advisor` and only the nudge earns its place.
 No control-arm run has measured that — **recorded**, not shown.

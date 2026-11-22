@@ -33,6 +33,7 @@ cat > "$adir/agent-aaaa.jsonl" <<'J'
 {"type":"assistant","timestamp":"2026-09-14T10:01:05Z","message":{"content":[{"type":"text","text":"found 2"}]}}
 {"type":"user","timestamp":"2026-09-14T10:01:06Z","message":{"content":[{"type":"tool_result","is_error":true,"content":"denied"}]}}
 {"type":"user","timestamp":"2026-09-14T10:01:07Z","message":{"content":[{"type":"tool_result","is_error":true,"content":"rejected by user"}]}}
+{"type":"assistant","timestamp":"2026-09-14T10:01:08Z","message":{"content":[{"type":"text","text":"the PR was rejected upstream, so I kept the old path"}]}}
 J
 printf '{"agentType":"code-review:code-reviewer","spawnDepth":1}\n' > "$adir/agent-aaaa.meta.json"
 cat > "$adir/agent-bbbb.jsonl" <<'J'

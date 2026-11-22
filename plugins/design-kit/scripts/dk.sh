@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dk.sh — the ONE entry point for every design-kit surface, so a user grants one
 # permission rule (`Bash(bash */design-kit/scripts/dk.sh*)`) instead of one per
-# script, and so the five commands share one state file instead of re-typing the
+# script, and so the skills share one state file instead of re-typing the
 # brief, device, theme and pick.
 #
 #   dk serve [--lan|--stop]                 start / expose / stop the preview server, print its URL
@@ -313,8 +313,9 @@ case "$verb" in
                 case " $* " in *" --brief "*) ;; *) wb="$(ws_get brief)"; [ -n "$wb" ] && set -- "$@" --brief "$wb" ;; esac
                 bash "$here/codebase-scaffold.sh" --create "$slug" "$@" || fail "scaffold failed" "$slug" 1
                 ws_set scratch "{\"slug\":\"$slug\",\"at\":\"$(now)\",\"kept\":true}"; log ok "$slug" ;;
-      --cleanup) bash "$here/codebase-cleanup.sh"; ws_set scratch.kept false; log ok ;;
-      --verify) if bash "$here/codebase-cleanup.sh" --verify; then log ok; else log fail; exit 1; fi ;;
+      # From the root: cleanup scans its cwd down, so run from src/ it missed the root's scratch and said clean. Detect and create keep the cwd, the app's own dir in a monorepo.
+      --cleanup) (cd "$ROOT" && bash "$here/codebase-cleanup.sh"); ws_set scratch.kept false; log ok ;;
+      --verify) if (cd "$ROOT" && bash "$here/codebase-cleanup.sh" --verify); then log ok; else log fail; exit 1; fi ;;
       *) fail "unknown scratch mode $mode" "" 2 ;;
     esac ;;
 

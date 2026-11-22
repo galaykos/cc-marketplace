@@ -27,9 +27,14 @@ the digest. Before writing any Astryx code:
 1. Resolve the installed version from `package.json` / the lockfile
    (`@astryxdesign/core`). If React is below 19, stop and say so: the peer
    range is `>= 19.0.0`.
-2. Run the CLI as `npx @astryxdesign/cli …` unless `@astryxdesign/cli` is in the
-   project's `devDependencies`: bare `npx astryx` fetches an UNRELATED npm package
-   of that name. Every `astryx …` command below means that form.
+2. Run the CLI as `npx @astryxdesign/cli …` unless `package.json` declares
+   `@astryxdesign/cli` (in `dependencies` or `devDependencies`; npx then runs its
+   local `astryx` bin): otherwise bare `npx astryx` fetches an UNRELATED npm package
+   of that name. Every `astryx …` command below means that form. This plugin's
+   `hooks/package-command-guard.sh` denies `npx|bunx|npm exec astryx` with no CLI
+   declared, and `pnpm dlx`, `yarn dlx` or `astryx@<version>` always (they fetch from
+   the registry). Standing: **gate** for its patterns (`scripts/__tests__/package-command-guard.test.sh`,
+   run in CI); the deny itself reaches only sessions with this plugin installed.
 3. Read props and examples for THAT version with `astryx component <Name>`
    (`--props`, `--json`), or the component's page under
    `https://astryx.atmeta.com/components/<Name>` for the published one. Never
@@ -40,8 +45,9 @@ the digest. Before writing any Astryx code:
 
 ## Installation and imports
 
-- Install set: `@astryxdesign/core @stylexjs/stylex @astryxdesign/theme-<name> @astryxdesign/cli`,
-  then `npx astryx init`. Three global CSS imports are mandatory (`reset.css`,
+- Install set: `@astryxdesign/core @stylexjs/stylex @astryxdesign/theme-<name> @astryxdesign/cli`
+  (the getting-started page puts the CLI in `dependencies`), then `npx astryx init`, which
+  runs the CLI just installed. Three global CSS imports are mandatory (`reset.css`,
   `astryx.css`, the theme's `theme.css`) in the documented `@layer` order — a
   screen that "renders unstyled" is nearly always a missing import.
 - Subpath imports, never a barrel: `@astryxdesign/core/Button`,

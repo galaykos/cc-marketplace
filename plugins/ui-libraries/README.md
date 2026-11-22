@@ -47,6 +47,25 @@ app before any import exists, reach `component-libraries` through its descriptio
 
 Credit: the official-design-system rule in `component-libraries` is adapted from [leonxlnx/taste-skill](https://github.com/leonxlnx/taste-skill) at ce26fc25 (MIT, © 2026 Leonxlnx), rewritten here rather than copied; the package names and use restrictions were re-read from each system's official docs and npm on 2026-10-05, and the rule's effect on what the model installs is unmeasured.
 
+## Hook
+
+`package-command-guard` (PreToolUse on Bash) carries two rules from the skills to the moment the
+command runs:
+
+- **Astryx — denies.** `npx astryx`, `bunx astryx` or `npm exec astryx` when no `package.json`
+  at or above the working directory declares `@astryxdesign/cli`, and `pnpm dlx astryx`,
+  `yarn dlx astryx` or `astryx@<version>` always: each fetches the unrelated npm package named
+  `astryx`. The reason names `npx @astryxdesign/cli …` as the fix. A CLI declared but not yet
+  installed (a fresh clone) still fetches, and the hook does not see it.
+- **PrimeReact — asks.** An npm, pnpm, yarn or bun install naming `primereact` bare, `@latest` or
+  `@11`, `@primereact/ui`, or `@primeuix/themes` bare, `@latest` or `@3`, while the nearest
+  lockfile resolves `primereact` 10.x: that install moves the project onto v11 and its keyed
+  licence. Hand edits to `package.json`, `npm update`, ncu and Renovate never pass through it,
+  and `bun.lockb` is not read.
+
+Standing: **gate** for its patterns (`scripts/__tests__/package-command-guard.test.sh`, run in
+CI); the verdicts reach only sessions with this plugin installed.
+
 ## Pairs well with
 
 - **ui-ux** — shadcn/ui and Tailwind skills, theming, design tokens, motion, the WCAG audit, and the build/review agents that load these skills

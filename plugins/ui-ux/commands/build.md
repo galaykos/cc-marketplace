@@ -116,9 +116,12 @@ convention.
    that was assumed rather than specified — surface it for confirmation rather than
    silently choosing. Then offer the reviewer twin as a selectable choice
    (AskUserQuestion): "Run /code-review:review on the result now (Recommended)" / "Skip" —
-   a standalone build otherwise ships self-graded, and the reviewer's adversarial
-   pass plus Checked/Not-checked inventory is a check the builder never runs on
-   itself. Headless: skip the question and name the review as not run.
+   a standalone build otherwise ships self-graded. Standing: agent-graded — the
+   fan-in's reviewers read in a fresh context with a Checked/Not-checked inventory, but
+   `ui-ux-reviewer` is `model: inherit`, so it is a second read by the same model
+   family, not an outside measurement. The outside signals are the browser render this
+   plugin's `ui-check` Stop hook asks for and the axe run in `/ui-ux:audit`. Headless:
+   skip the question and name the review as not run.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to

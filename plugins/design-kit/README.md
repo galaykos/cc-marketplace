@@ -1,7 +1,8 @@
 # design-kit
 
 The Claude Desktop design picker, as five local plugin skills whose files you own. They
-are **Slides, Design, Design in codebase, Design System, Artifacts**. Every surface is
+are **Slides, Design, Design in codebase, Design System, Artifacts**, plus two the picker
+lacks, **Motion** and **Film**. Every surface is
 a plain HTML file under `.cc-artifacts/design-kit/` in your project. This plugin's own preview server
 serves it on one localhost URL, and scripts you can read export it. Nothing leaves the
 machine unless a skill names the path and you say yes.
@@ -303,7 +304,8 @@ through a headless Chromium-family browser (exit 3 with the install hint when no
 What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 6 artboards, an empty body,
 lorem ipsum, or any external asset — a board renders offline — **gate**. That the directions
 diverge structurally, that content is real, and the accessibility floor of a hand-written body
-are **agent-graded**. Nothing here measures contrast — **recorded**.
+are **agent-graded**. Text contrast is measured only where `dk check <board>` runs (axe's
+`E3.color-contrast`; standing under "Render checks"), not over a background image.
 
 Limits: the artboard HTML is a decision aid, never a starting point for implementation (the pick
 goes to `/design-kit:in-codebase` or the project's UI build command); knobs restyle the shell's
@@ -367,8 +369,8 @@ silent. It names this version's absolute path, so re-run it after a plugin updat
 **gate** for the snippet — `drift.test.sh` runs the printed command against those payloads;
 whether you paste it is yours.
 
-What has teeth: the scratch-file cleanup (`--verify`), the bundle drift table and `dk drift`'s
-scan are **gates** — scripts under `scripts/__tests__/` drive all three. Consent before the first write is an AskUserQuestion, once
+What has teeth: the scratch-file cleanup (`--verify`, run from the project root whatever the
+shell's directory), the bundle drift table and `dk drift`'s scan are **gates** — scripts under `scripts/__tests__/` drive all three. Consent before the first write is an AskUserQuestion, once
 per session. Finding the right component, passing only real props, rendering all four states, and
 never touching a real file are **agent-graded**; `git status` after cleanup is the check.
 

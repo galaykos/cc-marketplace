@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.19.3 — 2026-11-21
+
+- **`dk scratch --verify` no longer says `cleanup: clean` from a subdirectory.** `--cleanup` and `--verify` scanned from the shell's directory down, so after a `--create` at the project root, a run from `src/` missed `__design-kit__/` and the route line and reported clean. Both now run from the project root. `--detect` and `--create` still use the shell's directory, which in a monorepo is the app's own. Cleanup also finds a marked `routes/web.php` at any depth, so a Laravel app in a subdirectory is cleaned from the root. Standing: gate (`dk.test.sh`, `codebase.test.sh`; both new cases fail on 0.19.2).
+- **Text fixes.** Contrast is measured wherever `dk check` runs (axe's `E3.color-contrast`). The design and slides skills and the README said nothing measured it, or that `/design-kit:system` did, and it does not. The artifact skill no longer says pages have no comment channel; the Notes button is one, and notes do not travel with a shared copy. `/design-kit:in-codebase` settles every `no token` drift row in one question round instead of one call per row, and labels the drift table's run order **recorded**, not **gate**. `/design-kit:system`'s CLAUDE.md offer is step 5. The README names Motion and Film beside the five picker skills.
+
 ## 0.19.2 — 2026-11-17
 
 - **`dk notes --shot` gives the browser 60 s (was 30).** On a CI runner the headless Chrome behind a note screenshot ran past 30 s on a cold first start, so the shot failed with exit 4 and nothing was captured; a warm browser takes well under a second (0.2 s, three local runs). A user's first `--shot` on a cold machine paid the same cost. A browser that truly hangs now waits 60 s before the same exit-4 line.

@@ -72,6 +72,14 @@ dk scratch --create hero >/dev/null
 python3 -c 'import json;ws=json.load(open(".cc-artifacts/design-kit/workshop.json"));assert ws["scratch"]["slug"]=="hero" and ws["scratch"]["kept"] is True' || { echo "FAIL: workshop scratch"; exit 1; }
 if dk scratch --verify >/dev/null 2>&1; then echo "FAIL: verify should fail with scratch present"; exit 1; fi
 dk scratch --cleanup >/dev/null; dk scratch --verify >/dev/null || { echo "FAIL: verify after cleanup"; exit 1; }
+# from a subdirectory, --verify and --cleanup still see the root's scratch (until 0.19.3 they scanned the cwd down and said clean)
+dk scratch --create hero >/dev/null
+( cd src/components
+  if dk scratch --verify >/dev/null 2>&1; then echo "FAIL: scratch --verify from a subdirectory missed the root's scratch"; exit 1; fi
+  dk scratch --cleanup >/dev/null
+) || exit 1
+[ ! -e __design-kit__ ] && [ ! -e src/__design-kit__ ] || { echo "FAIL: scratch --cleanup from a subdirectory left the root's scratch"; exit 1; }
+dk scratch --verify >/dev/null || { echo "FAIL: verify after a subdirectory cleanup"; exit 1; }
 
 out="$(dk bundle page.html --name pg 2>/dev/null)"
 case "$out" in *"artifact=.cc-artifacts/design-kit/artifacts/pg.html v1"*"url=http://127.0.0.1:$port/artifacts/pg.html"*) ;; *) echo "FAIL: bundle: $out"; exit 1 ;; esac

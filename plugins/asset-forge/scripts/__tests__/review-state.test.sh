@@ -2,7 +2,8 @@
 # Harness for hooks/review-state.sh with the payload shapes the host sends: a forge-using context that changed the
 # scene is blocked once per change cycle; a review clears it; neighbours stay silent (no forge in use, the _for_cli
 # headless call, a failed review, one whose traceback names contact_sheet, stop_hook_active, another transcript,
-# the off switch, a malformed payload); the 24 h sweep never deletes the current context's state.
+# the off switch, a malformed payload); a review of a snapshot older than the last edit does not clear it; the 24 h
+# sweep never deletes the current context's state.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 H="$here/../../hooks/review-state.sh"
@@ -17,6 +18,14 @@ post() { # <transcript> <tool_name> <code-or-response>
   jq -cn --arg t "$1" --arg n "$2" --arg c "$3" '{session_id:"s", transcript_path:$t, cwd:"/tmp", hook_event_name:"PostToolUse",
     tool_name:$n, tool_input:{code:$c}, tool_response:[{type:"text", text:$c}]}' | bash "$H"
 }
+review() { # <transcript> <blend_path> <response>
+  jq -cn --arg t "$1" --arg b "$2" --arg r "$3" '{session_id:"s", transcript_path:$t, cwd:"/tmp", hook_event_name:"PostToolUse",
+    tool_name:"mcp__plugin_asset-forge_forge__render_review_set", tool_input:{blend_path:$b, object:"Chest"},
+    tool_response:[{type:"text", text:$r}]}' | bash "$H"
+}
+snap() { touch "$1"; post "$2" "$EXEC" "bpy.ops.wm.save_as_mainfile(filepath=snap, copy=True)"; } # <file> <transcript>: the file lands before the hook runs
+tick() { sleep 0.05; } # mtimes must differ: Linux stamps files at a coarse clock tick
+OKSHEET='{"ok": true, "contact_sheet": "/tmp/x/contact_sheet.png"}'
 stop() { jq -cn --arg t "$1" --argjson a "${2:-false}" '{session_id:"s", transcript_path:$t, cwd:"/tmp", hook_event_name:"Stop", stop_hook_active:$a}' | bash "$H"; }
 blocks() { printf '%s' "$1" | jq -e '.decision == "block" and (.reason | contains("/asset-forge:review"))' >/dev/null 2>&1; }
 
@@ -41,10 +50,20 @@ out=$(stop /t/d.jsonl); blocks "$out" && ok "a failed review does not clear the 
 post /t/h.jsonl "$EXEC" 'import forge' >/dev/null
 post /t/h.jsonl "$REVIEW" '{"ok": false, "stage": "op:call", "traceback": "File review_renders.py, in _contact_sheet"}' >/dev/null
 out=$(stop /t/h.jsonl); blocks "$out" && ok "a failed review whose traceback names contact_sheet does not clear it" || bad "traceback cleared ($out)"
-post /t/d.jsonl "$REVIEW" '{"ok": true, "contact_sheet": "/tmp/x/contact_sheet.png"}' >/dev/null
+tick; snap "$T/d1.blend" /t/d.jsonl >/dev/null
+review /t/d.jsonl "$T/d1.blend" "$OKSHEET" >/dev/null
 [ -z "$(stop /t/d.jsonl)" ] && ok "a successful review clears the change" || bad "review did not clear"
 post /t/d.jsonl "$EXEC" 'deform.inflate(...)' >/dev/null
 out=$(stop /t/d.jsonl); blocks "$out" && ok "an edit after the review starts a new cycle that blocks again" || bad "new cycle ($out)"
+
+post /t/k.jsonl "$EXEC" 'import forge' >/dev/null; tick; snap "$T/k1.blend" /t/k.jsonl >/dev/null
+tick; post /t/k.jsonl "$EXEC" 'deform.inflate(...)' >/dev/null; tick; snap "$T/k2.blend" /t/k.jsonl >/dev/null
+review /t/k.jsonl "$T/k1.blend" "$OKSHEET" >/dev/null
+out=$(stop /t/k.jsonl); blocks "$out" && ok "a review of a snapshot older than the last edit does not clear it" || bad "stale snapshot cleared ($out)"
+post /t/m.jsonl "$EXEC" 'import forge' >/dev/null; tick; snap "$T/m1.blend" /t/m.jsonl >/dev/null
+tick; post /t/m.jsonl "$EXEC" 'deform.inflate(...)' >/dev/null; tick; snap "$T/m2.blend" /t/m.jsonl >/dev/null
+review /t/m.jsonl "$T/m2.blend" "$OKSHEET" >/dev/null
+[ -z "$(stop /t/m.jsonl)" ] && ok "a review of the snapshot saved after the last edit clears it (the snapshot call is no edit)" || bad "fresh snapshot did not clear"
 
 post /t/e.jsonl mcp__plugin_asset-forge_forge__validate_asset '{}' >/dev/null
 post /t/e.jsonl mcp__Blender__execute_blender_code_for_cli 'headless read' >/dev/null

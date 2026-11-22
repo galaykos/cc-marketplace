@@ -33,7 +33,11 @@ route→request→resource mapping by hand.
    spec's request schema — every `required`, `enum`, `format`, and type constraint
    must appear on both sides. A silently dropped constraint is a contract violation
    later reviews miss because the generated code is internally valid; report each
-   mismatch as a blocking finding, never paper over it.
+   mismatch as a blocking finding, never paper over it. This is the same model
+   reading its own output, so each constraint names both sides: the spec's
+   `path:line` and the rule's `file:line`; one you cannot point to on both sides is a
+   mismatch. A clean round-trip is not proof the endpoint validates as specced; only
+   a request sent to it is, and this step sends none. Standing: recorded.
 
 5. Offer via AskUserQuestion: "Write the scaffolding now (Recommended)" / "Show the plan
    only". On write, dispatch the mapping down the static chain `backend-engineer`

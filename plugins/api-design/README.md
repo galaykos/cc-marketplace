@@ -66,4 +66,4 @@ other reminder hook in the marketplace.
 - **laravel** — apiResource routes, FormRequest → 422 shape, policies → 403
 - **security** (api-auth skill) — reviewing the auth model of the API you are integrating
 - **stack-scan** — inventories the installed versions the docs check verifies against
-- **task-runner** — `/api-design:drift` joins its completion gate when installed
+- **task-runner** — run `/api-design:drift` by hand before finishing a run; no task-runner step calls it

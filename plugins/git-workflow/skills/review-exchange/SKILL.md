@@ -13,10 +13,12 @@ and verify everyone else's before acting on them.
 ## Requesting: self-review first
 
 Read the entire diff — `git diff "$BASE...HEAD"`, hunk by hunk — before anyone
-else does. Self-review reliably catches the embarrassing third of findings:
-debug prints, commented-out blocks, leftover TODOs, an accidentally committed
-fixture, a rename half-applied. Every one of those a reviewer finds instead
-costs a round-trip and spends credibility that real design questions need.
+else does, looking for debug prints, commented-out blocks, leftover TODOs, an
+accidentally committed fixture, a rename half-applied. Every one of those a
+reviewer finds instead costs a round-trip and spends credibility that real design
+questions need. Two have a mechanism where the plugin is installed: debugging's
+probe-guard asks at a commit staging a `[DEBUG-` probe, and code-review's comment
+guard blocks an edit adding commented-out code. The rest is the read.
 If the diff surprises its own author anywhere, fix that before requesting.
 
 Do the mechanical half by dispatch, not by hand, when the tooling is installed:
@@ -47,7 +49,7 @@ checkboxes and fold the three items above into them rather than appending a
 second structure underneath. Say which file you used. Likewise `CODEOWNERS`
 (`.github/`, repo root, `docs/`): the paths the diff touches decide who must
 review it, so match them and name those teams in the request instead of waiting
-for the platform to work it out. Standing: agent-graded — nothing scripts either
+for the platform to work it out. Standing: recorded — nothing scripts either
 read.
 
 ## Small diffs get real reviews

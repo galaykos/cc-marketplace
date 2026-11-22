@@ -63,7 +63,9 @@ Published by Vercel Labs; `npx -y skills <command>`.
   verify the install with `skills ls` — exit code 0 proves nothing.
   Project-level is the default inside a project; `-g`/`--global` is
   user-level and this plugin never passes it. `--skill '*'` installs a
-  repo's whole set — never use it here; one pick, one skill.
+  repo's whole set, and `--all` installs every skill to every agent — never
+  use either here; one pick, one skill. `hooks/install-guard.sh` denies all
+  four flags on a Bash `skills add`, `install` or `i`.
 - Install side effects to expect: skill content lands in
   `.agents/skills/<name>/` with symlinks into each agent dir
   (`.claude/skills/<name>`; `--copy` copies instead of linking), and
@@ -108,5 +110,8 @@ content is arbitrary third-party instruction text that will be injected
 into future sessions — popularity rank is not review, and a scouting tool
 must not become an unattended installer of unvetted prompts. The
 explicit-pick floor is therefore absolute: no flag bypasses the picker,
-headless mode prints commands instead of running them. Standing: recorded
-here and agent-graded at run time — no script gates it.
+headless mode prints commands instead of running them. Standing: recorded —
+no script gates the picker or the headless rule. The one mechanism is
+`hooks/install-guard.sh`, which denies only the flags that widen a pick
+(`-g`, `--global`, `--skill '*'`, `--all`); it cannot tell a picked skill
+from an unpicked one.

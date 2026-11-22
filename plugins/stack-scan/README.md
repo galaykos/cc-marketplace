@@ -127,7 +127,7 @@ you use is synced. A project with no plugin from this marketplace bootstraps fro
 shell with `claude plugin install stack-scan@cc-plugins-marketplace --scope local`, then
 `/stack-scan:suggest --sync --yes`. Contract and row classes:
 `skills/plugin-scout/references/sync.md`. Standing: **gate** for the scope
-classification (`scripts/__tests__/sync-plan.test.sh`), **agent-graded** for the
+classification (`scripts/__tests__/sync-plan.test.sh`), **recorded** for the
 detection that feeds it and for asking before any change.
 
 **Beyond this marketplace.** The inventory closes with one block of plugins from
@@ -152,7 +152,7 @@ Consequences, all deliberate:
 - **Provenance on every row** — source repo, installs, URL — so you judge the source,
   not the rank.
 - **Preview before install** — the picked skill's SKILL.md is fetched and shown before
-  `npx -y skills add` runs, project-level, never `--global`. Two commands, not one:
+  `npx -y skills add` runs, project-level, never `--global`, `--skill '*'` or `--all`. Two commands, not one:
   `--skill` takes the display name `npx -y skills add <owner>/<repo> -l` prints, and the
   skills.sh `skillId` exits 0 without installing, so every install is confirmed with
   `npx -y skills ls`.
@@ -167,13 +167,38 @@ Consequences, all deliberate:
   and points at browsing the site rather than scraping it.
 
 Standing, per this marketplace's has-teeth convention: all of the above but the
-SkillSpector script is recorded/agent-graded — no script gates it. Gated by name only: catalog freshness
+SkillSpector script and the install guard below is recorded — no script gates it. Gated by name only: catalog freshness
 (`generate.sh --check`, which renders `skills/plugin-scout/references/catalog.md`),
 plugin names in the suggestion tables (`pc_scout_names`). The shipped scripts are
 the exception — real harnesses, run on every PR: `scripts/__tests__/pick.test.sh` (the
 picker's parser), `scan.test.sh` (the report's mechanical pass),
 `licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path) and
 `skill-vet.test.sh` (the SkillSpector step: absent, verdict, not scanned, symlinks, layouts).
+
+## Install guard
+
+A `PreToolUse` hook on Bash, `hooks/install-guard.sh`, holds three install rules this
+plugin's skills state:
+
+- **Denies** `skills add`, `install` or `i` (through `npx`, `bunx`, `pnpx`, `pnpm dlx`,
+  `yarn dlx`, `bun x`, `npm exec` or a bare `skills`) with `-g`/`--global`, `--skill '*'`
+  or `--all`: each widens one picked third-party skill into a machine-wide or whole-repo
+  install. A user who wants one runs the command themselves.
+- **Asks** before `claude plugin install`, `uninstall`, `enable` or `disable` with no
+  `-s`/`--scope`: install and uninstall then act at user scope, machine-wide, and enable
+  and disable at a scope the CLI auto-detects (`claude plugin <verb> --help`, 2.1.330).
+- **Asks** before `npm audit fix --force` (or `-f`), which takes every semver-major upgrade
+  in one step.
+
+It reads the command at a command position, through wrappers (`sudo`, `env`, `VAR=1`,
+`bash -c`, `eval`) and heredocs a shell reads, and stays silent on the same words in an
+`echo`, a `grep` or a heredoc written to a file. Not caught: a command in a variable,
+alias, function or script, the `/plugin` slash command, and anything you run yourself.
+Fails open: no `jq`, unparseable input or any error is silent. No off switch: the asks are
+answered per call, and the deny guards a rule the skill states as absolute; disable the
+plugin to lift it. Standing: **gate** for the verdicts (`scripts/__tests__/install-guard.test.sh`:
+the deny, ask and must-stay-silent rows, the JSON shape, fail-open); it fires only where
+the plugin is installed.
 
 ## Mods (Claude Code ≥ 2.1.291)
 
