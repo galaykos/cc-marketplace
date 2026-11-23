@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.21.1 — 2026-11-23
+
+- **The scout catalog's plugin-updater row names `--prune`.** Regenerated from plugin-updater 0.4.0's description; nothing else in the scout changed.
+
 ## 0.21.0 — 2026-11-23
 
 - **No game suggestions or engine rows.** The game plugins left the marketplace. plugin-scout drops the godot, unity-traps, unreal, meshy, pixel-art, gamedev, blender and asset-forge signal and stack-relevance rows, and the Unity, Unreal and Phaser framework-native rows. `--full` no longer has a game class. `scan.sh` no longer prints godot, unity, unreal or blender rows; a repo with `project.godot`, a Unity `ProjectSettings/ProjectVersion.txt` beside `Assets/`, a root `*.uproject` or a root `*.blend` gets the "not covered by scan.sh" line instead of an empty report (`scan.test.sh` fixture 4 pins the Godot case). Standing: gate for live names (`pc_scout_names`) and `scan.test.sh` (engine fixtures removed with the code).

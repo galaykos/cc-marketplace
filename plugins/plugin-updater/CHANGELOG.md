@@ -2,6 +2,16 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.0 — 2026-11-23
+
+- **New flag: `--prune` uninstalls plugins their marketplace removed.** Without it, such an install fails every run
+  with `not_found`. With it, each matched install whose plugin the marketplace's `renames` maps to `null` gets
+  `claude plugin uninstall <id> --scope <scope>`, run from its own folder. It combines with `--all`, `--project`,
+  `--scope`, `--plugin` and `--dry-run`. The plugin's data directory is kept while another install of it remains
+  (`--keep-data`). Worktree, orphaned and `managed` installs are still skipped, and the background run never prunes.
+  Without `--prune`, a dry run counts the installs that will fail this way and names the flag. Standing: gate
+  (`scripts/__tests__/update-all.test.sh`, 25 new checks; two mutations of the prune code fail 12 and 2 of them).
+
 ## 0.3.0 — 2026-11-21
 
 - **New hook: `accept-guard` denies a model's `claude plugin update` or `install` with `-y`, `--yes` or
