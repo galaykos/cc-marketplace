@@ -34,12 +34,16 @@ truncated by the SessionStart hook, hiding half the map.
 
 Every mode ends with the **Decisions area** step below, then the `built:` refresh.
 
-Work relative to the repo root (cwd). Vault = `.cc-artifacts/brain/`. **Never write outside it.**
+Resolve the repo root once, first: `git rev-parse --show-toplevel`, else the session cwd — the
+root this plugin's SessionStart hook reads the map from. Call it `<root>`. Your Bash cwd can
+reset between calls and Write/Edit do not follow a `cd`, so run every git command below as
+`git -C <root> …` and read every path in this file (`.cc-artifacts/…`, `brain/`) as
+`<root>/…`, absolute. Vault = `<root>/.cc-artifacts/brain/`. **Never write outside it.**
 
 **A map from before 2026-11-14 lives in `brain/`.** When `.cc-artifacts/brain/` does not exist
 and `brain/INDEX.md` does, copy it over once before choosing the mode, then work only on the copy:
-`mkdir -p .cc-artifacts/brain && cp -Rp brain/. .cc-artifacts/brain/`. Never modify, move or
-delete `brain/`; say in the Return that the map was copied from it.
+`mkdir -p <root>/.cc-artifacts/brain && cp -Rp <root>/brain/. <root>/.cc-artifacts/brain/`.
+Never modify, move or delete `brain/`; say in the Return that the map was copied from it.
 
 ## Formats
 
@@ -53,11 +57,11 @@ built: <short-hash> · <N> areas · <M> files
 - decisions — <D> recorded shape choices; latest <YYYY-MM-DD>
 ```
 
-`<short-hash>` = `git rev-parse --short HEAD`, or `(no git)` if not a git worktree. `<N>` =
-area count, `decisions` included when its file exists; `<M>` = total distinct files across
+`<short-hash>` = `git -C <root> rev-parse --short HEAD`, or `(no git)` if not a git worktree.
+`<N>` = area count, `decisions` included when its file exists; `<M>` = total distinct files across
 detail files (`decisions.md` lists none). This MUST fit the inject bound — one line per area
 with the ~8–12 cap plus the decisions line fits easily; if you ever exceed it, drop to bare
-names. Check it before returning: `wc -c < .cc-artifacts/brain/INDEX.md` must be ≤ 2048 and
+names. Check it before returning: `wc -c < <root>/.cc-artifacts/brain/INDEX.md` must be ≤ 2048 and
 `wc -l` ≤ 30 — over-bound is a FAILURE to report, not a formatting choice, because the inject
 hook truncates silently (`head -c 2048 | head -n 30`) and hides the tail of the map from every
 session forever.
@@ -120,10 +124,10 @@ Append-only; the dedupe key is each entry's `at`.
    `(no git)`/absent, or this is not a git worktree → **fall back to a Full build** (cannot diff).
 2. Compute the changed-file set since `<hash>`:
    ```
-   git diff --name-only <hash>..HEAD          # committed since the build
-   git diff --name-only                        # unstaged working-tree edits
-   git diff --name-only --cached               # staged edits
-   git ls-files --others --exclude-standard    # new untracked files
+   git -C <root> diff --name-only <hash>..HEAD          # committed since the build
+   git -C <root> diff --name-only                        # unstaged working-tree edits
+   git -C <root> diff --name-only --cached               # staged edits
+   git -C <root> ls-files --others --exclude-standard    # new untracked files
    ```
    Union them, then drop noise: paths under `.cc-artifacts/` (the map included), an older map's
    `brain/`, and the same vendored/generated/tooling dirs the full build skips (`node_modules`,
@@ -161,7 +165,7 @@ existing `decisions.md` untouched. The marker is **read-only** to you.
 1. **Dedupe key = the marker's `at` value, verbatim.** The skill writes `at` once per
    deliberation, so a later re-deliberation of the same slug (its kill-trigger fired) carries a
    new `at` and IS a new decision; `task` alone would wrongly collapse the two.
-   `grep -F -- "<at>" .cc-artifacts/brain/decisions.md` matches → already recorded; stop.
+   `grep -F -- "<at>" <root>/.cc-artifacts/brain/decisions.md` matches → already recorded; stop.
 2. Otherwise append one entry per Formats (create the file with its header first if absent):
    date = `at` cut to `YYYY-MM-DD`, task = `task`, `by` = `by`. The marker does NOT carry the
    chosen shape, the reason, or the kill-trigger — `approaches/hooks/compact-recovery.sh`

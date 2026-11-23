@@ -103,6 +103,14 @@ check "36 a making verb only inside a paste is silent" \
 check "37 an ask beside a paste still speaks" \
   "$(run $'<pasted_content id="p2">\nTypeError: x is undefined\n</pasted_content id="p2">\nfix this error in the importer' s15)" 'five moves'
 check "38 the hand-back marker quoted mid-sentence is an ask" "$(run 'fix the parser that drops the [Subagent hand-back] line' s16)" 'five moves'
+nobrowser='what the user must configure. A subagent with no browser tool proves what its own tools reach and names the browser check as untested for its caller.'
+check "39 SubagentStart adds the no-browser-tool sentence after move (5)" "$(runsub ag-nb general-purpose | jq -r '.hookSpecificOutput.additionalContext // empty')" "$nobrowser"
+out=$(run 'build the uploader' s17)
+case "$out" in
+  *'no browser tool'*) echo "FAIL: 40 UserPromptSubmit carries the no-browser-tool sentence — got: $out"; rc=1 ;;
+  *'what the user must configure.') echo "PASS: 40 UserPromptSubmit ends on move (5), no no-browser-tool sentence" ;;
+  *) echo "FAIL: 40 UserPromptSubmit does not end on move (5) — got: ${out:-<silent>}"; rc=1 ;;
+esac
 m=$(ls -d "$TMP"/cc-preamble-* 2>/dev/null | wc -l | tr -d ' ')
 [ "$m" -ge 1 ] && echo "PASS: 13 marker is written under TMPDIR ($m)" || { echo "FAIL: 13 no marker written"; rc=1; }
 

@@ -3,6 +3,11 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.12.3 — 2026-11-23
+
+- **database-engineer reaches the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+- **database-engineer returns a backup question instead of asking.** "If no backup path is confirmed, stop and ask" became "stop and return the question to the caller": a subagent cannot ask the user. Standing: recorded.
+
 ## 0.12.2 — 2026-11-21
 
 - **The destructive-SQL guard no longer asks about a `deleteMany` wipe in a test or seed file.** A bare `deleteMany()` or `deleteMany({})` in `__tests__/`, a `.test.` or `.spec.` file, a `seeds/` or `seeders/` directory, or a file with `seed` in its name is teardown. With no prompt to answer, the ask was auto-denied, so a headless run writing test setup failed its turn. Migration, script and backfill paths run on real data and still ask, and so do `updateMany({})` and `remove({})` everywhere. Misses: a wipe in a seed file that runs in production. Standing: gate (`guard.test.sh`, 9 new cases).

@@ -14,11 +14,15 @@ mutating commands. Standing: recorded — Bash is granted for dry-runs (`kubectl
 tool restriction.
 
 Standing of the PROACTIVELY clause above: `recorded` — nothing dispatches this
-reviewer automatically after the engineer's output; the host's own heuristic and an
-explicit `/devops:review` are the only paths here. Config shipped without this audit
-was not reviewed, and no gate says otherwise.
+reviewer automatically after the engineer's output; the host's own heuristic and
+task-runner's reviewer routing for a `devops`-tagged card (`reviewer-routing.md`) are
+the only paths here — `/devops:review` applies the rubric inline and never dispatches
+this agent. Config shipped without this audit was not reviewed, and no gate says otherwise.
 
-Load the `devops-practices` skill from this plugin; it is your rubric.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/devops-practices/SKILL.md`; it is your rubric, with
+`${CLAUDE_PLUGIN_ROOT}/skills/docker-best-practices/SKILL.md` when a Dockerfile is in scope.
+In a skill file you Read, a literal CLAUDE_PLUGIN_ROOT variable is not expanded; it stands for
+that skill's plugin root, the directory holding its `skills/` folder.
 
 Procedure:
 1. Establish scope: CI configs, Dockerfiles/compose, k8s manifests/Helm, deploy

@@ -768,6 +768,68 @@ grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF 'toolfit_gap=$(pc_agent_
   && pass "tool-fit: wiring — validate.sh calls pc_agent_tool_fit and fails on its output" \
   || fail "tool-fit: wiring" "validate.sh lacks the pc_agent_tool_fit call or its lane_err"
 
+# ---- pc_agent_skill_reach: a skill the agent is told to load but cannot reach ------------
+# The true positives are the 2026-11-22 tool-fit review's shapes: "Load the `x` skill" in an
+# agent with no Skill tool (debugger, system-architect, devops-reviewer), "load this plugin's
+# `x` skill", and a bestpractices-skill only the frontmatter names (frontend-reviewer).
+S="$T/skillreach"
+mksr() { # <name> <tools> <extra frontmatter line or ''>, body on stdin
+  mkdir -p "$S/sr/agents"
+  { printf -- '---\nname: %s\ndescription: x\ntools: %s\nmodel: opus\n' "$1" "$2"
+    [ -n "$3" ] && printf '%s\n' "$3"
+    printf -- '---\n\n'; cat; } > "$S/sr/agents/$1.md"
+}
+mksr loader 'Read, Grep, Glob' '' <<'MD'
+Load the `deck-rubric` skill from this plugin; it is your rubric.
+
+When the scope is a design doc, load this plugin's `deck-rubric` skill and audit it.
+MD
+mksr pathed 'Read, Grep, Glob' '' <<'MD'
+Load the `deck-rubric` skill: Read `${CLAUDE_PLUGIN_ROOT}/skills/deck-rubric/SKILL.md` first.
+MD
+mksr preloaded 'Read, Grep, Glob' 'skills: [sr:deck-rubric]' <<'MD'
+Load the `deck-rubric` skill before you judge.
+MD
+mksr skilled 'Read, Grep, Glob, Skill' '' <<'MD'
+Load the `deck-rubric` skill before you judge.
+MD
+mksr neighbours 'Read, Grep, Glob' 'bestpractices-skill: deck-rubric,other-rubric' <<'MD'
+You cannot load the `deck-rubric` skill; the dispatch injects its Read path.
+
+The checklists (backend, load testing) live in the injected `deck-rubric` skill.
+
+Load the `deck-rubric` skill here. <!-- tool-fit-ok: fixture -->
+
+```text
+Load the `deck-rubric` skill.
+```
+MD
+out=$(pc_agent_skill_reach "$S") && r=0 || r=$?
+want_sr() { case "$out" in *"$2"*) pass "skill-reach: $1" ;; *) fail "skill-reach: $1" "missing '$2' in: ${out:-<empty>}" ;; esac; }
+none_sr() { case "$out" in *"$2"*) fail "skill-reach: $1" "named: $(printf '%s\n' "$out" | grep -F -- "$2")" ;; *) pass "skill-reach: $1" ;; esac; }
+want_sr "'Load the \`x\` skill' with no Skill tool is named at its line" "skill-reach sr:loader — $S/sr/agents/loader.md:8: told to load \`deck-rubric\`"
+want_sr "'load this plugin's \`x\` skill' is named at its line" "skill-reach sr:loader — $S/sr/agents/loader.md:10: told to load \`deck-rubric\`"
+want_sr "a bestpractices-skill the body never names is named" "skill-reach sr:neighbours — $S/sr/agents/neighbours.md: bestpractices-skill \`other-rubric\` is never named"
+none_sr "a sentence carrying a \${CLAUDE_PLUGIN_ROOT} path is silent" "sr:pathed"
+none_sr "a skill the skills: key preloads is silent" "sr:preloaded"
+none_sr "an agent granted Skill is silent" "sr:skilled"
+none_sr "a bestpractices-skill the body names is silent" "\`deck-rubric\` is never named"
+printf '%s\n' "$out" | grep -q "neighbours\.md:[0-9]" \
+  && fail "skill-reach: negation, a noun 'load', the marker and a fence stay silent" "named: $(printf '%s\n' "$out" | grep "neighbours\.md:[0-9]")" \
+  || pass "skill-reach: negation, a noun 'load', the marker and a fence stay silent"
+n_sr=$(printf '%s\n' "$out" | grep -c '^skill-reach ')
+[ "$r" -eq 1 ] && [ "$n_sr" -eq 3 ] \
+  && pass "skill-reach: exactly the three shapes fire, rc=1" \
+  || fail "skill-reach: exactly the three shapes fire" "rc=$r, $n_sr lines, want 3: $out"
+rm -f "$S/sr/agents/loader.md" "$S/sr/agents/neighbours.md"
+out=$(pc_agent_skill_reach "$S") && r=0 || r=$?
+[ "$r" -eq 0 ] && [ -z "$out" ] && pass "skill-reach: a tree with nothing to name returns 0 and prints nothing" \
+  || fail "skill-reach: a tree with nothing to name returns 0 and prints nothing" "rc=$r got: $out"
+grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF 'skillreach_gap=$(pc_agent_skill_reach plugins)' \
+  && grep -v '^[[:space:]]*#' scripts/validate.sh | grep -qF '[ -n "$skillreach_gap" ] && lane_err "$skillreach_gap"' \
+  && pass "skill-reach: wiring — validate.sh calls pc_agent_skill_reach and fails on its output" \
+  || fail "skill-reach: wiring" "validate.sh lacks the pc_agent_skill_reach call or its lane_err"
+
 # ---- pc_gating_catch: a mod gating hook with no .catch (host review 2026-10-15) -------
 # The report shape is CLI 2.1.300's `claude plugin validate --strict --json` for a module
 # registering `on('tool.call', …)` with and without `.catch` — the host exits 0 on both.

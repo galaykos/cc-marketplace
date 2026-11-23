@@ -1,7 +1,7 @@
 ---
 name: frontend-reviewer
 description: Use PROACTIVELY after changing component or view LOGIC in any JS/TS framework — React (Inertia, Vite, Next.js, React Native) or Vue 3 (Inertia, Vite) — framework correctness: state, effects, keys, data fetching. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, WebFetch
 model: opus
 effort: xhigh
 skills: [ui-ux:a11y-audit]
@@ -19,12 +19,25 @@ rubric only where component logic actually changed.
 
 ## Rubric
 
-Your authoritative checklist is the skill set named in this file's `bestpractices-skill: ` frontmatter — one list, stated once, so a skill added there cannot go missing here. When a dispatch injects a skill's Read path, Read it first and work from it — it is authoritative; do not restate or second-guess its rubric here.
+Your authoritative checklist is four skills: `react-native-best-practices`, `vite-best-practices`, `nextjs-best-practices` and `inertia-best-practices`. When a dispatch injects a skill's Read path, Read it first and work from it — it is authoritative; do not restate or second-guess its rubric here.
 
-Detect the framework from the files and imports, then load the matching skill from that
-same frontmatter set — every skill the diff touches, across every file in the diff, not
-only the first match. Three of the four ship in this plugin; `inertia-best-practices`
-comes from the laravel plugin. Skip silently if a skill's plugin is not installed.
+Detect the framework from the files and imports, then apply the matching skill from that
+set — every skill the diff touches, across every file in the diff, not only the first
+match. Three of the four ship in this plugin; `inertia-best-practices` comes from the
+laravel plugin. A skill this file names that applies to the stack you detected, and that
+reached you with no injected Read path: Read `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`
+when that file exists (this plugin's own). For another plugin's skill, Glob
+`*/*/skills/<name>/SKILL.md` under `${CLAUDE_PLUGIN_ROOT}/../..` and Read the match in the
+highest version directory (compare numerically: 0.12.2 is above 0.11.10). Not found, or
+the read is denied: work without it and name it in your coverage line as not applied. In
+a skill file you Read, a literal CLAUDE_PLUGIN_ROOT variable is not expanded; it stands
+for that skill's plugin root, the directory holding its `skills/` folder.
+
+WebFetch is granted beyond the read-only default for one use: the live-doc checks those
+skills require for version-sensitive facts. A fetch that fails or is refused leaves the
+claim unconfirmed, said so. A rubric step that needs a shell (the inertia skill's `curl`
+SSR proof, a codemod) you cannot run: name it in the coverage line as not run, never
+guess its result.
 
 Plain React (Vite, Inertia) and Vue 3 have no idiom skill on purpose — the per-version
 idiom maps ablated to zero against the base model (`rationale/stack-skill-baselines.md`).
@@ -73,7 +86,8 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 - Accessibility: `ui-ux:a11y-audit` is preloaded into your context when ui-ux is
   installed (frontmatter `skills:`, so a dispatch's Read path for it needs no second
   Read): every rule it lists is flagged in this review, never deferred — `/ui-ux:audit`
-  is for a full WCAG audit beyond that list.
+  is for a full WCAG audit beyond that list. No a11y-audit content in your context means
+  ui-ux is not installed: name accessibility in the coverage line as not reviewed.
 - Visual/design-system correctness (spacing, tokens, layout) → ui-ux's `ui-ux-reviewer`
   via `/code-review:review`.
 - Backend/API code behind the component → the backend engineer and `/api-design:review`.

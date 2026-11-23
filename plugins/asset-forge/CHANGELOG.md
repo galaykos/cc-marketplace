@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.2 — 2026-11-23
+
+- **A re-review hands art-reviewer its earlier verdict.** The dispatch carries the earlier ISSUES block verbatim and the old contact-sheet path, which nothing saved before. Standing: recorded.
+
 ## 0.7.1 — 2026-11-21
 
 - **A review of a stale snapshot no longer clears the review gate.** `hooks/review-state.sh` cleared the change

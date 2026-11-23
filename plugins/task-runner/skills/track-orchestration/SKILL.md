@@ -29,8 +29,9 @@ computed. This file is the contract those references implement.
   merge-on-green-mid-flight.
 - **Milestone-level eligibility.** A whole milestone is track-eligible or it is not
   (never split its cards — that inverts dependencies). Non-eligible milestones — those
-  that share a file with another candidate, touch a shared/registry file, or still have
-  an unmet dependency — run **serially in the main tree by the orchestrator**, in
+  that share a file with another candidate, touch a shared/registry file, hold a card
+  tagged `asset` or naming an MCP tool (`mcp__…`; track workers hold no MCP tools), or
+  still have an unmet dependency — run **serially in the main tree by the orchestrator**, in
   dependency order, interleaved with the waves.
 - **One worktree + one branch per track.** Named `<run-branch>-track-<slug>` where
   `<slug>` is a git-ref-safe milestone slug. The orchestrator creates the worktree and

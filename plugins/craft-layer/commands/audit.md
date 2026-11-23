@@ -205,8 +205,11 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    path is not a tool that cannot write. Only then `Visual: NOT CAPTURED (<reason>)`: reported, never
    blocking, never implied by silence.
 
-6. **Dispatch `craft-reviewer`** with the step-2 measurements, the step-3 artifacts, the step-5 shot
-   paths, and Read paths to the references its checks cite: `motion-tiers/references/` `tier-budgets.md`,
+6. **Dispatch `craft-reviewer`** with the step-2 measurements, the step-3 artifacts, the step-4
+   `divergence.mjs` stdout verbatim plus each step-4 gate's exit code (the reviewer has no Bash, and its
+   scripted-half rows report those verdicts), the step-5 shot
+   paths, and absolute Read paths (a skill's under `${CLAUDE_PLUGIN_ROOT}/skills/`) to the references
+   its checks cite: `motion-tiers/references/` `tier-budgets.md`,
    `gotchas.md` ·
    `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
    `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
@@ -215,7 +218,9 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    and `<project>/.cc-artifacts/craft-layer/layout-floors.json` — each named absent when missing, and a floors file
    step 8's stamp rule rejects passed as `not measured`, never as a path · `scroll-orchestration/references/scroll-acts.md` ·
    `asset-sourcing/references/` `licence-discipline.md`, `component-sourcing.md` ·
-   `section-decisions/references/section-ledger.md` plus the ledger when one exists · and, when the
+   `section-decisions/references/section-ledger.md` plus the ledger when one exists · the `SKILL.md` of
+   `page-transitions` (and its `references/framework-seams.md`), `webgl-effects`, `interaction-fx`,
+   `physics-motion` and `threejs-best-practices` · and, when the
    contract's archetype is `app/CRM` or the target has a logged-in data-dense half,
    `information-design/references/app-craft-floors.md`.
 
@@ -288,7 +293,10 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     craft findings now" / "Report only". craft-layer ships no writer — both its agents are read-only —
     so route accepted fixes to `task-runner:task-executor` when installed, else `ui-ux:ui-ux-engineer`
     for markup/style/component work, else apply inline. Findings owned by a delegate go to that
-    delegate's worker (`ui-ux:a11y-engineer`, `resilience:performance-engineer`). Headless: report only,
+    delegate's worker (`ui-ux:a11y-engineer`, `resilience:performance-engineer`). Each fix dispatch
+    names, per finding, the skill that owns it; a craft finding also carries the absolute
+    `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/SKILL.md` and the absolute step-6 Read paths its check cites —
+    none of these workers can load a skill by name. Headless: report only,
     and print the exact `/ui-ux:audit` and `/resilience:review --concern performance` commands to rerun.
 
     After an "Apply now" pick lands, re-run the step-4 script gates (divergence, contrast, the gate

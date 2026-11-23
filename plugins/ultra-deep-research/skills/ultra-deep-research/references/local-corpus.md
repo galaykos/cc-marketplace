@@ -11,8 +11,9 @@ is not verification — it is a category error, and it produces a confident repo
 about a document nobody checked against the document.
 
 Swap the corroboration engine for a **coverage** engine. Everything else in the
-plugin — the verifier agent, the contradiction ledger, `references/report-template.md`
-— is reused unchanged.
+plugin — the contradiction ledger, `references/report-template.md` — is reused
+unchanged. The verifier agent is not: you, the orchestrator, check a claim about the
+document against the document; the verifier runs only on the external claims below.
 
 ## The coverage manifest is the deliverable
 
@@ -73,6 +74,6 @@ that reads only the section the question is about.
 
 If the document makes a checkable external claim — cites a standard, quotes a
 regulation, states a market figure — that claim leaves the coverage engine and
-enters the plugin's ordinary corroboration path. Say which claims took that route,
-so a reader can tell what was verified against the world and what was only read
-accurately.
+enters the plugin's ordinary corroboration path, verifier included. Say which
+claims took that route, so a reader can tell what was verified against the world
+and what was only read accurately.

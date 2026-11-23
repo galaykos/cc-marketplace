@@ -59,7 +59,8 @@ you hold it.
 ## Context before questions
 
 Same doctrine as grill: dispatch context-scout (and reuse the stack-scan
-inventory when installed) BEFORE asking anything. An idea conversation that
+inventory when installed) BEFORE asking anything, with the brain map's absolute path
+and any `brain map is behind HEAD` line per grill's Step 0. An idea conversation that
 ignores the existing codebase produces designs the codebase rejects on contact.
 Existing patterns, existing modules that half-do the idea, hard version
 constraints — all of it bounds the option space before the first question. Under

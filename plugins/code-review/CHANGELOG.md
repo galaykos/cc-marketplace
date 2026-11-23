@@ -3,6 +3,11 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.38.3 — 2026-11-23
+
+- **code-reviewer's history pass says when it was skipped.** With no blame sections in the patch the closing line reads `history pass skipped — no blame`; the "Grep over the transcript's diff context" fallback is gone, since no caller passes a transcript. Standing: recorded.
+- **analyzer-expert resolves commands its references name.** A literal `CLAUDE_PLUGIN_ROOT` in an analyzer-triage reference is read as this plugin's root. Standing: recorded.
+
 ## 0.38.2 — 2026-11-21
 
 - **The short lane is a conjunction in both commands.** `/code-review:review` and `/code-review:comment-review` read "a trivial, single-file, or purely mechanical change earns a one-line verdict", so a 400-line single-file change could end unread, and any single-file `comment-review` target was skipped. Both now take the one-line verdict only for a change that is single-file AND purely mechanical AND under the 5-file, 300-line thresholds, as the `code-reviewer` agent already did; `comment-review` on a path is always the deep pass. Standing: agent-graded.

@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first. Started at 0.11.0; earlier versions have no entries rather than invented ones.
 
+## 0.12.1 — 2026-11-23
+
+- **web-developer reaches the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+- **web-developer names its five skills and drops a browser it never had.** The rubric names the skills instead of pointing at frontmatter the agent never sees; `client-widgets.md` is an absolute path; browser proof is the Playwright CLI through Bash, else reported unverified for the caller's walk. Standing: gate (`pc_agent_skill_reach`) for the names; recorded for the rest.
+- **frontend-reviewer reaches its rubric and fetches live docs.** It names nextjs, vite, react-native and inertia best-practices in its body and Reads them by path (inertia through the plugin cache), gains WebFetch for version-sensitive claims, reports Bash-only rubric steps (the SSR `curl`, codemods) as not run, and names accessibility as not reviewed when ui-ux's a11y-audit is absent. Standing: gate (`pc_agent_skill_reach`) for the names; recorded for the rest.
+
 ## 0.12.0 — 2026-11-21
 
 - **New PreToolUse Bash hook `expo-prebuild-guard.sh`, this plugin's first.** From Expo SDK 57 a bare `expo prebuild` clears and regenerates `ios/` and `android/`. The hook asks before a prebuild without `--no-clean` when those dirs hold uncommitted or untracked files, are committed and not gitignored (the bare workflow), or sit outside git. A CNG project whose native dirs are gitignored gets no ask; below SDK 57 only a typed `--clean` asks. Asks, never denies.

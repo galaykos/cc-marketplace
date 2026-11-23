@@ -7,6 +7,12 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.62.1 — 2026-11-23
+
+- **craft-reviewer and creative-director read their references by absolute path.** Every `creative-direction/references/*.md` and sibling SKILL.md they name is now `${CLAUDE_PLUGIN_ROOT}/skills/…`; before, those plugin-relative paths resolved only inside this marketplace's checkout. Standing: recorded.
+- **`/craft-layer:audit` hands craft-reviewer step 4's output and every path it needs.** The dispatch carries `divergence.mjs` stdout and each step-4 exit code (the agent has no shell), and absolute paths for the six sibling skills it judges against. Fix dispatches name each finding's owning skill and its SKILL.md path. Standing: recorded.
+- **The build task's `Signature:` line names its skill's SKILL.md path.** In `/craft-layer:craft` and the brief templates, so the worker can Read it. Standing: recorded.
+
 ## 0.62.0 — 2026-11-21
 
 - **The creative-director drafts every candidate before it scores any, and keeps one unlikely one.** Its procedure said "generate N blind candidates", but one agent writes them one after another in one context, where each pulls the next toward it. It now writes all N in one pass with no comparison, gives each its estimated probability of being the typical answer, and keeps at least one below 0.2 (verbalized sampling, arXiv 2510.01171); two metaphors of one genus count as one. `creative-direction` also said the agent returns "the winner"; it returns a ranked 2–3 candidate fork set. Standing: agent-graded.

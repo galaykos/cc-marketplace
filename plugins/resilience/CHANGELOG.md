@@ -8,6 +8,10 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.9.3 — 2026-11-23
+
+- **observability-engineer and performance-engineer reach the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+
 ## 0.9.2 — 2026-11-21
 
 - **`/resilience:review`'s short lane is a conjunction**: single-file AND mechanical AND clear of every risk clause, or the deep pass (same fix as code-review 0.38.2).

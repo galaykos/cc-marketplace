@@ -171,7 +171,8 @@ evidence, or escalate with a report of what was tried and ruled out. When the
 approaches plugin is installed, `/approaches:consult` is that escalation made
 cheap — it accepts a stuck-debug brief from the SECOND failed cycle, one
 earlier than this hard stop, so consider it before the third attempt, not
-after.
+after. Running as a subagent (no Skill or Agent tool), hand that stuck-debug brief
+back to your caller instead; the consult is the caller's to run.
 
 ## Defense in depth — after, never instead
 

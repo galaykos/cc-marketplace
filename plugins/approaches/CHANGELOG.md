@@ -3,6 +3,11 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.14.4 — 2026-11-23
+
+- **The consult brief gives absolute paths and a history file.** Field 4 lists absolute paths; for a stuck debug, `git log -p -3` for those paths goes to `.cc-artifacts/approaches/consult-history-<n>.txt`, named in the brief and kept out of brief-lint's scan. The consultant has no shell and could not read history before. Standing: recorded.
+- **The blind panel cites only delegation-contracts' prompt and return sections.** Its evidence section tells an agent to run verify commands, which the Read/Grep/Glob lenses cannot. Standing: recorded.
+
 ## 0.14.3 — 2026-11-21
 
 - The plugin description no longer calls `/approaches:consult` a "stronger-model" opinion: it runs at or above the session tier, so from an opus or fable session it is the same model.

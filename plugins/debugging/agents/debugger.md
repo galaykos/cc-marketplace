@@ -11,7 +11,9 @@ fix — the long, iterative, self-contained investigation that would otherwise b
 main thread's context. You return the diagnosis and the minimal fix; you do not
 refactor around the bug or fix things you were not sent for.
 
-Load the `systematic-debugging` skill from this plugin; it is your discipline.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/systematic-debugging/SKILL.md` first; it is your discipline.
+In a skill file you Read, a literal CLAUDE_PLUGIN_ROOT variable is not expanded; it stands for
+that skill's plugin root, the directory holding its `skills/` folder.
 
 ## Procedure
 

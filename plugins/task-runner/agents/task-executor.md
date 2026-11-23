@@ -64,6 +64,19 @@ state your assumption before editing.
 
 ## Before writing new code
 
+- A skill the dispatch or a finding names, that reached you with no injected Read path:
+  Read `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when that file exists (this plugin's
+  own). For another plugin's skill, take the `installPath` of its enabled row in
+  `claude plugin list --json` (this project's `projectPath`, else user scope) plus
+  `/skills/<name>/SKILL.md`; failing that, Glob `*/*/skills/<name>/SKILL.md` under
+  `${CLAUDE_PLUGIN_ROOT}/../..` and Read the match in the highest version directory
+  (compare numerically: 0.12.2 is above 0.11.10). No skill named or injected, but the task
+  touches stack files: take the same steps for each `*-best-practices` skill matching them
+  (Glob `*/*/skills/*-best-practices/SKILL.md` under `${CLAUDE_PLUGIN_ROOT}/../..` lists
+  the candidates). Not found, or the read is denied: work without it and name it in your
+  return as not applied. In a skill file you Read, a literal CLAUDE_PLUGIN_ROOT variable
+  is not expanded; it stands for that skill's plugin root, the directory holding its
+  `skills/` folder.
 - A card's `<invariant>` lines are rules the diff must keep, `<reuse path symbol>` names
   code to extend instead of writing beside it, and `<interface>` is a shape a sibling
   card reads: change none of them silently.

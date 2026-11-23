@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.10.3; earlier versions have no entries rather than invented ones.
 
+## 0.11.3 — 2026-11-23
+
+- **backend-engineer reaches the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+- **backend-engineer names mariadb-best-practices for a MariaDB engine.** "(plus the detected dialect)" named no skill a worker could find. Standing: recorded.
+
 ## 0.11.2 — 2026-11-21
 
 - **The queued-job example is idempotent now.** The "good" `ChargeOrder` in `laravel-best-practices`' `references/queue-payloads.md` guarded the charge with `if ($order->isPaid()) return;`, a check-then-act that lets two concurrent runs both charge. It now passes an idempotency key fixed per order to the payment provider and says what holds without one: a unique claimed row inserted before the charge. Stripe's key behaviour (`Idempotency-Key`, keys prunable after 24 hours) was checked against its API docs.

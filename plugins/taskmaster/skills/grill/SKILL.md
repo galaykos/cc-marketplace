@@ -24,6 +24,9 @@ Dispatch `context-scout` with the raw task description before asking the user an
 report into the ledger, then derive an upgraded task statement from the raw prompt plus that report
 per `references/prompt-upgrade.md` — sharpen the objective, name implied constraints, never
 reinterpret scope. Boosted runs bind this step differently: `../ultra/references/dispatch-tiers.md`.
+Every scout dispatch also carries the brain map's absolute path when one exists
+(`.cc-artifacts/brain/INDEX.md`, older projects `brain/INDEX.md`) and any
+`brain map is behind HEAD` line this session showed: a subagent never sees SessionStart output.
 
 - "Already answered by code" entries become CLEAR rows with evidence. Never ask the
   user something the codebase answers (a prompt the code contradicts excepted, below)
@@ -106,7 +109,8 @@ Two more, every run, settled in round 1 (agent-graded; no lint sees the walk):
 - Offer concrete options, never "flexible/it depends" filler. Wrong-but-concrete
   options provoke corrections; vague options provoke shrugs.
 - A code fact found missing mid-round is a lookup, not a question: brief `context-scout`
-  with that one question in the background and read its answer from the report, hold
+  with that one question (plus Step 0's map path and staleness line) in the background and
+  read its answer from the report, hold
   back only the rows that wait on it, and keep asking the others. A fact outside the code
   (an installed version, a service's state), or no Task tool → read it inline before the
   next round. A row whose lookup was cut off reads "lookup pending" in its Source, and

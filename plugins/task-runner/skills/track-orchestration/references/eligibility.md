@@ -45,10 +45,22 @@ package.json  *.lock  (package-lock.json, composer.lock, yarn.lock, …)
 scripts/**
 ```
 
+## Cards needing an MCP tool → non-eligible
+
+A milestone holding a card tagged `asset` (`taskmaster/skills/task-cards/references/agent-tags.md`:
+its own run calls a generation or modelling tool, CLI or MCP) or a card whose text names an MCP
+tool (`mcp__…`) is non-eligible and runs serially. Track workers hold no MCP tools; the serial
+path runs such a card inline in the main thread (`task-execution/references/routing.md` step 2).
+The tag does not tell a CLI from an MCP server, so every `asset` card counts.
+`plan-overlap.sh --index` reads the `<agent>` tag (`**Agent:**` on a legacy card) and the first
+`mcp__` name of each card on the milestone's `Cards:` line. Standing: **gate where run** for those
+two signals; a card that needs an MCP tool, carries another tag and names no `mcp__` tool is
+**agent-graded** — the orchestrator has to spot it.
+
 ## Verdict
 
 A milestone is **track-eligible** iff ALL hold: its file-set is disjoint from every
-other candidate's, it touches no shared/registry file, and its dependency milestones
-have merged. Everything else runs serially, in dependency order, by the orchestrator in
-the main tree — interleaved with the waves. This classification never splits a
-milestone's cards: the unit is the whole milestone.
+other candidate's, it touches no shared/registry file, it holds no card needing an MCP
+tool, and its dependency milestones have merged. Everything else runs serially, in
+dependency order, by the orchestrator in the main tree — interleaved with the waves.
+This classification never splits a milestone's cards: the unit is the whole milestone.

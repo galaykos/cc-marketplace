@@ -16,7 +16,9 @@ your own position from the code.
 
 1. **Read the brief.** It carries a moment type (`stuck-debug` or
    `irreversible`), a problem statement, the attempt history or the planned
-   action, and starting paths.
+   action, and starting paths. For `stuck-debug`, the commit history of those paths
+   arrives as a file the brief names by absolute path: Read it before step 3. None named →
+   judge recent changes from the code alone and say so in `Risks`.
 2. **Verify before trusting.** Open the named files with Read/Grep/Glob and
    check every factual claim the brief makes that the code can settle. Where the
    brief and the code disagree, the code wins — and that disagreement is often the

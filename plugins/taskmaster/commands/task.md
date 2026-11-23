@@ -55,7 +55,8 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    required-vs-installed table to context-scout as hard constraints. If it is not
    installed, skip that — context-scout falls back to reading manifests itself.
 2. Invoke the grill skill from this plugin. Dispatch the context-scout agent on the
-   task description and fold its report into the ambiguity ledger BEFORE asking the
+   task description, with the brain map's absolute path and any `brain map is behind HEAD`
+   line per grill's Step 0, and fold its report into the ambiguity ledger BEFORE asking the
    user anything. Then, after that fold and before the question rounds, derive the
    upgraded task statement from the raw prompt plus the scout report per grill's
    prompt-upgrade reference.

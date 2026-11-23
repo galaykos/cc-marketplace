@@ -4,6 +4,10 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.9.2 — 2026-11-23
+
+- **The verifier handles URL claims only, with a retrieval date.** A claim about a local document is checked by the orchestrator against the document; the verifier returns `unverifiable-this-session` for one. "Retrieval timestamp" became "retrieval date": the agent has no clock. Standing: recorded.
+
 ## 0.9.1 — 2026-11-21
 
 - **The SubagentStop check now reads the report a verifier actually hands back.** On current Claude Code a verifier returns through a `SubagentHandback` tool_use, and `last_assistant_message` holds only its closing text, so `verdict-lint.sh` never saw the verdict. In a live ultra run on 2026-11-21, 13 of 24 verdict blocks failed the lint and none was sent back. `hooks/verify-return.sh` now checks the last hand-back after the agent's last user-text entry first (the rule candor's gate uses, so a resumed agent is not judged again on an old report), then falls back to `last_assistant_message`. Standing: gate; `scripts/__tests__/verify-return.test.sh`, 15 cases (4 new).

@@ -125,6 +125,32 @@ ix "two line numbers in one file overlap" 0 "milestone B: serial — overlaps A 
 index 'scripts/x.sh' 'pkg/yarn.lock'
 ix "scripts/ and a lock file are shared files" 0 "milestone A: serial — shared file scripts/x.sh" ""
 ix "a nested lock file too" 0 "milestone B: serial — shared file pkg/yarn.lock" ""
+printf '<card id="05">\n<depends-on>none</depends-on>\n<agent>asset</agent>\n<facts>\n<file path="art/hero.glb" mode="create"/>\n</facts>\n</card>\n' > "$T/05-card.md"
+printf '<card id="06">\n<depends-on>none</depends-on>\n<agent>generic</agent>\n<change>Call mcp__meshy__text_to_3d, save art/rock.glb</change>\n</card>\n' > "$T/06-card.md"
+printf '# 07 — legacy\n\n**Agent:** asset\n' > "$T/07-legacy.md"
+cat > "$T/00-INDEX.md" <<'EOT'
+### Milestone F — model
+Files: art/hero.glb
+Cards: 05
+
+### Milestone G — prop
+Files: art/rock.glb
+Cards: 06
+
+### Milestone H — legacy
+Files: art/tree.glb
+Cards: 07
+
+### Milestone I — code
+Files: src/b/y.ts
+Cards: 02
+EOT
+ix "a milestone holding a card tagged asset is serial" 0 "milestone F: serial — card 05 is tagged asset" ""
+ix "a card naming an MCP tool makes its milestone serial" 0 "milestone G: serial — card 06 names mcp__meshy__text_to_3d" ""
+ix "a legacy bold-label asset card does too" 0 "milestone H: serial — card 07 is tagged asset" ""
+ix "a milestone with no such card stays eligible" 0 "milestone I: eligible" ""
+printf '<card id="05">\n<depends-on>none</depends-on>\n<agent>generic</agent>\n<facts>\n<file path="art/hero.glb" mode="create"/>\n</facts>\n</card>\n' > "$T/05-card.md"
+ix "the same milestone with another tag is eligible" 0 "milestone F: eligible" ""
 printf '# Index\n\nno milestones here\n' > "$T/00-INDEX.md"
 ix "an index with no milestone heading is a usage error" 3 "no \"### Milestone" ""
 expect "--index with --group is a usage error" 3 "usage" "" -- --index "$T/00-INDEX.md" --group 01,02

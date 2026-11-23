@@ -23,7 +23,9 @@ investigation to this plugin's own `debugging:debugger` agent rather than runnin
 the hypothesis cycles in the main thread. A bisection burns context proportional
 to how confused the run is, which is exactly the context the main thread needs to
 apply the fix afterwards. The agent returns the diagnosis and the minimal fix; it
-does not decide whether to ship it.
+does not decide whether to ship it. It sees only its prompt: paste into it the
+symptom, the exact error text, the repro command and any ci-triage output, never
+"the failure above".
 
 Then route the proven fix down `task-runner:task-executor if installed → inline`,
 the same chain every review command in this marketplace uses — a diagnosis that

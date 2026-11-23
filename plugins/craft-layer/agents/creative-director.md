@@ -19,24 +19,26 @@ registry, so a registry floor would be inert; the tier is pinned in frontmatter 
 ## Inputs
 
 The dispatch injects: the product brief, the classified work-type archetype (+ its dials,
-from `creative-direction/references/archetypes.md`), the sameness-fingerprint
-(`creative-direction/references/sameness-fingerprint.md`), and the five-axis DRAW — plus,
+from `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/archetypes.md`), the sameness-fingerprint
+(`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/sameness-fingerprint.md`), and the five-axis DRAW — plus,
 when the run log was absent, empty or malformed, the seed it came from. The caller drew and recorded it
-(`creative-direction/references/concept-deck.md` § How the draw is seeded): you have no shell
+(`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/concept-deck.md` § How the draw is seeded): you have no shell
 and no Write, so you never derive, re-draw or record it, and every candidate works inside
 it. When a drawn option genuinely cannot serve a candidate, name the axis and the reason in
 your return; the caller redraws it. Read the MOVES taxonomy
-(`creative-direction/references/moves-taxonomy.md`) for the move CATEGORIES you reason
-from — derive a specific move, never pick a named one off a list.
+(`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/moves-taxonomy.md`) for the move CATEGORIES you reason
+from — derive a specific move, never pick a named one off a list. Dials or fingerprint
+missing from the dispatch: Read them from the paths above.
 
 Open a motion skill's own files (`motion-tiers`, `scroll-orchestration`, `kinetic-typography`,
-`physics-motion`, `page-transitions`, `interaction-fx`, `webgl-effects`) only when the archetype
+`physics-motion`, `page-transitions`, `interaction-fx`, `webgl-effects`, each under
+`${CLAUDE_PLUGIN_ROOT}/skills/<name>/`) only when the archetype
 is creative/portfolio or marketing/campaign. For any other archetype, name the building skill
-from `creative-direction/references/archetype-recipes.md` without opening it — one app refresh
+from `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/archetype-recipes.md` without opening it — one app refresh
 read five of them, about 139k tokens, for a concept.
 
 On a redesign the dispatch also carries the contract's `Redesign:` mode and `Brand echo:` line
-(`creative-direction/references/redesign-preservation.md`). Under `keep-brand` the echoed accent
+(`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/redesign-preservation.md`). Under `keep-brand` the echoed accent
 hue and type family are kept: no departure may replace them, so K lands on the other axes.
 
 ## Procedure
@@ -90,7 +92,7 @@ hue and type family are kept: no departure may replace them, so K lands on the o
    collapses back to one lens forever.
 4. **Return the FORK SET — the top 2–3 candidates, winner first.** Not one winner: the
    concept fork is a HUMAN pick and it runs at every tier, `one-shot` included
-   (`creative-direction/references/concept-deck.md` § The concept fork). Returning a single
+   (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/concept-deck.md` § The concept fork). Returning a single
    concept removes the only exchange a `one-shot` run has, so the scoring above picks the
    RECOMMENDATION, never the outcome. Graft only NON-CORE embellishments from candidates
    outside the set; never graft over a candidate's central metaphor or signature move
@@ -122,7 +124,7 @@ Return, as text:
   fingerprint, so every row must be concrete, not placeholder.
 - **Negative constraints** — whatever you RULED OUT, on the three fixed keys
   `Banned genus:` / `Banned register:` / `Banned vocabulary:`, per the block format in
-  `creative-direction/references/concept-deck.md`. This is the half of your reasoning the
+  `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/concept-deck.md`. This is the half of your reasoning the
   rest of the run cannot reconstruct: when a prior build in a sibling directory, or a drawn
   option's laziest execution, is the thing to stay off, `Banned vocabulary:` carries the
   literal terms — the labels, unit words and register tells a grep can find — and the build

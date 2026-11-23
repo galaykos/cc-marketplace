@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.2; earlier versions have no entries rather than invented ones.
 
+## 0.14.2 — 2026-11-23
+
+- **A transcript a miner could not read is not marked mined.** Harvest warns before the fan-out that miners read `~/.claude/projects/`, outside the project, and suggests `/add-dir`; a miner reports a denied read as `denied: <error>`, and that transcript stays unmarked. Before, a denial looked like an empty transcript and was never offered again. Checked live 2026-11-23 (CLI 2.1.330, default mode): a subagent Read outside the project was denied, and the same Read succeeded with the directory added by `--add-dir`; `/add-dir` itself was not driven. Standing: recorded.
+
 ## 0.14.1 — 2026-11-21
 
 - **`friction_events` stops counting the assistant's own prose.** `hooks/collect.sh` counts "rejected" only on `tool_result` lines, so a reply saying "the PR was rejected" no longer ranks a session higher. Standing: gate — `collect.test.sh` "agent friction" fails against the 0.14.0 hook. The README no longer claims the count only undercounts: two errors on one line count once, and a tool result that merely quotes "rejected" still counts.

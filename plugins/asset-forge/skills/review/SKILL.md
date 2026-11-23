@@ -24,7 +24,9 @@ disable-model-invocation: true
 5. **Present** the verdict, scores and issues to the user, each issue mapped to a concrete fix — a forge call
    (`deform.inflate(obj, center=…, radius=…, amount=…)`), a modelling instruction, or a texture parameter.
 6. **Apply** fixes only after the user agrees, or all of them when the user said "fix everything". Then re-run
-   from step 1 and compare the new contact sheet with the old one, issue by issue.
+   from step 1 and compare the new contact sheet with the old one, issue by issue. The re-review dispatch also
+   carries the earlier ISSUES block verbatim and the old contact-sheet path (render into a fresh `out_dir`, or
+   none, so the old sheet survives): the reviewer sees only its prompt.
 
 ## The reviewer's format (strict)
 

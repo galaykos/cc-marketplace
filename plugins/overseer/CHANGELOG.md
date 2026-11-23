@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.1 — 2026-11-23
+
+- **The reviewer seat reads a patch file.** The orchestrator writes `git -C <root> diff <base>...<branch>` to a `.patch` beside the dispatch and names it; a read-only reviewer has no shell to run git. Worker briefs list browser-only DONE WHEN lines as untested for the acceptance walk. Standing: recorded.
+
 ## 0.14.0 — 2026-11-21
 
 Fixes from the thinking-disciplines follow-up review, each re-verified in the code first.

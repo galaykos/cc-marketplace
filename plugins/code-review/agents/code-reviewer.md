@@ -49,9 +49,11 @@ name the severity that holds). Nothing before or after that line.
    idiom only, never for comment volume or docblock style. A finding drawn from a
    stated rule names its file and the rule.
 5a. History pass when existing lines change: read the blame of the touched hunks (the
-   blame sections of the dispatch's patch file, or Grep over the transcript's diff context —
-   you cannot run git). A line that a bug-fix or workaround commit added is not undone
-   without a stated reason; report the reversal naming that commit.
+   blame sections of the dispatch's patch file — you cannot run git). A line that a
+   bug-fix or workaround commit added is not undone without a stated reason; report the
+   reversal naming that commit. No blame sections to read: skip the pass and say
+   `history pass skipped — no blame` in the closing line; like 5b without a diff, it is
+   not owed.
 5b. Comment pass over the comments the diff ADDS; volume and ratio stay with this
    plugin's hooks. The list is closed. Kept, one line each: why this and not the
    obvious way, an external constraint or upstream bug with a link or ticket, a

@@ -94,15 +94,18 @@ without exception:
 - [ ] The accent clears contrast on every surface AND size — small text/marks resolve to the
       darker accent step on light surfaces (text ≥4.5:1, non-text marks ≥3:1).
 - [ ] page-transitions / webgl-effects / interaction-fx / physics-motion each meet the sections
-      their own SKILL.md marks non-negotiable when used — beyond the reduced-motion and budget
-      rows above: `page-transitions` § Unsupported browsers (feature-detect and fall through) plus
+      their own SKILL.md marks non-negotiable when used (Read
+      `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, this plugin's own, when the dispatch did
+      not inject it) — beyond the reduced-motion and budget rows above: `page-transitions`
+      § Unsupported browsers (feature-detect and fall through) plus
       § Shared-element choreography (one live `view-transition-name`, not one per card) and,
-      when Barba or Swup ships, its `references/framework-seams.md` § Route swappers (focus and
+      when Barba or Swup ships, `${CLAUDE_PLUGIN_ROOT}/skills/page-transitions/references/framework-seams.md`
+      § Route swappers (focus and
       an announcement reach the new page; no old-page ScrollTrigger survives the swap),
       `webgl-effects` § WebGPU/TSL default, WebGL fallback (a GLSL-only effect that never runs
       on WebGPU is a finding — EXCEPT an R3F stack using drei shader materials or
       `@react-three/postprocessing`, which stays on WebGL by design; its GLSL effects pass when
-      the renderer choice is recorded, per `threejs-best-practices` § R3F on WebGPU), `interaction-fx`
+      the renderer choice is recorded, per `${CLAUDE_PLUGIN_ROOT}/skills/threejs-best-practices/SKILL.md` § R3F on WebGPU), `interaction-fx`
       § Accessibility (real cursor kept, `pointer: coarse` off, `:focus-visible` parity), and
       `physics-motion` § Accessibility (a non-dragging route to the same outcome).
 - [ ] The concept's divergence record breaks K sameness-fingerprint defaults on K DIFFERENT

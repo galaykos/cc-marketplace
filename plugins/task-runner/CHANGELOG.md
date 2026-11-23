@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.63.3 — 2026-11-23
+
+- **A milestone with an asset or MCP card runs serially.** `plan-overlap.sh --index` prints `serial — card <id> is tagged asset` (or names `mcp__…`): track workers hold no MCP tools, and the serial path runs such cards inline. Standing: gate where run (`plan-overlap.test.sh`, 40 cases).
+- **task-executor finds a skill a dispatch or finding names.** It Reads it by path (own plugin, `claude plugin list --json`, then the cache) when nothing injected it, and with no skill named it reads any `*-best-practices` skill matching the files it touches. The halted-card debugger dispatch says diagnosis only. delegation-contracts now says a marketplace agent can self-locate a skill as a fallback; orchestrator priming stays first. Standing: recorded.
+
 ## 0.63.2 — 2026-11-21
 
 - **`verification-panels`: votes buy less independence than N suggests.** "Refuter voting" now says blind refuters still share a model's errors. In one preprint on NLI tasks, nine judges from seven families carried about two votes' worth of information (arXiv 2605.29800). Errors correlate across providers (arXiv 2506.07962), and majority voting explains most multi-agent-debate gains (arXiv 2508.17536). Independence comes from varying the evidence each refuter gets, not from adding voters, and a panel widened past the table's N must name what the extra votes see. Standing: agent-graded.

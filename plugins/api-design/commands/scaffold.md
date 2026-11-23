@@ -42,5 +42,8 @@ route→request→resource mapping by hand.
 5. Offer via AskUserQuestion: "Write the scaffolding now (Recommended)" / "Show the plan
    only". On write, dispatch the mapping down the static chain `backend-engineer`
    (laravel) if installed → `task-runner:task-executor` if installed → inline — never
-   dead-end on a missing agent. Headless: output the mapping and files as a plan, write
-   nothing.
+   dead-end on a missing agent. The agent sees only its prompt: give it the mapping
+   table, the absolute path of every file to create or diff, the spec's (or approved
+   `api.html`'s) absolute path, and the line
+   `Read ${CLAUDE_PLUGIN_ROOT}/skills/api-design/SKILL.md before writing`. Headless:
+   output the mapping and files as a plan, write nothing.

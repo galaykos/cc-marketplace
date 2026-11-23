@@ -125,6 +125,43 @@ Grant the minimum the role needs:
   result. **Gate** for the body and the references it names by path
   (`pc_agent_tool_fit`); a dispatch prompt or hook text is agent-graded.
 
+## Reaching a skill from an agent
+
+A subagent has no `Skill` tool unless `tools:` lists it, its frontmatter is not part of its
+prompt, and no dispatch is guaranteed to inject a Read path. The host replaces
+`${CLAUDE_PLUGIN_ROOT}` in an agent body (and a command body) with the installed plugin root;
+it does not in a file the agent Reads, nor in the agent's Bash env. So an agent that works
+from a skill carries this paragraph in its body; `templates/worker-agent.md.tmpl` renders it
+into every chassis worker:
+
+```markdown
+A skill this file names that applies to the stack you detected, and that reached you with
+no injected Read path: Read `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when that file
+exists (this plugin's own). For another plugin's skill, take the `installPath` of its
+enabled row in `claude plugin list --json` (this project's `projectPath`, else user scope)
+plus `/skills/<name>/SKILL.md`; failing that, Glob `*/*/skills/<name>/SKILL.md` under
+`${CLAUDE_PLUGIN_ROOT}/../..` and Read the match in the highest version directory (compare
+numerically: 0.12.2 is above 0.11.10). Not found, or the read is denied: work without it
+and name it in your return as not applied. In a skill file you Read, a literal
+CLAUDE_PLUGIN_ROOT variable is not expanded; it stands for that skill's plugin root, the
+directory holding its `skills/` folder.
+```
+
+A copy changes only its opening trigger (a skill the dispatch or a finding names) and what
+its grant cannot do; never name a tool the `tools:` line lacks:
+
+- **Bash and Glob** (every chassis worker): the paragraph as written.
+- **Read, Grep, Glob**: drop the `claude plugin list --json` step, since there is no Bash;
+  the own-plugin Read path, then the Glob fallback.
+- **No Glob** (devops-reviewer: Read, Grep, Bash; transcript-miner: Read, Grep; verifier:
+  WebSearch, WebFetch, Read): each own-plugin skill written out as
+  `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, no cross-plugin lookup.
+
+Keep the last sentence wherever a skill the agent reads runs a script by a plugin-root path.
+Each plugin installs alone and an agent has no include, so each agent holds its own copy and
+this section is the source the copies follow. Standing: **recorded** — no script compares a
+copy with this text.
+
 ## Body pattern
 
 The agent wakes with zero conversation context; the body must stand alone.

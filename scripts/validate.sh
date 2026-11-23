@@ -596,6 +596,9 @@ fs_gap=$(pc_false_standing plugins) || true
 # An agent told to do what its tools: cannot improvises; what is read and missed: pc_agent_tool_fit's header.
 toolfit_gap=$(pc_agent_tool_fit plugins) || true
 [ -n "$toolfit_gap" ] && lane_err "$toolfit_gap" "an agent is told to do what its tools: cannot — move the step to the main thread and pass the agent its result, name that actor in the sentence, grant the tool, or mark the paragraph or list (for a \`\`\`shell block, the one above it) '<!-- tool-fit-ok: <why> -->'"
+# An agent told to load a skill it cannot reach skips its rubric silently; what is read and missed: pc_agent_skill_reach's header.
+skillreach_gap=$(pc_agent_skill_reach plugins) || true
+[ -n "$skillreach_gap" ] && lane_err "$skillreach_gap" "an agent cannot reach a skill it is told to use — give the sentence a \`\${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md\` Read path (rule: .claude/skills/authoring-agents/SKILL.md, Reaching a skill from an agent), preload it with skills:, name every bestpractices-skill in the body, or mark the paragraph '<!-- tool-fit-ok: <why> -->'"
 
 # A harness sending only session_id grades the fallback branch, where pc_marker_key's defect hid (pc_harness_payload).
 harness_gap=$(pc_harness_payload .) || true
