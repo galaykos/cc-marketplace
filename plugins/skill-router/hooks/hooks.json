@@ -47,7 +47,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit|.*create_new_file|Bash|mcp__.*([Bb]lender|[Mm]eshy)",
+        "matcher": "Edit|Write|MultiEdit|.*create_new_file|Bash",
         "hooks": [
           {
             "type": "command",

@@ -190,12 +190,6 @@ AT="$WS/at-path"; mkdir -p "$AT/@scope/pkg"
 printf 'def f():\n    return 1\n' > "$AT/@scope/pkg/i.py"
 case_run "a real path starting with @ is a changed file, not a list -> no-behavioral-coverage(2)" "$AT" 2 --label 'no-behavioral-coverage' -- --changed @scope/pkg/i.py
 
-# ---- 3d. Unity C# with no runner names the pinned Editor, never a bare unity ----
-U3="$WS/unity"; mkdir -p "$U3/ProjectSettings" "$U3/Assets"
-printf 'm_EditorVersion: 6000.2.7f1\nm_EditorVersionWithRevision: 6000.2.7f1 (abc)\n' > "$U3/ProjectSettings/ProjectVersion.txt"
-printf 'class A {}\n' > "$U3/Assets/A.cs"
-case_run "unity .cs, no runner -> no-behavioral-coverage(2) naming Editor 6000.2.7f1" "$U3" 2 --label 'Editor 6000.2.7f1' -- --changed Assets/A.cs
-
 # ---- 4a. js changed, NO test file -> no-behavioral-coverage (2) ----
 N4="$WS/node-nocov"; mkdir -p "$N4"
 cat > "$N4/impl.js" <<'JS'

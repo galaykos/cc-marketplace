@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.16.0 — 2026-11-23
+
+- **Clause 7 (Unity look-before-done) removed.** The Stop gate no longer sends back Unity scene, prefab or `Assets/` script work called done without a capture and a console read. `CC_UNITY_VISUAL_GATE` and the `cc_unity_visual_gate` option are gone; setting it now does nothing. The gate has seven clauses, numbered as before (1–6, 8). The SubagentStart preamble no longer lists `asset-forge:art-reviewer`, a removed agent. Standing: gate — `gate.test.sh` drops the 22 clause-7 cases; 284 pass.
+
 ## 0.15.1 — 2026-11-23
 
 - **A subagent with no browser tool is told what to do instead.** The SubagentStart preamble adds one sentence after move (5): prove what your own tools reach and name the browser check as untested for your caller. No marketplace agent holds a browser tool. The UserPromptSubmit text is byte-identical. Standing: gate (`preamble-hook.test.sh` arms 39-40).

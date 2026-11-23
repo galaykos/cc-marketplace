@@ -19,9 +19,6 @@ change both or neither. **Three of the four have already forked** and each
 divergence is recorded in that row's note; reconciling them is a `skill-router`
 change, out of this plugin's scope.
 
-The godot, unity, unreal and blender rows are also mirrored in `scripts/scan.sh`'s engine
-section: change both or neither.
-
 ## Reading a dependency row
 
 "dep X" means an **exact key** in `dependencies` or `devDependencies`, not a
@@ -46,15 +43,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | a `package.json` or `composer.json` exists | — | the Composer/npm dependency-hygiene rubric ships IN the plugin running this scout, so there is no row to offer: name the lane instead — `/stack-scan:audit` for vulnerabilities, outdated packages and licences |
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
-| `project.godot` (its `config/features` names the 4.x minor) | `godot` | a `*.csproj` beside it with `Sdk="Godot.NET.Sdk/…"` is Godot C#, not Unity — suggest `godot`, never `unity-traps` |
-| `ProjectSettings/ProjectVersion.txt` (`m_EditorVersion:`) beside an `Assets/` directory | `unity-traps` | Unity generates `*.csproj` files, so a lone `*.csproj` is not evidence |
-| a `*.uproject` (`"EngineAssociation"`) | `unreal` | |
-| `MESHY_API_KEY` in `.env`/`.env.example`; dep `meshy-cli`, `@meshy-ai/cli` or `@meshy-ai/meshy-mcp-server`; or a `meshy` server in `.mcp.json` | `meshy` | never key on `*.glb` alone — every three.js repo has them |
-| `*.aseprite`; `*.tmx`/`*.tmj`/`*.tsj`/`*.tiled-project`; `*.ldtk`/`*.ldtkl`; or a `*.tsx` whose root element is `<tileset>` | `pixel-art` | a bare `.tsx` is React, not Tiled; `*.ase` alone is weak evidence (Adobe Swatch Exchange shares the extension) |
-| any game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, `butler push` or `BUTLER_API_KEY` in a CI file, or `*.yarn`/`*.yarnproject`/`*.ink` files | `gamedev` | the engine-agnostic half: Steam and itch release, asset checks, dialogue scripting, seed stability |
-| a `*.blend` (or `*.blend1` backup), a `blender_manifest.toml`, or a `.py` importing `bpy` | `blender` | a lone `.py` is not evidence; placed after the gamedev row on purpose, so a Blender product-visualisation repo does not drag in gamedev |
-| a `*.blend` together with a Unity, Unreal or Godot row above | `asset-forge` | Blender used to make game assets: review renders, validation against budgets, engine export. A Blender-only repo (product visualisation, film) gets `blender` alone. Needs a Blender MCP server for its live half |
-| `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | — | **no plugin covers this stack** unless a game row above matched first. The version-truth lane is already installed — `/stack-scan:report` reads these manifests, and `references/ecosystems.md` carries their authority conflicts — so route the rest to `/stack-scan:suggest --skills` |
+| `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | — | **no plugin covers this stack**. The version-truth lane is already installed — `/stack-scan:report` reads these manifests, and `references/ecosystems.md` carries their authority conflicts — so route the rest to `/stack-scan:suggest --skills` |
 | dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate. On dep `prisma`/`@prisma/client` also print Prisma's own skills from `references/official-complements.md` § Framework-native tooling |
 | `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `ui-ux` | a shadcn setup that already exists is what a real-component preview renders variants in (taskmaster's visual-decisions rung); the `components.json` row above fires on the same file, and one row is enough |
 | devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `resilience` | a measurement tool already in the manifest is someone having decided performance is a concern here |

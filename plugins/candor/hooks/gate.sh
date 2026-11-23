@@ -1,6 +1,6 @@
 #!/bin/bash
-# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 7, 8, 5: an incomplete task-runner run this session registered (or one naming no session), a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a Unity scene/prefab/Assets script change claimed done with no capture and console read after it while a route exists (unity CLI on PATH or a Unity MCP tool), a claim to have read or reviewed every file of a named set when no tool input of the turn names a member or its directory, lockfile drift.
-# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_UNITY_VISUAL_GATE=off|warn (7), CC_COVERAGE_GATE=off|warn (8); unset, /config.; clause 4 does not send back a turn whose last human prompt was a pause or a question with no work verb (it names the owed run).
+# Stop and SubagentStop: refuses a turn end (Stop: JSON block; SubagentStop: exit 2) for one clause per stop, tried 4, 1, 6, 2, 3, 8, 5: an incomplete task-runner run this session registered (or one naming no session), a file:line resolving to nothing, a file:line's quote: `…` in neither that file, its HEAD copy nor the transcript tail's tool output or user turns, a reversal after bare pushback, a naked completion claim (after an Edit or a Bash write to a non-prose file), a claim to have read or reviewed every file of a named set when no tool input of the turn names a member or its directory, lockfile drift.
+# Misses a wrong API, flag or directory, a Bash write cc_bash_write_targets cannot see (interpreter, cp/mv, a path in a variable), pushback outside its list, entries before the transcript tail, unmatched dependency lines, a UI card with no review diff, quotes past MAX_QUOTES_CHECKED or QUOTE_DEADLINE_SECONDS or beside an ambiguous path; blocks on a citation into a file the turn shortened, renamed or deleted. Fail-open. Off: CC_CANDOR_GATE=off|warn (all), CC_EVIDENCE_GATE=off|warn (3), TASK_RUNNER_STOP_GATE=off|warn (4), CC_LOCKFILE_GATE=off (5), CC_COVERAGE_GATE=off|warn (8); unset, /config.; clause 4 does not send back a turn whose last human prompt was a pause or a question with no work verb (it names the owed run).
 # Why, limits, history: rationale/derivations/plugin-candor.md § plugins/candor/hooks/gate.sh
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
@@ -1117,96 +1117,6 @@ clause_naked_completion() {
 }
 clause_naked_completion
 
-uv_mode=$(cc_option CC_UNITY_VISUAL_GATE block)
-# Clause 7: this turn changed a Unity scene, prefab or script and says it is done, with no capture and no console read after that
-# change, while a capture route exists (a unity CLI that prints a version, or a Unity MCP tool in the turn). A route-less turn stands down.
-CAPTURE_ACK='not captured|no capture|did not capture|didn.t capture|could not capture|cannot capture|capture (was )?not (run|taken)|without a capture|console (was )?not read|did not read the console|didn.t read the console'
-unity_project_of() { # <path> -> 0 when a ProjectSettings/ProjectVersion.txt sits at or above its directory
-  local d i=0
-  d=$(dirname -- "$1")
-  while [ -n "$d" ] && [ "$i" -lt 12 ]; do
-    [ -f "$d/ProjectSettings/ProjectVersion.txt" ] && return 0
-    [ "$d" = "/" ] && return 1
-    d=$(dirname -- "$d"); i=$((i + 1))
-  done
-  return 1
-}
-# An Editor or test script changes nothing a capture shows; only a folder below Assets/ counts, so a project kept under ~/Test/ still arms.
-unity_change() { # <absolute path>
-  case "/${1#*/Assets/}" in */Editor/*|*/Tests/*|*/Test/*) return 1 ;; esac
-  case "$1" in *.unity|*.prefab|*/Assets/*.cs) unity_project_of "$1" ;; *) return 1 ;; esac
-}
-clause_unity_visual() {
-  [ -z "$verdict" ] && [ -n "$have_tail" ] && [ -n "$last_msg" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "visual" ] && [ "$uv_mode" != "off" ] || return 0
-  printf '%s' "$last_msg" | grep -qiwE "$CLAIM" || return 0
-  printf '%s' "$last_msg" | grep -qiwE "$ACK" && return 0
-  printf '%s' "$last_msg" | grep -qiE "$CAPTURE_ACK" && return 0
-  # One line per tool call of this turn (after the last prompt the person typed): kind, a tab, then the path, command or tool name.
-  local calls n=0 last_edit=0 last_cap=0 last_con=0 route=0 files="" kind text t p to=""
-  calls=$(tj -rs '
-    def usertext: .type=="user" and (.isMeta != true) and (.isCompactSummary|not) and ((.message.content // null) as $c
-      | if ($c|type)=="string" then $c
-        elif ($c|type)=="array" and (any($c[]; .type=="tool_result")|not) then [$c[] | select(.type=="text") | .text][0]
-        else null end
-      | type=="string" and (test("^\\s*(<system-reminder>|<task-notification>|\\[SYSTEM NOTIFICATION|Stop hook feedback:)")|not));
-    . as $e | ([range(0; length) | select($e[.] | usertext)] | last // -1) as $b
-    | $e[$b+1:][] | select(.type=="assistant") | (.message.content // [])[] | select(.type=="tool_use")
-    | if (.name | test("^(Edit|Write|MultiEdit)$")) then "E\t" + ((.input.file_path // "") | tostring)
-      elif .name == "Bash" then "B\t" + ((.input.command // "") | tostring | tojson)
-      elif (.name | startswith("mcp__")) and ((.name | split("__"))[1] // "" | test("(^|[^[:alpha:]])unity"; "i") or test("[a-z]Unity"))
-        then "M\t" + .name + " " + ((.input.action // "") | tostring)
-      else empty end' 2>/dev/null)
-  [ -n "$calls" ] || return 0
-  while IFS=$'\t' read -r kind text; do
-    [ -n "$kind" ] || continue
-    n=$((n + 1))
-    case "$kind" in
-      E)
-        case "$text" in /*) p="$text" ;; *) p="$cwd/$text" ;; esac
-        unity_change "$p" && { last_edit=$n; files="$files${files:+, }${p##*/}"; } ;;
-      B)
-        # Cheap filter first: a command naming no unity, .prefab or Assets cannot capture, read the console or change a Unity file.
-        case "$text" in *[Uu]nity* | *.prefab* | *Assets*) ;; *) continue ;; esac
-        t=$(printf '%s' "$text" | jq -r '.' 2>/dev/null)
-        while IFS= read -r p; do
-          [ -n "$p" ] || continue
-          case "$p" in /*) ;; *) p="$cwd/$p" ;; esac
-          unity_change "$p" && { last_edit=$n; files="$files${files:+, }${p##*/}"; }
-        done < <(cc_bash_write_targets "$t")
-        # A capture or console read in the same command as a write counts as after it, even one written before the write.
-        n=$((n + 1))
-        if printf '%s' "$t" | grep -qE '(^|[;&|[:space:]])([^[:space:];&|]*/)?unity[[:space:]]+(command|cmd)[[:space:]]+capture[[:space:]]'; then last_cap=$n; route=1; fi
-        if printf '%s' "$t" | grep -qE '(^|[;&|[:space:]])([^[:space:];&|]*/)?unity[[:space:]]+(command|cmd)[[:space:]]+console[[:space:]]+(get|status)'; then last_con=$n; route=1; fi
-        ;;
-      M)
-        route=1
-        case "$text" in
-          *manage_camera*screenshot*|*[Ss]creenshot*|*[Cc]apture*) last_cap=$n ;;
-          *read_console*|*console_get*) last_con=$n ;;
-          # MCP for Unity's editing actions (CoplayDev v10.3.0 sources); a get_*/load/read call arms nothing.
-          *manage_gameobject*|*'manage_script create'|*'manage_script delete'|*script_apply_edits*|*apply_text_edits*|*'manage_scene create'|*'manage_scene save')
-            last_edit=$n; files="$files${files:+, }${text##*__}" ;;
-        esac ;;
-    esac
-  done <<EOF_CALLS
-$calls
-EOF_CALLS
-  [ "$last_edit" -gt 0 ] || return 0
-  # Any other executable named unity is not a capture route: the Unity CLI prints a bare version such as 1.0.0-beta.13.
-  if [ "$route" = 0 ] && command -v unity >/dev/null 2>&1; then
-    command -v timeout >/dev/null 2>&1 && to="timeout 3"
-    case "$($to unity --version </dev/null 2>/dev/null | head -n 1)" in [0-9]*) route=1 ;; esac
-  fi
-  [ "$route" = 1 ] || return 0
-  local missing=""
-  [ "$last_cap" -gt "$last_edit" ] || missing="a capture of the scene or camera"
-  [ "$last_con" -gt "$last_edit" ] || missing="$missing${missing:+ and }a console read"
-  [ -n "$missing" ] || return 0
-  verdict="visual"
-  detail="$missing|$files"
-}
-clause_unity_visual
-
 # Clause 8: the final message claims a whole named set was read or reviewed (all/every/each … files) and names its members as paths
 # that resolve, yet no tool input of this turn names a member or one of its directories. A named directory expands to its tracked files.
 COVER_CLAIM='(read|reviewed|checked|audited|inspected|went through|scanned)[^.!?]{0,40}(all|every|each)[^.!?]{0,30}(files?|modules?|scripts?|tests?|hooks?|skills?|agents?|docs?|pages?|chapters?)|(all|every|each)( of the| one of the)?( [0-9]+)? (files?|modules?|scripts?|tests?|hooks?|skills?|agents?|docs?|pages?)[^.!?]{0,40}(read|reviewed|checked|audited|inspected|covered)'
@@ -1357,7 +1267,6 @@ report_verdict() {
   mode="$gate_mode"
   case "$verdict" in
     evidence) case "$ev_mode" in warn) mode=warn ;; esac ;;
-    visual) case "$uv_mode" in warn) mode=warn ;; esac ;;
     coverage) case "$cov_mode" in warn) mode=warn ;; esac ;;
   esac
 
@@ -1417,13 +1326,6 @@ report_verdict() {
         printf '  output, or say what changed, what was not verified, and the command the user can run to verify it.\n'
         printf '  CC_EVIDENCE_GATE=off turns this check off (=warn only prints).\n')
       note="candor sent the turn back: the reply says the work is done, but nothing ran after the last edit." ;;
-    visual)
-      msg=$(printf '[candor] This turn changed Unity scene, prefab or script files (%s) and says the work is done, but %s did not run after the last change.\n' "${detail#*|}" "${detail%%|*}"
-        printf '  Look before calling it done: unity command capture game_view -- --source camera --save_path Screenshots/check.png\n'
-        printf '  (or capture scene_view), read the PNG, then unity command console get -- --tail 50 --level error. Any error means not done.\n'
-        printf '  With MCP for Unity: manage_camera action screenshot, then read_console. Or say what was not captured and why.\n'
-        printf '  CC_UNITY_VISUAL_GATE=off turns this check off (=warn only prints).\n')
-      note="candor sent the turn back: Unity scene or prefab work was called done without a capture and a console read." ;;
     coverage)
       what="This turn"; [ "$evt" = "SubagentStop" ] && what="This report"
       msg=$(printf '[candor] %s says it read or reviewed every file in a set it names, but %s of them were not opened by any tool call this turn:%s\n' "$what" "${detail%%|*}" "${detail#*|}"
