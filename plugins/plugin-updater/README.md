@@ -64,7 +64,7 @@ bash ~/.claude/plugins/marketplaces/cc-plugins-marketplace/plugins/plugin-update
 | Flag | Effect |
 | --- | --- |
 | `--all` | Every project folder, not only the current one. Never used by the background run. |
-| `--prune` | Uninstall each matched install whose plugin its marketplace removed (`renames` maps it to `null`), instead of trying to update it. Its data directory is kept while another install of the plugin remains. Never used by the background run. Not the CLI's own `claude plugin uninstall --prune`, which removes unused dependencies and is never passed. |
+| `--prune` | Uninstall each matched install whose plugin its marketplace removed (`renames` maps it to `null`), instead of trying to update it. Also matches such installs recorded for a linked git worktree of the folder: `/plugin` appears to count those as the folder's own (inferred from the CLI 2.1.330 bundle), so that one of them makes its marketplace update say "1 plugin failed to update". Its data directory is kept while another install of the plugin remains. Never used by the background run. Not the CLI's own `claude plugin uninstall --prune`, which removes unused dependencies and is never passed. |
 | `--dry-run` | List the installs that would be updated, checked or (with `--prune`) uninstalled, and why. Changes no install. |
 | `--last` | Print the last background run's log. |
 | `--no-refresh` | Skip `claude plugin marketplace update`; compare against the clones as they are. Without it, a dry run also refreshes them. |
@@ -90,7 +90,8 @@ the lock.
    the manifest). It runs from the install's project folder (your home folder for user scope), with
    no terminal on stdin, one at a time: every update rewrites the same `installed_plugins.json`.
 5. Under `--prune`, runs `claude plugin uninstall <id> --scope <scope> --json` (`--keep-data` while another
-   install of the plugin remains) for each install whose plugin its marketplace removed, from the same folder.
+   install of the plugin remains) for each install whose plugin its marketplace removed, from the same folder,
+   then reads `claude plugin list --json` again: an install still listed there counts as failed.
 6. Prints a summary: updated, uninstalled (with `--prune`), already current, skipped, failed, need you. A running session keeps
    the old plugins until it restarts or runs `/reload-plugins`.
 
@@ -114,10 +115,13 @@ the lock.
 - **It never updates an install recorded for a linked git worktree.** Run from a worktree folder,
   `claude plugin update --scope local` checks the main checkout's install, not the worktree's
   (CLI 2.1.323): 93 worktree installs reported `up_to_date` in one run while each still recorded
-  its old version. Do not run `claude plugin uninstall` from a worktree to clean them up either; it
-  would act on the main checkout's install. If the CLI reports `up_to_date` for a version other
+  its old version. `claude plugin uninstall` run from a worktree does remove that worktree's own
+  record and leaves the main checkout's (CLI 2.1.330), so `--prune` uninstalls there. If the CLI reports `up_to_date` for a version other
   than the one an install records, the run counts it as a failure, not "already current".
 - **It never updates a `managed` install**; policy sets those.
+
+`--prune` cannot remove an orphaned entry: its folder is gone, so there is nowhere to run the
+uninstall from.
 
 A plugin the marketplace has removed fails with `not_found`; its line carries the
 `claude plugin uninstall` command to run in that folder, or run again with `--prune`.
@@ -128,8 +132,8 @@ A plugin the marketplace has removed fails with `not_found`; its line carries th
 | --- | --- |
 | Updates run one at a time, never with `-y` or `--accept-command`, never with a terminal on stdin | **gate**: `scripts/__tests__/update-all.test.sh` |
 | A default run and the background run call `claude plugin update` only for the current folder and user scope | **gate**: the same harness |
-| Orphaned, worktree and `managed` installs are skipped; filters, exit codes and the lock hold | **gate**: the same harness |
-| `--prune` uninstalls only installs whose plugin its marketplace removed, from their folder, keeping the data while another install remains; without `--prune`, and in the background run, nothing is uninstalled | **gate**: the same harness |
+| Updates skip orphaned, worktree and `managed` installs; filters, exit codes and the lock hold | **gate**: the same harness |
+| `--prune` uninstalls only installs whose plugin its marketplace removed, from their folder (a worktree of it included, another repository's never), keeping the data while another install remains, and reports one the CLI still lists as failed; without `--prune`, and in the background run, nothing is uninstalled | **gate**: the same harness |
 | The session-start hook returns before the background run ends, starts no run while one holds the lock or before the folder's interval, and reports a run once | **gate**: the same harness |
 | A model's Bash `claude plugin update`/`install` with `-y`, `--yes` or `--accept-command` is denied | **gate**: `scripts/__tests__/accept-guard.test.sh` |
 | On demand, the model adds `--all` or `--project` only when you typed it, and runs no `claude plugin update` of its own to retry or finish a run | **recorded**: the skill says so; nothing reads it back |

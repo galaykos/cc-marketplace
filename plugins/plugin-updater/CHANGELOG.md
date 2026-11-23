@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.1 — 2026-11-23
+
+- **`--prune` also uninstalls removed plugins recorded for the folder's linked git worktrees.** 0.4.0 skipped them,
+  and `/plugin` kept saying "1 plugin failed to update": the host appears to count a worktree's installs as the
+  main checkout's (inferred from the CLI 2.1.330 bundle). Each is uninstalled from its own worktree folder. Another repository's worktrees, and a worktree's
+  other installs, are not touched; updates still skip worktrees. Standing: gate (`scripts/__tests__/update-all.test.sh`).
+- **A reported uninstall is checked.** After the uninstalls the run reads `claude plugin list --json` again and counts
+  an install still listed there as failed. Standing: gate (the same harness).
+- The README said `claude plugin uninstall` from a worktree acts on the main checkout's install. On CLI 2.1.330 it
+  removes the worktree's own record; corrected.
+
 ## 0.4.0 — 2026-11-23
 
 - **New flag: `--prune` uninstalls plugins their marketplace removed.** Without it, such an install fails every run

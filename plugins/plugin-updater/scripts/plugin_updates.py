@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # plugin_updates.py — `update`: run `claude plugin update` for each install behind its marketplace clone, one at a time, in the current folder and at user scope (`--all`: every folder; `--prune`: uninstall the ones whose marketplace removed the plugin); `hook`: at session start, start that run detached when due, report the last one.
-# Misses: other project folders unless --all or --project names them, a remote-source plugin whose version lives only in its own plugin.json, releases the clones have not fetched when the refresh is skipped, and linked git worktree installs (skipped).
+# Misses: other project folders unless --all or --project names them, a remote-source plugin whose version lives only in its own plugin.json, releases the clones have not fetched when the refresh is skipped, and updates of linked git worktree installs (skipped; `--prune` does uninstall there).
 # Why, limits, history: rationale/derivations/plugin-plugin-updater.md § plugins/plugin-updater/scripts/plugin_updates.py
 import argparse
 import json
@@ -260,13 +260,26 @@ def where(inst):
     return "~ (user)" if inst.get("scope") == "user" else f"{inst.get('projectPath')} ({inst.get('scope')})"
 
 
-def is_linked_worktree(folder):
+def worktree_gitdir(folder):
+    """The git directory a linked worktree's .git file names (<repo>/.git/worktrees/<name>), or "" when folder is not one."""
     try:
         with open(os.path.join(folder, ".git"), encoding="utf-8") as f:
             head = f.read(4096)
     except OSError:
-        return False
-    return head.startswith("gitdir:") and "/worktrees/" in head.replace("\\", "/")
+        return ""
+    path = head.partition("gitdir:")[2].strip().replace("\\", "/") if head.startswith("gitdir:") else ""
+    return os.path.normpath(os.path.join(folder, path)) if "/worktrees/" in path else ""
+
+
+def is_linked_worktree(folder):
+    return bool(worktree_gitdir(folder))
+
+
+def in_worktree_of(inst, folders):
+    """True for an install recorded for a linked git worktree whose main checkout is one of folders."""
+    gitdir = worktree_gitdir(inst["projectPath"]) if inst.get("projectPath") else ""
+    common = os.path.dirname(os.path.dirname(gitdir)) if gitdir else ""
+    return os.path.basename(common) == ".git" and os.path.realpath(os.path.dirname(common)) in folders
 
 
 def why_not_updatable(inst):
@@ -413,14 +426,20 @@ def parse_args(argv):
     return ap.parse_args(argv)
 
 
-def wanted(inst, a):
+def prunable(inst, a, cat):
+    return a.prune and classify(inst, cat)[1] == REMOVED
+
+
+def wanted(inst, a, cat):
     if a.scope and inst.get("scope") not in a.scope:
         return False
     if a.project:
         pp = inst.get("projectPath")
-        if not pp or os.path.realpath(pp) not in a.project:
-            return False
-    elif not a.all and not in_folder(inst, a.folder):
+        matched = bool(pp) and os.path.realpath(pp) in a.project
+    else:
+        matched = a.all or in_folder(inst, a.folder)
+    # /plugin's marketplace update counts a worktree's installs as the main checkout's, so a removed plugin there fails it.
+    if not matched and not (prunable(inst, a, cat) and in_worktree_of(inst, a.project or {a.folder})):
         return False
     if a.plugin:
         pid = inst.get("id", "")
@@ -470,6 +489,33 @@ def run_remove(inst, keep_data):
         return "removed", f"{inst.get('version')}: uninstalled" + (" (data kept for its other installs)" if keep_data else "")
     msg = (r.get("message") or r.get("failureCode")) if isinstance(r, dict) else None
     return "failed", f"uninstall failed (exit {p.returncode}): {msg or tail(p.stderr) or tail(p.stdout) or 'no output'}"
+
+
+def install_key(inst):
+    return inst.get("id"), inst.get("scope"), inst.get("projectPath")
+
+
+def list_installs():
+    """The installs `claude plugin list --json` reports; raises when the CLI fails or prints anything else."""
+    p = claude(["plugin", "list", "--json"], cwd=os.path.expanduser("~"), timeout=120)
+    installs = json.loads(p.stdout)
+    if not isinstance(installs, list):
+        raise ValueError("not a list")
+    return [i for i in installs if isinstance(i, dict) and i.get("id")]
+
+
+def check_removed(results):
+    """Move an install the CLI still lists after it reported the uninstall from removed to failed."""
+    if not results["removed"]:
+        return
+    try:
+        still = {install_key(i) for i in list_installs()}
+    except (subprocess.TimeoutExpired, OSError, ValueError) as e:
+        print(f"Uninstalls not verified: could not read `claude plugin list --json` again: {e}")
+        return
+    for item in [r for r in results["removed"] if install_key(r[0]) in still]:
+        results["removed"].remove(item)
+        results["failed"].append((item[0], "the CLI reported it uninstalled, but still lists this install"))
 
 
 def show_last(data):
@@ -541,16 +587,12 @@ def plan_and_run(a):
             print(f"Marketplaces: refresh failed ({e}); comparing against the clones as they are.")
 
     try:
-        p = claude(["plugin", "list", "--json"], cwd=os.path.expanduser("~"), timeout=120)
-        installs = json.loads(p.stdout)
-        if not isinstance(installs, list):
-            raise ValueError("not a list")
+        installs = list_installs()
     except (subprocess.TimeoutExpired, OSError, ValueError) as e:
         print(f"update-all.sh: could not read `claude plugin list --json`: {e}", file=sys.stderr)
         return 2 if a.dry_run else (2, {})
 
     cat = load_catalog(pdir)
-    installs = [i for i in installs if isinstance(i, dict) and i.get("id")]
     left = {}
     for i in installs:
         left[i["id"]] = left.get(i["id"], 0) + 1
@@ -565,7 +607,7 @@ def plan_and_run(a):
         a.folder = session_folder(a.cwd or os.getcwd(), [i.get("projectPath") for i in installs])
         covered = [a.folder]
         print(f"Folder: {a.folder}, and user scope. --all covers every project folder.")
-    installs = [i for i in installs if wanted(i, a)]
+    installs = [i for i in installs if wanted(i, a, cat)]
     installs.sort(key=lambda i: (i["id"], i.get("scope") != "user", i.get("projectPath") or ""))
 
     current, skipped, jobs, removals = [], [], [], []
@@ -575,11 +617,11 @@ def plan_and_run(a):
             current.append(inst)
             continue
         blocked = why_not_updatable(inst)
+        if blocked in (None, WORKTREE) and prunable(inst, a, cat):
+            removals.append(inst)
+            continue
         if blocked:
             skipped.append((inst, blocked))
-            continue
-        if a.prune and detail == REMOVED:
-            removals.append(inst)
             continue
         why = f"{inst.get('version')} → {detail}" if state == "outdated" else f"{inst.get('version')}: {detail}"
         jobs.append((inst, state, why))
@@ -608,6 +650,7 @@ def plan_and_run(a):
     except KeyboardInterrupt:
         interrupted = True
         print(f"\nInterrupted after {done} of {len(steps)}; the rest were not attempted.")
+    check_removed(results)
     rc = final_report(results, len(current), skipped, a.prune)
     counts = {"updated": len(results["updated"]), "removed": len(results["removed"]), "failed": len(results["failed"]),
               "needs_you": len(results["needs_you"]), "interrupted": interrupted,
