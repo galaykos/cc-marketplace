@@ -40,7 +40,11 @@ The consult brief carries exactly four fields:
    `irreversible`.
 3. **History / plan** — for `stuck-debug`: what was tried and what each attempt
    produced; for `irreversible`: the exact action about to run, and why now.
-4. **Relevant paths** — repo-relative files the consultant should start from.
+4. **Relevant paths** — absolute paths of the files the consultant should start from.
+   For `stuck-debug`, also write `git -C <project> log -p -3 -- <those paths>` to
+   `<project>/.cc-artifacts/approaches/consult-history-<n>.txt` (`<n>` the next free
+   number) and name that file here by absolute path: the consultant has no Bash, and the
+   history stays out of the brief the lint reads.
 
 Facts only. Quote real output; name real files. The consultant has read-only
 repo access and checks every claim it can by reading the code; it runs nothing, so

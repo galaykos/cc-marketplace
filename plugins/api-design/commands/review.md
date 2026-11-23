@@ -65,5 +65,9 @@ only". On either apply pick, dispatch the work down the static chain
 `laravel:backend-engineer if installed and the fixes land in .php files →
 web-dev:web-developer if installed → task-runner:task-executor if installed →
 inline` — api-design ships no worker agent of its own, so naming the chain is the
-only thing that keeps an approved contract from dying in chat.
+only thing that keeps an approved contract from dying in chat. The agent sees only its
+prompt: give it the findings with absolute file paths (review branch) or the approved
+`api.html`'s absolute path (contract preview), and the line
+`Read ${CLAUDE_PLUGIN_ROOT}/skills/api-design/SKILL.md before writing` (`graphql-grpc`
+in place of `api-design` when that skill was the rubric).
 Headless: findings or approved contract only.

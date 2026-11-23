@@ -162,7 +162,8 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    **Resolve six lines on the build task:**
 
    - `Motion:` — a named tier per surface plus fallbacks; at `maximal`, one `(escalated ← …)`
-   - `Signature:` — the move, its section, its owning skill
+   - `Signature:` — the move, its section, its owning skill and that skill's absolute SKILL.md path
+     (`${CLAUDE_PLUGIN_ROOT}/skills/<skill>/SKILL.md`), so the worker can Read it
    - `Ambition:` — the pinned tier; at `maximal`, which surface carries the graphic system, which
      capabilities make the three, and which carries the escalation
    - `Banned vocabulary:` — copied VERBATIM from the divergence record, `none` written out when

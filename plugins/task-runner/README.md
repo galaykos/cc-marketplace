@@ -198,9 +198,10 @@ after: M1 needs M0 merged first
 
 A milestone is serial when it has no `Files:` line, touches a shared file (`marketplace.json`,
 a root `README.md`/`CHANGELOG.md`/`ROADMAP.md`, `package.json`, a lock file, `.github/workflows/`,
-`scripts/`), or overlaps another milestone.
+`scripts/`), overlaps another milestone, or holds a card tagged `asset` or naming an MCP tool
+(`mcp__…`; track workers hold no MCP tools).
 
-Standing: **gate where run** (`scripts/__tests__/plan-overlap.test.sh`, 35 cases); nothing
+Standing: **gate where run** (`scripts/__tests__/plan-overlap.test.sh`, 40 cases); nothing
 forces the call. It reads what the cards and the index list, so a file a card writes without
 listing it, a glob, a lock file a build rewrites and a legacy bold-label card's `Files` text
 are not seen.

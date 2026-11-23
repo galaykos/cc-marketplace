@@ -61,7 +61,8 @@ the stop (`coverage-check/SKILL.md`).
 
 A **recon lens** is one `context-scout` dispatch narrowed to part of its own
 seven-section report (`taskmaster/agents/context-scout.md`) — not a separate agent,
-not a flag. N=1 (the unboosted default): one dispatch, all seven sections. N=2:
+not a flag; each lens carries the brain map path and staleness line of grill's Step 0.
+N=1 (the unboosted default): one dispatch, all seven sections. N=2:
 sections 1–2, 6 and 7 (surface, patterns, visual surface, reuse candidates) | 3–4 (constraints +
 already-answered). N=3: section 6 gets a lens of its own (it carries the theme-token table
 and is the section one all-in-one scout most often drops). Section 6 is scanned at every N:

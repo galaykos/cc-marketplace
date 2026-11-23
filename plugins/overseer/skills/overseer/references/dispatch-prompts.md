@@ -171,7 +171,8 @@ teeth lens.
 ```
 You are implementing ONE card in <abs project root>. Cwd resets between commands: use
 absolute paths or `git -C`.
-CARD: <title>. DONE WHEN: <criteria copied from the brief>.
+CARD: <title>. DONE WHEN: <criteria copied from the brief>. A DONE WHEN line only a
+browser can show is proven by the orchestrator's acceptance walk: list it as untested.
 AGENT: <agent type this prompt is sent to, e.g. task-runner:task-executor — close counts it>.
 MODEL: <opus | sonnet | haiku — the seat table; the Agent call passes the same value>
 STATE FILES: brief <abs>, findings <abs>, decisions <abs>.   SIBLINGS: <none | who, files>.
@@ -216,7 +217,7 @@ contradicts a product that ships five fixed ones).
 ## Reviewer (read-only)
 
 ```
-Review the diff `git -C <root> diff <base>...<branch>` against <skill abs paths>.
+Review the diff in <abs patch file> (Read it) against <skill abs paths>.
 You are read-only: you write no file and run no command that changes the tree.
 MODEL: <opus | inherit — the seat table>
 Report only lines this diff added or changed; a defect already on <base> goes under LATER.
@@ -233,7 +234,9 @@ and each one fixed is a re-walk (`acceptance.md` step 6).
 No preamble: that file is worker discipline and its clauses contradict a seat that writes
 nothing. Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
 sending — a reviewer is a dispatch, and the record of a fix cycle is incomplete without
-the prompt that produced its findings (`accept` WARNs when a milestone has none). On the
+the prompt that produced its findings (`accept` WARNs when a milestone has none). Write the
+patch it names first, `git -C <root> diff <base>...<branch> > <abs>/milestones/<id>/dispatch/<n>-review-<name>.patch`:
+a reviewer seat bound to a Read, Grep, Glob agent has no Bash to run git. On the
 taskmaster path the run's close already reviewed the range (`Verify: range`); this template
 is for the direct-worker path and the extra lenses a `standard` profile adds.
 

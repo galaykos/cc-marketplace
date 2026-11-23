@@ -88,7 +88,8 @@ Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
 Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers, and at
   `maximal` one entry marked `<surface>: <tier> (escalated ← <reason>)`).
 Signature: <the concept's ONE signature interaction, when THIS section owns it — the named
-  move, its owning craft skill, and its tier; omit on every other section>.
+  move, the absolute path of its owning craft skill's SKILL.md, and its tier; omit on every
+  other section>.
 Ambition: <the contract's pinned tier, and at `maximal` which surface carries the graphic
   system, which capabilities make up the three, and which surface carries the escalation>.
 Banned vocabulary: <copied VERBATIM from the divergence record's negative-constraints block,

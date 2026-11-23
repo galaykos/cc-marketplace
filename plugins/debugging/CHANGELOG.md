@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.9.2; earlier versions have no entries rather than invented ones.
 
+## 0.13.3 — 2026-11-23
+
+- **The debugger reads systematic-debugging.** "Load the skill" had no Skill tool behind it, so the agent ran without the discipline (probe tags, repro shrinking, red-proof). It now Reads `${CLAUDE_PLUGIN_ROOT}/skills/systematic-debugging/SKILL.md` first, and the skill's `ci-triage.sh` resolves. Standing: gate (`pc_agent_skill_reach`).
+- **`/debugging:debug` pastes the failure into the dispatch.** Symptom, exact error text, repro command and any ci-triage output; a subagent cannot see "the most recent failure in the conversation". A stuck debugger hands the consult brief back to its caller. Standing: recorded.
+
 ## 0.13.2 — 2026-11-21
 
 - **The ship rule states its standing.** The README's "the fix only ships after the original reproduction passes again AND the full suite is green" and the skill's verification steps 1 and 2 now say **recorded**: no script runs either, and candor's Stop gate, where installed, checks that something ran after the last edit, not what.

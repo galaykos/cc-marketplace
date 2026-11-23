@@ -4,6 +4,13 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.35.2 — 2026-11-23
+
+- **ui-ux-engineer and a11y-engineer reach the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+- **ui-ux-engineer and ui-ux-reviewer can fetch live docs.** Both gain WebFetch, used only for the live-doc checks their motion, tailwind and shadcn skills require for version-sensitive literals; a blocked fetch leaves the claim marked unconfirmed. ui-ux-engineer returns a choice a skill says to ask the user to its caller. Standing: recorded.
+- **ui-ux-reviewer reads its own skills by path.** tailwind, shadcn and motion best-practices are Read at `${CLAUDE_PLUGIN_ROOT}/skills/…`, a ui-libraries skill through the plugin cache; a shell command a rubric names is reported as not run. Standing: recorded.
+- **`/ui-ux:build` hands the worker what it cannot fetch.** The dispatch now carries `design-tokens` and (with colours in play) `shadcn-theming` paths, absolute paths for registries, motion, sameness-fingerprint and information-design, and the registry query results verbatim. The `npx shadcn info` consent and the theming pick are settled with the user before dispatch. Standing: recorded.
+
 ## 0.35.1 — 2026-11-21
 
 - **`preview-guard.sh` names the off switch that works**: the /config option `cc_preview_guard`, or `CC_PREVIEW_GUARD=off` in the environment Claude Code starts with. The old message offered the env var "for the session", which an export inside a Bash call cannot reach (the hook inherits Claude Code's environment, not the Bash tool's). Twin of taskmaster's copy.

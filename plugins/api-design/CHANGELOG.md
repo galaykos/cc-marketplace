@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.11.4; earlier versions have no entries rather than invented ones.
 
+## 0.12.3 — 2026-11-23
+
+- **The scaffold and review fix dispatches carry their inputs.** The worker gets the absolute paths of the files to create, the spec or approved `api.html`, and `${CLAUDE_PLUGIN_ROOT}/skills/api-design/SKILL.md`; before it got "the mapping" and no rubric. Standing: recorded.
+
 ## 0.12.2 — 2026-11-21
 
 - **`/api-design:review`'s self-refute pass drops or downgrades a finding only on a cited line or command output that contradicts it.** A doubt with no citation keeps the finding, marked `PLAUSIBLE`. Standing: recorded.

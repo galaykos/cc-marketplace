@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first. Started at 0.50.4; earlier versions have no entries rather than invented ones.
 
+## 0.64.1 — 2026-11-23
+
+- **context-scout gets the brain map path and its staleness line.** Every scout dispatch carries the absolute map path and any "brain map is behind HEAD" line, which reaches only the main session; with neither, the scout says the map was not consulted. Standing: recorded.
+- **spec-adversary checks gitignored dirs before calling an assumption false.** A repo-wide Grep skips `vendor/` and `node_modules/`; it now searches them by path or Globs the file, and an unsettled case is "unverified", never "falsified". Standing: recorded.
+
 ## 0.64.0 — 2026-11-21
 
 - **`preview-guard.sh` names the off switch that works**: the /config option `cc_preview_guard`, or `CC_PREVIEW_GUARD=off` in the environment Claude Code starts with; an export inside a Bash call never reaches a hook. Twin of ui-ux's copy.

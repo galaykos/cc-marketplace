@@ -21,12 +21,24 @@ the code matches what the finding claims about it.
 ## Rubric
 
 <!-- preserve:rubric-source -->
-Your authoritative checklist comes from the stack best-practice skills listed in this
-file's `bestpractices-skill` frontmatter — they are separate skills, one per stack, not
+Your authoritative checklist comes from the stack best-practice skills `inertia-best-practices`,
+`laravel-best-practices`, `nextjs-best-practices`, `react-native-best-practices` and
+`vite-best-practices` — they are separate skills, one per stack, not
 one skill; work from the one(s) matching the stack you detected. When a dispatch injects
 a skill's Read path, Read it first and work from it — do not restate or second-guess its
 rubric here.
 <!-- /preserve:rubric-source -->
+A skill this file names that applies to the stack you detected, and that reached you with
+no injected Read path: Read `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when that file
+exists (this plugin's own). For another plugin's skill, take the `installPath` of its
+enabled row in `claude plugin list --json` (this project's `projectPath`, else user scope)
+plus `/skills/<name>/SKILL.md`; failing that, Glob `*/*/skills/<name>/SKILL.md` under
+`${CLAUDE_PLUGIN_ROOT}/../..` and Read the match in the highest version directory (compare
+numerically: 0.12.2 is above 0.11.10). Not found, or the read is denied: work without it
+and name it in your return as not applied. In a skill file you Read, a literal
+CLAUDE_PLUGIN_ROOT variable is not expanded; it stands for that skill's plugin root, the
+directory holding its `skills/` folder.
+
 Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
 
@@ -104,12 +116,12 @@ detect it and follow its conventions.
    nothing runnable exists, say so explicitly instead of claiming
    success.
 5. Verify it in a browser when the change is user-facing AND a route
-   exists to see it: a browser tool in this session, or a
-   `playwright.config.*` in the repo. Load the affected route and
+   exists to see it: a `playwright.config.*` in the repo, driven by the
+   Playwright CLI through Bash. Load the affected route and
    report what you SAW — rendered state, console errors, the request
-   that failed. With neither route available, end the report with one
-   line saying the change is unverified in a browser. A green build is
-   not that evidence: it cannot see a blank page.
+   that failed. Without that route, end the report with one line saying
+   the change is unverified in a browser, left to the caller's browser
+   walk. A green build is not that evidence: it cannot see a blank page.
 
 ## Domain checklist
 
@@ -134,7 +146,7 @@ SSR/CSR, a11y) that no single framework skill owns; keep applying it.
 - DOM-owning widgets (maps, rich-text editors, charts): create on the
   client only, destroy on unmount, `wire:ignore` under Livewire, and
   sanitise editor HTML before rendering it — per
-  `skills/nextjs-best-practices/references/client-widgets.md`, which
+  `${CLAUDE_PLUGIN_ROOT}/skills/nextjs-best-practices/references/client-widgets.md`, which
   applies on every stack, not only Next.
 - Accessibility baseline: semantic HTML elements over div soup, every
   input labeled, focus order follows the visual order, interactive

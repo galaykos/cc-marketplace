@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.9.11 — 2026-11-23
+
+- **devops-engineer reaches the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+- **docker-best-practices is part of devops-engineer's rubric.** It was named as a secondary but never injected or listed; it is now in `bestpractices-skill` and the rubric line. A stack-scan inventory is used when the dispatch carries one, else the agent reads the manifests. Standing: recorded.
+- **devops-reviewer reads its rubric and runs its audit scripts.** It Reads `devops-practices` (and `docker-best-practices` when a Dockerfile is in scope) by `${CLAUDE_PLUGIN_ROOT}` path; before, "Load the skill" had no Skill tool behind it. `workflow-audit.sh` and `plan-audit.sh` named in that skill now resolve to the installed scripts. Its body no longer claims `/devops:review` dispatches it; task-runner's reviewer routing does. Standing: gate (`pc_agent_skill_reach`) for the load line; recorded for the rest.
+
 ## 0.9.10 — 2026-11-21
 
 - **`/devops:review`'s short lane is a conjunction.** "Trivial, single-file, or purely mechanical" let any one clause earn a one-line verdict; now the change must be single-file AND mechanical AND clear of every risk clause, and any doubt takes the deep pass (same fix as code-review 0.38.2).

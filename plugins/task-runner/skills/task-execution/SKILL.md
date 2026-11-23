@@ -45,7 +45,8 @@ Per task, loop — but with a hard ceiling:
    loop (no teeth); exit 5 → halt (stderr prose, empty stdout — branch on the code). Manual/visual: `--skip "<reason>"`, same flags.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Before halting, make ONE bounded dispatch to
-   `debugging:debugger` if installed and attach its diagnosis to the evidence — three failures
+   `debugging:debugger` if installed, its prompt saying "diagnosis only, edit nothing" (the agent
+   holds Write and Edit), and attach its diagnosis to the evidence — three failures
    mean the DIAGNOSIS is wrong, not the fix, and a fourth attempt from this thread repeats the
    same wrong premise with less context left. No new loop: the halt happens either way. Report
    what was tried, the exact failing output, and the hypothesis. A fourth blind attempt is where

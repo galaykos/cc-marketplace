@@ -15,7 +15,10 @@ open and new holes in the sections the amendments changed.
 
 Read the spec in full first. Then attack it across six lenses. Use Grep/Glob to
 check the spec's claims against the actual codebase — an assumption you can falsify
-is your strongest finding.
+is your strongest finding. A repo-wide Grep skips gitignored directories, so a symbol it
+misses may still sit in `vendor/` or `node_modules/`: Grep that directory by explicit
+path or Glob the file before calling the symbol absent. Still unsettled → report the
+assumption as unverified, never as falsified.
 
 ## The six lenses
 

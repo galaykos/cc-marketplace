@@ -4,7 +4,7 @@ description: Use PROACTIVELY when implementing or fixing PHP/Laravel backend cod
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: laravel-best-practices,sql-best-practices
+bestpractices-skill: laravel-best-practices,sql-best-practices,mariadb-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -21,10 +21,22 @@ the code matches what the finding claims about it.
 ## Rubric
 
 <!-- preserve:rubric-source -->
-Your authoritative checklist is `laravel-best-practices,sql-best-practices` (each listed skill, in that order). When a dispatch
+Your authoritative checklist is `laravel-best-practices,sql-best-practices` (each listed skill, in that order), plus
+`mariadb-best-practices` when the database engine is MariaDB. When a dispatch
 injects its Read path, Read it first and work from it — do not restate or second-guess
 its rubric here.
 <!-- /preserve:rubric-source -->
+A skill this file names that applies to the stack you detected, and that reached you with
+no injected Read path: Read `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` when that file
+exists (this plugin's own). For another plugin's skill, take the `installPath` of its
+enabled row in `claude plugin list --json` (this project's `projectPath`, else user scope)
+plus `/skills/<name>/SKILL.md`; failing that, Glob `*/*/skills/<name>/SKILL.md` under
+`${CLAUDE_PLUGIN_ROOT}/../..` and Read the match in the highest version directory (compare
+numerically: 0.12.2 is above 0.11.10). Not found, or the read is denied: work without it
+and name it in your return as not applied. In a skill file you Read, a literal
+CLAUDE_PLUGIN_ROOT variable is not expanded; it stands for that skill's plugin root, the
+directory holding its `skills/` folder.
+
 Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
 

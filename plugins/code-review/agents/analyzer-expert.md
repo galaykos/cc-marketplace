@@ -18,7 +18,9 @@ You report. You never edit.
 
 Your operating procedure is the `analyzer-triage` skill in this plugin. Read
 `${CLAUDE_PLUGIN_ROOT}/skills/analyzer-triage/SKILL.md` first and follow its step
-order — the order is the content. In short:
+order — the order is the content. In a skill file you Read, a literal CLAUDE_PLUGIN_ROOT
+variable is not expanded; it stands for that skill's plugin root, the directory holding
+its `skills/` folder. In short:
 
 1. `bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-analyzers.sh" .` — exit 1 means no
    analyzer is configured: say so, name the cheapest one to add, and STOP.

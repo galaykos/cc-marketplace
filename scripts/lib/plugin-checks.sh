@@ -1921,6 +1921,52 @@ EOF_TF
   return "$bad"
 }
 
+# pc_agent_skill_reach <plugins_root> — an agent told to load a backticked skill with no Skill tool, no `skills:` preload and no ${CLAUDE_PLUGIN_ROOT} path in the sentence; or a bestpractices-skill name its body never states.
+# Prints "skill-reach <plugin>:<agent> — …". Misses a skill named without "load", dispatch prompts, a path that resolves to nothing, WebFetch and MCP needs. Escape: `<!-- tool-fit-ok: <why> -->`.
+# Why, limits, history: rationale/derivations/scripts-lib.md § pc_agent_skill_reach
+pc_agent_skill_reach() {
+  local root="${1:-plugins}" bad=0 tab af p n tools pre bp body ln s sk
+  tab=$(printf '\t')
+  while IFS= read -r af; do
+    p=${af#"$root"/}; p=${p%%/*}; n=$(basename "$af" .md)
+    tools=$(awk 'NR == 1 && !/^---/ { exit } /^---[[:space:]]*$/ { c++; if (c == 2) exit; next }
+                 c == 1 && /^tools:/ { sub(/^tools:[[:space:]]*/, ""); print; exit }' "$af" 2>/dev/null)
+    [ -n "$tools" ] || continue
+    pre=$(awk '/^---[[:space:]]*$/ { c++; if (c == 2) exit; next } c == 1 && /^skills:/ { sub(/^skills:[[:space:]]*/, ""); print; exit }' "$af" \
+      | tr -d '[]"\047 ' | tr ',' '\n' | sed 's/.*://' | grep -v '^$')
+    bp=$(awk '/^---[[:space:]]*$/ { c++; if (c == 2) exit; next } c == 1 && /^bestpractices-skill:/ { sub(/^bestpractices-skill:[[:space:]]*/, ""); print; exit }' "$af" \
+      | tr -d ' ' | tr ',' '\n' | grep -v '^$')
+    body=$(_pc_tool_fit_units "$af" agent)
+    case ",$(printf '%s' "$tools" | tr -d " \t\"'[]")," in
+      *,Skill,*) ;;
+      *)
+        while IFS="$tab" read -r ln s; do
+          [ -n "$s" ] || continue
+          case "$s" in *CLAUDE_PLUGIN_ROOT*) continue ;; esac
+          printf '%s' "$s" | grep -qE '(^|[^A-Za-z])[Ll]oad[[:space:]]+((the|this|its|each|every|any|a|an)[[:space:]]+)?([A-Za-z-]+.s[[:space:]]+)?`[a-z0-9-]+`[^.]{0,40}[[:space:]]skills?([^A-Za-z]|$)' || continue
+          printf '%s' "$s" | grep -qiE '\b(never|cannot|can.t|do not|don.t)[[:space:]]+load' && continue
+          sk=$(printf '%s' "$s" | sed -E 's/.*[Ll]oad[[:space:]]+((the|this|its|each|every|any|a|an)[[:space:]]+)?([A-Za-z-]+.s[[:space:]]+)?`([a-z0-9-]+)`.*/\4/')
+          [ -n "$pre" ] && printf '%s\n' "$pre" | grep -qxF -- "$sk" && continue
+          printf 'skill-reach %s:%s — %s:%s: told to load `%s` with no Skill tool, no skills: preload and no ${CLAUDE_PLUGIN_ROOT} path: %.110s\n' \
+            "$p" "$n" "$af" "$ln" "$sk" "$(printf '%s' "$s" | tr -d '\037' | tr -s ' ' | sed 's/^ //')"
+          bad=1
+        done <<EOF_SR
+$body
+EOF_SR
+        ;;
+    esac
+    while IFS= read -r sk; do
+      [ -n "$sk" ] || continue
+      printf '%s\n' "$body" | grep -qF -- "$sk" && continue
+      printf 'skill-reach %s:%s — %s: bestpractices-skill `%s` is never named in the body (the agent never sees its frontmatter)\n' "$p" "$n" "$af" "$sk"
+      bad=1
+    done <<EOF_BP
+$bp
+EOF_BP
+  done < <(find "$root" -path '*/agents/*.md' -type f 2>/dev/null | sort)
+  return "$bad"
+}
+
 # pc_stray_dirs <plugins_root> — a <root>/*/ dir with no plugin.json, no git-tracked file and no *.md/*.json outside dot-dirs: prints "stray <name>", returns 1.
 # An untracked dir holding any .md or .json reads as a half-made plugin, not stray; one tracked file makes any dir non-stray.
 # Why, limits, history: rationale/derivations/scripts-lib.md § pc_stray_dirs

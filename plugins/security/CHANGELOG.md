@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.12.6; earlier versions have no entries rather than invented ones.
 
+## 0.13.3 — 2026-11-23
+
+- **security-engineer reaches the rubric skills without a dispatcher.** When no dispatch injects a skill's Read path, the worker now Reads this plugin's skills at `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` and another plugin's from its `installPath` in `claude plugin list --json`, falling back to the plugin cache. Only skills matching the detected stack are read, and one it cannot find or is denied is named in its return as not applied. Before, a direct dispatch with no skill-router evidence ran without its rubric and said nothing. A literal `CLAUDE_PLUGIN_ROOT` inside a skill it Reads is read as that skill's plugin root, so scripts a skill names resolve. Standing: recorded; `pc_agent_skill_reach` checks the body names each skill, not that the agent reads it.
+
 ## 0.13.2 — 2026-11-21
 
 - **`/security:review`'s short lane is a conjunction**: single-file AND mechanical AND no security-relevant surface, or the full audit (same fix as code-review 0.38.2).

@@ -1326,6 +1326,16 @@ file, three overlapping on `plugins/task-runner/hooks/hooks.json`). The first ve
 harness case "the last path on a Files line is read" is that bug. Not applied: an absolute path prefix is not
 made repo-relative. Exit is 0 with verdicts printed; the caller decides what to do with one eligible milestone.
 
+### 2026-11-22 — asset and MCP cards
+
+The agent tool-fit review of 2026-11-22 found that a track worker runs every card of its milestone inline, an
+`asset` card included, while task-runner workers hold no MCP tools (`task-execution/references/routing.md` step 2
+runs an MCP card inline in the main thread for that reason). `--index` now prints `serial — card <id> is tagged
+asset` or `names mcp__<tool>` for a milestone holding such a card, read from `<agent>` (`**Agent:**` on a legacy
+card) and the first `mcp__` name in the card text. The tag does not tell a CLI tool from an MCP server, so every
+`asset` card counts. Not caught: an MCP card with another tag and no `mcp__` name, and a card missing from its
+milestone's `Cards:` line.
+
 ## plugins/task-runner/scripts/reduction-record.sh
 
 ### Header: THE POINT, the three traces, standing

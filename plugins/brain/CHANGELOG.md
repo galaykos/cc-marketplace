@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.4.6; earlier versions have no entries rather than invented ones.
 
+## 0.5.2 — 2026-11-23
+
+- **The indexer writes the map at the repo root from any subdirectory.** It resolves the root once and runs every command as `git -C <root>` with absolute paths. Before, a session started in a subdirectory built a map where the SessionStart hook never reads. Standing: recorded.
+
 ## 0.5.1 — 2026-11-21
 
 - **Standing labels say what holds them.** The indexer's `## Notes` carry-over and decisions entries, and its `.cc-artifacts/brain/`-only write boundary, were labelled agent-graded with no reviewer behind them; `agents/indexer.md` and the README now say **recorded**, and the README names that the indexer holds Write, Edit and Bash with no hook on its writes. The README's "oriented immediately … no more re-scouting" now says the effect is unmeasured. No behaviour change.

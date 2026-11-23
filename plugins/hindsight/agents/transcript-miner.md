@@ -41,4 +41,7 @@ tag a redirect there as `correction` only when a human is quoted, else `friction
 Rules: never write files. Never propose solutions — extraction only; synthesis
 happens in the main thread. No praise, no recommendations, no restating what
 the session was about. If the transcript is missing, empty, or entirely
-unparseable, say so in one line and report all four categories as `none`.
+unparseable, say so in one line and report all four categories as `none`. A
+transcript read that is denied (a permission refusal, not an absent file) is not
+missing: return the one line `denied: <the error text>` in place of the coverage line,
+with no category lines.

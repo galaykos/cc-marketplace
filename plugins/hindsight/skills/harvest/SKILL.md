@@ -35,6 +35,11 @@ non-alphanumeric character replaced by `-`. The host deletes transcripts after
 
 ## Fan out
 
+Before dispatching, tell the user in one line that the miners read transcripts under
+`~/.claude/projects/`, outside this project, so a read may raise a permission prompt or
+be denied, and suggest `/add-dir ~/.claude/projects/<slug>` (`~/.claude/projects` with
+`--all-projects`) to make those files readable without one.
+
 Dispatch one `transcript-miner` agent per selected row, in parallel, at most 20
 to a message (the host rejects launches past 20 running subagents). Each miner is read-only and returns compressed findings:
 corrections the user gave, repeated chores, failed fix attempts, and the context
@@ -161,7 +166,8 @@ ones whose findings were all declined:
 
 It sets `"mined": true` on every ledger row for that transcript and its forks, and
 adds a row for one the hook never recorded, so the next harvest does not offer it again.
-Do not edit the ledger by hand. A transcript whose miner failed stays unmarked.
+Do not edit the ledger by hand. A transcript whose miner failed, or reported `denied:`,
+stays unmarked: a denied read mined nothing.
 
 ## Boundaries
 

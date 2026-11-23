@@ -123,9 +123,12 @@ The failure mode is silent: two writers touch one file, the second write clobber
 ## Skill priming (authoring-time)
 
 A delegated implementer writes stack code in a fresh context: no inherited skill
-auto-loading, no `Skill` tool, and it cannot self-locate an installed skill (CWD is the
-user's project; skills live under `~/.claude/plugins/…`, so a project-CWD glob misses).
-Only the orchestrator can resolve the path, so it resolves and injects it — for each
+auto-loading, no `Skill` tool, and a project-CWD glob misses an installed skill (CWD is the
+user's project; skills live under `~/.claude/plugins/…`). A marketplace agent can still
+self-locate one as a fallback, by the plugin-root rule in its own body (canonical wording:
+`.claude/skills/authoring-agents/SKILL.md` in the marketplace repository, "Reaching a skill
+from an agent"); a general-purpose delegate carries no such rule. Orchestrator priming stays
+first: the orchestrator resolves and injects the path — for each
 skill a card names in a `<skill name="…"/>` element, and each `bestpractices-skill:` in
 frontmatter:
 

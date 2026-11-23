@@ -34,8 +34,10 @@ convention.
    reciting a remembered component API is the exact failure a registry MCP exists to
    stop. No server connected: the fallback is the library's own docs URL in
    `ui-libraries:component-libraries` (`references/library-map.md`), never recall.
-   Unavailable → say so and verify against the live docs URL instead.
-   **Any** registry block follows `skills/shadcn-best-practices/references/registries.md`,
+   Unavailable → say so and verify against the live docs URL instead. Paste what the
+   registry or docs returned (names, props, install commands) into the step 3 dispatch
+   verbatim: the worker holds no MCP tool, so a result left here never reaches it.
+   **Any** registry block follows `${CLAUDE_PLUGIN_ROOT}/skills/shadcn-best-practices/references/registries.md`,
    not only a ReUI or Aceternity one. That covers an `@namespace/item` from the CLI's
    directory, a `components.json` `registries` entry, or a registry URL. The reference
    supplies `view`/`--dry-run` before `add`, `{style}` matched to the base, keys through env
@@ -47,13 +49,24 @@ convention.
    reui/aceternity/astryx/mui/primereact, or `component-libraries` for any other, from the `ui-libraries`
    plugin as `ui-libraries:<skill>`), `design-tokens` for
    spacing/type/radius/elevation/motion
-   from the scale (no magic numbers), and `shadcn-theming` when colors are in play.
+   from the scale (no magic numbers), and `shadcn-theming` when colors are in play. Inject
+   their Read paths: `${CLAUDE_PLUGIN_ROOT}/skills/design-tokens/SKILL.md` always, and
+   `${CLAUDE_PLUGIN_ROOT}/skills/shadcn-theming/SKILL.md` with colors in play.
    When the request names a registry block to adapt, `references/registries.md` (step 2)
    governs the install. That registry's best-practice skill governs the block too when one
    exists: ReUI's, or Aceternity's, which also covers Magic UI and React Bits blocks. Either
    way the block is restyled to the project's own tokens rather than shipped in the
    registry's defaults.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
+
+   **Settle what a skill would ask the user before dispatching** — the worker cannot ask.
+   With a `components.json`, run `npx --no shadcn info --json` here; when it reports missing
+   packages, ask via AskUserQuestion before running `npx shadcn@latest info --json`, and
+   paste the output, or the refusal, into the dispatch. With colors in play and no palette
+   decided, settle it with the user first — `shadcn-theming`'s candidate pick and the yes on
+   its token diff, run here or through `/ui-ux:theme` — and pass the result as decided.
+   Headless: no `@latest` run and no new palette, both named in the dispatch and the step 5
+   return. Standing: recorded — nothing checks the dispatch.
 
    **An existing target keeps what users and systems rely on.** On a page or component
    that already exists, do not change its URL slugs or anchors, primary nav labels,
@@ -81,8 +94,9 @@ convention.
    labels with no data argument, pill-shaped buttons as the one silhouette. These are the
    MODEL's fallbacks, not a framework's — stock Bootstrap or untouched shadcn is a
    different generic, and step 1 already owns it. When craft-layer is
-   installed, hand the worker the Read path to its
-   `skills/creative-direction/references/sameness-fingerprint.md` instead — the fuller
+   installed (find its root as step 4 of `${CLAUDE_PLUGIN_ROOT}/commands/audit.md` does), hand
+   the worker the absolute Read path
+   `<root>/skills/creative-direction/references/sameness-fingerprint.md` instead — the fuller
    registry the five belong to. Standing: recorded — the worker may still pick them.
 
    **An explicit conventional look is a decided direction.** When the request literally asks
@@ -99,11 +113,13 @@ convention.
      the review fan-in detects (`framer-motion`/`motion`/`gsap`/`animejs` imports,
      `@keyframes`, `transition-*`/`animate-*` utilities, `animation-timeline`,
      `@starting-style`, `document.startViewTransition`) — inject the Read path to
-     `skills/motion-best-practices/SKILL.md` plus the matching library digest
-     (`references/motion.md` | `gsap.md` | `animejs.md`).
+     `${CLAUDE_PLUGIN_ROOT}/skills/motion-best-practices/SKILL.md` plus the matching library
+     digest beside it (`references/motion.md` | `gsap.md` | `animejs.md`), as an absolute path.
    - **Data-dense surfaces.** When the target is a dashboard, data table, admin/CRM
      screen, or settings surface and the craft-layer plugin is installed, inject the
-     Read path to its `information-design` skill (SKILL.md +
+     absolute Read paths to its `information-design` skill, under
+     `<root>/skills/information-design/` with the root found as for the sameness fingerprint
+     above (SKILL.md +
      `references/dense-ui-patterns.md` + `references/product-packages.md`, the package
      selector for grids, charts and the other product-layer libraries); when craft-layer is
      absent, say so in the result rather than silently building without the dense-UI floor.

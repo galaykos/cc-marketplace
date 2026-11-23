@@ -2470,6 +2470,41 @@ table up to its blank line; an agent-body ```bash fence takes the mark from the 
 it. FAIL rather than WARN on that zero-false-positive measurement. Standing: gate.
 ```
 
+### pc_agent_skill_reach
+
+```text
+pc_agent_skill_reach <plugins_root>
+Prints `skill-reach <plugin>:<agent> — <file>:<line>: told to load \`<name>\` …` or
+`skill-reach <plugin>:<agent> — <file>: bestpractices-skill \`<name>\` is never named in the body`;
+returns 1 if any. validate.sh lane_err()s each.
+
+CATCHES, in an agent whose `tools:` holds no Skill: a body sentence telling it to load a
+backticked skill ("Load the `x` skill", "load this plugin's `x` skill") that carries no
+${CLAUDE_PLUGIN_ROOT} path and names a skill its `skills:` key does not preload. And, for every
+agent, a `bestpractices-skill:` name the body never states: the host hands an agent its body
+as the system prompt, so a rubric "named in this file's frontmatter" never reaches it.
+
+WHAT NOTHING ELSE CATCHES: pc_agent_tool_fit reads Bash and Write only and skips any agent
+holding both. The 2026-11-22 tool-fit review (30 agents, 7 reviewers) found "load the skill"
+the dominant gap: debugger, system-architect, architecture-reviewer, devops-reviewer, and
+frontend-reviewer / web-developer pointing at their own frontmatter. Over HEAD 0f7f1905 it
+prints 11 lines naming exactly those six agents; on the fixed tree it prints nothing. A live
+probe the same day showed ${CLAUDE_PLUGIN_ROOT} in an agent BODY expands to the installed
+root (/home/…/plugins/cache/<marketplace>/code-review/0.38.2/…), which is why a path in the
+sentence counts as reachable.
+
+WHAT IT MISSES:
+  - A skill named without "load": "your checklist is `x`", "follow `x`", "per `x`". The
+    generated workers carry those; the template's fallback paragraph covers them, unread.
+  - Whether a ${CLAUDE_PLUGIN_ROOT} path resolves to a file, and any cross-plugin path.
+  - Dispatch prompts and hook text, as pc_agent_tool_fit.
+  - WebFetch, MCP and AskUserQuestion needs.
+  - "load" with an object other than (the|this|its|each|every|any|a|an) or one possessive
+    word before the backticked name; "load testing" and other noun uses stay silent by that.
+  - Negation is "never/cannot/can't/do not/don't load"; the tool-fit-ok marker blesses a
+    block, the same marker pc_agent_tool_fit reads.
+```
+
 ### pc_stray_dirs
 
 ```text

@@ -2,6 +2,10 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.15.1 — 2026-11-23
+
+- **A subagent with no browser tool is told what to do instead.** The SubagentStart preamble adds one sentence after move (5): prove what your own tools reach and name the browser check as untested for your caller. No marketplace agent holds a browser tool. The UserPromptSubmit text is byte-identical. Standing: gate (`preamble-hook.test.sh` arms 39-40).
+
 ## 0.15.0 — 2026-11-21
 
 - **Clause 8, coverage overclaim.** `hooks/gate.sh` sends back a final message (Stop, or a subagent's hand-back on SubagentStop) that claims it read or reviewed every file of a set it names, when no tool input of the turn names one of those files or a directory of it. The block lists up to 5 unopened files. Saying what was not read ("not read: <path>", "skipped", "only read") passes. A named directory stands for its tracked files, and the clause stands down above 40. Why: in OverclaimBench (arXiv 2609.20812) agents skipped files they were asked to review in 67.9% of runs, and 52.8% of the incomplete runs claimed a complete review. `CC_COVERAGE_GATE=off|warn`. Standing: gate; `gate.test.sh` 14 new cases. Misses: a claim that names no paths, a file a tool touched but did not read in full, reads older than the transcript tail.

@@ -57,7 +57,9 @@ No dissent field. A blind agent cannot dissent from takes it never saw;
 disagreement is computed at synthesis, never reported by a persona.
 
 When the task-runner plugin is installed, phrase the dispatches per its
-delegation-contracts skill; otherwise the contract above suffices.
+delegation-contracts skill's "Prompt contract" and "Compressed returns" sections
+only — its evidence rules have a writing agent run verify commands, which a lens
+cannot; otherwise the contract above suffices.
 
 ## Synthesis — inline, main thread
 

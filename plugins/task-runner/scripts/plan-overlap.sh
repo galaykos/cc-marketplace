@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# plan-overlap.sh — computes a card set's dependency levels and the same-level card pairs that write one path (a `dir/` entry covers what is under it). --group exits 1 when the named cards cannot run at once (shared path, a dependency, no written file). --index prints each milestone of a 00-INDEX.md as eligible for a track or serial, with the file or dependency that decides it.
-# Misses: a file a card writes but does not list, a path built from a glob or variable, generated and lock files a build rewrites, a legacy bold-label card's `Files` text (reported as no-files), a milestone `Files:` line that omits a card's file, shared ports, databases and caches.
+# plan-overlap.sh — computes a card set's dependency levels and the same-level card pairs that write one path (a `dir/` entry covers what is under it). --group exits 1 when the named cards cannot run at once (shared path, a dependency, no written file). --index prints each milestone of a 00-INDEX.md as eligible for a track or serial, with the file, dependency or asset/MCP card that decides it.
+# Misses: a file a card writes but does not list, a path built from a glob or variable, generated and lock files a build rewrites, a legacy bold-label card's `Files` text (reported as no-files), a milestone `Files:` line that omits a card's file, a card needing an MCP tool that is not tagged `asset`, names no `mcp__` tool or is missing from its milestone's `Cards:` line, shared ports, databases and caches.
 # Why, limits, history: rationale/derivations/plugin-task-runner.md § plugins/task-runner/scripts/plan-overlap.sh
 set -uo pipefail
 
@@ -43,6 +43,11 @@ for f in "$dir"/[0-9]*.md; do
   while IFS= read -r p; do
     [ -n "$p" ] && add "file	$id	${p#./}"
   done < <(grep -oE '<file[^>]*>' "$f" | grep -E 'mode="(edit|create|new)"' | sed -nE 's/.*path="([^"]+)".*/\1/p' | sort -u)
+  tag=$(grep -oE '<agent>[^<]*</agent>' "$f" | head -1 | sed -E -e 's#</?agent>##g' -e 's/^[[:space:]]+//' -e 's/[[:space:]]+$//')
+  [ -n "$tag" ] || tag=$(grep -oE '\*\*Agent:\*\*[[:space:]]*[A-Za-z-]+' "$f" | head -1 | sed -E 's/^\*\*Agent:\*\*[[:space:]]*//')
+  tool=$(grep -oE 'mcp__[A-Za-z0-9_-]+' "$f" | head -1)
+  if [ "$tag" = asset ]; then add "mcp	$id	is tagged asset"
+  elif [ -n "$tool" ]; then add "mcp	$id	names $tool"; fi
 done
 [ "$n" -gt 0 ] || { printf '%s: no cards (NN-*.md) in %s\n' "$PROG" "$dir" >&2; exit 3; }
 
@@ -84,6 +89,7 @@ printf '%s' "$facts" | awk -F'\t' -v grouped="$has_group" -v by_milestone="${ind
   $1 == "ms"     { mo[++nm] = $2; next }
   $1 == "msfile" { mf[$2]++; mfile[$2, mf[$2]] = $3; next }
   $1 == "mscard" { mc[$2]++; mcard[$2, mc[$2]] = $3; next }
+  $1 == "mcp"    { needs_mcp[$2] = $3; next }
   function shared_file(p,    b) {
     b = p; sub(/.*\//, "", b)
     return b == "marketplace.json" || p == "README.md" || p == "CHANGELOG.md" || p == "ROADMAP.md" || b == "package.json" || b == "package-lock.json" || b ~ /\.lock$/ || index(p, ".github/workflows/") == 1 || index(p, "scripts/") == 1
@@ -144,6 +150,7 @@ printf '%s' "$facts" | awk -F'\t' -v grouped="$has_group" -v by_milestone="${ind
         if (mf[a] == 0) why = "no Files: line, so nothing proves it disjoint"
         for (k = 1; k <= mf[a] && why == ""; k++) if (shared_file(mfile[a, k])) why = "shared file " mfile[a, k]
         for (j = 1; j <= nm && why == ""; j++) if (j != i) { s = ms_shared(a, mo[j]); if (s != "") why = "overlaps " mo[j] " on " s }
+        for (k = 1; k <= mc[a] && why == ""; k++) if (mcard[a, k] in needs_mcp) why = "card " shown[mcard[a, k]] " " needs_mcp[mcard[a, k]] " (track workers hold no MCP tools)"
         printf "milestone %s: %s\n", a, why == "" ? "eligible" : "serial — " why
       }
       for (i = 1; i <= nm; i++) for (j = 1; j <= nm; j++)
