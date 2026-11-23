@@ -99,8 +99,8 @@ for cf in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
 done
 
 # ---------------- Not covered ----------------
-for f in go.mod Cargo.toml global.json build.gradle pom.xml Gemfile; do
-  [[ -f "$f" ]] && flags+=("$f present — ecosystem not covered by scan.sh; apply references/ecosystems.md by hand")
+for f in go.mod Cargo.toml global.json build.gradle pom.xml Gemfile project.godot ProjectSettings/ProjectVersion.txt *.uproject *.blend; do
+  [[ -f "$f" && ( "$f" != ProjectSettings/* || -d Assets ) ]] && flags+=("$f present — ecosystem not covered by scan.sh; apply references/ecosystems.md by hand")
 done
 j || flags+=("jq not installed — node/php sections skipped")
 

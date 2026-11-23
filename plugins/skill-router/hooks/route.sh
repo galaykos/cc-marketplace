@@ -281,6 +281,8 @@ route_cmd_mask() {
   fi
   # Every call dates the marker, an Edit or a no-write command too, so a run's effects are only what changed since the previous call; PostToolUse runs after the tool, so dating here equals dating at exit.
   cc_bash_effects_mark "$root" "$effects_mark" "$sess"
+  # hooks.json's unanchored matcher admits any MCP tool named with Edit, Write or Bash; only create_new_file names a file it wrote.
+  case "$tool" in *create_new_file) ;; mcp__*) exit 0 ;; esac
   [ "$tool" != Bash ] || [ -n "$bash_targets" ] || [ -n "$bash_effects" ] || [ -n "$cmd_hits" ] || exit 0
 
   # Context key, not session key: a subagent shares its parent's session_id but has its own transcript.

@@ -99,5 +99,11 @@ OUT=$(bash "$SCAN" "$T/c"); rc=$?
 if [[ $rc -eq 0 ]]; then pass=$((pass+1)); else echo "FAIL empty rc=$rc"; fail=$((fail+1)); fi
 expect "none line" "none detected by the mechanical pass"
 
+# Fixture 4: a Godot repo lost its engine row with the game plugins, so it must not read as an empty scan.
+mkdir -p "$T/e"; touch "$T/e/project.godot"
+OUT=$(bash "$SCAN" "$T/e")
+expect "engine not-covered" "project.godot present — ecosystem not covered"
+refute "engine: no none line" "none detected by the mechanical pass"
+
 echo "stack-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))

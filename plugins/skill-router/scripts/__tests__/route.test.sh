@@ -604,10 +604,11 @@ printf 'id,name,effect\n3,Rock,throw a rock and catch it\n' > "$AS/data/powers.c
 printf '\211PNG\r\n\032\n\0\0\0\rtEXtComment\0api token: rotate\n' > "$AS/tests/fixtures/2026-10-30-gui-styles.png"
 printf 'api token: rotate\n' > "$AS/art/SHOT.PNG"
 printf 'BLENDER-v300REND\0import bpy\ntry:\n  pass\nexcept: raise\n# catch the token\n' > "$AS/art/hero.blend"
+printf 'glTF\002\0\0\0{"asset":{"generator":"@react-three/gltfjsx"}}' > "$AS/art/hero.glb"
 printf '%%YAML 1.1\nAnimatorController:\n  m_Name: attack queue\n' > "$AS/Assets/Anim/Dragon.controller"
 printf 'content\t\\b(async|await|queue)\\b\tconcurrency-safety\tresilience\tlow\n' > "$AS/rules.tsv"
 printf 'async@^3.2.0:\n  version "3.2.5"\n' > "$AS/yarn.lock"
-for f in data/powers.csv tests/fixtures/2026-10-30-gui-styles.png art/SHOT.PNG art/hero.blend Assets/Anim/Dragon.controller rules.tsv yarn.lock; do
+for f in data/powers.csv tests/fixtures/2026-10-30-gui-styles.png art/SHOT.PNG art/hero.blend art/hero.glb Assets/Anim/Dragon.controller rules.tsv yarn.lock; do
   t=$(fresh); out=$(edit "$AS" "$AS/$f" "$t")
   [ -z "$out" ] && [ ! -e "$(statef "$AS" "$t")" ] && ok || bad "asset/table/lock [$f]: expected silence and no state, got: ${out:0:160}"
 done

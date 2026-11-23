@@ -29,8 +29,7 @@ zero prompts, uninstall them again, or list their state. A "leaf" is every plugi
 the marketplace.json: since 2026-09-26 no plugin here may declare `dependencies`
 (the repo's validate.sh fails the key), so there is no bundle to skip. all-plugins
 itself is on the list — `install` covers it (normally already there: `skip`),
-`uninstall` keeps it unless --self, and removes it LAST with --self. `install` alone skips
-what `opt_in` names (installed only when the person names it); `uninstall` and `list` walk it.
+`uninstall` keeps it unless --self, and removes it LAST with --self.
 
 It installs what the marketplace holds WHEN IT RUNS. A plugin added later is not
 installed by a marketplace update; run `install` again — installed ones are skipped. A mechanism, not prose:

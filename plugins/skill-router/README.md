@@ -113,9 +113,9 @@ than matching strings. An earlier revision of this section pointed at a `prompt-
 never existed in this plugin; if you came here to add a row to it, this paragraph is the
 answer.
 
-- `signal_type`: `glob` (matched against the edited file's path relative to the project root — see State), `content` (a `grep -E` pattern matched against the file's contents on disk), `command` (a `grep -E` pattern matched against a Bash call's command string — for a CLI that writes files without naming them, such as `shadcn add`), or `tool` (a `grep -E` pattern matched against an MCP call's tool name; the `PostToolUse` matcher in `hooks/hooks.json` must admit the name too).
+- `signal_type`: `glob` (matched against the edited file's path relative to the project root — see State), `content` (a `grep -E` pattern matched against the file's contents on disk), or `command` (a `grep -E` pattern matched against a Bash call's command string — for a CLI that writes files without naming them, such as `shadcn add`).
 - `confidence`: always `high` since 0.34.0 — a row fires inline once per session (a `content` row at the first non-prose file whose contents match). `scripts/validate.sh` fails any other value (**gate**). A cross-cutting concern such as `catch` or `token` gets no row: one file trips several at once, and the digest that carried them was followed 8 times in 945.
-- `scripts/validate.sh` compiles `content` and `command` regexes (`pc_rules_reachable`) and checks every row's owner (`pc_rules_owner`); `scripts/__tests__/route.test.sh` case 29 compiles each `tool` row. **Standing:** gate, each. A `tool` or `command` row must be `high` like every other row: `scripts/validate.sh` fails any row whose confidence is not `high` (**gate**, its high-only check).
+- `scripts/validate.sh` compiles `content` and `command` regexes (`pc_rules_reachable`) and checks every row's owner (`pc_rules_owner`). **Standing:** gate, each.
 - A rule only fires if its `owning_plugin` is installed. "Installed" is resolved by `hooks/plugins-dir.sh`, which handles both the flat and the versioned-cache layouts; when it cannot recognise the layout it reports *uncertain*, and uncertain fires. A nudge toward a plugin you do not have costs one line — a suppressed nudge costs the whole point of the router.
 
 ### Stack markers (optional 6th column)

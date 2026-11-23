@@ -4,7 +4,7 @@ All notable changes to the skill-router plugin.
 
 ## 0.35.0 — 2026-11-23
 
-- **Game routing removed.** The godot, unity-traps, unreal, blender, meshy, pixel-art and gamedev rows left `rules.tsv` with their plugins. The Blender and Meshy MCP calls no longer start `route.sh` (the `hooks.json` matcher drops `mcp__.*([Bb]lender|[Mm]eshy)`), and the name-only `tool` row branch those rows used is gone. Images, 3D files and Unity assets are still never routed. Standing: gate — `route.test.sh` case 29 and the game assertions in case 27 are removed; the remaining 227 cases pass.
+- **Game routing removed.** The godot, unity-traps, unreal, blender, meshy, pixel-art and gamedev rows left `rules.tsv` with their plugins. The Blender and Meshy MCP calls no longer start `route.sh` (the `hooks.json` matcher drops `mcp__.*([Bb]lender|[Mm]eshy)`), and the name-only `tool` row branch those rows used is gone; every other MCP call but `create_new_file` stays unrouted, even one whose name holds Edit, Write or Bash. Images, 3D files and Unity assets are still never routed. Standing: gate — `route.test.sh` case 29 and the game assertions in case 27 are removed; the remaining 228 cases pass.
 
 ## 0.34.1 — 2026-11-21
 

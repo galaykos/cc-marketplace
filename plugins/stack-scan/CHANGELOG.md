@@ -6,7 +6,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 
 ## 0.21.0 — 2026-11-23
 
-- **No game suggestions or engine rows.** The game plugins left the marketplace. plugin-scout drops the godot, unity-traps, unreal, meshy, pixel-art, gamedev, blender and asset-forge signal and stack-relevance rows, and the Unity, Unreal and Phaser framework-native rows. `--full` no longer has a game class. `scan.sh` no longer prints godot, unity, unreal or blender rows. Standing: gate for live names (`pc_scout_names`) and `scan.test.sh` (engine fixtures removed with the code).
+- **No game suggestions or engine rows.** The game plugins left the marketplace. plugin-scout drops the godot, unity-traps, unreal, meshy, pixel-art, gamedev, blender and asset-forge signal and stack-relevance rows, and the Unity, Unreal and Phaser framework-native rows. `--full` no longer has a game class. `scan.sh` no longer prints godot, unity, unreal or blender rows; a repo with `project.godot`, a Unity `ProjectSettings/ProjectVersion.txt` beside `Assets/`, a root `*.uproject` or a root `*.blend` gets the "not covered by scan.sh" line instead of an empty report (`scan.test.sh` fixture 4 pins the Godot case). Standing: gate for live names (`pc_scout_names`) and `scan.test.sh` (engine fixtures removed with the code).
 
 ## 0.20.0 — 2026-11-21
 

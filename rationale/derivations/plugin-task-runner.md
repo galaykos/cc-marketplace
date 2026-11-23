@@ -1149,14 +1149,11 @@ unwired flag would spuriously read as observable — reject it as a usage error.
 with-marker must appear WITH the flag and NOT without it; without-marker vice-versa
 ```
 
-**2026-11-07, list files and Unity (Track 1 PL3, `taskmaster-docs/integration-roadmap-2026-11-07.md`).** Two
+**2026-11-07, list files (Track 1 PL3, `taskmaster-docs/integration-roadmap-2026-11-07.md`).** Two
 sessions in `rationale/session-retro-2026-11-05.md` (24d655d6, c4be0af8) handed `--changed` a FILE of paths; it
 was read as one changed `.txt`, classified doc, and recorded `no-executable-surface` with nothing run, a record that
 would satisfy the completion gate. A `.txt`/`.lst`/`.list` token whose lines are single tokens with at least one
-existing path, or any `@file`, now expands to its lines; a prose `.txt` still classifies as doc. Unity projects
-(c5294305, d707c56b) hit "NO test runner" on every card and an unpinned `unity` CLI drove another open editor and
-wiped a save; the no-runner branch now names the Editor version from `ProjectSettings/ProjectVersion.txt` and says
-to run that exact install. The gate does not run Unity itself: no Unity test command was verified for this change.
+existing path, or any `@file`, now expands to its lines; a prose `.txt` still classifies as doc.
 Not done: lerd's vite worker provisioning the gate's throwaway worktree (`public/hot`, `.env`, partial
 `node_modules`, 24d655d6) — the trigger lerd uses was not established, so no fix was attempted.
 
