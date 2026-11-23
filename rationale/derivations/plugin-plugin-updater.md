@@ -52,14 +52,25 @@ to null), 2 skipped (a folder that no longer exists).
   against `claude plugin list --json`). Earlier removals (phaser, prompt-coach, toolchain-experts) were still
   installed too, each failing every run with `not_found`. `--prune` uninstalls only what `classify` reads as
   removed (`renames` maps the name to `null`): a renamed plugin is the host's migration to make, and a name
-  missing without a `renames` entry could be a clone that has not fetched yet. It reuses the update path's
-  skips. A worktree uninstall would act on the main checkout, as the update does, and an orphaned folder has
-  no cwd to run from. `--keep-data` is passed while `claude plugin list --json` still records another install
-  of the id, because whether the CLI deletes `plugins/data/<id>/` while another scope holds the plugin is
-  unverified. The uninstall JSON shape (`{"command":"uninstall","outcome":…,"failureCode":…}`) was read from a
-  `not_installed` failure on CLI 2.1.323; the success line is assumed to carry `"outcome":"ok"`, and the
-  script also accepts exit 0 with no JSON. The background run never passes `--prune`: uninstalling is a
+  missing without a `renames` entry could be a clone that has not fetched yet. It skips `managed`
+  installs and orphaned entries (a missing folder is no cwd to run from). `--keep-data` is passed while
+  `claude plugin list --json` still records another install of the id. The background run never passes `--prune`: uninstalling is a
   choice the person types.
+- **`--prune` in worktrees (0.4.1, 2026-11-23).** 0.4.0 left them out, on the belief that a worktree uninstall acts
+  on the main checkout as the update does. The day it merged, `/plugin` still said "Updated 1 marketplace · 1 plugin
+  failed to update" in this repository after a `--prune` run. Read from the CLI 2.1.330 bundle: that update walks
+  every id in `installed_plugins.json` and keeps an id with an install whose `projectPath` is the session's folder,
+  or resolves to the same repository root. Of the ids that matched here only toolchain-experts was gone from the
+  marketplace, recorded for three worktrees, which fits the count of one. The helper that resolves a path to its
+  root was not read, so that the worktrees match is inferred. Measured in an isolated config directory (CLI 2.1.330,
+  one repository, one linked worktree, `renames` null): `update` from either folder fails `not_found`; `uninstall
+  --scope local` from the worktree removes the worktree's record and leaves the main checkout's, from the main
+  checkout removes only its own, and from either fails `not_installed_at_scope` when only the other is recorded. The
+  success line carries `"outcome":"ok"`, and the data directory stayed while a second install was recorded, with or
+  without `--keep-data`. A settings file's `enabledPlugins` entry for the removed id goes too, but any `claude plugin`
+  command does that (the host's rename migration), not the uninstall. Update from a worktree was not re-measured on
+  2.1.330, so that skip stays. The list re-read after the uninstalls exists because the update skip was learnt from
+  93 calls the CLI reported as fine while the record did not move.
 
 ## plugins/plugin-updater/scripts/update-all.sh
 

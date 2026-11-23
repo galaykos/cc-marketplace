@@ -77,6 +77,10 @@ case "$1 $2" in
     if [ -n "${FAKE_UNINSTALL_FAIL:-}" ]; then
       echo '{"command":"uninstall","outcome":"failed","plugin":"'"$3"'","message":"boom","failureCode":"not_installed"}'; exit 1
     fi
+    [ -n "${FAKE_UNINSTALL_NOOP:-}" ] || python3 -I -c 'import json,os,sys
+p, pid, cwd = sys.argv[1:]
+keep = [i for i in json.load(open(p)) if (i["id"], os.path.realpath(i.get("projectPath") or "/")) != (pid, os.path.realpath(cwd))]
+json.dump(keep, open(p, "w"))' "$FAKE_LIST" "$3" "$PWD"
     echo '{"command":"uninstall","outcome":"ok","plugin":"'"$3"'"}'; exit 0 ;;
   *) exit 9 ;;
 esac
@@ -100,7 +104,8 @@ clean_env=(env -u CC_PLUGIN_UPDATER_AUTO -u CC_PLUGIN_UPDATER_INTERVAL -u CC_PLU
   -u CLAUDE_PLUGIN_OPTION_CC_PLUGIN_UPDATER_AUTO -u CLAUDE_PLUGIN_OPTION_CC_PLUGIN_UPDATER_INTERVAL
   -u CLAUDE_PLUGIN_OPTION_CC_PLUGIN_UPDATER_HINT
   HOME="$H" CLAUDE_CONFIG_DIR="$T/cfg" CLAUDE_PLUGIN_DATA="$D" FAKE_LOG="$T/log" T="$T" PATH="$BIN:$PATH")
-run() { : > "$T/log"; out=$(cd "${CWD:-$T/proj1}" && "${clean_env[@]}" FAKE_LIST="${LIST:-$T/list.json}" bash "$SCRIPT" "$@" 2>&1); rc=$?; log=$(cat "$T/log"); }
+# Each run reads its own copy of the list, so the shim's uninstall can drop an entry the way the CLI does.
+run() { : > "$T/log"; cp "${LIST:-$T/list.json}" "$T/live.json"; out=$(cd "${CWD:-$T/proj1}" && "${clean_env[@]}" FAKE_LIST="$T/live.json" bash "$SCRIPT" "$@" 2>&1); rc=$?; log=$(cat "$T/log"); }
 updates() { grep -c $'\tplugin update ' <<<"$log"; }
 state() { python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])); print(" ".join(f"{k}={d.get(k)}" for k in sys.argv[2:]))' "$D/last-run.json" "$@" 2>/dev/null; }
 
@@ -200,10 +205,10 @@ cat > "$T/list-prune.json" <<EOF
 EOF
 LIST="$T/list-prune.json" run --prune --dry-run --all --no-refresh
 eq  "prune dry-run: exit 0" 0 "$rc"
-has "prune dry-run: lists the two uninstalls" 'Would run `claude plugin uninstall` for 2 install(s) whose plugin left its marketplace' "$out"
+has "prune dry-run: lists the three uninstalls" 'Would run `claude plugin uninstall` for 3 install(s) whose plugin left its marketplace' "$out"
 lacks "prune dry-run: no uninstall call" $'\tplugin uninstall' "$log"
 lacks "prune dry-run: a removed plugin is not an update job" "check     gone@mk" "$out"
-has "prune dry-run: the worktree install is still skipped" "$T/wt  linked git worktree" "$out"
+has "prune dry-run: the worktree install is one of them" "remove    gone@mk  $T/wt (local)" "$out"
 LIST="$T/list-prune.json" run --prune --no-refresh
 eq  "prune: exit 0" 0 "$rc"
 eq  "prune: the folder's install is uninstalled from its folder, data kept for the others" "$T/proj1"$'\tplugin uninstall gone@mk --scope local --json --keep-data' "$(grep $'\tplugin uninstall' <<<"$log")"
@@ -214,17 +219,45 @@ has "prune: listed under Uninstalled" "Uninstalled (1): their plugin left its ma
 has "prune: restart reminder" "Restart running Claude Code sessions" "$out"
 eq  "prune: state records it" "removed=1 failed=0" "$(state removed failed)"
 LIST="$T/list-prune.json" run --prune --all --no-refresh --plugin gone
-eq  "prune --all: one uninstall per updatable folder, never the worktree" 2 "$(grep -c $'\tplugin uninstall' <<<"$log")"
-lacks "prune --all: no call from the worktree" "$T/wt"$'\t' "$log"
+eq  "prune --all: one uninstall per folder, the worktree's included" 3 "$(grep -c $'\tplugin uninstall' <<<"$log")"
+lacks "prune --all: no update call from the worktree" "$T/wt"$'\tplugin update' "$log"
 lacks "prune --all: never -y" " -y" "$log"
 lacks "prune --all: stdin is never a terminal" "TTY-STDIN" "$log"
 has "prune --all: data kept while the worktree install still uses it" "$T/proj2"$'\tplugin uninstall gone@mk --scope local --json --keep-data' "$log"
+eq  "prune --all: the worktree's, last, runs from the worktree" "$T/wt"$'\tplugin uninstall gone@mk --scope local --json' "$(grep $'\tplugin uninstall' <<<"$log" | tail -n 1)"
 printf '[{"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"%s"}]\n' "$T/proj1" > "$T/list-last.json"
 LIST="$T/list-last.json" run --prune --no-refresh
 eq  "prune: the last install also removes the plugin's data" "$T/proj1"$'\tplugin uninstall gone@mk --scope local --json' "$(grep $'\tplugin uninstall' <<<"$log")"
 LIST="$T/list-last.json" FAKE_UNINSTALL_FAIL=1 run --prune --no-refresh
 eq  "prune: a failed uninstall exits 1" 1 "$rc"
 has "prune: the failure names the CLI's message" "uninstall failed (exit 1): boom" "$out"
+LIST="$T/list-last.json" FAKE_UNINSTALL_NOOP=1 run --prune --no-refresh
+eq  "prune: an install still listed after a reported uninstall exits 1" 1 "$rc"
+has "prune: and is reported as failed" "the CLI reported it uninstalled, but still lists this install" "$out"
+eq  "prune: and is not counted as removed" "removed=0 failed=1" "$(state removed failed)"
+
+# A worktree of the folder: /plugin's marketplace update counts its installs as the main checkout's, so a removed plugin there fails it.
+mkdir -p "$T/main" "$T/wt2" "$T/wt3"
+printf 'gitdir: %s/other/.git/worktrees/wt2\n' "$T" > "$T/wt2/.git"
+printf 'gitdir: ../main/.git/worktrees/wt3\n' > "$T/wt3/.git"
+cat > "$T/list-wt.json" <<EOF
+[{"id":"alpha@mk","version":"1.0.0","scope":"local","projectPath":"$T/wt"},
+ {"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/wt"},
+ {"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/wt2"},
+ {"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/wt3"},
+ {"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/proj2"}]
+EOF
+LIST="$T/list-wt.json" CWD="$T/main" run --prune --no-refresh
+eq  "prune, worktrees: exit 0" 0 "$rc"
+eq  "prune, worktrees: the folder's two, an absolute and a relative gitdir" "$T/wt $T/wt3" "$(grep $'\tplugin uninstall' <<<"$log" | cut -f1 | tr '\n' ' ' | sed 's/ $//')"
+lacks "prune, worktrees: another repository's worktree is not touched" "$T/wt2"$'\t' "$log"
+lacks "prune, worktrees: another folder is not touched" "$T/proj2"$'\t' "$log"
+eq  "prune, worktrees: a worktree's other installs get no update" 0 "$(updates)"
+lacks "prune, worktrees: nor are they listed" "alpha@mk" "$out"
+LIST="$T/list-wt.json" CWD="$T/main" run --no-refresh
+eq  "no --prune: a worktree's removed plugin is left alone" "" "$(grep -E 'plugin (update|uninstall) ' <<<"$log")"
+LIST="$T/list-wt.json" run --prune --project "$T/main" --no-refresh
+eq  "prune --project: that folder's two worktrees" 2 "$(grep -c $'\tplugin uninstall' <<<"$log")"
 
 rm -rf "$D"
 hook() { : > "$T/log"; out=$(printf '{"source":"startup","cwd":"%s"}' "${CWD:-$T/proj1}" | "${clean_env[@]}" "$@" bash "$HOOK"); rc=$?; log=$(cat "$T/log"); }
