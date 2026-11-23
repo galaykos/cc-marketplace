@@ -108,15 +108,6 @@ it but reads top-level lines as it reaches them, so everything above is a functi
 and nothing past this point is ever read from a file that may already be gone.
 ```
 
-### opt_in and the gamedev keyword (0.7.10, 2026-11-21)
-
-`asset-forge` joined the marketplace on 2026-11-08 with the `gamedev` keyword and was not added to `opt_in`'s
-case list, so `install` put a game plugin into every project. The list had been kept by hand since 0.7.4 (blender,
-meshy and pixel-art added, phaser and pixijs removed), and the harness pinned only the godot row. The fix keeps the
-literal list, since the script ships alone and must not depend on each plugin's manifest being in the clone, and adds
-a harness case that reads every `plugins/*/.claude-plugin/plugin.json` in this repo and requires each one carrying
-`gamedev` to be an opt-in skip. Residual: a game plugin published without the keyword.
-
 ### settings_file under CLAUDE_CONFIG_DIR (0.7.10, 2026-11-21)
 
 User scope wrote `$HOME/.claude/settings.json` while the CLI, and this plugin's own `hooks/hint.sh`, read

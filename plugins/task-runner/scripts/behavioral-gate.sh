@@ -277,8 +277,6 @@ if [ "${#runners[@]}" -eq 0 ]; then
   if [ "$HAS_OPAQUE" = 1 ]; then
     log "needs behavioral coverage but NO test runner resolves for the touched types"
     log "declare one with --runner '<cmd>::<empty-output-regex>' if this stack has a suite"
-    uv=$(sed -n 's/^m_EditorVersion:[[:space:]]*//p' "${live_top:-.}/ProjectSettings/ProjectVersion.txt" 2>/dev/null | head -n 1)
-    [ -z "$uv" ] || log "Unity project: run its tests through Editor $uv (ProjectVersion.txt) by that exact install's path, never an unpinned unity on PATH, which can drive another open project"
     log "VERDICT: no-behavioral-coverage"
     bg_record no-behavioral-coverage
     exit 2

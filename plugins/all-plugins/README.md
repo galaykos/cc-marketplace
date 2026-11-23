@@ -7,14 +7,7 @@ raises the host's skill-listing budget so every description in the listing reach
 uninstall reverses both. One script does the work, with one exit code; the two commands
 only relay it. A "leaf" is any plugin in the marketplace's `marketplace.json`; there are
 no bundles to skip. Every leaf includes `all-plugins` itself: `install` covers it (normally a
-`skip`), and `uninstall` keeps it unless `--self`. The game plugins — `godot`, `unity-traps`,
-`unreal`, `gamedev`, `blender`, `asset-forge`, `meshy` and `pixel-art` — are left out by
-construction: `install` never installs or enables one, and prints it as a
-`skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row, while
-`uninstall` and `list` treat it like any other plugin. Their
-descriptions in every project's listing serve no project but a game, and `/stack-scan:suggest`
-puts each one where its manifest signal is. Install one by name
-(`claude plugin install godot@cc-plugins-marketplace -s local`).
+`skip`), and `uninstall` keeps it unless `--self`.
 
 > **Re-run it after every marketplace update.** `install` installs what the marketplace
 > holds **when you run it**. `/plugin marketplace update` updates the plugins you have;
@@ -43,7 +36,7 @@ only through one of those it stays silent, and when leaves are, it shows the lin
 ```bash
 # 1. In a session, after installing this one plugin:
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install                   # every leaf but the opt-in game plugins; asks local or project first (not found yet? /reload-plugins first)
+/all-plugins:install                   # every leaf; asks local or project first (not found yet? /reload-plugins first)
 /all-plugins:uninstall                 # the inverse; --self removes all-plugins too
 /reload-plugins                        # nothing installed this run is active until you do
 
@@ -99,13 +92,13 @@ disk before any plugin is installed.
   manifests and installs a picked set with evidence; its `--sync` mode moves a machine off
   user scope project by project, and prints this script's `uninstall --scope user --self`
   as the last step. This plugin is for the case where
-  you have already decided you want everything but the game plugins.
+  you have already decided you want everything.
 
 ## What has teeth
 
 | Rule | Standing |
 |---|---|
-| The exit codes, the every-listed-plugin list, the game-plugin opt-in skips, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift; it also fails when a plugin in this repo carries the `gamedev` keyword and is not skipped (a game plugin without the keyword is missed) |
+| The exit codes, the every-listed-plugin list, the scope flag, a script that never prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
 | Both commands ask for the scope when `--scope` is absent (`user` only typed, for install), and stop rather than defaulting when nobody answers | **agent-graded** — instruction text in `commands/install.md` and `commands/uninstall.md`; no harness drives a command |
 | The startup line: shown only while all-plugins is its marketplace's sole enabled plugin, on startup, to the person, off with `CC_ALL_PLUGINS_HINT=off` | **gate** — the same harness's `hint:` cases drive `hooks/hint.sh` against fixture settings files |

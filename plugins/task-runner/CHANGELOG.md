@@ -2,6 +2,10 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.63.4 — 2026-11-23
+
+- **`behavioral-gate.sh` no longer names a Unity Editor.** A Unity C# change with no runner still ends `no-behavioral-coverage`, without the extra line pointing at the project's pinned Editor. Standing: gate — `behavioral-gate.test.sh` case 3d removed with the line.
+
 ## 0.63.3 — 2026-11-23
 
 - **A milestone with an asset or MCP card runs serially.** `plan-overlap.sh --index` prints `serial — card <id> is tagged asset` (or names `mcp__…`): track workers hold no MCP tools, and the serial path runs such cards inline. Standing: gate where run (`plan-overlap.test.sh`, 40 cases).

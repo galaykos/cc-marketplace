@@ -31,13 +31,6 @@ those rows exist because three tokens share a name with plugins removed on
 |---|---|---|---|
 | PHP / Laravel | `laravel` | composer.json require `laravel/framework` or `inertiajs/inertia-laravel`, or package.json dep `@inertiajs/*` — the SKILL.md tier-1 keys. Bare composer.json never earns it: a Symfony or WordPress repo must not install laravel | `php`, `laravel`, `inertia` <!-- removed-ok --> |
 | JS / web frontend | `web-dev`, `craft-layer` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@sveltejs/kit`, `astro`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `svelte`, `astro`, `angular`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
-| Game — Godot | `godot` | `project.godot` at the scan root | `godot` |
-| Game — Unity | `unity-traps` | `ProjectSettings/ProjectVersion.txt` beside an `Assets/` directory — a lone `*.csproj` is not Unity | `unity` |
-| Game — Unreal | `unreal` | a `*.uproject` at the scan root | `unreal` |
-| Game — Meshy (AI 3D) | `meshy` | `MESHY_API_KEY` in `.env`/`.env.example`; package.json dep `meshy-cli`, `@meshy-ai/cli` or `@meshy-ai/meshy-mcp-server`; or a `meshy` server in `.mcp.json` — a `*.glb` alone is not evidence, every three.js repo has them | `meshy` |
-| Game — pixel art and 2D maps | `pixel-art` | a `*.aseprite`, `*.tmx`, `*.tmj`, `*.tsj`, `*.tiled-project`, `*.ldtk` or `*.ldtkl` file, or a `*.tsx` whose root element is `<tileset>` — a bare `.tsx` is React, and `*.ase` alone is weak (Adobe Swatch Exchange shares it) | `pixel-art`, `aseprite`, `tiled`, `ldtk` |
-| Game — any engine | `gamedev` | any Game row above; or `steam_appid.txt`, an `app_build*.vdf`/`depot_build*.vdf`, or `butler push` in a CI file | `gamedev`, or any Game token above |
-| 3D — Blender | `blender` | a `*.blend` (or `*.blend1`) file, a `blender_manifest.toml`, or a `.py` importing `bpy` — a lone `.py` is not evidence; deliberately not a Game row, so it does not satisfy gamedev's "any Game row above" | `blender` |
 
 ## Everything else
 

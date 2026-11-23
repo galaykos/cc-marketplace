@@ -4,6 +4,10 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.21.0 — 2026-11-23
+
+- **No game suggestions or engine rows.** The game plugins left the marketplace. plugin-scout drops the godot, unity-traps, unreal, meshy, pixel-art, gamedev, blender and asset-forge signal and stack-relevance rows, and the Unity, Unreal and Phaser framework-native rows. `--full` no longer has a game class. `scan.sh` no longer prints godot, unity, unreal or blender rows. Standing: gate for live names (`pc_scout_names`) and `scan.test.sh` (engine fixtures removed with the code).
+
 ## 0.20.0 — 2026-11-21
 
 - **New `hooks/install-guard.sh` (PreToolUse, Bash).** It denies a `skills add`, `install` or `i` (npx, bunx, pnpx, pnpm dlx, yarn dlx, bun x, npm exec or a bare `skills`) carrying `-g`/`--global`, `--skill '*'` or `--all`, the flags vercel-skills-scout said "never" about in prose only. It asks before a `claude plugin install`, `uninstall`, `enable` or `disable` with no `-s`/`--scope` (install and uninstall default to user scope, enable and disable auto-detect, per `--help` on 2.1.330), and before `npm audit fix --force`. Wrappers, `bash -c`, `eval` and shell-read heredocs are read; an `echo`, a `grep` or a heredoc written to a file stays silent. Fails open, one line, 5 s timeout, no off switch. Standing: gate (`scripts/__tests__/install-guard.test.sh`). Lane row added under vercel-skills-scout's noun, which it yields to.

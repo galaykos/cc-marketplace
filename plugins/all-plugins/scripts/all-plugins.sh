@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--budget|--no-budget] [--marketplace NAME] — installs every plugin in this marketplace's marketplace.json at one scope with zero prompts, uninstalls them, or lists their state, found through `claude plugin marketplace list --json` and `claude plugin list --json` (an entry counts only when its projectPath is this one). install skips what opt_in names; uninstall keeps all-plugins unless --self, then removes it LAST. --budget raises skillListingBudgetFraction in the scope's settings file to the smallest 0.01 step covering the listing at the 200k floor; uninstall removes the key only while it holds that value; --no-budget skips the removal.
+# all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--budget|--no-budget] [--marketplace NAME] — installs every plugin in this marketplace's marketplace.json at one scope with zero prompts, uninstalls them, or lists their state, found through `claude plugin marketplace list --json` and `claude plugin list --json` (an entry counts only when its projectPath is this one). uninstall keeps all-plugins unless --self, then removes it LAST. --budget raises skillListingBudgetFraction in the scope's settings file to the smallest 0.01 step covering the listing at the 200k floor; uninstall removes the key only while it holds that value; --no-budget skips the removal.
 # Misses: a plugin added to the marketplace later (run install again); other marketplaces (never touched); the session reload (/reload-plugins); a live CLI in CI (the harness drives a shim). Exit 0 done or nothing to do, 1 a per-plugin command failed (the list is still walked, every failure reported), 2 usage or a missing prerequisite.
 # Why, limits, history: rationale/derivations/plugin-all-plugins.md § plugins/all-plugins/scripts/all-plugins.sh
 set -u
@@ -121,13 +121,6 @@ state_of() { # state_of <name> — installed | disabled | absent
   local s
   s=$(printf '%s\n' "$STATES" | awk -F'\t' -v n="$1" '$1 == n { print $2; exit }')
   printf '%s' "${s:-absent}"
-}
-
-opt_in() { # opt_in <name> — why `install` leaves it out by construction; empty for every other leaf
-  case "$1" in
-    godot|unity-traps|unreal|gamedev|blender|asset-forge|meshy|pixel-art)
-      printf 'opt-in: game plugin, /stack-scan:suggest installs it in a game repo' ;;
-  esac
 }
 
 name_width() {
@@ -258,11 +251,9 @@ budget_revert() { # after uninstall: drop the key only if it still holds the val
 }
 
 do_install() {
-  local name st n_inst=0 n_en=0 n_skip=0 n_opt=0 n_fail=0 total=0 failures="" verb done_as why
+  local name st n_inst=0 n_en=0 n_skip=0 n_fail=0 total=0 failures="" verb done_as
   while read -r name; do
     total=$((total + 1))
-    why=$(opt_in "$name")
-    if [ -n "$why" ]; then row install "$name" "skip ($why)"; n_opt=$((n_opt + 1)); continue; fi
     st=$(state_of "$name")
     case "$st" in
       installed) row install "$name" "skip (installed)"; n_skip=$((n_skip + 1)); continue ;;
@@ -278,11 +269,11 @@ do_install() {
     fi
   done <<<"$LEAVES"
   if [ "$DRY" -eq 1 ]; then
-    printf 'dry-run: would install %s, enable %s, skip %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$((n_skip + n_opt))" "$total" "$SCOPE"
+    printf 'dry-run: would install %s, enable %s, skip %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$n_skip" "$total" "$SCOPE"
     budget_raise "$ROOT"
     return 0
   fi
-  printf 'installed %s, enabled %s, skipped %s, failed %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$((n_skip + n_opt))" "$n_fail" "$total" "$SCOPE"
+  printf 'installed %s, enabled %s, skipped %s, failed %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$n_skip" "$n_fail" "$total" "$SCOPE"
   # Something from this marketplace is at this scope now (or was already): cover its listing.
   [ $((n_inst + n_en + n_skip)) -eq 0 ] || budget_raise "$ROOT"
   [ $((n_inst + n_en)) -eq 0 ] || printf 'Run /reload-plugins — nothing installed this run is active until you do.\n'

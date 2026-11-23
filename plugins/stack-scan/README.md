@@ -268,7 +268,7 @@ Residuals, stated:
 - **devops** — `/devops:init` reuses the report instead of re-scanning
 - **approaches** (build-vs-buy skill) — decides whether a dependency should be added at all
 - **security** — broader security review beyond the dependency audit surface
-- **all-plugins** — the other install path: every plugin but the opt-in game plugins, no
+- **all-plugins** — the other install path: every plugin, no
   picker, no stack filter.
   The suites that sat between the two were retired 2026-09-26; where two plugins must
   travel together (`craft-layer` with `ui-ux` and `ui-libraries`), the scout prints the

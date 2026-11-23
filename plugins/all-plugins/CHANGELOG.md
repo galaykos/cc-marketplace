@@ -2,6 +2,10 @@
 
 Consumer-facing changes only. Newest first. Started at 0.7.1; earlier versions have no entries rather than invented ones.
 
+## 0.7.11 — 2026-11-23
+
+- **`install` installs every leaf again; the game-plugin opt-in is gone.** The game plugins (godot, unity-traps, unreal, gamedev, blender, asset-forge, meshy, pixel-art) left the marketplace, so the `skip (opt-in: game plugin …)` row and its exclusion list are removed. Standing: gate — `all-plugins.test.sh` drops the opt-in and gamedev-keyword cases with the code they pinned.
+
 ## 0.7.10 — 2026-11-21
 
 - **`install` skips `asset-forge`, a game plugin it was installing into every project.** It prints the same `skip (opt-in: game plugin, /stack-scan:suggest installs it in a game repo)` row. Standing: gate — the harness now reads every plugin in this repo whose `plugin.json` carries the `gamedev` keyword and fails unless `install` skips it; that case and the `asset-forge` row fail against 0.7.9.

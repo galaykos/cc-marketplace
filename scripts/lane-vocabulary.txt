@@ -54,10 +54,7 @@ task-list-parallelization-plan
 
 # --- build ---
 accessibility-remediation
-ai-3d-generation
 astryx-idioms
-blender-idioms
-blender-rig-anim-export
 cicd-and-deploy-idioms
 code-film-production
 comment-placement-rule
@@ -69,12 +66,8 @@ decided-fix-list-application
 defensive-security-remediation
 dependency-management-discipline
 design-motion-showcase
-dialogue-scripting
 dockerfile-and-compose-idioms
 error-propagation-discipline
-game-asset-checks
-asset-pipeline-handoffs
-godot-idioms
 in-code-instrumentation
 inertia-idioms
 laravel-idioms
@@ -86,7 +79,6 @@ nextjs-idioms
 performance-optimization
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
-pixel-art-idioms
 primereact-idioms
 react-native-idioms
 real-component-design-render
@@ -95,26 +87,19 @@ reviewer-verdict-consent
 run-board
 card-status-write
 secret-handling-discipline
-seeded-generation
 slide-deck-authoring
 sql-idioms
 stack-neutral-web-implementation
 third-party-api-doc-reminder
 third-party-api-doc-verification
 threejs-idioms
-tilemap-idioms
 ui-implementation
-unity-idioms
-unreal-idioms
 vite-idioms
 wcag-checklist
 
 # --- verify ---
 agent-output-trust-decision
 candour-transcript-measurement
-game-platform-floors
-godot-headless-test-runner
-godot-reference-check
 load-bearing-claim-refutation
 cited-source-fetch-check
 own-docs-drift-scan
@@ -145,11 +130,9 @@ wcag-audit
 
 # --- ship ---
 development-branch-completion
-itch-release
 marketplace-wide-install
 marketplace-wide-uninstall
 self-contained-artifact-bundle
-steam-release
 
 # --- any ---
 ad-hoc-breadth-question
@@ -207,5 +190,3 @@ ultra-assess-boost-directive
 ultra-craft-boost-directive
 ultra-task-boost-directive
 unreviewed-diff-nudge
-game-asset-art-review
-game-asset-review-after-change

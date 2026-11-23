@@ -120,3 +120,11 @@ prompt-coach	null	2026-11-10	no	removed by remove-plugin.sh; successor null: no 
 pixijs	null	2026-11-12	no	removed by remove-plugin.sh; successor null: no --merge-into
 toolchain-experts	null	2026-11-12	no	removed by remove-plugin.sh --merge-into code-review; successor null: host registers PreToolUse:density.sh:7ae5cc80f108, PreToolUse:scan.sh:293b06965c64 the removed plugin lacked
 phaser	null	2026-11-13	no	removed by remove-plugin.sh; successor null: no --merge-into
+godot	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+unity-traps	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+unreal	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+gamedev	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+blender	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+asset-forge	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+meshy	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into
+pixel-art	null	2026-11-23	no	removed by remove-plugin.sh; successor null: no --merge-into

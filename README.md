@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **40 leaf plugins** covering stacks, game engines, review,
+A Claude Code plugin marketplace: **32 leaf plugins** covering stacks, review,
 architecture, design, and the whole idea-to-shipped workflow. Every one installs on its
 own — there are no bundles (the four suites were retired 2026-09-26; see
 [Companions](#companions-install-these-together)).
@@ -38,7 +38,7 @@ claude plugin install stack-scan@cc-plugins-marketplace --scope local   # from y
 
 # Or everything at once (asks once for the scope unless you pass --scope):
 /plugin install all-plugins@cc-plugins-marketplace
-/all-plugins:install              # every leaf plugin but the opt-in game plugins; asks local or project once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
+/all-plugins:install              # every leaf plugin; asks local or project once unless --scope local|project|user; --dry-run (not found yet? /reload-plugins first)
 /all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
@@ -140,12 +140,10 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 
 | Variable | Plugins | Default | What it does |
 |----------|---------|---------|--------------|
-| `BLENDER_PATH` | asset-forge |  | Full path to the Blender executable the headless server runs |
 | `CC_ALL_PLUGINS_HINT` | all-plugins | — | CC_ALL_PLUGINS_HINT=off hides the startup line naming all-plugins as the only plugin enabled |
 | `CC_ASK_LEDGER` | ask-ledger | on | Ledger what a prompt names and have the Stop gate ask for an accounting line for each: on or off |
 | `CC_AVERT` | candor | on | Ask before a write or dispatch that carries a hedge the user never raised: on, notify or off |
 | `CC_BOOST` | craft-layer, task-runner, taskmaster | on | Boost hooks that raise model and effort when a prompt carries an ultra- token: on or off |
-| `CC_BPY_CHECK` | blender | on | Run check_bpy_scripts.py on a written .py that imports bpy, and add the removed or deprecated calls it f … |
 | `CC_CANDOR_GATE` | candor | block | The whole candor Stop gate: block, warn (print, never block) or off |
 | `CC_CARDLINT` | taskmaster | on | Say when a card set reaches execution without its author-time linters having run: on or off |
 | `CC_CLARIFY_GATE` | taskmaster | off | Refuse the first code write after a work-shaped prompt, once per session: block or off |
@@ -160,9 +158,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_DRIFT` | task-runner | on | Nudge when a turn touches files well beyond the request, outside a task-runner run: on or off |
 | `CC_ELISION_GUARD` | code-review | on | Refuse, not just warn about, a write replacing code with // … existing code … or similar: on or off |
 | `CC_EVIDENCE_GATE` | candor | block | Stop-gate clause for a completion claim with nothing run since the last edit: block, warn or off |
-| `CC_FORGE_REVIEW` | asset-forge | on | Block a turn from ending once per change cycle when the Blender scene changed since the last asset-forge … |
-| `CC_GLB_CHECK` | meshy | on | Run inspect_glb.py at 15,000 triangles and 2,048 px on a .glb/.gltf a call wrote, and add what fails: on … |
-| `CC_GODOT_CHECK` | godot | on | Run check_godot_project.py after a Write or Edit of a .tscn, .tres or .gd inside a Godot project, and ad … |
 | `CC_HUD_HINT` | session-hud | off | Add the HUD segments to the dim hint line under the prompt: on or off |
 | `CC_HUD_PIN` | session-hud | off | Reopen the /hud pane after you close it by hand; under 144 terminal columns it waits until the terminal  … |
 | `CC_HUD_SEGMENTS` | session-hud | context,limits,cost,time,git | Which segments the hint and status lines show, comma-separated, in order: context, limits, cost, time, g … |
@@ -172,7 +167,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_LOCKFILE_GATE` | candor | on | Stop-gate clause for a dependency manifest changed with its lockfile untouched: on or off |
 | `CC_MERGE_CHECKS` | git-workflow | on | Ask before gh pr merge while the pull request's checks are pending or failing: on or off |
 | `CC_PALETTE` | ui-ux | on | Name the category-default indigo, violet or purple accent when a UI write uses it: on or off |
-| `CC_PIXEL_CHECK` | pixel-art | on | Run check_sprite_sheet.py or check_tilemaps.py on a sprite sheet or Tiled/LDtk map a call changed, and a … |
 | `CC_PLUGIN_UPDATER_AUTO` | plugin-updater | on | At session start, when the folder's last completed run is older than the interval, run the updater detac … |
 | `CC_PLUGIN_UPDATER_HINT` | plugin-updater | on | With background updates off, show a startup line counting outdated plugin installs: on or off |
 | `CC_PLUGIN_UPDATER_INTERVAL` | plugin-updater | 24 | Minimum hours from a folder's last completed run to its next background run; 0 runs at every session sta … |
@@ -196,10 +190,6 @@ locally it reports, and `--update-baseline` is a maintainer action, not a fix.
 | `CC_TEST_SHAPE` | testing | on | Name the blocks in a written test file that do not earn their place: on or off |
 | `CC_UI_CHECK` | ui-ux | on | Send the turn back once when a UI file changed and was not checked in a browser since: on, warn (print,  … |
 | `CC_UNICODE_SCAN` | secret-scanning | on | Warn when written or read text carries zero-width or bidirectional-override characters: on or off |
-| `CC_UNITY_API_CHECK` | unity-traps | on | Run check_unity_project.py after a Write or Edit of an Assets/**/*.cs, and add that file's findings for  … |
-| `CC_UNITY_META_CHECK` | unity-traps | on | Run check_unity_project.py after a Bash call moves, copies or deletes an Assets/ path, or a .meta is wri … |
-| `CC_UNITY_VISUAL_GATE` | candor | block | Stop-gate clause for Unity scene, prefab or Assets script work called done with no capture and no consol … |
-| `CC_UNREAL_CHECK` | unreal | on | Run check_unreal_project.py after a Write or Edit of a Config/*.ini or Source/**/*.cpp\|h under the neare … |
 | `CC_VERSION_PINS` | stack-scan | on | Prepend the installed npm or composer version to a skill whose Last verified stamp names that package: o … |
 | `CC_WORKFLOW_GUARD` | devops | on | Refuse a GitHub workflow write that hands secrets or a write token to untrusted code: on or off |
 | `CLAUDE_AI_TRAILER` | git-workflow | — | CLAUDE_AI_TRAILER=allow for that one command |
@@ -302,7 +292,6 @@ The plugin READMEs and skill descriptions use these words in a narrow sense.
 - [Architecture and APIs](#architecture-and-apis)
 - [Workflow: idea to shipped](#workflow-idea-to-shipped)
 - [Infrastructure and environments](#infrastructure-and-environments)
-- [Game development](#game-development)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
 
 ---
@@ -574,32 +563,6 @@ bill you did not agree to.
 
 ---
 
-## Game development
-
-One plugin per engine or art tool, so a project installs only its own — `/stack-scan:suggest` finds
-it from the manifest or file (`project.godot`, `ProjectVersion.txt`, `*.uproject`, `*.blend`, a Meshy key or client, `*.aseprite`, Tiled or LDtk maps), and
-`/all-plugins:install` leaves every game plugin out unless you name it. Each carries only what a
-model gets wrong from memory — the inversions of the tool's last few releases, its footguns and
-hard limits — and most ship a read-only checker script with an exit code. The engine plugins and
-gamedev were adapted from
-[gamedev-skills/awesome-gamedev-agent-skills](https://github.com/gamedev-skills/awesome-gamedev-agent-skills)
-@184b72b (Apache-2.0; `rationale/gamedev-design-import-2026-10-26.md`); blender, meshy, pixel-art
-and unity-traps' 2D reference were rewritten from MIT repositories (`rationale/gamedev-art-import-2026-10-30.md`).
-Nothing here is measured against a control arm.
-
-| Plugin | What it carries | Reach for it when |
-|--------|-----------------|-------------------|
-| **[godot](plugins/godot)** | Godot 4.4–4.7 inversions (Jolt as the 3D default and its behaviour differences, 4.7's typed-return and packed-array changes, `.uid` sidecars, `duplicate_deep`), multiplayer and export traps, a headless test runner that cannot hang or exit 0 on failure, and `check_godot_project.py` for broken `res://`, uid and scene references | Any `.gd`, `.tscn`, `.tres` or `project.godot` work |
-| **[unity-traps](plugins/unity-traps)** | Unity 6 renames and build-profile traps, batch-mode builds that exit 0 on errors, project-wide input actions enabling every map, `Awaitable` pooling, URP 2D and pixel-art traps (URP's own Pixel Perfect Camera, atlas settings that blur, Light2D normal maps), and `check_unity_project.py` for `.meta`/GUID breakage | C# under `Assets/`, input actions, sprite atlases, CI builds |
-| **[unreal](plugins/unreal)** | UE 5.8's Zen cooked store and SDK minimums, Enhanced Input setup and rebinding, headless automation tests | Packaging, input, gameplay C++ |
-| **[gamedev](plugins/gamedev)** | the engine-agnostic half: Steam and itch.io release (`check_steam_build.py` for SteamPipe scripts), asset checks (`asset_report.py`), Yarn Spinner 3 and Ink, seed stability across runtime versions, XAG text-size and ASWG loudness floors | Shipping, assets, dialogue, procedural generation |
-| **[blender](plugins/blender)** | Blender 5.x Python API removals and renames (`action.fcurves`, `scene.node_tree`, `BLENDER_EEVEE_NEXT`, `bgl`), headless runs that exit 0 on a Python error unless `--python-exit-code` comes before `--python`, FBX/glTF export rules for Unreal, Unity and Godot — and `check_bpy_scripts.py` (no Blender needed) plus `blender_qa.py` (mesh QA inside Blender) | A `.py` importing `bpy`, a `*.blend` in the repo, exporting assets to an engine |
-| **[asset-forge](plugins/asset-forge)** | Game-asset creation in Blender: a headless MCP server (Python standard library, nothing installed) that renders review contact sheets, validates against platform budgets and engine presets, bakes, stylizes, projects AI textures and exports — always on snapshots, never the working `.blend`; a pure-bpy library of deforms, blockouts, LODs, collision and retargeting; an independent art-reviewer agent; a review-after-change Stop gate | Building a prop, creature or character in Blender for Unity, Unreal or Godot |
-| **[meshy](plugins/meshy)** | Meshy AI 3D generation traps: an unknown create outcome is reconciled, never resubmitted; running tasks cannot be cancelled; files and signed URLs expire after 3 days; free-plan output is Meshy-owned under CC BY 4.0; rigging takes textured humanoids only — and `inspect_glb.py` for triangle, texture and required-extension budgets | Generating or importing a Meshy model, checking a GLB/glTF before engine import |
-| **[pixel-art](plugins/pixel-art)** | Aseprite CLI export (option order, the `json-hash` default, tag and trim drift), finishing AI-generated pixel art, Tiled GID flip bits and tilesets an engine skips, LDtk `__` fields and stale auto-layer tiles — and `check_sprite_sheet.py` + `check_tilemaps.py` | Sprite sheets, `*.aseprite`, Tiled `*.tmx`/`*.tmj`, LDtk `*.ldtk` |
-
----
-
 ## Meta: steering Claude Code itself
 
 | Plugin | What it carries | Reach for it when |
@@ -607,7 +570,7 @@ Nothing here is measured against a control arm.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a `.cc-artifacts/brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
-| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace but the opt-in game plugins at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
+| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace at one scope (asked once, or `--scope`) with no other prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. It installs what exists when you run it — re-run it after a marketplace update. Never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
 | **[session-hud](plugins/session-hud)** | a hooks module that adds context %, the 5-hour and 7-day rate-limit windows with reset countdowns, session cost, session time and git branch to the prompt's hint line, what each turn cost under its closing line, and a `/hud` pane with the context breakdown, opt-in pinned so it reopens after you close it; plus a default `subagentStatusLine` with each subagent's type, model, effort, context use and age. No `settings.json` edit (a plugin cannot ship your `statusLine`); terminal only, Claude Code 2.1.291 or newer; no model calls. The module hooks tool calls, so uninstall it before starting Code Mode | You want the status-line figures without wiring a status-line tool, or a pane that stays up |
 | **[plugin-updater](plugins/plugin-updater)** (`update-plugins`) | keeps the plugins of the folder you work in current, its project and local installs plus your user-scope ones: once a day per folder at session start it runs `claude plugin update` in the background, one install at a time, for each that is behind its marketplace clone, and the next session shows one line on what changed or needs you; `/plugin-updater:update-plugins` runs it on demand, `--all` covers every project folder, `--dry-run` lists only. Never passes `-y` or `--accept-command`; skips orphaned entries and git worktrees. Install it at user scope | Plugins installed locally across many projects, and updating them one by one in the app |
 
@@ -641,8 +604,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `taskmaster` + `task-runner` + `approaches` + `code-architecture` + `testing` + `debugging` |
-| make games | the engine's plugin + `gamedev` — `/stack-scan:suggest` finds the engine from its manifest |
-| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf but the opt-in game plugins at the scope it asks for once, or `--scope`; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
+| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf at the scope it asks for once, or `--scope`; re-run it after a marketplace update to pick up new plugins; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
 
 ---
 
