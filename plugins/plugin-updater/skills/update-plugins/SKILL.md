@@ -1,7 +1,7 @@
 ---
 name: update-plugins
-description: Update the Claude Code plugins installed for the current project folder and at user scope, one install at a time, through this plugin's update-all.sh; --all covers every project folder, --dry-run lists what is outdated and updates nothing, --last shows the last background run.
-argument-hint: "[--all] [--dry-run] [--last] [--no-refresh] [--scope user|project|local] [--project PATH] [--plugin NAME]"
+description: Update the Claude Code plugins installed for the current project folder and at user scope, one install at a time, through this plugin's update-all.sh; --all covers every project folder, --prune uninstalls installs whose plugin its marketplace removed, --dry-run lists what is outdated and updates nothing, --last shows the last background run.
+argument-hint: "[--all] [--prune] [--dry-run] [--last] [--no-refresh] [--scope user|project|local] [--project PATH] [--plugin NAME]"
 disable-model-invocation: true
 ---
 
@@ -13,8 +13,8 @@ a few hundred installs outlasts the foreground timeout. Wait for it to finish; d
 
 Run it from the session's folder. It updates the installs of the nearest project folder at or above
 the working directory, plus user scope, and prints that folder on its `Folder:` line. **Never add
-`--all` or `--project` yourself**: other project folders are touched only when the user passed the
-flag.
+`--all`, `--project` or `--prune` yourself**: other project folders are touched, and installs
+uninstalled, only when the user passed the flag. Standing: **recorded**.
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/update-all.sh" --data-dir "${CLAUDE_PLUGIN_DATA}" $ARGUMENTS
@@ -30,14 +30,15 @@ Then:
    command changed is left to the user; neither flag is yours to pass either. Standing: **gate** for
    the flags (the `accept-guard` hook denies a Bash `claude plugin update|install` carrying `-y`,
    `--yes` or `--accept-command`); **recorded** for a flagless call of your own.
-2. **Relay, do not re-derive.** Give the `Folder:` line and the `Summary` counts, then every `Failed` and `Need you`
-   line with its reason and the command the script printed for it. Group `Skipped` by reason
+2. **Relay, do not re-derive.** Give the `Folder:` line and the `Summary` counts, then every `Uninstalled`,
+   `Failed` and `Need you` line with its reason and the command the script printed for it. Group `Skipped` by reason
    (orphaned entry, linked git worktree) with the folders, not the plugin lists.
 3. **Exit code.** 0: done. 1: at least one failure or changed command needs the user; list them
    and stop. 2: a precondition is missing or a background run holds the lock; show the stderr
    line, which names it and the log to read.
-4. **Under `--dry-run`**, say nothing was updated and list the `Would run` lines grouped by plugin.
+4. **Under `--dry-run`**, say nothing was updated and list the `Would run` lines grouped by plugin, the
+   `claude plugin uninstall` ones under `--prune` too, and the script's `--prune uninstalls them` line if it printed one.
    The run still refreshes the marketplace clones unless `--no-refresh` was passed.
 5. **Under `--last`**, relay the last background run's log the same way as points 2 and 3.
-6. **If anything updated**, end with the script's restart line: a running session keeps the old
+6. **If anything updated or was uninstalled**, end with the script's restart line: a running session keeps the old
    plugin until it restarts or runs `/reload-plugins`.

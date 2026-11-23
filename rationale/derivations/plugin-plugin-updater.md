@@ -47,6 +47,19 @@ to null), 2 skipped (a folder that no longer exists).
   for the interval. In a linked worktree session only user scope is updated.
 - **Residual.** The worktree mapping is inferred from those 93 results, not from CLI source. If a
   later CLI updates worktree entries in place, the skip turns needless; delete it then.
+- **`--prune` (0.4.0, 2026-11-23).** The marketplace removed eight game plugins; `forceRemoveDeletedPlugins`
+  plus a `claude plugin marketplace update` left all 12 local installs of them in place (checked that day
+  against `claude plugin list --json`). Earlier removals (phaser, prompt-coach, toolchain-experts) were still
+  installed too, each failing every run with `not_found`. `--prune` uninstalls only what `classify` reads as
+  removed (`renames` maps the name to `null`): a renamed plugin is the host's migration to make, and a name
+  missing without a `renames` entry could be a clone that has not fetched yet. It reuses the update path's
+  skips. A worktree uninstall would act on the main checkout, as the update does, and an orphaned folder has
+  no cwd to run from. `--keep-data` is passed while `claude plugin list --json` still records another install
+  of the id, because whether the CLI deletes `plugins/data/<id>/` while another scope holds the plugin is
+  unverified. The uninstall JSON shape (`{"command":"uninstall","outcome":…,"failureCode":…}`) was read from a
+  `not_installed` failure on CLI 2.1.323; the success line is assumed to carry `"outcome":"ok"`, and the
+  script also accepts exit 0 with no JSON. The background run never passes `--prune`: uninstalling is a
+  choice the person types.
 
 ## plugins/plugin-updater/scripts/update-all.sh
 

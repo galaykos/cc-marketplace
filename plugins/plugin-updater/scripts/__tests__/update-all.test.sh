@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Harness for update-all.sh and session-start.sh: a shim `claude` logs every call; asserted are which installs get `claude plugin update` (the current folder and user scope by default, every folder under --all), from which folder, one at a time, never -y, the summary, exit codes, the lock, and the detached session-start run.
+# Harness for update-all.sh and session-start.sh: a shim `claude` logs every call; asserted are which installs get `claude plugin update` (the current folder and user scope by default, every folder under --all) or, under --prune, `claude plugin uninstall`, from which folder, one at a time, never -y, the summary, exit codes, the lock, and the detached session-start run.
 # Not covered: the real CLI's JSON (the shim answers from fixtures), how it resolves a folder to an install, and the host's handling of a hook's detached child.
 # Why, limits, history: rationale/derivations/plugin-plugin-updater.md § plugins/plugin-updater/scripts/__tests__/update-all.test.sh
 set -u
@@ -72,6 +72,12 @@ case "$1 $2" in
   "plugin list") cat "$FAKE_LIST"; exit 0 ;;
   "plugin marketplace") sleep "${FAKE_SLOW:-0}"; exit 0 ;;
   "plugin update") ;;
+  "plugin uninstall")
+    [ -t 0 ] && echo "TTY-STDIN" >> "$FAKE_LOG"
+    if [ -n "${FAKE_UNINSTALL_FAIL:-}" ]; then
+      echo '{"command":"uninstall","outcome":"failed","plugin":"'"$3"'","message":"boom","failureCode":"not_installed"}'; exit 1
+    fi
+    echo '{"command":"uninstall","outcome":"ok","plugin":"'"$3"'"}'; exit 0 ;;
   *) exit 9 ;;
 esac
 [ -t 0 ] && echo "TTY-STDIN" >> "$FAKE_LOG"
@@ -114,6 +120,8 @@ has "linked worktree skipped" "$T/wt  linked git worktree" "$out"
 has "managed scope skipped" "managed scope is set by policy" "$out"
 eq  "dry-run: writes no run state" "" "$(ls "$D" 2>/dev/null)"
 
+has "dry-run: a removed plugin points at --prune" "1 install(s) of a plugin removed from the marketplace will fail to update; --prune uninstalls them instead." "$out"
+
 run --dry-run --no-refresh
 lacks "--no-refresh: no marketplace update" "marketplace update" "$log"
 has "default: names the folder it covers" "Folder: $T/proj1, and user scope." "$out"
@@ -152,6 +160,8 @@ has "summary: skipped" "skipped          3" "$out"
 has "summary: failed" "failed           2" "$out"
 has "summary: need you" "need you         1" "$out"
 has "removed plugin: uninstall hint" "uninstall it: cd $T/proj1 && claude plugin uninstall gone@mk --scope local" "$out"
+has "removed plugin: the hint names --prune" "or run again with --prune" "$out"
+lacks "run without --prune: never uninstalls" $'\tplugin uninstall' "$log"
 has "up_to_date for another install is a failure" "the CLI checked another install of mism@mk" "$out"
 has "changed command is left to the person" "cd $T/proj2 && claude plugin update cmdp@mk --scope local" "$out"
 has "restart reminder" "Restart running Claude Code sessions" "$out"
@@ -181,6 +191,41 @@ sh -c 'exit 0' & dead=$!; wait "$dead"; echo "$dead" > "$D/run.lock/pid"; touch 
 run --all --no-refresh
 eq  "dead pid lock: taken over, the run proceeds" 1 "$rc"
 
+# --prune: an install whose marketplace removed the plugin (renames -> null) is uninstalled, not updated.
+cat > "$T/list-prune.json" <<EOF
+[{"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/proj1"},
+ {"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/proj2"},
+ {"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"$T/wt"},
+ {"id":"alpha@mk","version":"1.0.0","scope":"user"}]
+EOF
+LIST="$T/list-prune.json" run --prune --dry-run --all --no-refresh
+eq  "prune dry-run: exit 0" 0 "$rc"
+has "prune dry-run: lists the two uninstalls" 'Would run `claude plugin uninstall` for 2 install(s) whose plugin left its marketplace' "$out"
+lacks "prune dry-run: no uninstall call" $'\tplugin uninstall' "$log"
+lacks "prune dry-run: a removed plugin is not an update job" "check     gone@mk" "$out"
+has "prune dry-run: the worktree install is still skipped" "$T/wt  linked git worktree" "$out"
+LIST="$T/list-prune.json" run --prune --no-refresh
+eq  "prune: exit 0" 0 "$rc"
+eq  "prune: the folder's install is uninstalled from its folder, data kept for the others" "$T/proj1"$'\tplugin uninstall gone@mk --scope local --json --keep-data' "$(grep $'\tplugin uninstall' <<<"$log")"
+lacks "prune: a removed plugin gets no update call" "plugin update gone@mk" "$log"
+has "prune: the user install still updates" "$H"$'\tplugin update alpha@mk --scope user --json' "$log"
+has "prune: summary counts it" "uninstalled      1" "$out"
+has "prune: listed under Uninstalled" "Uninstalled (1): their plugin left its marketplace." "$out"
+has "prune: restart reminder" "Restart running Claude Code sessions" "$out"
+eq  "prune: state records it" "removed=1 failed=0" "$(state removed failed)"
+LIST="$T/list-prune.json" run --prune --all --no-refresh --plugin gone
+eq  "prune --all: one uninstall per updatable folder, never the worktree" 2 "$(grep -c $'\tplugin uninstall' <<<"$log")"
+lacks "prune --all: no call from the worktree" "$T/wt"$'\t' "$log"
+lacks "prune --all: never -y" " -y" "$log"
+lacks "prune --all: stdin is never a terminal" "TTY-STDIN" "$log"
+has "prune --all: data kept while the worktree install still uses it" "$T/proj2"$'\tplugin uninstall gone@mk --scope local --json --keep-data' "$log"
+printf '[{"id":"gone@mk","version":"0.1.0","scope":"local","projectPath":"%s"}]\n' "$T/proj1" > "$T/list-last.json"
+LIST="$T/list-last.json" run --prune --no-refresh
+eq  "prune: the last install also removes the plugin's data" "$T/proj1"$'\tplugin uninstall gone@mk --scope local --json' "$(grep $'\tplugin uninstall' <<<"$log")"
+LIST="$T/list-last.json" FAKE_UNINSTALL_FAIL=1 run --prune --no-refresh
+eq  "prune: a failed uninstall exits 1" 1 "$rc"
+has "prune: the failure names the CLI's message" "uninstall failed (exit 1): boom" "$out"
+
 rm -rf "$D"
 hook() { : > "$T/log"; out=$(printf '{"source":"startup","cwd":"%s"}' "${CWD:-$T/proj1}" | "${clean_env[@]}" "$@" bash "$HOOK"); rc=$?; log=$(cat "$T/log"); }
 settle() { for _ in $(seq 1 200); do [ -f "$D/last-run.json" ] && [ ! -d "$D/run.lock" ] && return 0; sleep 0.1; done; return 1; }
@@ -203,6 +248,7 @@ log=$(cat "$T/log")
 eq  "auto: background run made the folder's four update calls" 4 "$(updates)"
 lacks "auto: background run made no call from another folder" "$T/proj2"$'\t' "$log"
 lacks "auto: background run never passes -y" " -y" "$log"
+lacks "auto: background run never uninstalls" $'\tplugin uninstall' "$log"
 eq  "auto: state unreported, background" "completed=True reported=False background=True" "$(state completed reported background)"
 has "auto: log holds the summary" "Summary" "$(cat "$D/last-run.log")"
 hook FAKE_LIST="$T/list.json"

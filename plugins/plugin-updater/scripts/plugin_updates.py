@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# plugin_updates.py — `update`: run `claude plugin update` for each install behind its marketplace clone, one at a time, in the current folder and at user scope (`--all`: every folder); `hook`: at session start, start that run detached when due, report the last one.
+# plugin_updates.py — `update`: run `claude plugin update` for each install behind its marketplace clone, one at a time, in the current folder and at user scope (`--all`: every folder; `--prune`: uninstall the ones whose marketplace removed the plugin); `hook`: at session start, start that run detached when due, report the last one.
 # Misses: other project folders unless --all or --project names them, a remote-source plugin whose version lives only in its own plugin.json, releases the clones have not fetched when the refresh is skipped, and linked git worktree installs (skipped).
 # Why, limits, history: rationale/derivations/plugin-plugin-updater.md § plugins/plugin-updater/scripts/plugin_updates.py
 import argparse
@@ -18,6 +18,7 @@ LOCK_STALE = 6 * 3600
 LOCK_GRACE = 60
 GONE = "orphaned entry: folder no longer exists"
 WORKTREE = "linked git worktree: run from here, the CLI updates the main checkout's install instead"
+REMOVED = "removed from the marketplace"
 
 
 def plugins_dir():
@@ -214,7 +215,7 @@ def classify(inst, cat):
     renames = cat["renames"]
     if mkt in renames and name in renames[mkt]:
         to = renames[mkt][name]
-        return "unresolved", "removed from the marketplace" if to is None else f"renamed to {to} in the marketplace"
+        return "unresolved", REMOVED if to is None else f"renamed to {to} in the marketplace"
     if mkt in cat["unreadable"]:
         return "unresolved", "marketplace manifest unreadable"
     if mkt in renames:
@@ -301,11 +302,11 @@ def report_line(st):
     if not st.get("completed"):
         return f"plugin-updater: the background run did not finish (exit {st.get('rc')}); {SKILL} --last shows its log."
     parts = [f"{label} {st[key]}" for key, label in
-             (("updated", "updated"), ("needs_you", "need you"), ("failed", "failed"),
+             (("updated", "updated"), ("removed", "uninstalled"), ("needs_you", "need you"), ("failed", "failed"),
               ("orphaned", "orphaned"), ("worktree", "in worktrees")) if st.get(key)]
     if not parts:
         return None
-    restart = " Restart running sessions to load the updates." if st.get("updated") else ""
+    restart = " Restart running sessions to load the updates." if st.get("updated") or st.get("removed") else ""
     at = f" in {st['folder']}" if st.get("folder") else ""
     return f"plugin-updater, background run{at}: {', '.join(parts)}. {SKILL} --last shows the log.{restart}"
 
@@ -401,6 +402,7 @@ def parse_args(argv):
     ap.add_argument("--no-refresh", action="store_true", help="skip `claude plugin marketplace update` and compare against the clones as they are")
     ap.add_argument("--scope", action="append", choices=["user", "project", "local"], help="only this scope (repeatable)")
     ap.add_argument("--all", action="store_true", help="every project folder, not only the current one")
+    ap.add_argument("--prune", action="store_true", help="uninstall an install whose marketplace removed its plugin (renames maps it to null) instead of trying to update it")
     ap.add_argument("--project", action="append", metavar="PATH", help="only installs whose project folder is PATH, in place of the current folder (repeatable)")
     ap.add_argument("--plugin", action="append", metavar="NAME", help="only this plugin, as name or name@marketplace (repeatable)")
     ap.add_argument("--last", action="store_true", help="print the last background run's log and exit")
@@ -451,6 +453,23 @@ def run_one(inst):
         return "needs_you", r.get("message") or code or "marketplace-declared command changed"
     msg = r.get("message") or json.dumps(r)[:300]
     return "failed", f"{code}: {msg}" if code else msg
+
+
+def run_remove(inst, keep_data):
+    """(bucket, line). bucket: removed | failed. keep_data: another install of the plugin still uses its data directory."""
+    pid, scope = inst["id"], inst["scope"]
+    args = ["plugin", "uninstall", pid, "--scope", scope, "--json"] + (["--keep-data"] if keep_data else [])
+    try:
+        p = claude(args, cwd=folder_of(inst))
+    except subprocess.TimeoutExpired:
+        return "failed", f"uninstall timed out after {UPDATE_TIMEOUT}s"
+    except OSError as e:
+        return "failed", f"could not run claude: {e}"
+    r = last_json(p.stdout)
+    if p.returncode == 0 and (not isinstance(r, dict) or r.get("outcome", "ok") == "ok"):
+        return "removed", f"{inst.get('version')}: uninstalled" + (" (data kept for its other installs)" if keep_data else "")
+    msg = (r.get("message") or r.get("failureCode")) if isinstance(r, dict) else None
+    return "failed", f"uninstall failed (exit {p.returncode}): {msg or tail(p.stderr) or tail(p.stdout) or 'no output'}"
 
 
 def show_last(data):
@@ -532,6 +551,9 @@ def plan_and_run(a):
 
     cat = load_catalog(pdir)
     installs = [i for i in installs if isinstance(i, dict) and i.get("id")]
+    left = {}
+    for i in installs:
+        left[i["id"]] = left.get(i["id"], 0) + 1
     a.folder = None
     if a.project:
         covered = sorted(a.project)
@@ -546,7 +568,7 @@ def plan_and_run(a):
     installs = [i for i in installs if wanted(i, a)]
     installs.sort(key=lambda i: (i["id"], i.get("scope") != "user", i.get("projectPath") or ""))
 
-    current, skipped, jobs = [], [], []
+    current, skipped, jobs, removals = [], [], [], []
     for inst in installs:
         state, detail = classify(inst, cat)
         if state == "current":
@@ -556,28 +578,38 @@ def plan_and_run(a):
         if blocked:
             skipped.append((inst, blocked))
             continue
+        if a.prune and detail == REMOVED:
+            removals.append(inst)
+            continue
         why = f"{inst.get('version')} → {detail}" if state == "outdated" else f"{inst.get('version')}: {detail}"
         jobs.append((inst, state, why))
 
-    print(f"Installs: {len(installs)} matched; {len(current)} current, {len(jobs)} to update or check, {len(skipped)} skipped.")
+    uninstall = f"{len(removals)} to uninstall, " if a.prune else ""
+    print(f"Installs: {len(installs)} matched; {len(current)} current, {len(jobs)} to update or check, {uninstall}{len(skipped)} skipped.")
     if a.dry_run:
-        return dry_run_report(jobs, skipped)
+        return dry_run_report(jobs, removals, skipped)
 
-    results = {"updated": [], "current": [], "failed": [], "needs_you": []}
+    results = {"updated": [], "current": [], "failed": [], "needs_you": [], "removed": []}
+    steps = [(inst, state, why) for inst, state, why in jobs] + [(inst, "remove", REMOVED) for inst in removals]
     done, interrupted = 0, False
     try:
-        for n, (inst, state, why) in enumerate(jobs, 1):
-            bucket, line = run_one(inst)
-            if bucket == "failed" and state == "unresolved" and "removed" in why:
-                line += f" — removed from the marketplace; uninstall it: cd {folder_of(inst)} && claude plugin uninstall {inst['id']} --scope {inst['scope']}"
+        for n, (inst, state, why) in enumerate(steps, 1):
+            if state == "remove":
+                bucket, line = run_remove(inst, left.get(inst["id"], 1) > 1)
+                if bucket == "removed":
+                    left[inst["id"]] -= 1
+            else:
+                bucket, line = run_one(inst)
+            if bucket == "failed" and state == "unresolved" and REMOVED in why:
+                line += f" — {REMOVED}; uninstall it: cd {folder_of(inst)} && claude plugin uninstall {inst['id']} --scope {inst['scope']}, or run again with --prune"
             results[bucket].append((inst, line))
             done = n
-            print(f"[{n}/{len(jobs)}] {bucket:<9} {inst['id']}  {where(inst)}  {line}", flush=True)
+            print(f"[{n}/{len(steps)}] {bucket:<9} {inst['id']}  {where(inst)}  {line}", flush=True)
     except KeyboardInterrupt:
         interrupted = True
-        print(f"\nInterrupted after {done} of {len(jobs)}; the rest were not attempted.")
-    rc = final_report(results, len(current), skipped)
-    counts = {"updated": len(results["updated"]), "failed": len(results["failed"]),
+        print(f"\nInterrupted after {done} of {len(steps)}; the rest were not attempted.")
+    rc = final_report(results, len(current), skipped, a.prune)
+    counts = {"updated": len(results["updated"]), "removed": len(results["removed"]), "failed": len(results["failed"]),
               "needs_you": len(results["needs_you"]), "interrupted": interrupted,
               "orphaned": sum(1 for _, w in skipped if w == GONE),
               "worktree": sum(1 for _, w in skipped if w == WORKTREE),
@@ -585,15 +617,22 @@ def plan_and_run(a):
     return rc, counts
 
 
-def dry_run_report(jobs, skipped):
+def dry_run_report(jobs, removals, skipped):
     print("\nDry run: nothing was updated.")
     if jobs:
         print(f"\nWould run `claude plugin update` for {len(jobs)} install(s):")
         for inst, state, why in jobs:
             tag = "outdated " if state == "outdated" else "check    "
             print(f"  {tag} {inst['id']}  {where(inst)}  {why}")
-    else:
+    elif not removals:
         print("\nEvery matched install is current.")
+    if removals:
+        print(f"\nWould run `claude plugin uninstall` for {len(removals)} install(s) whose plugin left its marketplace:")
+        for inst in removals:
+            print(f"  remove    {inst['id']}  {where(inst)}  {inst.get('version')}: {REMOVED}")
+    gone = sum(1 for _, _, why in jobs if why.endswith(REMOVED))
+    if gone:
+        print(f"\n{gone} install(s) of a plugin {REMOVED} will fail to update; --prune uninstalls them instead.")
     print_skipped(skipped)
     return 0
 
@@ -616,10 +655,13 @@ def print_skipped(skipped):
         print(f"  {inst['id']}  {where(inst)}  {why}")
 
 
-def final_report(results, already_current, skipped):
+def final_report(results, already_current, skipped, prune=False):
     up, cur, failed, needs = results["updated"], results["current"], results["failed"], results["needs_you"]
+    rm = results.get("removed", [])
     print("\nSummary")
     print(f"  updated          {len(up)}")
+    if prune:
+        print(f"  uninstalled      {len(rm)}")
     print(f"  already current  {already_current + len(cur)}")
     print(f"  skipped          {len(skipped)}")
     print(f"  failed           {len(failed)}")
@@ -627,6 +669,10 @@ def final_report(results, already_current, skipped):
     if up:
         print(f"\nUpdated ({len(up)}):")
         for inst, line in up:
+            print(f"  {inst['id']}  {where(inst)}  {line}")
+    if rm:
+        print(f"\nUninstalled ({len(rm)}): their plugin left its marketplace.")
+        for inst, line in rm:
             print(f"  {inst['id']}  {where(inst)}  {line}")
     print_skipped(skipped)
     if failed:
@@ -638,8 +684,8 @@ def final_report(results, already_current, skipped):
         for inst, line in needs:
             print(f"  {inst['id']}  {where(inst)}  {line}")
             print(f"    review and accept it yourself: cd {folder_of(inst)} && claude plugin update {inst['id']} --scope {inst['scope']}")
-    if up:
-        print("\nRestart running Claude Code sessions (or run /reload-plugins in each) to load the updated plugins.")
+    if up or rm:
+        print("\nRestart running Claude Code sessions (or run /reload-plugins in each) to load the changes.")
     else:
         print("\nNothing was updated; no restart needed.")
     return 1 if failed or needs else 0
