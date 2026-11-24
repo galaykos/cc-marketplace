@@ -427,22 +427,21 @@ def _decisions(root):
 
 def flow_steps(root):
     """The workshop's flow as (label, detail, state) triples — state is done|open|todo.
-    Read from workshop.json (dk.sh) and decisions.jsonl (the board)."""
+    Read from workshop.json (dk.sh) and decisions.jsonl (the board); an unconfirmed pick's number is never in the detail."""
     ws = _read_json(os.path.join(root, "workshop.json"), {})
-    dec = _decisions(root)
-    unread = [d for d in dec if not d.get("consumed")]
+    unread = [d for d in _decisions(root) if not d.get("consumed")]
     steps = []
     sysd = ws.get("system") or {}
     steps.append(("system", ("tokens " + sysd["stamp"]) if sysd.get("stamp") else "not extracted", "done" if sysd.get("stamp") else "todo"))
     b = ws.get("board") or {}
     if b.get("file"):
-        picked = b.get("picked")
-        if not picked and dec:
-            last = dec[-1]
-            picked = last.get("picked")
-        detail = os.path.basename(b["file"]) + (" · picked %s" % picked if picked else " · no pick yet")
+        name = picks.clean_board(os.path.basename(b["file"]), _clean, _hidden) if isinstance(b["file"], str) else None
+        kept = picks.pick_line(dict(b, v=2 if b.get("confirmed") is True else None), _clean, _hidden)
+        latest = picks.pick_line(unread[-1], _clean, _hidden) if unread else kept
+        picked = next((p["picked"] for p in (kept, latest) if p["confirmed"] and p["picked"]), None)
+        detail = (name or "(no usable name)") + (" · picked %d" % picked if picked else " · unconfirmed pick" if b.get("picked") else " · no pick yet")
         if unread:
-            detail += " · %d unread" % len(unread)
+            detail += " · %d unread" % len(unread) + ("" if latest["confirmed"] else ", unconfirmed")
         steps.append(("board", detail, "open" if unread or not picked else "done"))
     else:
         steps.append(("board", "no board", "todo"))
