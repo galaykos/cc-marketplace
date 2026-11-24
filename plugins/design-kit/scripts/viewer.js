@@ -1,5 +1,5 @@
-// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
-// Misses: notes, approvals and links; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
+// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; lists the page's newest 20 notes in a drawer, where a note is typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link clicked while a note is half typed in a strip; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
+// Misses: approvals, and a link with no note half typed; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.js
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -148,7 +148,7 @@
     $('frame').replaceChildren(frame);
     watch();
   }
-  function tell(t, data) { frame.contentWindow.postMessage({ dk: 1, t, ...data }, '*'); } // a null origin takes no other target
+  function tell(t, data) { frame?.contentWindow.postMessage({ dk: 1, t, ...data }, '*'); } // a null origin takes no other target
 
   let pings = 0, next = 0, patience = 0, answered = () => {};
   function ping() {
@@ -203,7 +203,7 @@
     return typeof v === 'number' && !Number.isNaN(v) ? Math.min(high, Math.max(low, v)) : undefined;
   }
   // by code point, and a lone surrogate as "?", as Python counts and serve.py stores them
-  const cut = (s) => Array.from(s.slice(0, 1000)).slice(0, 500).join('').replace(/\p{Cs}/gu, '?');
+  const cut = (s, n) => Array.from(s.slice(0, 2 * n)).slice(0, n).join('').replace(/\p{Cs}/gu, '?');
   /** The picked, knobs and text of a report as picks.py would store them: what is shown is what is sent. */
   function clamp({ picked, knobs, text }) {
     const shot = { picked: picked >= 1 && picked <= 99 ? picked : null, knobs: {}, text: {} };
@@ -215,27 +215,28 @@
     for (const [scope, given] of scopes(text)) {
       for (const [path, edit] of Object.entries(given)) {
         if (!left || !/^[a-z0-9:/-]{1,200}$/.test(path) || !isObject(edit) || typeof edit.was !== 'string' || typeof edit.now !== 'string') continue;
-        (shot.text[scope] ||= {})[path] = { was: cut(edit.was), now: cut(edit.now) };
+        (shot.text[scope] ||= {})[path] = { was: cut(edit.was, 500), now: cut(edit.now, 500) };
         left--;
       }
     }
     return shot;
   }
+  /** A page's words, apart from the text around them, a character that draws nothing as its number. */
+  function drawn(s) {
+    const bdi = make('bdi');
+    bdi.append(...s.split(HIDDEN).map((part, i) => (i % 2 ? make('code', 'U+' + part.codePointAt(0).toString(16).toUpperCase()) : part)));
+    return bdi;
+  }
   /** A line for each knob value and each text edit, as the parts of a list item. */
   function lines({ knobs, text }) {
     const named = (scope) => (scope === 'all' ? 'All artboards' : 'Artboard ' + scope);
-    const drawn = (s) => {
-      const bdi = make('bdi');
-      bdi.append(...s.split(HIDDEN).map((part, i) => (i % 2 ? make('code', 'U+' + part.codePointAt(0).toString(16).toUpperCase()) : part)));
-      return bdi;
-    };
     return [
       ...scopes(knobs, 'all').flatMap(([scope, own]) => Object.entries(own).map(([name, v]) => [`${named(scope)}: ${KNOBS[name][2](v)}`])),
       ...scopes(text).flatMap(([scope, own]) => Object.entries(own).map(([path, { was, now }]) => [`${named(scope)} text, ${path}: “`, drawn(was), '” → “', drawn(now), '”'])),
     ];
   }
-  function list(label, items) {
-    const ul = make('ul', null, { tabIndex: 0 }); // it scrolls
+  function list(label, items, more) {
+    const ul = make('ul', null, more);
     ul.setAttribute('aria-label', label);
     for (const parts of items) {
       const li = make('li');
@@ -248,6 +249,16 @@
   const REFUSALS = [400, 403, 413, 507];
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const newCid = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('');
+  /** Posts body to a write route: why it is not recorded, '' once it is, and whether the same again would be refused too. */
+  async function post(route, header, body) {
+    try {
+      const r = await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json', [header]: '1' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+      const said = await r.json().catch(() => null);
+      return { why: r.ok && said?.recorded === true ? '' : 'Not recorded: ' + (said?.error || 'the server answered ' + r.status), refused: REFUSALS.includes(r.status) };
+    } catch (e) {
+      return { why: 'The preview server did not answer', refused: false };
+    }
+  }
   // sessionStorage's name for this page's pick, '' where none can be sent; the pick on screen, { shot, cid, updated, sending, why, refused }; the one reported since, { shot, updated }
   let place = '', pick = null, newer = null;
   function stash() {
@@ -286,7 +297,7 @@
     const changes = lines(pick.shot), said = pick.shot.picked ? `Artboard ${pick.shot.picked} picked` : changes.length ? 'Changes, no artboard picked' : 'Pick cleared';
     strip('pick', {
       text: pick.updated ? [said + ' ', make('strong', 'Updated')] : said,
-      more: [...(changes.length ? [list('Changes', changes)] : []), ...(pick.why ? [make('p', pick.why, { className: 'why' })] : [])],
+      more: [...(changes.length ? [list('Changes', changes, { tabIndex: 0 })] : []), ...(pick.why ? [make('p', pick.why, { className: 'why' })] : [])],
       acts: [...(pick.refused ? [] : [guard(button(pick.why ? 'Send again' : 'Send pick', null, { className: 'primary' }), send)]), guard(button('Discard'), discard)],
     });
   }
@@ -300,14 +311,7 @@
     mine.sending = true;
     // not disabled, which would take the focus off it
     for (const one of document.querySelectorAll('[data-kind="pick"] [data-consent]')) one.ariaDisabled = 'true';
-    const body = JSON.stringify({ cid: mine.cid, board: page.split('/').pop(), ...mine.shot });
-    let why = 'The preview server did not answer', refused = false;
-    try {
-      const r = await fetch('/_decision', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Design-Kit-Decision': '1' }, body, signal: AbortSignal.timeout(10000) });
-      const said = await r.json().catch(() => null);
-      why = r.ok && said?.recorded === true ? '' : 'Not recorded: ' + (said?.error || 'the server answered ' + r.status);
-      refused = REFUSALS.includes(r.status);
-    } catch (e) { /* no answer */ }
+    const { why, refused } = await post('/_decision', 'X-Design-Kit-Decision', { cid: mine.cid, board: page.split('/').pop(), ...mine.shot });
     if (mine !== pick) return;
     pick = why ? { ...mine, sending: false, why, refused } : null;
     stash();
@@ -315,15 +319,155 @@
     bring('pick', present);
   }
 
+  const isText = (s) => typeof s === 'string';
+  const isBox = (r, ...sides) => isObject(r) && sides.every((k) => Number.isFinite(r[k]));
+  const isAnchor = (a) => a === null || isObject(a) && [a.selector, a.tag, a.text].every(isText) && isBox(a.rect, 'x', 'y', 'w', 'h');
+  const isContext = (c) => isObject(c) && isBox(c.viewport, 'w', 'h') && isText(c.theme) && Array.isArray(c.console) && c.console.length <= 5 && [...c.console].every(isText);
+  // what a page says, cut as serve.py's note_row cuts it: its bytes are taken from the note's own
+  const anchorOf = ({ selector, tag, text, rect: { x, y, w, h } }) => ({ selector: cut(selector, 512), tag: cut(tag, 32), text: cut(text, 200), rect: { x, y, w, h } });
+  const contextOf = ({ viewport: { w, h }, theme, console: lines }) => ({ viewport: { w, h }, theme: cut(theme, 16), console: lines.map((line) => cut(line, 300)) });
+
+  const path = '/' + page.split('/').map(encodeURIComponent).join('/'); // as page_of reads it
+  const HINT = 'Click an element, or Tab to one and press Enter, to leave a note on it. Escape closes.';
+  const chips = [$('chip'), make('p', null, { id: 'check' })];
+  const said = make('p', null, { role: 'status' });
+  const onPage = button('Note on this page', () => {
+    if (note?.sending) return;
+    compose(null, { console: [] }, onPage);
+    note.asked = true;
+    tell('ask');
+  });
+  let listed = list('Notes left on this page', []);
+  // whether the notes are open; the note being written, or null: its elements, the button that opened it, what the page said, the body last sent with its cid
+  let noting = false, note = null;
+  if (!$('notes').hidden) { // another device leaves none
+    const panel = make('section', null, { ariaLabel: 'Notes on this page' });
+    panel.append(make('h2', 'Notes on this page'), chips[1], onPage, said, listed);
+    $('drawer').append(panel);
+    Object.assign($('notes'), { title: 'Notes on this page (Alt+N)', ariaKeyShortcuts: 'Alt+N', ariaExpanded: 'false', onclick: toggle });
+    $('notes').setAttribute('aria-controls', 'drawer');
+  }
+  /** Opens or closes the notes; while they are open the page reports what is picked in it. */
+  function toggle() {
+    if ($('notes').hidden) return;
+    noting = !noting;
+    $('drawer').hidden = !noting;
+    $('notes').ariaExpanded = String(noting);
+    tell('notes', { on: noting });
+    said.textContent = '';
+    if (noting) {
+      refresh();
+      requestAnimationFrame(() => { said.textContent = HINT; }); // a live region reads out only what changes once it is shown
+    } else if (note && !note.sending && !note.text.value.trim()) leave(false);
+  }
+  function back() {
+    if (!noting) return;
+    if (note) return drop();
+    toggle();
+    $('notes').focus();
+  }
+  async function refresh() {
+    check();
+    const rows = await ask('/_notes', path).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (!rows) return;
+    $('notes').textContent = rows.length ? `Notes (${rows.length})` : 'Notes';
+    const now = list('Notes left on this page', rows.length ? rows.slice(-20).reverse().map(({ status, anchor, text, reply }) => [
+      make('span', status, { className: 'st ' + status }), ' ', make('b', anchor?.tag ? `<${anchor.tag}>` : 'Page'), make('div', text), ...(reply ? [make('div', 'Reply: ' + reply, { className: 'reply' })] : []),
+    ]) : [['No notes on this page yet.']]);
+    if (listed.isEqualNode(now)) return;
+    listed.replaceWith(now);
+    listed = now;
+  }
+  /** The note being written is now on anchor, or on the page when that is null; a composer is opened for it, by opener, when there is none. */
+  function compose(anchor, context, opener) {
+    note ||= blank(opener);
+    Object.assign(note, { anchor, context, asked: false });
+    const words = anchor ? cut(anchor.text, 60) : '';
+    note.on.replaceChildren(...(anchor ? ['On <', drawn(anchor.tag), '>', ...(words ? [' “', drawn(words), '”'] : [])] : ['On this page']));
+    explain('');
+    // a page must not take the focus from Send pick
+    if (![note.box, $('strips')].some((at) => at.contains(document.activeElement))) note.text.focus();
+  }
+  function blank(opener) {
+    const box = make('div', null, { role: 'group', ariaLabel: 'Write a note' }), label = make('label', 'Note'), acts = make('div');
+    const on = make('p', null, { id: 'on' }), why = make('p', null, { id: 'why', className: 'why', role: 'status' });
+    const text = make('textarea', null, { maxLength: 2000, required: true, oninput: () => { if (why.textContent) explain(''); } });
+    const send = guard(button('Send note', null, { className: 'primary' }), sendNote), cancel = button('Cancel', drop);
+    text.setAttribute('aria-describedby', 'on why');
+    label.append(text);
+    acts.append(send, cancel);
+    box.append(on, label, why, acts);
+    onPage.after(box);
+    return { box, on, why, text, send, cancel, opener };
+  }
+  function explain(why, label = 'Send note') {
+    if (!label && document.activeElement === note.send) note.text.focus();
+    note.why.textContent = why;
+    note.send.textContent = label;
+    note.send.hidden = !label;
+  }
+  function leave(focus) {
+    const { box, opener } = note;
+    note = null;
+    if (focus) opener.focus();
+    box.remove();
+  }
+  function drop() {
+    if (!note.sending) leave(true);
+  }
+  async function sendNote() {
+    const mine = note, body = { page: path, text: mine.text.value.trim(), anchor: mine.anchor, context: { ...mine.context, console: [...mine.context.console] } };
+    if (!body.text) {
+      explain('A note needs text');
+      return mine.text.focus();
+    }
+    const over = () => new TextEncoder().encode(JSON.stringify(body)).length > 8000;
+    while (over() && body.context.console.length) body.context.console.shift();
+    while (over() && body.text) body.text = cut(body.text, Math.floor(Array.from(body.text).length * 0.8));
+    const json = JSON.stringify(body);
+    if (json !== mine.json) Object.assign(mine, { json, cid: newCid() });
+    const pending = (on) => {
+      mine.sending = mine.text.readOnly = on;
+      for (const one of [mine.send, mine.cancel]) one.ariaDisabled = on ? 'true' : null;
+    };
+    pending(true);
+    said.textContent = 'Sending…';
+    const { why, refused } = await post('/_note', 'X-Design-Kit-Note', { cid: mine.cid, ...body });
+    pending(false);
+    said.textContent = why ? '' : 'Sent. The session reads it with dk notes.';
+    if (why) explain(why, refused ? '' : 'Send again'); else leave(mine.box.contains(document.activeElement));
+    if (!why) refresh();
+  }
+
+  const isLink = ({ href }) => isText(href) && href.length <= 2048 && /^(https?|mailto):/.test(href) && URL.canParse(href);
+  function offer(to) {
+    if (to.origin === location.origin) to.search = '';
+    const done = () => strip('link', null);
+    strip('link', { text: to.href, acts: [guard(button('Open'), () => { open(to.href, '_blank', 'noopener,noreferrer'); done(); }), ['Dismiss', done]] });
+  }
+
+  /** A key of the page: pressed there only while the page has the focus, and done while it still has. */
+  function pressed(act) {
+    const there = () => document.activeElement === frame;
+    if (there()) bring('drawer', () => { if (there()) act(); });
+  }
+  const KEYS = new Map([
+    ['print', () => tell('print')],
+    ['notes', () => pressed(toggle)],
+    ['escape', () => pressed(() => { if (!drafted()) back(); })],
+  ]);
   const isHash = (h) => typeof h === 'string' && /^#[\w/=&.%-]{0,128}$/.test(h);
   // message type -> [whether its fields have their shape, what it does]
   const HANDLERS = new Map([
-    ['ready', [(m) => isHash(m.hash), () => { if (document.activeElement === document.body) frame.focus(); }]],
+    ['ready', [(m) => isHash(m.hash), () => { if (noting) tell('notes', { on: true }); if (document.activeElement === document.body) frame.focus(); }]],
     ['hash', [(m) => isHash(m.hash), (m) => history.replaceState(null, '', m.hash)]],
     ['pong', [(m) => Number.isInteger(m.n) && m.n > 0 && m.n <= pings, (m) => { expect(); say({ hung: false }); answered(m); }]],
     ['store', [isStore, keep]],
     ['pick', [(m) => place && isPick(m), report]],
-    ['key', [(m) => ['notes', 'escape', 'print'].includes(m.name), (m) => { if (m.name === 'print') tell('print'); }]],
+    ['anchor', [(m) => noting && isAnchor(m.anchor) && isContext(m.context), ({ anchor, context }) => bring('note', () => { if (noting && !note?.sending) compose(anchor && anchorOf(anchor), contextOf(context), $('notes')); })]],
+    ['context', [(m) => note?.asked && isContext(m.context), (m) => Object.assign(note, { context: contextOf(m.context), asked: false })]],
+    ['link', [isLink, ({ href }) => { if (drafted()) bring('link', () => offer(new URL(href))); }]],
+    ['key', [(m) => KEYS.has(m.name), (m) => KEYS.get(m.name)()]],
   ]);
   const acted = []; // when, the last 50
   function spare() {
@@ -343,13 +487,21 @@
     e.preventDefault();
     tell('print');
   });
+  addEventListener('keydown', (e) => {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN' && !/^(input|textarea|select)$/.test(e.target.localName)) {
+      e.preventDefault();
+      toggle();
+      $('notes').focus();
+    } else if (e.key === 'Escape' && !e.isComposing) back(); // one that ends an IME's composition drops no draft
+  });
   addEventListener('hashchange', () => show()); // typed into the address: the frame's own hash comes by replaceState, which tells no one
 
   async function check() {
     const c = await ask('/_checks').then((r) => (r.ok ? r.json() : null)).catch(() => null);
     if (!c) return;
-    $('chip').textContent = !c.checked ? 'Not checked' : `Checked, ${c.findings} ${c.findings === 1 ? 'problem' : 'problems'}${c.changed_since ? '; page changed since' : ''}`;
-    $('chip').className = !c.checked || c.changed_since ? '' : c.findings ? 'warn' : 'ok';
+    const textContent = !c.checked ? 'Not checked' : `Checked, ${c.findings} ${c.findings === 1 ? 'problem' : 'problems'}${c.changed_since ? '; page changed since' : ''}`;
+    const className = !c.checked || c.changed_since ? '' : c.findings ? 'warn' : 'ok';
+    for (const chip of chips) if (chip.textContent !== textContent) Object.assign(chip, { textContent, className });
   }
 
   const drafted = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim());
@@ -371,7 +523,7 @@
     document.title = $('title').textContent = at.title;
     unstash(at);
     build(at);
-    if (at.writable) check();
+    if (at.writable) refresh();
     if (!pruned) prune(at.project);
     pruned = true;
   }

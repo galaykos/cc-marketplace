@@ -1,5 +1,5 @@
-/* viewer.css — serve.py's /_viewer.css: the bar, strips and frame area of the viewer, in the reader's light or dark scheme.
-   Misses: no rules for the drawer.
+/* viewer.css — serve.py's /_viewer.css: the bar, strips, notes drawer and frame area of the viewer, in the reader's light or dark scheme.
+   Misses: no rules for the network list.
    Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.css */
 :root {
   color-scheme: light dark;
@@ -14,39 +14,53 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
-#bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
+body { display: grid; grid-template: "bar bar" auto "strips strips" auto "frame drawer" minmax(0, 1fr) / minmax(0, 1fr) auto; height: 100vh; height: 100dvh; margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+#bar { grid-area: bar; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
 #bar > * { flex: none; }
 a, button { padding: 4px 10px; border: 1px solid var(--edge); border-radius: 8px; font: inherit; font-weight: 600; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; }
 :is(a, button):hover { border-color: var(--accent); }
 .primary { color: var(--paper); background: var(--accent); border-color: var(--accent); }
 [aria-disabled="true"] { opacity: .6; cursor: default; }
-:is(a, button, p, ul):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:is(a, button, p, ul, textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #bar #title { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #network:not([hidden]), #network[hidden] + #notes { margin-inline-start: auto; }
-#chip { padding: 1px 8px; border: 1px solid var(--edge); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--soft); }
-#chip.ok { color: var(--ok-ink); background: var(--ok); border-color: var(--ok-edge); }
-#chip.warn { color: var(--warn-ink); background: var(--warn); border-color: var(--warn-edge); }
+#chip, #check, .st { padding: 1px 8px; border: 1px solid var(--edge); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--soft); }
+:is(#chip, #check, .st):is(.ok, .addressed) { color: var(--ok-ink); background: var(--ok); border-color: var(--ok-edge); }
+:is(#chip, #check, .st):is(.warn, .open) { color: var(--warn-ink); background: var(--warn); border-color: var(--warn-edge); }
 #chip:empty { display: none; }
 #strips > *, .stopped { padding: 8px 12px; border-inline-start: 3px solid var(--accent); background: var(--surface); overflow-wrap: anywhere; }
 /* A window too low for them scrolls the strips, not the viewer, which a page in the frame can scroll. */
-#strips { overflow: auto; }
+#strips { grid-area: strips; overflow: auto; }
 #strips > * { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
 #strips p { flex: 1; margin: 0; }
 #strips :is(ul, .why) { flex: none; width: 100%; }
 #strips ul { max-height: 40vh; margin: 0; padding-inline-start: 20px; overflow: auto; }
-#strips bdi { white-space: pre-wrap; }
-#strips code { padding: 0 4px; border: 1px solid var(--edge); border-radius: 4px; font-size: 11px; }
+bdi { white-space: pre-wrap; }
+code { padding: 0 4px; border: 1px solid var(--edge); border-radius: 4px; font-size: 11px; }
 #strips strong { padding: 1px 8px; border: 1px solid var(--warn-edge); border-radius: 999px; font-size: 12px; color: var(--warn-ink); background: var(--warn); }
 .why { color: var(--err); }
 .stopped { margin: 12px; border-inline-start-color: var(--err); }
 .stopped p { width: fit-content; margin: 0 0 8px; }
 .stopped div { display: flex; flex-wrap: wrap; gap: 8px; }
-#frame { flex: 1; min-height: 0; }
+#drawer { grid-area: drawer; width: 19rem; padding: 12px; border-inline-start: 1px solid var(--line); background: var(--surface); overflow: auto; overflow-wrap: anywhere; }
+#drawer h2 { margin: 0 0 8px; font-size: 14px; }
+#drawer p { margin: 8px 0; color: var(--soft); }
+#drawer .why { color: var(--err); }
+#drawer ul { margin: 8px 0 0; padding: 0; list-style: none; }
+#drawer li { padding: 8px 0; border-top: 1px solid var(--line); }
+#drawer .reply { color: var(--soft); }
+#drawer #check { display: none; width: fit-content; }
+#drawer label { font-weight: 600; }
+#drawer [role="group"] > div { display: flex; flex-wrap: wrap; gap: 8px; }
+textarea { display: block; width: 100%; min-height: 80px; margin-top: 4px; padding: 6px 8px; border: 1px solid var(--edge); border-radius: 8px; font: inherit; font-weight: 400; color: var(--ink); background: var(--paper); resize: vertical; }
+#frame { grid-area: frame; }
 /* Canvas, as for a page opened by itself: a frame is see-through where its page paints nothing. */
 #frame iframe { display: block; width: 100%; height: 100%; border: 0; background: Canvas; }
 @media (max-width: 600px) {
   #bar #title { flex: 1; }
+  body { grid-template: "bar" auto "strips" auto "drawer" auto "frame" minmax(0, 1fr) / minmax(0, 1fr); }
   #chip { display: none; }
+  #drawer { width: auto; max-height: 60vh; border-inline-start: 0; border-bottom: 1px solid var(--line); }
+  #drawer #check:not(:empty) { display: block; }
   #strips > * { flex-direction: column; align-items: flex-start; }
 }
