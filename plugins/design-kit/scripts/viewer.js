@@ -1,5 +1,5 @@
-// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
-// Misses: notes, picks, approvals and links; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with store messages slows the viewer too; a page drawing a bar of its own inside the frame.
+// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
+// Misses: notes, approvals and links; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.js
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -8,26 +8,65 @@
   const ask = (route, of = page) => fetch(about(route, of), { cache: 'no-store' });
   const make = (tag, text, more) => Object.assign(document.createElement(tag), { textContent: text }, more);
   const button = (label, act, more) => make('button', label, { type: 'button', onclick: () => act(), ...more });
+  const isObject = (o) => Object.prototype.toString.call(o) === '[object Object]';
+
+  // the time from which a press of a consent control counts
+  let actsFrom = 0, holds = 0;
+  function hold() {
+    const mine = ++holds;
+    actsFrom = Infinity;
+    requestAnimationFrame(() => setTimeout(() => { if (mine === holds) actsFrom = performance.now() + 600; })); // what changed is painted by then
+  }
+  /** Makes control one that records or grants: act runs on a click, Enter or Space made 600 ms or more after what the last hold() was for was painted. */
+  function guard(control, act) {
+    control.dataset.consent = '';
+    control.onclick = (e) => { if (e.timeStamp >= actsFrom && control.ariaDisabled !== 'true') act(); };
+    return control;
+  }
 
   const GONE = { text: 'This page was deleted' };
   const HUNG = { text: 'This page is not answering', acts: [['Reload page', show]] };
   const FULL = { text: 'Storage is full; changes to this page are not saved' };
   // in the order they are shown
   const STRIPS = ['page', 'server', 'storage', 'pick', 'blocked', 'link'];
-  /** Shows spec.text, and a button for each [label, act] of spec.acts, as the strip of this kind, or removes that strip when spec is null; the same words again are left alone, so they are announced once. */
+  /** Shows spec.text (a string or the nodes of a line), the elements of spec.more, and spec.acts (buttons, or a [label, act] for each) as the strip of this kind, or removes that strip when spec is null; the same again is left alone, so it is announced once. The focus stays on the control it was on, else on the strip's first button, else goes to the frame. */
   function strip(kind, spec) {
-    const all = [...$('strips').children], old = all.find((s) => s.dataset.kind === kind);
-    if (spec && old?.firstChild.textContent === spec.text) return;
-    const held = old?.contains(document.activeElement);
-    old?.remove();
+    const all = [...$('strips').children], old = all.find((s) => s.dataset.kind === kind), el = make('div');
     if (spec) {
-      const el = make('div');
       el.dataset.kind = kind;
-      el.append(make('p', spec.text), ...(spec.acts || []).map(([label, act]) => button(label, act)));
-      $('strips').insertBefore(el, all.find((s) => STRIPS.indexOf(s.dataset.kind) > STRIPS.indexOf(kind)) || null);
+      el.append(make('p'), ...(spec.more || []), ...(spec.acts || []).map((act) => (Array.isArray(act) ? button(...act) : act)));
+      el.firstChild.append(...[spec.text].flat());
+      if (old?.isEqualNode(el)) return;
     }
-    if (held) frame?.focus();
+    const held = old?.contains(document.activeElement) && document.activeElement;
+    old?.remove();
+    if (spec) $('strips').insertBefore(el, all.find((s) => STRIPS.indexOf(s.dataset.kind) > STRIPS.indexOf(kind)) || null);
+    const is = (s) => s.localName === held.localName && (s.localName === 'ul' || s.textContent === held.textContent);
+    if (held) ([...el.querySelectorAll('button, ul')].find(is) || el.querySelector('button') || frame)?.focus();
   }
+  let changed = -Infinity; // when the strips or the drawer last did
+  const due = new Map();
+  /** Draws what a page brought to the strip of this kind: while a consent control is there, no sooner than 1.5 s after the last change, so a page cannot keep it from acting. */
+  function bring(kind, draw) {
+    due.set(kind, draw);
+    settle();
+  }
+  function settle() {
+    if (!due.size || document.querySelector('[data-consent]') && performance.now() < changed + 1500) return;
+    for (const draw of due.values()) draw();
+    due.clear();
+  }
+  const seen = new MutationObserver(() => { changed = performance.now(); hold(); });
+  for (const id of ['strips', 'drawer']) seen.observe($(id), { attributes: true, characterData: true, childList: true, subtree: true });
+  for (const [on, type] of [[$('strips'), 'scroll'], [window, 'resize'], [document, 'visibilitychange'], [document, 'fullscreenchange']]) on.addEventListener(type, hold);
+  let away = false;
+  // not the focus event: the window gets one when the focus leaves the frame too, and none when it comes back with the focus in the frame
+  setInterval(() => {
+    const here = document.hasFocus();
+    if (away || !here) hold();
+    away = !here;
+    settle();
+  }, 100);
 
   let gone = false, hung = false;
   function say(now) {
@@ -80,7 +119,7 @@
       if (unsaved.size < 1000) unsaved.add(k); // a page may name any number
       tell('storefull', { k });
     }
-    strip('storage', unsaved.size ? FULL : null);
+    bring('storage', () => strip('storage', unsaved.size ? FULL : null));
   }
   /** Forgets what this project's deleted pages stored. */
   async function prune(project) {
@@ -149,6 +188,133 @@
     if (held) text.focus();
   });
 
+  // name -> its range, or its two values, and its words, as in picks.py
+  const KNOBS = {
+    space: [0, 64, (v) => `spacing base ${v}px`], radius: [0, 64, (v) => `corner radius ${v}px`], hue: [0, 360, (v) => `accent hue ${v}°`],
+    type: [0.5, 3, (v) => `type scale ×${v}`], density: [0.5, 3, (v) => `density ×${v}`], scheme: ['light', 'dark', (v) => `${v} scheme`],
+  };
+  // what serve.py's _hidden escapes: it draws nothing, or reorders the text around it
+  const HIDDEN = /([\p{C}\p{Zl}\p{Zp}\u{FE00}-\u{FE0F}\u{E0100}-\u{E01EF}\u{180B}-\u{180F}\u{115F}\u{1160}\u{3164}\u{FFA0}\u{2800}])/u;
+  const isPick = (m) => (m.picked === null || Number.isInteger(m.picked)) && isObject(m.knobs) && isObject(m.text);
+  /** [scope, its object] for the scopes named, then for the artboards 1 to 99 in order. */
+  const scopes = (of, ...named) => [...named.map((k) => [k, of[k]]), ...Object.entries(of).filter(([k]) => /^[1-9]\d?$/.test(k))].filter(([, v]) => isObject(v));
+  function knob([low, high], v) {
+    if (typeof low === 'string') return v === low || v === high ? v : undefined;
+    return typeof v === 'number' && !Number.isNaN(v) ? Math.min(high, Math.max(low, v)) : undefined;
+  }
+  // by code point, and a lone surrogate as "?", as Python counts and serve.py stores them
+  const cut = (s) => Array.from(s.slice(0, 1000)).slice(0, 500).join('').replace(/\p{Cs}/gu, '?');
+  /** The picked, knobs and text of a report as picks.py would store them: what is shown is what is sent. */
+  function clamp({ picked, knobs, text }) {
+    const shot = { picked: picked >= 1 && picked <= 99 ? picked : null, knobs: {}, text: {} };
+    for (const [scope, given] of scopes(knobs, 'all')) {
+      const own = Object.entries(KNOBS).map(([name, rule]) => [name, knob(rule, given[name])]).filter(([, v]) => v !== undefined);
+      if (own.length) shot.knobs[scope] = Object.fromEntries(own);
+    }
+    let left = 100;
+    for (const [scope, given] of scopes(text)) {
+      for (const [path, edit] of Object.entries(given)) {
+        if (!left || !/^[a-z0-9:/-]{1,200}$/.test(path) || !isObject(edit) || typeof edit.was !== 'string' || typeof edit.now !== 'string') continue;
+        (shot.text[scope] ||= {})[path] = { was: cut(edit.was), now: cut(edit.now) };
+        left--;
+      }
+    }
+    return shot;
+  }
+  /** A line for each knob value and each text edit, as the parts of a list item. */
+  function lines({ knobs, text }) {
+    const named = (scope) => (scope === 'all' ? 'All artboards' : 'Artboard ' + scope);
+    const drawn = (s) => {
+      const bdi = make('bdi');
+      bdi.append(...s.split(HIDDEN).map((part, i) => (i % 2 ? make('code', 'U+' + part.codePointAt(0).toString(16).toUpperCase()) : part)));
+      return bdi;
+    };
+    return [
+      ...scopes(knobs, 'all').flatMap(([scope, own]) => Object.entries(own).map(([name, v]) => [`${named(scope)}: ${KNOBS[name][2](v)}`])),
+      ...scopes(text).flatMap(([scope, own]) => Object.entries(own).map(([path, { was, now }]) => [`${named(scope)} text, ${path}: “`, drawn(was), '” → “', drawn(now), '”'])),
+    ];
+  }
+  function list(label, items) {
+    const ul = make('ul', null, { tabIndex: 0 }); // it scrolls
+    ul.setAttribute('aria-label', label);
+    for (const parts of items) {
+      const li = make('li');
+      li.append(...parts);
+      ul.append(li);
+    }
+    return ul;
+  }
+
+  const REFUSALS = [400, 403, 413, 507];
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const newCid = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('');
+  // sessionStorage's name for this page's pick, '' where none can be sent; the pick on screen, { shot, cid, updated, sending, why, refused }; the one reported since, { shot, updated }
+  let place = '', pick = null, newer = null;
+  function stash() {
+    const { shot, cid } = newer && !same(newer.shot, pick?.shot) ? newer : pick || {};
+    try {
+      if (shot) sessionStorage.setItem(place, JSON.stringify({ cid, ...shot })); else sessionStorage.removeItem(place);
+    } catch (e) { /* this browser keeps no site data: the strip lasts as long as this viewer */ }
+  }
+  /** Brings back the pick this tab has not sent, the first time, and once another project is served here. */
+  function unstash(at) {
+    const now = at.writable && page.startsWith('boards/') ? `dk-pick:${at.project}:${page}` : '';
+    if (now === place) return;
+    place = now;
+    pick = newer = null;
+    try {
+      const { cid, ...shot } = JSON.parse(sessionStorage.getItem(place));
+      if (isPick(shot)) pick = { shot: clamp(shot), cid: /^[0-9a-f]{16}$/.test(cid) ? cid : newCid() };
+    } catch (e) { /* none */ }
+    drawPick();
+  }
+  function report(m) {
+    const shot = clamp(m);
+    newer = { shot, updated: !!pick && (pick.updated || !same(shot, pick.shot)) };
+    stash();
+    bring('pick', present);
+  }
+  function present() {
+    if (!newer || pick?.sending) return;
+    pick = { cid: same(newer.shot, pick?.shot) ? pick.cid : newCid(), ...newer };
+    newer = null;
+    stash();
+    drawPick();
+  }
+  function drawPick() {
+    if (!pick) return strip('pick', null);
+    const changes = lines(pick.shot), said = pick.shot.picked ? `Artboard ${pick.shot.picked} picked` : changes.length ? 'Changes, no artboard picked' : 'Pick cleared';
+    strip('pick', {
+      text: pick.updated ? [said + ' ', make('strong', 'Updated')] : said,
+      more: [...(changes.length ? [list('Changes', changes)] : []), ...(pick.why ? [make('p', pick.why, { className: 'why' })] : [])],
+      acts: [...(pick.refused ? [] : [guard(button(pick.why ? 'Send again' : 'Send pick', null, { className: 'primary' }), send)]), guard(button('Discard'), discard)],
+    });
+  }
+  function discard() {
+    pick = null;
+    stash();
+    drawPick();
+  }
+  async function send() {
+    const mine = pick;
+    mine.sending = true;
+    // not disabled, which would take the focus off it
+    for (const one of document.querySelectorAll('[data-kind="pick"] [data-consent]')) one.ariaDisabled = 'true';
+    const body = JSON.stringify({ cid: mine.cid, board: page.split('/').pop(), ...mine.shot });
+    let why = 'The preview server did not answer', refused = false;
+    try {
+      const r = await fetch('/_decision', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Design-Kit-Decision': '1' }, body, signal: AbortSignal.timeout(10000) });
+      const said = await r.json().catch(() => null);
+      why = r.ok && said?.recorded === true ? '' : 'Not recorded: ' + (said?.error || 'the server answered ' + r.status);
+      refused = REFUSALS.includes(r.status);
+    } catch (e) { /* no answer */ }
+    if (mine !== pick) return;
+    pick = why ? { ...mine, sending: false, why, refused } : null;
+    stash();
+    drawPick();
+    bring('pick', present);
+  }
+
   const isHash = (h) => typeof h === 'string' && /^#[\w/=&.%-]{0,128}$/.test(h);
   // message type -> [whether its fields have their shape, what it does]
   const HANDLERS = new Map([
@@ -156,6 +322,7 @@
     ['hash', [(m) => isHash(m.hash), (m) => history.replaceState(null, '', m.hash)]],
     ['pong', [(m) => Number.isInteger(m.n) && m.n > 0 && m.n <= pings, (m) => { expect(); say({ hung: false }); answered(m); }]],
     ['store', [isStore, keep]],
+    ['pick', [(m) => place && isPick(m), report]],
     ['key', [(m) => ['notes', 'escape', 'print'].includes(m.name), (m) => { if (m.name === 'print') tell('print'); }]],
   ]);
   const acted = []; // when, the last 50
@@ -202,6 +369,7 @@
     if (mine !== turn) return;
     if (String(at.version) !== version && !drafted()) return location.reload();
     document.title = $('title').textContent = at.title;
+    unstash(at);
     build(at);
     if (at.writable) check();
     if (!pruned) prune(at.project);

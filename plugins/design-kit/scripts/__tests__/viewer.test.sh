@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium.
+# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
+# Misses: a hostile page (attack.test.sh), a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus (document.hasFocus is faked).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -9,7 +9,7 @@ unset DESIGN_KIT_PORT
 
 rc=0
 python3 - "$here" "$tmp/dk" <<'PY' || rc=$?
-import base64, http.server, io, json, os, re, socket, struct, subprocess, sys, threading, time, wave, zlib
+import base64, http.server, io, json, os, re, signal, socket, struct, subprocess, sys, threading, time, wave, zlib
 from urllib.parse import quote, unquote
 
 here, ROOT = sys.argv[1:3]
@@ -85,9 +85,10 @@ def built(script, name, spec):
         fh.write(spec)
     subprocess.run([sys.executable, os.path.join(here, script), src, "--out", os.path.join(ROOT, name)], cwd=os.path.dirname(ROOT), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-DECK, PICKS = "decks/slides.html", "boards/my, picks.html"
+DECK, PICKS, OLD = "decks/slides.html", "boards/my, picks.html", "boards/old.html"
 built("deck-build.py", DECK, "# Review\n\n## One\n\n- a\n\n## Two\n\n- b\n\n## Three\n\n- c\n")
-built("board-build.py", PICKS, json.dumps({"title": "Checkout", "brief": "errors", "device": "phone", "boards": [{"title": t, "tradeoff": "wide", "body": "<h1>%s</h1>" % t} for t in ("One", "Two")]}))
+for board in (PICKS, OLD):
+    built("board-build.py", board, json.dumps({"title": "Checkout", "brief": "errors", "device": "phone", "boards": [{"title": t, "tradeoff": "wide", "body": "<h1>%s</h1>" % t} for t in ("One", "Two")]}))
 
 SERVE = "import importlib.util, sys; s = importlib.util.spec_from_file_location('dkserve', sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); m.SERVER_VERSION += int(sys.argv[2]); sys.exit(m.main(sys.argv[3:]))"
 
@@ -595,6 +596,392 @@ def gallery(b):
     tab.evaluate("document.querySelector('a.card[href^=\"/motion/a\"]').click(); 1")
     eq("a card opens its page in the viewer", lambda: (tab.wait("document.body.dataset.page", 8), tab.frame().evaluate(H1))[0], OWN + "index.html")
 
+def recorded():
+    try:
+        with open(os.path.join(ROOT, "decisions.jsonl"), encoding="utf-8") as fh:
+            return [json.loads(line) for line in fh]
+    except FileNotFoundError:
+        return []
+
+def chosen():
+    return [[r["board"], r["picked"], r["knobs"], r["text"]] for r in recorded()]
+
+def forget():
+    if recorded():
+        os.unlink(os.path.join(ROOT, "decisions.jsonl"))
+
+PICK = "#strips [data-kind=pick]"
+SEND, DISCARD = PICK + " button.primary", PICK + " button:last-child"
+THERE, GONE = "!!document.querySelector('%s')" % PICK, "!document.querySelector('%s')" % PICK
+PARTS = "[...document.querySelectorAll('%s > *')].map((e) => [e.localName, e.textContent])" % PICK
+ROWS = "[...document.querySelectorAll('%s li')].map((e) => e.textContent)" % PICK
+HEAD = "(document.querySelector('%s p') || { textContent: '' }).textContent" % PICK
+KEPT = "Object.keys(sessionStorage).filter((k) => k.startsWith('dk-pick:')).map((k) => k.split(':')[2])"
+ACTS, PACE = 0.9, 1.7  # s: past the 600 ms in which Send pick and Discard do nothing, and past the 1.5 s in which a page cannot change the strips again
+
+def says(f, picked=None, knobs=None, text=None, **more):
+    """The page reports a pick."""
+    f.evaluate("parent." + POST % json.dumps(dict({"dk": 1, "t": "pick", "picked": picked, "knobs": knobs or {}, "text": text or {}}, **more)) + "1")
+
+def offered(tab, f, *args, **more):
+    """The page reports a pick; its strip is there and can be acted on."""
+    says(f, *args, **more)
+    if not tab.wait(THERE, 4):
+        raise TimeoutError("no pick strip")
+    time.sleep(ACTS)
+
+def press(tab, selector, how="click"):
+    if how == "click":
+        return tab.click(*tab.at(selector))
+    tab.evaluate("document.querySelector(%s).focus(); 1" % json.dumps(selector))
+    tab.key(how)
+
+def toggle(tab, f, times=1):
+    """Clicks on the first artboard's Pick this, near enough to each other for the board to report them once, after it has fitted itself to the height a strip left."""
+    f.wait("innerHeight === %d" % tab.evaluate("document.querySelector('iframe').clientHeight"))
+    f.evaluate(browser_lib.check.SETTLE_JS)
+    for _ in range(times):
+        tab.click(*f.at('[data-act="pick"]'))
+
+def picks(b):
+    forget()
+    saved = {"knobs": {"all": {"space": 12}}, "text": {}, "picked": None}
+    tab = visit(b, server.url + "/" + BOARD)
+    tab.evaluate("localStorage.setItem('design-kit:/%s', %s); 1" % (OLD, json.dumps(json.dumps(saved))))
+    b.chrome.call("Page.navigate", {"url": server.url + "/" + OLD}, tab.sid)
+    tab.wait("document.body.dataset.page === '%s'" % OLD)
+    f = tab.frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    time.sleep(0.8)
+    eq("a board of 0.19.3 keeps its saved knobs, and saved state alone shows no strip", lambda: [f.evaluate("window.designKit.state()"), tab.evaluate(STRIPS)], [saved, []])
+    f.evaluate("window.toasts = []; new MutationObserver(() => toasts.push(document.querySelector('#dk-toast').textContent)).observe(document.querySelector('#dk-toast'), { childList: true }); 1")
+    toggle(tab, f)
+    want = [["p", "Artboard 1 picked"], ["ul", "All artboards: spacing base 12px"], ["button", "Send pick"], ["button", "Discard"]]
+    eq("Pick shows the strip and writes no row", lambda: [tab.wait(HEAD, 3), tab.evaluate(PARTS), recorded()][1:], [want, []])
+    eq("old board shows no Recorded before Send", lambda: [time.sleep(0.4), tab.evaluate(HEAD), f.evaluate("toasts")][1:], ["Artboard 1 picked", ["Picked One"]])
+    eq("the strip takes no focus", lambda: tab.evaluate(FOCUS), "iframe")
+    with open(os.path.join(ROOT, OLD), encoding="utf-8") as fh:
+        board = fh.read()
+    for what, happen in (("a frame reload", lambda: reframed(tab, lambda: put(OLD, board))), ("a tab reload", lambda: again(b, tab).frame()), ("a server restart", lambda: reframed(tab, lambda: (server.stop(), server.start())))):
+        eq("an unsent strip survives " + what, lambda: [happen(), time.sleep(0.2), tab.evaluate(PARTS), recorded()][2:], [want, []])
+    b.chrome.call("Page.navigate", {"url": server.url + "/decks/fixture.html"}, tab.sid)
+    tab.wait("document.body.dataset.page === 'decks/fixture.html'")
+    tab.frame()
+    away = tab.evaluate(STRIPS)
+    tab.evaluate("history.back(); 1")
+    eq("a link away does not show it, and one back does again", lambda: [away, tab.wait("document.body.dataset.page === '%s' && %s" % (OLD, THERE)), tab.evaluate(PARTS)], [[], True, want])
+    f = tab.frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    time.sleep(ACTS)
+    tab.click(*f.at(".dk-help"))
+    press(tab, SEND)
+    row = ["old.html", 1, {"all": {"space": 12}}, {}]
+    eq("Send pick writes exactly one row, at the first click that comes from the page", lambda: [tab.wait(GONE), time.sleep(0.2), chosen(), tab.evaluate(KEPT)][2:], [[row], []])
+    eq("which a session reads as the user's", lambda: [m.picks.pick_line(r, m._clean, m._hidden)["confirmed"] for r in recorded()], [True])
+    f = again(b, tab).frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    eq("a recorded pick does not come back", lambda: [time.sleep(0.3), tab.evaluate(STRIPS)][1], [])
+    toggle(tab, f, 2)
+    eq("picking the same artboard again after a Send shows the strip again", lambda: [tab.wait(HEAD, 3), tab.evaluate(PARTS)][1], want)
+    time.sleep(ACTS)
+    press(tab, DISCARD)
+    eq("Discard takes it away and writes nothing", lambda: [tab.wait(GONE), tab.evaluate(KEPT), chosen()], [True, [], [row]])
+    toggle(tab, f, 2)
+    eq("and after a Discard", lambda: [tab.wait(HEAD, 3), tab.evaluate(PARTS)][1], want)
+    toggle(tab, f)
+    eq("a null pick reads Changes, no artboard picked", lambda: [tab.wait(HEAD + ".startsWith('Changes')", 4), tab.evaluate(HEAD)][1], "Changes, no artboard picked Updated")
+    f.evaluate("document.querySelector('[data-act=\"reset-all\"]').click(); 1")
+    eq("a cleared one Pick cleared", lambda: [tab.wait(HEAD + ".startsWith('Pick')", 4), tab.evaluate(PARTS)][1], [["p", "Pick cleared Updated"], ["button", "Send pick"], ["button", "Discard"]])
+
+    tab = visit(b, server.url + "/decks/fixture.html")
+    says(tab.frame(), 1, {"all": {"space": 12}})
+    eq("a pick from a page outside boards/ shows no strip", lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (STRIPS, KEPT))][1], [[], []])
+    forget()
+    tab = visit(b, server.url + "/" + BOARD)
+    f = tab.frame()
+    for wrong in ("picked: 1", "picked: '1', knobs: {}, text: {}", "picked: 1, knobs: [], text: {}", "picked: 1, knobs: {}, text: null", "picked: 1.5, knobs: {}, text: {}"):
+        f.evaluate("parent." + POST % ("{ dk: 1, t: 'pick', %s }" % wrong) + "1")
+    eq("nor does a report of another shape", lambda: [time.sleep(0.3), tab.evaluate(STRIPS)][1], [])
+    offered(tab, f, 2, board="other.html", cid="0" * 16, prompt="do this")
+    press(tab, SEND)
+    eq("a message naming another board is filed under the viewer's page", lambda: [tab.wait(GONE), chosen(), [r["cid"] == "0" * 16 or "do this" in r["prompt"] for r in recorded()]][1:], [[["fixture.html", 2, {}, {}]], [False]])
+    other = "boards/deep/other.html"
+    page(other)
+    tab = visit(b, server.url + "/" + BOARD)
+    offered(tab, tab.frame(), 3)
+    b.chrome.call("Page.navigate", {"url": server.url + "/" + other}, tab.sid)
+    tab.wait("document.body.dataset.page === '%s'" % other)
+    offered(tab, tab.frame(), 4)
+    press(tab, SEND)
+    eq("another board has a strip of its own, and leaves this one's", lambda: [tab.wait(GONE), chosen()[1:], tab.evaluate(KEPT)][1:], [[["other.html", 4, {}, {}]], [BOARD]])
+    os.unlink(os.path.join(ROOT, other))
+    second, both = os.path.join(os.path.dirname(ROOT), "second"), "boards/both.html"
+    page(both)
+    os.makedirs(os.path.join(second, "boards"), exist_ok=True)
+    with open(os.path.join(second, both), "w") as fh:
+        fh.write("<h1>second</h1>")
+    tab = visit(b, server.url + "/" + both)
+    offered(tab, tab.frame(), 5)
+    try:
+        eq("another docroot on the same port is not offered it", lambda: [reframed(tab, lambda: (server.stop(), server.start(root=second))).evaluate(H1), tab.evaluate(STRIPS)], ["second", []])
+    finally:
+        eq("and it is back with its own", lambda: [reframed(tab, lambda: (server.stop(), server.start())) and tab.evaluate(HEAD)], ["Artboard 5 picked"])
+
+def values(b):
+    forget()
+    rlo, markup = chr(0x202e), "<img src=x onerror=alert(1)>"
+    raw = {"picked": 2,
+           "knobs": {"all": {"space": 99, "radius": -3, "hue": 361.5, "type": 0.1, "density": 1.2345, "scheme": "dark", "zoom": 2}, "3": {}, "2": {"scheme": "blue", "space": "12", "radius": True}, "1": {"type": 1.05, "hue": 7}, "100": {"space": 1}, "x": {"space": 1}},
+           "text": {"2": {"h1:0": {"was": "One", "now": ""}, "H1": {"was": "a", "now": "b"}, "p:1": {"was": "x"}}, "1": {"h1:0/a:2": {"was": markup, "now": "y" * 600}, "p:0": {"was": chr(0x1f600) * 501, "now": "a" + chr(0xd800) + "b" + rlo + "c"}, "constructor": {"was": "q", "now": "r"}}, "7": {}, "all": {"p:9": {"was": "a", "now": "b"}}}}
+    tab = visit(b, server.url + "/" + BOARD)
+    tab.evaluate("window.posted = []; { const real = fetch; window.fetch = (at, init) => { if (init && init.body) posted.push(JSON.parse(init.body)); return real(at, init); }; } 1")
+    f = tab.frame()
+    f.evaluate("parent." + POST % "{ dk: 1, t: 'pick', picked: 100, knobs: { all: { space: NaN, radius: Infinity, hue: -0 } }, text: {} }" + "1")
+    eq("an artboard past 99 is none, a number that is none is dropped, one past a bound is moved to it", lambda: [tab.wait(HEAD), tab.evaluate("[%s, %s]" % (HEAD, ROWS))][1], ["Changes, no artboard picked", ["All artboards: corner radius 64px", "All artboards: accent hue 0°"]])
+    time.sleep(PACE)
+    says(f, **raw)
+    tab.wait(HEAD + ".includes('Updated')", 3)
+    stored = m.picks.clean_pick(dict(raw, board="fixture.html"), m._clean, m._hidden)[0]
+    shown = tab.evaluate(ROWS)
+    time.sleep(ACTS)
+    press(tab, SEND)
+    tab.wait(GONE)
+    eq("the viewer clamps a pick as picks.py does", chosen, [[stored[k] for k in ("board", "picked", "knobs", "text")]])
+    eq("and posts what it clamped", lambda: [{k: v for k, v in one.items() if k != "cid"} for one in tab.evaluate("posted")], [stored])
+    knobs = [m.picks._words({name: v}) for own in stored["knobs"].values() for name, v in own.items() if name != "density"]
+    texts = [t.replace(rlo, "U+202E") for edits in stored["text"].values() for path, e in edits.items() for t in (path, e["was"], e["now"])]
+    eq("every value sent is in the strip's text, a character that draws nothing as its number", lambda: [t for t in knobs + texts if t not in "\n".join(shown)], [])
+    eq("each knob is under its scope, by picks.py's words, each edit as was → now", lambda: [one for one in shown if len(one) < 60],
+       ["All artboards: " + w for w in ("spacing base 64px", "corner radius 0px", "accent hue 360°", "type scale ×0.5", "density ×1.2345", "dark scheme")]
+       + ["Artboard 1: accent hue 7°", "Artboard 1: type scale ×1.05", "Artboard 1 text, constructor: “q” → “r”", "Artboard 2 text, h1:0: “One” → “”"])
+    offered(tab, f, 1, {}, {str(n): {"p:%d" % i: {"was": "w", "now": "n"} for i in range(40)} for n in (3, 2, 1)})
+    eq("of 120 edits the first 100 are sent, lowest artboard first", lambda: [len(tab.evaluate(ROWS))] + [sum("Artboard %d" % n in one for one in tab.evaluate(ROWS)) for n in (1, 2, 3)], [100, 40, 40, 20])
+    press(tab, DISCARD)
+    tab.wait(GONE)
+    letters = chr(0x5d0) + chr(0x5d1)
+    says(f, 1, {}, {"1": {"p:0": {"was": letters, "now": markup}}})
+    eq("a text edit holding markup shows as text, and neither text reorders the other", lambda: [tab.wait(HEAD), tab.evaluate("[%s, [...document.querySelectorAll('%s li *')].map((e) => [e.localName, getComputedStyle(e).unicodeBidi])]" % (ROWS, PICK))][1], [["Artboard 1 text, p:0: “%s” → “%s”" % (letters, markup)], [["bdi", "isolate"]] * 2])
+
+BOXES = """(() => { const at = (s) => document.querySelector(s).getBoundingClientRect(), bg = (s) => getComputedStyle(document.querySelector(s)).backgroundColor, send = at('SEND'), discard = at('DISCARD');
+  return { primary: [bg('SEND'), bg('DISCARD') !== bg('SEND')], under: send.top >= at('PICK ul').bottom, stacked: send.bottom <= discard.top, tall: send.height >= 24, frame: [at('iframe').top - at('#strips').bottom, at('iframe').bottom], wide: [document.documentElement.scrollWidth, document.querySelector('#strips').scrollWidth <= innerWidth] }; })()""".replace("SEND", SEND).replace("DISCARD", DISCARD).replace("PICK", PICK)
+
+def looks(b):
+    edits = {"1": {"p:%d" % i: {"was": "was %d" % i, "now": "now %d" % i} for i in range(60)}}
+    for w in (1280, 375):
+        tab = visit(b, server.url + "/" + BOARD, w)
+        offered(tab, tab.frame(), 2, {}, edits)
+        eq("40vh list scrolls inside the strip, at %d px" % w, lambda: tab.evaluate("(() => { const u = document.querySelector('%s ul'), r = u.getBoundingClientRect(), s = u.parentElement.getBoundingClientRect(); return [u.children.length, r.height, u.scrollHeight > 2 * u.clientHeight, r.top >= s.top && r.bottom <= s.bottom]; })()" % PICK), [60, 320, True, True])
+        tab.evaluate("document.querySelector('%s ul').focus(); 1" % PICK)
+        tab.key("End")
+        eq("with the keyboard too, at %d px" % w, lambda: tab.wait("document.querySelector('%s ul').scrollTop > 100" % PICK), True)
+        eq("Send pick is the primary button, both under the list, stacked when narrow, the frame under them, nothing sideways, at %d px" % w, lambda: tab.evaluate(BOXES),
+           {"primary": ["rgb(37, 99, 235)", True], "under": True, "stacked": w == 375, "tall": True, "frame": [0, 800], "wide": [w, True]})
+    tab = visit(b, server.url + "/" + BOARD, 1280, 160)
+    f = tab.frame()
+    offered(tab, f, 2, {}, edits)
+    f.evaluate("document.body.append(Object.assign(document.createElement('p'), { id: 'low', style: 'margin-top: 3000px' })); document.querySelector('#low').scrollIntoView(); 1")
+    eq("a page cannot scroll the strips away, however low the window", lambda: [time.sleep(0.3), tab.evaluate("[scrollY, document.documentElement.scrollHeight]"), f.evaluate("scrollY > 1000")][1:], [[0, 160], True])
+
+def once(b):
+    forget()
+    paused, keep = [], b.chrome.keep
+    b.chrome.keep = lambda e: paused.append(e["params"]["requestId"]) if e["method"] == "Fetch.requestPaused" else keep(e)
+    tab = visit(b, server.url + "/" + BOARD)
+    f = tab.frame()
+    numbers = lambda: [r["picked"] for r in recorded()]
+    again_there = "(document.querySelector('%s') || {}).textContent === 'Send again'" % SEND
+    def caught(stage, how, method, meanwhile=lambda: None, **params):
+        """Send pick pressed, its POST held before it leaves (Request) or before its answer arrives (Response), then let go by a Fetch command."""
+        b.chrome.call("Fetch.enable", {"patterns": [{"urlPattern": "*/_decision", "requestStage": stage}]}, tab.sid)
+        press(tab, SEND, how)
+        until = time.monotonic() + 3
+        while not paused and time.monotonic() < until:
+            tab.evaluate("new Promise((r) => setTimeout(r, 30))")
+        meanwhile()
+        b.chrome.call("Fetch." + method, dict(params, requestId=paused.pop()), tab.sid)
+        b.chrome.call("Fetch.disable", {}, tab.sid)
+    def lost(how="click"):
+        caught("Response", how, "failRequest", errorReason="ConnectionReset")
+        tab.wait(again_there)
+    try:
+        offered(tab, f, 1)
+        x, y = tab.at(SEND)
+        for n in (1, 2):
+            for kind in ("mousePressed", "mouseReleased"):
+                b.chrome.call("Input.dispatchMouseEvent", {"type": kind, "x": x, "y": y, "button": "left", "clickCount": n}, tab.sid)
+        eq("double click on Send pick writes one row", lambda: [tab.wait(GONE), time.sleep(0.3), chosen()][2], [["fixture.html", 1, {}, {}]])
+        def meanwhile():
+            says(f, 3)
+            time.sleep(2)
+            for control in (SEND, DISCARD):
+                press(tab, control)
+            eq("while a POST is pending its buttons are disabled, its content stays and a press does nothing", lambda: tab.evaluate("[[...document.querySelectorAll('%s button')].map((b) => b.ariaDisabled), %s]" % (PICK, HEAD)), [["true", "true"], "Artboard 2 picked"])
+        offered(tab, f, 2)
+        caught("Request", "Enter", "continueRequest", meanwhile)
+        eq("then what was on screen is the row, and the newer report is the strip", lambda: [tab.wait(HEAD + " === 'Artboard 3 picked Updated'"), numbers(), len(paused)], [True, [1, 2], 0])
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("one row for each Send", lambda: [tab.wait(GONE), numbers()][1], [1, 2, 3])
+        offered(tab, f, 4, {"all": {"hue": 10}})
+        lost("Enter")
+        eq("a lost answer shows Send again, which has the focus; the row is there", lambda: [tab.evaluate("[%s, document.activeElement.textContent]" % PARTS), numbers()],
+           [[[["p", "Artboard 4 picked"], ["ul", "All artboards: accent hue 10°"], ["p", "The preview server did not answer"], ["button", "Send again"], ["button", "Discard"]], "Send again"], [1, 2, 3, 4]])
+        time.sleep(ACTS)
+        press(tab, SEND, " ")
+        eq("a retry after a lost answer writes no second row", lambda: [tab.wait(GONE), numbers()], [True, [1, 2, 3, 4]])
+        eq("a strip that leaves with the focus gives it to the page", lambda: tab.evaluate(FOCUS), "iframe")
+        offered(tab, f, 5)
+        lost()
+        f = again(b, tab).frame()
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("nor one after a tab reload", lambda: [tab.wait(GONE), numbers()], [True, [1, 2, 3, 4, 5]])
+        offered(tab, f, 6)
+        lost()
+        time.sleep(PACE)
+        says(f, 7)
+        eq("a change made after a lost answer takes its place", lambda: [tab.wait(HEAD + ".startsWith('Artboard 7')"), tab.evaluate(PARTS)][1], [["p", "Artboard 7 picked Updated"], ["button", "Send pick"], ["button", "Discard"]])
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("and is sent as a second row", lambda: [tab.wait(GONE), numbers(), len({r["cid"] for r in recorded()})][1:], [[1, 2, 3, 4, 5, 6, 7], 7])
+        offered(tab, f, 7)
+        press(tab, SEND)
+        eq("and the same pick sent anew as one more", lambda: [tab.wait(GONE), numbers()][1], [1, 2, 3, 4, 5, 6, 7, 7])
+        forget()
+        offered(tab, f, 1)
+        server.stop()
+        tab.wait(STRIPS + ".length === 2", 8)
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("with no server, the reason and Send again", lambda: [tab.wait(again_there), tab.evaluate(PARTS)][1][1:3], [["p", "The preview server did not answer"], ["button", "Send again"]])
+        server.start()
+        tab.wait(STRIPS + ".length === 1", 12)
+        f = tab.frame()
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("which sends it once there is one", lambda: [tab.wait(GONE), numbers()][1], [1])
+        tab.evaluate("{ const real = AbortSignal.timeout; AbortSignal.timeout = (ms) => real.call(AbortSignal, ms / 20); } 1")
+        offered(tab, f, 2)
+        os.kill(server.proc.pid, signal.SIGSTOP)
+        press(tab, SEND)
+        eq("a server that says nothing for 10 s, 20 times as short here, is one that did not answer", lambda: [tab.wait(again_there), tab.evaluate(PARTS)[1]], [True, ["p", "The preview server did not answer"]])
+        os.kill(server.proc.pid, signal.SIGCONT)
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("and what it had taken is not sent twice", lambda: [tab.wait(GONE), time.sleep(0.3), numbers()][2], [1, 2])
+        forget()
+        for status, body, why in ((400, b'{"recorded": false, "error": "the reason"}', "the reason"), (403, b"<h1>no</h1>", "the server answered 403"), (413, b'{"error": "the reason"}', "the reason"), (507, b'{"error": "the reason"}', "the reason"),
+                                  (500, b'{"error": "the reason"}', "the reason"), (200, b"null", "the server answered 200")):
+            offered(tab, f, 2)
+            caught("Request", "click", "fulfillRequest", responseCode=status, body=base64.b64encode(body).decode())
+            retry = [["button", "Send again"]] if status in (500, 200) else []
+            eq("%d shows the reason and %s" % (status, "Send again" if retry else "no Send again"), lambda: [tab.wait("document.querySelectorAll('%s p').length === 2" % PICK), tab.evaluate(PARTS)][1], [["p", "Artboard 2 picked"], ["p", "Not recorded: " + why]] + retry + [["button", "Discard"]])
+            if status == 507:
+                time.sleep(PACE)
+                says(f, 2)
+                eq("the same pick reported again after a refusal can be sent again", lambda: [tab.wait("!!document.querySelector('%s')" % SEND), tab.evaluate(PARTS)][1], [["p", "Artboard 2 picked"], ["button", "Send pick"], ["button", "Discard"]])
+            time.sleep(ACTS)
+            press(tab, DISCARD)
+            tab.wait(GONE)
+        offered(tab, f, 3, {}, {"1": {"p:%d" % i: {"was": "x" * 500, "now": "y" * 500} for i in range(80)}})
+        press(tab, SEND)
+        eq("the server's own refusal of a pick past 64 KiB is shown", lambda: [tab.wait("!!document.querySelector('%s .why')" % PICK), tab.evaluate("[document.querySelector('%s .why').textContent, !!document.querySelector('%s')]" % (PICK, SEND)), numbers()][1:], [["Not recorded: body must be 1..65536 bytes", False], []])
+    finally:
+        b.chrome.keep = keep
+
+# when the strips last changed, and how long after it each press of one of their buttons was made
+TIMES = "window.drawn = 0; window.pressed = []; new MutationObserver(() => { drawn = performance.now(); }).observe(document.querySelector('#strips'), { childList: true, subtree: true, attributes: true }); document.querySelector('#strips').addEventListener('click', (e) => { if (e.target.localName === 'button') pressed.push(e.timeStamp - drawn); }, true); 1"
+EARLY_SEND = {"click": "click 300 ms after a strip appears writes none", "Enter": "Enter inside the window sends nothing", " ": "Space inside the window sends nothing"}
+
+def consent(b):
+    forget()
+    tab = visit(b, server.url + "/" + BOARD)
+    tab.evaluate(TIMES)
+    f = tab.frame()
+    metrics = lambda w: b.chrome.call("Emulation.setDeviceMetricsOverride", {"width": w, "height": 800, "deviceScaleFactor": 1, "mobile": False}, tab.sid)
+    for how, said in EARLY_SEND.items():
+        for control, name in ((DISCARD, "Discard"), (SEND, "Send pick")):
+            says(f, 1)
+            tab.wait(THERE, 4)
+            time.sleep(0.2)
+            tab.evaluate("pressed.length = 0")
+            press(tab, control, how)
+            time.sleep(0.15)
+            eq(said if control == SEND else "nor does Discard act on it: " + said.split(" ")[0], lambda: [tab.evaluate("[pressed.length, pressed[0] < 600, %s]" % THERE), recorded()], [[1, True, True], []])
+            time.sleep(0.6)
+            press(tab, control, how)
+            eq("%s acts after it: %s" % (name, said.split(" ")[0]), lambda: [tab.wait(GONE), time.sleep(0.1), len(recorded())][2], int(control == SEND))
+            forget()
+
+    said = lambda n, word: (f, 1, {"all": {"space": n}}, {"1": {"h1:0": {"was": "One", "now": word}}})
+    says(*said(8, "Uno"))
+    tab.wait(THERE)
+    time.sleep(PACE)
+    tab.evaluate("document.querySelector('%s').focus(); pressed.length = 0; 1" % DISCARD)
+    says(*said(9, "Eins"))
+    eq("a same-count swap shows Updated, and the focus stays on its button", lambda: [tab.wait(HEAD + ".includes('Updated')"), tab.evaluate("[%s, %s, document.activeElement.textContent]" % (HEAD, ROWS))][1], ["Artboard 1 picked Updated", ["All artboards: spacing base 9px", "Artboard 1 text, h1:0: “One” → “Eins”"], "Discard"])
+    press(tab, SEND)
+    eq("it is not sent before it was drawn for 600 ms", lambda: [time.sleep(0.2), tab.evaluate("pressed[0] < 600"), recorded()][1:], [True, []])
+    time.sleep(0.7)
+    press(tab, SEND)
+    eq("and is then", lambda: [tab.wait(GONE), [[r["knobs"]["all"]["space"], r["text"]["1"]["h1:0"]["now"]] for r in recorded()]][1], [[9, "Eins"]])
+
+    forget()
+    offered(tab, f, 1)
+    busy = "const from = performance.now(); while (performance.now() - from < 1000);"
+    for n, start, after, name in ((2, busy, 0.75, "a press made before a newer pick was painted does not send that one"), (3, "setTimeout(() => { %s }, 150)" % busy, 0.35, "nor one made 350 ms after, which the viewer gets to later")):
+        time.sleep(PACE - ACTS)
+        tab.evaluate("document.querySelector('%s').focus(); addEventListener('message', () => { %s }, { once: true }); 1" % (SEND, start))
+        says(f, n)
+        time.sleep(after)
+        tab.key("Enter")
+        eq(name, lambda: [tab.wait(HEAD + ".startsWith('Artboard %d')" % n), time.sleep(0.3), recorded()][2], [])
+        time.sleep(ACTS)
+
+    def unseen():
+        tab.evaluate("document.hasFocus = () => true; 1")  # so the tab's own change alone counts
+        other = b.page("about:blank")
+        b.chrome.call("Page.bringToFront", {}, tab.sid)
+        b.chrome.call("Page.close", {}, other.sid)
+        tab.wait("!document.hidden")
+        tab.evaluate("delete document.hasFocus; 1")
+    def elsewhere():
+        tab.evaluate("document.hasFocus = () => false; 1")
+        time.sleep(0.8)
+        tab.evaluate("delete document.hasFocus; 1")
+    def fullscreen():
+        b.chrome.call("Runtime.evaluate", {"expression": "document.documentElement.requestFullscreen()", "awaitPromise": True, "userGesture": True}, tab.sid)
+        time.sleep(0.8)
+        tab.evaluate("document.exitFullscreen()")
+    def above(on):
+        f.evaluate("parent." + POST % ("{ dk: 1, t: 'store', items: [['big', %s]] }" % ("'x'.repeat(300 * 1024)" if on else "null")) + "1")
+        tab.wait(STRIPS + ".length === %d" % (1 + on), 4)
+    for what, happen in (("another strip appeared above it", lambda: above(True)), ("that strip was removed", lambda: above(False)), ("a resize", lambda: metrics(1200)), ("the tab became visible", unseen), ("the window gained focus", elsewhere),
+                         ("fullscreen ended", fullscreen), ("a drawer opened", lambda: tab.evaluate("document.querySelector('#drawer').hidden = false; 1")), ("a row changed in it", lambda: tab.evaluate("document.querySelector('#drawer').textContent = 'a row'; 1")), ("it closed", lambda: tab.evaluate("document.querySelector('#drawer').hidden = true; 1"))):
+        time.sleep(PACE if "strip" in what else ACTS)
+        tab.evaluate("document.querySelector('%s').focus(); pressed.length = 0; 1" % SEND)
+        happen()
+        tab.key("Enter")
+        eq("Send pick does nothing right after " + what, lambda: [time.sleep(0.1), tab.evaluate("[pressed.length, %s]" % THERE), recorded()][1:], [[1, True], []])
+    ask = "document.documentElement.requestFullscreen().then(() => 'full', (e) => e.name)"
+    eq("requestFullscreen in the frame is refused", lambda: [f.evaluate("document.fullscreenEnabled"), b.chrome.call("Runtime.evaluate", {"expression": ask, "awaitPromise": True, "returnByValue": True, "userGesture": True}, f.sid)["result"]["value"]], [False, "TypeError"])
+    time.sleep(ACTS)
+    press(tab, SEND)
+    eq("and it acts once nothing changed for a while", lambda: [tab.wait(GONE), [r["picked"] for r in recorded()]][1], [3])
+
+    forget()
+    tab.evaluate("window.draws = []; window.left = 0; new MutationObserver(() => { if (%s) draws.push(performance.now()); else left++; }).observe(document.querySelector('#strips'), { childList: true }); 1" % THERE)
+    f.evaluate("let n = 0; window.flood = setInterval(() => { n++; parent.postMessage({ dk: 1, t: 'pick', picked: 1 + n % 2, knobs: {}, text: {} }, '*'); parent.postMessage({ dk: 1, t: 'store', items: [['big', n % 4 < 2 ? 'x'.repeat(300 * 1024) : null]] }, '*'); }, 40); 1")
+    tab.wait(THERE)
+    time.sleep(3.6)
+    eq("a page that floods reports and storage changes the strips at most once in 1.5 s", lambda: tab.evaluate("[draws.length > 2, Math.min(...draws.slice(1).map((t, i) => t - draws[i])) > 1400]"), [True, True])
+    until = time.monotonic() + 6
+    while not tab.evaluate("left") and time.monotonic() < until:
+        press(tab, DISCARD)
+        time.sleep(0.2)
+    eq("so Discard acts meanwhile", lambda: tab.evaluate("left > 0"), True)
+    f.evaluate("clearInterval(flood); 1")
+
 class Older(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -641,13 +1028,16 @@ def far(b):
     tab = visit(b, url + "/" + quote(OWN + "index.html") + "?static=1")
     eq("another device gets the viewer, whatever it asks, with Gallery and the title alone; the page loads its own files", lambda: (tab.frame().evaluate("document.querySelector('img').naturalWidth"), tab.evaluate("[...document.querySelectorAll('#bar *')].filter((e) => !e.children.length && e.checkVisibility()).map((e) => e.textContent)")), (1, ["Gallery", "fixture"]))
     eq("and logs no refused request", lambda: logged(b, tab), [])
+    tab = visit(b, url + "/" + BOARD)
+    says(tab.frame(), 1, {"all": {"space": 12}})
+    eq("and has no pick to send", lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (STRIPS, KEPT))][1], [[], []])
     srv.shutdown()
 
 server = Server(free_port())
 server.start()
 try:
     with browser_lib.browser(420) as b:
-        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, gallery, worker, far):
+        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, gallery, worker, far):
             try:
                 part(b)
             except Exception as exc:
