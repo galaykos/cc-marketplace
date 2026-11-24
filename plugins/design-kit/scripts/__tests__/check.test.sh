@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives `dk check` (render-check.py, check.js in an isolated world, serve.py's /_checks) on fixture pages in a temp docroot: a clean page with no finding, one page per check tripping that check alone, a deck and a board whose stage is not overflow, E6 in both diff branches, escaped JSON-only output, forged answers and posts, hostile metas, dialogs, downloads, WebRTC, a flood, caps, pruning, an older server, no browser left running.
-# Without a browser: the removed routes, /_checks, never-served findings and the vendored axe-core hash still run; the rest prints SKIP. Misses: the LAN 404s without a network address; browsers other than Chromium; the note panel's line in a browser; the 60 s bound (timed by hand).
+# Drives `dk check` (render-check.py, check.js in an isolated world, serve.py's /_checks) on fixture pages in a temp docroot: a clean page with no finding, the raw page under its own policy (an opaque origin, its storage, an own folder's font and module, what the policy refuses, no content URL printed), the stored result in the viewer's bar, one page per check tripping that check alone, a deck and a board whose stage is not overflow, E6 in both diff branches, escaped JSON-only output, forged answers and posts, hostile metas, dialogs, downloads, WebRTC, a flood, caps, pruning, an older server, no browser left running.
+# Without a browser: the removed routes, /_checks, never-served findings and the vendored axe-core hash still run; the rest prints SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1. Misses: the LAN 404s without a network address; browsers other than Chromium; the page as its frame shows it (viewer.test.sh); an approved host's files; the 60 s bound (timed by hand).
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -27,8 +27,9 @@ page clean '<p>Revenue grew 12% to 4.1 million euro in the third quarter, led by
 # routes, before any browser: the check runs in an isolated world the runner injects, so no route serves it or takes its findings
 bash "$here/preview.sh" --docroot "$DK" --port "$port" >/dev/null; sleep 0.3
 B="http://127.0.0.1:$port"
-c="$(curl -s -o "$tmp/.resp" -w '%{http_code}' -A 'Mozilla/5.0 HeadlessChrome/157' "$B/fx/clean.html?static=1&_check=r1.0")"
-[ "$c" = 200 ] && ! grep -q 'data-design-kit-check\|data-design-kit-reload' "$tmp/.resp" || fail "?_check= should inject nothing ($c)"
+c="$(curl -sL -o "$tmp/.resp" -w '%{http_code} %{url_effective}' -A 'Mozilla/5.0 HeadlessChrome/157' "$B/fx/clean.html?static=1&_check=r1.0")"
+case "$c" in "200 $B/_c/"*".s/fx/clean.html?_check=r1.0") ;; *) fail "the raw page should be at its static content URL, got $c" ;; esac
+! grep -q 'data-design-kit-check\|data-design-kit-reload' "$tmp/.resp" || fail "?_check= should inject nothing"
 for s in /_check.js /_check-axe.js; do
   c="$(curl -s -o /dev/null -w '%{http_code}' "$B$s")"; [ "$c" = 404 ] || fail "$s should no longer be served, got $c"
 done
@@ -56,8 +57,6 @@ p = os.path.join(sys.argv[2], ".checks", "results.json"); open(p, "w").write("{}
 assert m._newest_mtime(sys.argv[2]) == before
 PY
 rm -f "$DK/.checks/results.json"
-# note.js reaches the server through location.origin, never a bare path a page's <base href> could send elsewhere
-grep -nE "fetch\('/" "$here/note.js" && fail "note.js fetches a bare path"
 lanip="$(python3 -c 'import socket
 s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.connect(("192.0.2.1",9)); print(s.getsockname()[0])' 2>/dev/null || true)"
 if [ -z "$lanip" ] || [ "${lanip#127.}" != "$lanip" ]; then echo "SKIP: no non-loopback address — the check routes were not asked from a LAN peer"
@@ -101,6 +100,7 @@ set +e; out="$(DESIGN_KIT_BROWSER="$tmp/answers-once" dk check fx/clean.html 2>&
 [ -z "$(ls -A "$tmp/tmpd")" ] || fail "a failed browser left a profile: $(ls -A "$tmp/tmpd")"
 
 if ! bash "$here/board-export.sh" --which >/dev/null 2>&1; then
+  [ "${DESIGN_KIT_REQUIRE_BROWSER:-}" != 1 ] || fail "no Chromium-family browser found"
   echo "SKIP: no Chromium-family browser — the render checks ran their no-browser path only"; echo "PASS check.test.sh"; exit 0
 fi
 
@@ -122,7 +122,14 @@ for l in sys.stdin:
     if l.startswith("{\"note\""):
         r = json.loads(l)
         if r["note"] == sys.argv[1]: print(r["at"] + "|" + r["text"])' "$2"; }
-# expect <page> <exit> <lines "check widths"> [dk check args] — the findings dk check prints, exactly
+# found <text> <check>: "text|detail" of each finding with that id
+found() { printf '%s\n' "$1" | python3 -c '
+import json, sys
+for l in sys.stdin:
+    if l.startswith("{\"check\""):
+        r = json.loads(l)
+        if r["check"] == sys.argv[1]: print(r["text"] + "|" + r["detail"])' "$2"; }
+# expect <page> <exit> <lines "check widths"> [dk check args] — the findings dk check prints, exactly, and none of them naming a content URL
 expect() {
   local name=$1 code=$2 lines=$3 rc got want; shift 3
   set +e; last="$(dk check "fx/$name.html" "$@" 2>"$tmp/err")"; rc=$?; set -e
@@ -133,6 +140,7 @@ for l in sys.stdin:
   want="$(printf '%s\n' "$lines" | sed '/^$/d' | sort)"
   [ "$rc" = "$code" ] && [ "$got" = "$want" ] || { echo "FAIL: $name: wanted exit $code and [$want], got exit $rc and [$got]"; printf '%s\n' "$last" | head -20; head -5 "$tmp/err"; exit 1; }
   ! grep -q Traceback "$tmp/err" || fail "$name: a traceback on stderr: $(head -5 "$tmp/err")"
+  case "$last" in */_c/*) fail "$name: a content URL was printed: $(printf '%s\n' "$last" | grep -m1 /_c/)" ;; esac
 }
 expect clean 0 ""
 [ "$(summary "$last" at)" = '["375", "768", "1280"]' ] && [ "$(summary "$last" pngs)" = '["375.png", "768.png", "1280.png"]' ] \
@@ -145,14 +153,71 @@ done
 python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["checked"] and r["findings"] == 0 and r["widths"] == [375, 768, 1280] and not r["changed_since"], r' \
   <<<"$(curl -s "$B/_checks?page=fx/clean.html")" || fail "/_checks after a clean check: $(curl -s "$B/_checks?page=fx/clean.html")"
 
+# the page is measured raw, at its static content URL, under its own policy: only there does this one hold an E4.todo
+page raw '<p id="p">Berlin led the quarter.</p><script>if (self.origin === "null" && parent === self && /^\/_c\/[^\/]+\.s\/fx\/raw\.html$/.test(location.pathname)) document.querySelector("#p").textContent = "TODO: add Lisbon."</script>'
+expect raw 1 "E4.todo 375,768,1280"
+# the next two lose theirs once their storage kept what it was given, or their import ran and their font loaded
+page storage '<p id="p">TODO</p><script>localStorage.setItem("tab", "2"); sessionStorage.setItem("tab", "3"); if (localStorage.getItem("tab") + sessionStorage.getItem("tab") === "23") document.querySelector("#p").textContent = "Tab 2 is open."</script>'
+expect storage 0 ""
+echo "ok: a localStorage page raises no finding"
+own='a;b, c ü/index'; mkdir -p "$DK/fx/${own%/*}/sub" "$DK/fx/gone"
+page "$own" '<style>@font-face { font-family: F; src: url(f.ttf) }</style><p id="p">TODO</p><script type="module" src="sub/m.js"></script>'
+printf 'export const two = 2;\n' > "$DK/fx/${own%/*}/sub/n.js"
+printf 'import { two } from "./n.js";\nconst [face] = await document.fonts.load("12px F");\nif (two === 2 && face.status === "loaded") document.querySelector("#p").textContent = "Berlin led the quarter.";\n' > "$DK/fx/${own%/*}/sub/m.js"
+# a TrueType font of one glyph, viewer.test.sh's
+python3 -c 'import base64, sys, zlib; sys.stdout.buffer.write(zlib.decompress(base64.b64decode(sys.argv[1])))' eNqNj71KA0EUhc/MbDTKYiSg9RYphYBFsLBwEYNYJKBoJegQY1LsmqArxM5HsPAJUltaWARJaeFDWKawjK3rmZk1ERXxLnvnfvdvzkAAmMc1FIL6Xnn14GV/iZk7/seNWHfhIwGET15pRVen6jF3T14jl9pNfaJnN/vkQ3KlzURuWZTJt7YeJz01YgTxQJePOg1t8uQhTz/WvS48fhDP5OBMx025XSyQX8k73c5FQl00ae4LoMRY3CCH/5j4CrV6bQsbCBGqIOUuFeDps0eM5cBud1PKZn2qMhmjznCYps6nw2zzdJYKBc0Q8O5bvYNJT6bjqLD+xntHv0p1CvKQ091Op9lovfg2Ik3FVSdWsl0yewF+zMC+p2Lq3hyrkuxiiQU3x9hjtJjFM4yLqGIXTbRwiQga5+SqnfzTPgDQQD77 > "$DK/fx/${own%/*}/f.ttf"
+expect "$own" 0 ""
+echo "ok: own-folder page loads its font and module"
+page gone/index '<p>Revenue by office.</p><img src="missing-chart.png" alt="Revenue chart" width="200" height="100">'
+expect gone/index 1 "E1.resource 375,768,1280"
+case "$(found "$last" E1.resource)" in "HTTP 404 /fx/gone/missing-chart.png|"*) ;; *) fail "a file missing from an own folder: $(found "$last" E1.resource)" ;; esac
+sed 's|<title>|<link rel="icon" href="../favicon.ico"><title>|' "$DK/fx/clean.html" > "$DK/fx/favicon.html"
+expect favicon 0 ""
+
 page e1-image '<p>Revenue by office.</p><img src="missing-chart.png" alt="Revenue chart" width="200" height="100">'
 expect e1-image 1 "E1.resource 375,768,1280"
+case "$(found "$last" E1.resource)" in "/fx/missing-chart.png|"*) ;; *) fail "a file the policy refuses: $(found "$last" E1.resource)" ;; esac
 page e1-console '<p>Revenue by office.</p><script>console.error("chart failed to load")</script>'
 expect e1-console 1 "E1.console 375,768,1280"
-page e1-exception '<p>Revenue by office.</p><script>null.render()</script>'
+page e1-exception '<p>Revenue by office.</p>
+<script>null.render()</script>'
 expect e1-exception 1 "E1.exception 375,768,1280"
+case "$(found "$last" E1.exception)" in *"|uncaught, at /fx/e1-exception.html:2") ;; *) fail "an exception's place in the file: $(found "$last" E1.exception)" ;; esac
 page e1-external '<p>Revenue by office.</p><img src="https://example.com/logo.png" alt="Company logo" width="40" height="40">'
 expect e1-external 1 "E1.external 375,768,1280"
+# a refused fetch reaches the log alone, and is thrown from inside the client
+page e1-fetch '<p>Revenue by office.</p>
+<script>fetch("https://example.com/totals.json#q3"); fetch("totals.json").catch(() => {})</script>'
+expect e1-fetch 1 "E1.exception 375,768,1280
+E1.external 375,768,1280
+E1.resource 375,768,1280"
+case "$(found "$last" E1.external) $(found "$last" E1.resource) $(found "$last" E1.exception)" in "https://example.com/totals.json|"*" /fx/totals.json|failed to load: blocked (connect-src) "*"|uncaught, at /fx/e1-fetch.html:2") ;;
+  *) fail "what a refused fetch reads as: $last" ;; esac
+page e1-many "<p>Revenue by office.</p>$(for i in 1 2 3 4 5 6; do printf '<img src="https://example.com/%s.png" alt="Office %s" width="40" height="40">' $i $i; done)"
+expect e1-many 1 "$(for i in 1 2 3 4 5 6; do echo "E1.external 375"; done)" --widths 375
+[ "$(summary "$last" dropped)" = 0 ] || fail "six refused images, each told by the network and the log: $(summary "$last" dropped) findings dropped"
+page e1-popup '<p>Revenue by office.</p><script>window.open("https://example.com/")</script>'
+expect e1-popup 1 "E1.console 375,768,1280"
+python3 - "$here" "$B" "fx/$own.html" fx/e1-external.html <<'PY' || fail "the stored result does not show in the bar"
+import json, os, sys
+from urllib.parse import quote
+here, base, clean, one = sys.argv[1:]
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.join(here, "__tests__"))
+import browser_lib
+bad = False
+with browser_lib.browser(60) as b:
+    tab = b.page("about:blank")
+    b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, tab.sid)
+    for page, want in ((clean, "Checked, 0 problems"), (one, "Checked, 1 problem")):
+        b.chrome.call("Page.navigate", {"url": base + "/" + quote(page)}, tab.sid)
+        got = tab.wait("document.body.dataset.page === %s && document.querySelector('#chip').textContent" % json.dumps(page), 10)
+        if got != want:
+            print("FAIL: the bar of %s says %r, not %r" % (page, got, want))
+            bad = True
+sys.exit(bad)
+PY
+echo "ok: the stored result shows in the bar"
 printf '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blank</title></head><body><main></main></body></html>\n' > "$DK/fx/e1-blank.html"
 expect e1-blank 1 "E1.blank 375,768,1280"
 page e2-overflow '<p>Report file: <code>quarterly_revenue_by_office_and_region_2026_q3_final_v2.pdf</code></p>'

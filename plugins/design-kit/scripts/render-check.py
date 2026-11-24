@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""render-check.py — `dk check <page> [--widths 375,768,1280]`: the served page in a headless Chromium at each width (a board: each artboard at its own size); every line printed is one escaped JSON object: a finding, a note (change, not checked, skipped, dropped, capped), then the summary; exit 0 none, 1 findings, 2 bad arguments, 4 not checked.
-Drives the browser board-export.sh finds over the DevTools pipe (python3 stdlib), since the CLI screenshot never lays out below 500 px; axe-core and check.js run in an isolated world page script cannot reach (E1-E4 come back over DevTools), the browser's console, exception and network events add E1, E6 compares the widest shot with the last check's (Pillow for how much and where).
-Misses: what check.js misses; page script still runs and can change what is measured, so a clean check is not proof; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page that needs the network is checked without it; loopback stays reachable; E6 sees the widest width only.
+"""render-check.py — `dk check <page> [--widths 375,768,1280]`: the raw page, at its static content URL and under its own policy, in a headless Chromium at each width (a board: each artboard at its own size); every line printed is one escaped JSON object: a finding, a note (change, not checked, skipped, dropped, capped), then the summary; exit 0 none, 1 findings, 2 bad arguments, 4 not checked.
+Drives the browser board-export.sh finds over the DevTools pipe (python3 stdlib), since the CLI screenshot never lays out below 500 px; axe-core and check.js run in an isolated world page script cannot reach (E1-E4 come back over DevTools), the browser's console, exception and network events and the loads the policy refused add E1 (a refused load reads as the failed one it is, a place as the file on disk, and no content URL is printed), E6 compares the widest shot with the last check's (Pillow for how much and where).
+Misses: what check.js misses; page script still runs and can change what is measured, so a clean check is not proof; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page that needs the network, or a host the user allowed it, is checked without it; loopback stays reachable by navigation; the page is not in the viewer's frame; a refused frame is named by its origin alone; a form sent while the page loads reads E1.no-report; E6 sees the widest width only.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/render-check.py
 """
 import argparse
@@ -36,6 +36,9 @@ PIXEL = 10  # a pixel counts as changed when a channel moves by more than this (
 NO_NETWORK = ["--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
               "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"]
 OURS = ("/favicon.ico",)
+CONTENT = re.compile(re.escape(m.CONTENT) + m.isolate.SEGMENT.pattern + "(?=/)")  # never printed: it opens the page without the LAN key
+CLIENT_LINES = m.FRAME_TAG.count(b"\n")  # serve.py adds them before the page's own
+REFUSED = re.compile(r"'((?:http|ws)s?://[^\s'#]+)(?:#[^\s']*)?' [^'\"]{0,40}Content Security Policy directive: \"([a-z-]+)")  # the browser's log line; linear, since the page picks the URL
 ORDER = {"E1": 0, "E2": 1, "E3": 2, "E4": 3}
 CHECK_ID = re.compile(r"E[1-4](\.[a-z][a-z0-9-]{0,40})?")
 WORLD = "design-kit-check"  # the isolated world check.js and axe-core run in
@@ -259,13 +262,35 @@ def short(u, origin):
     return u[len(origin):] if u.startswith(origin + "/") else u
 
 
+def place(d, origin):
+    """Where an uncaught exception was thrown, as path:line of the file on disk: the client serve.py puts before a page's own lines is passed over."""
+    spots = [(str(f.get("url", "")), int(f.get("lineNumber") or 0) + 1) for f in [d] + ((d.get("stackTrace") or {}).get("callFrames") or [])]
+    at, line = spots[0]
+    for url, n in spots:
+        page = CONTENT.search(url) and re.split("[?#]", url)[0].lower().endswith(m.PAGE_EXT)
+        if not page or n > CLIENT_LINES:
+            at, line = url, n - CLIENT_LINES if page else n
+            break
+    return "%s:%d" % (short(at, origin) or "inline", line)
+
+
 def browser_findings(events, urls, sid, origin, own):
     """E1 from what the browser saw on one page: console errors, uncaught exceptions, failed and refused loads; own is the isolated world's context id."""
     out = []
-    for e in events:
-        if e.get("sessionId") != sid:
-            continue
-        name, p = e["method"], e.get("params", {})
+    mine = [(e["method"], e.get("params", {})) for e in events if e.get("sessionId") == sid]
+    failed = {urls.get(p.get("requestId")) for name, p in mine if name == "Network.loadingFailed" and not p.get("canceled")}
+
+    def unloaded(u, why):
+        ours = u.startswith(origin + "/")
+        if ours and CONTENT.sub("", urlsplit(u).path) in OURS:
+            return
+        if u.startswith(("http://", "https://", "ws://", "wss://")) and not ours:
+            out.append({"check": "E1.external", "selector": None, "text": u,
+                        "detail": "not loaded: a check sends nothing off this machine, and a shared page should not need it either"})
+        else:
+            out.append({"check": "E1.resource", "selector": None, "text": short(u, origin), "detail": "failed to load: %s" % why})
+
+    for name, p in mine:
         if own and (p.get("executionContextId") == own or (p.get("exceptionDetails") or {}).get("executionContextId") == own):
             continue
         if name == "Network.responseReceived":
@@ -275,32 +300,29 @@ def browser_findings(events, urls, sid, origin, own):
                 out.append({"check": "E1.resource", "selector": None, "text": "HTTP %d %s" % (status, short(u, origin)),
                             "detail": "the page's %s request answered %d" % (str(p.get("type", "resource")).lower(), status)})
         elif name == "Network.loadingFailed" and not p.get("canceled"):
-            u = urls.get(p.get("requestId"), "")
-            if not u or urlsplit(u).path in OURS and u.startswith(origin):
-                continue
-            if u.startswith(("http://", "https://", "ws://", "wss://")) and not u.startswith(origin + "/"):
-                out.append({"check": "E1.external", "selector": None, "text": u,
-                            "detail": "not loaded: a check sends nothing off this machine, and a shared page should not need it either"})
-            else:
-                out.append({"check": "E1.resource", "selector": None, "text": short(u, origin),
-                            "detail": "failed to load: %s" % p.get("errorText", "")})
+            u = urls.get(p.get("requestId"))
+            if u:
+                unloaded(u, p.get("errorText") or "blocked (%s)" % p.get("blockedReason"))
         elif name == "Runtime.exceptionThrown":
             d = p.get("exceptionDetails", {})
             desc = (d.get("exception") or {}).get("description") or d.get("text") or "exception"
-            out.append({"check": "E1.exception", "selector": None, "text": str(desc).split("\n")[0],
-                        "detail": "uncaught, at %s:%d" % (short(str(d.get("url", "")), origin) or "inline", int(d.get("lineNumber") or 0) + 1)})
+            out.append({"check": "E1.exception", "selector": None, "text": str(desc).split("\n")[0], "detail": "uncaught, at " + place(d, origin)})
         elif name == "Runtime.consoleAPICalled" and p.get("type") in ("error", "assert"):
             words = [str(a.get("value") if "value" in a else (a.get("description") or a.get("type", ""))).split("\n")[0] for a in p.get("args", [])]
             out.append({"check": "E1.console", "selector": None, "text": " ".join(words) or "console.error()", "detail": "console.%s" % p["type"]})
         elif name == "Log.entryAdded":
             en = p.get("entry", {})
             if en.get("level") == "error" and en.get("source") not in ("network", "javascript", "console-api"):
-                out.append({"check": "E1.console", "selector": None, "text": en.get("text", ""), "detail": "browser %s error" % en.get("source", "")})
+                refused = REFUSED.search(en.get("text", ""))
+                if not refused:
+                    out.append({"check": "E1.console", "selector": None, "text": en.get("text", ""), "detail": "browser %s error" % en.get("source", "")})
+                elif refused.group(1) not in failed:  # a fetch, media, a frame or a form: the network says nothing of these
+                    unloaded(refused.group(1), "blocked (%s)" % refused.group(2))
     kept, seen = [], {}
     for f in out:
         seen[f["check"]] = seen.get(f["check"], 0) + 1
         if seen[f["check"]] <= PER_ID:
-            kept.append(dict(f, text=str(f["text"])[:200], detail=str(f["detail"])[:300]))
+            kept.append(dict(f, text=CONTENT.sub("", str(f["text"]))[:200], detail=CONTENT.sub("", str(f["detail"]))[:300]))
     return kept, len(out) - len(kept)
 
 
