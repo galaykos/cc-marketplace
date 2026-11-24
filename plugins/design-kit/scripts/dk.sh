@@ -413,7 +413,7 @@ with m.decisions_lock(dk):
     rows = m._jsonl(dec)
     cands = [r for r in rows if not r.get("consumed") and (board is None or r.get("board") == board)]
     if not cands:
-        print("no unread decision" + (f" for {board}" if board else "") + " — pick on the board, or paste its copied prompt"); sys.exit(3)
+        print("no unread decision" + (f" for {board}" if board else "") + " — press Send pick in the board's viewer, or paste its copied prompt"); sys.exit(3)
     row = cands[-1]; pick = m.picks.pick_line(row, m._clean, m._hidden)
     print(m.show(pick), flush=True)  # before anything is marked: a reader that cannot write consumes nothing
     if consume:

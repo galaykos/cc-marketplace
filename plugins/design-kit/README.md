@@ -5,14 +5,15 @@ are **Slides, Design, Design in codebase, Design System, Artifacts**, plus two t
 lacks, **Motion** and **Film**. Every surface is
 a plain HTML file under `.cc-artifacts/design-kit/` in your project. This plugin's own preview server
 serves it on one localhost URL, and scripts you can read export it. Nothing leaves the
-machine unless a skill names the path and you say yes.
+machine unless a skill names the path and you say yes; what a page's own script can still leak is
+listed under "What a page can and cannot do".
 
 ## What it does
 
 | Desktop option | Skill | Produces |
 |---|---|---|
 | Slides | `/design-kit:slides` | a self-contained HTML deck with speaker notes; PDF and PPTX by script |
-| Design | `/design-kit:design` | an artboard canvas of 3 directions by default (up to 5, never more than 6) with editable text, adjustment knobs, PNG/PDF export, and a "copy edits as prompt" bring-back |
+| Design | `/design-kit:design` | an artboard canvas of 3 directions by default (up to 5, never more than 6) with editable text, adjustment knobs, PNG/PDF export, and a pick you send back from the viewer |
 | Design in codebase | `/design-kit:in-codebase` | the design rendered with the project's OWN components on its dev server, cleaned up once the pick is final; intake of a Claude Design handoff bundle with a token-drift table |
 | Design System | `/design-kit:system` | `.cc-artifacts/design-kit/design-system/`: DTCG `tokens.json`, `DESIGN-SYSTEM.md` in the format the host's artifact skill reads, and a UI-kit page with `@dsCard`-marked cards |
 | Artifacts | `/design-kit:artifact` | one self-contained, versioned HTML page in a local gallery; LAN, pages-branch or zip sharing on explicit consent |
@@ -40,58 +41,150 @@ needs Node and installs `pptxgenjs` into `.cc-artifacts/design-kit/.cache/` afte
 ## The preview server
 
 `scripts/serve.py` (launched by `scripts/preview.sh`) serves `.cc-artifacts/design-kit/` on
-`http://127.0.0.1:8124/`: a gallery of every deck, board, preview and artifact at `/`,
-live reload over Server-Sent Events injected into each page, `/_index.json` for
-scripts. When the server goes away under an open page, the page shows a small
-"Preview server stopped; retrying" bar (`role="status"`, no animation), retries after 1,
-2, 4 … 30 seconds, and reloads once the server answers. A headless browser and a
-`?static=1` URL get no reload client, as before.
+`127.0.0.1`. The gallery of every deck, board, preview and artifact is at `/_gallery`, and at `/`
+while that folder holds no `index.html`; `/_index.json` is the same list for scripts; a page opens
+at its own path, `/artifacts/x.html`, in the viewer (next section).
 
-`--lan` binds every interface so a phone on your network can open it — that
-is the only way a page leaves the machine through the server, and every skill says
-so before using it. A LAN server asks every device but this machine's loopback for a
-key: the URL it prints carries `?key=…`, the first visit trades it for an `HttpOnly`,
-`SameSite=Strict` cookie and drops it from the address bar, and a request with neither
-gets 403. The key lives in `.cc-artifacts/design-kit/.preview.key` (mode 0600, never served). A
-restart keeps it, so a phone's link keeps working; `dk serve --stop` deletes it, so the
-next LAN start prints a new URL. Picks stay loopback-only: `/_decision` refuses a phone
-even with the key. A LAN server ends itself after 60 minutes
-(`DESIGN_KIT_LAN_MINUTES`; `0` means no limit), and while one runs every later
-command says LAN mode is still on and prints its URLs with the key.
+**Port.** With `DESIGN_KIT_PORT` or `--port`: that port, or exit 4. With neither: this project's
+last port, then 8124, then 8125 to 8139, the first that is free; none free is exit 4. A server of
+this project that already runs is reused, on whatever port, and the launcher says which. Port 8123
+is the taskmaster/ui-ux mockup server's and is never used here. A start on another port than the
+last one prints `preview: moved from port <old>; saved knobs and page data stay on the old
+address`. A running server older than the installed plugin is restarted on its own port and bind;
+a newer one is kept.
+
+**When the server goes away** under an open page, the viewer shows "Preview server stopped;
+retrying", retries after 1, 2, 4 … 30 seconds and frames the page again once the server answers; a
+half-typed note stays. The gallery shows the same words in a small bar (`role="status"`, no
+animation) and reloads. A headless browser and a `?static=1` URL get no reload client.
+
+`--lan` binds every interface so a phone on your network can open it — that is the only way a page
+leaves the machine through the server, and every skill says so before using it. A LAN server asks
+every device but this machine's loopback for a key: the URL it prints carries `?key=…`, the first
+visit trades it for an `HttpOnly`, `SameSite=Strict` cookie and drops it from the address bar, and
+a request with neither gets 403. The one exception is a page's content URL (`/_c/…`, what its
+frame loads), since the frame never carries the cookie: whoever holds that URL reads that page and
+its files with no key, until the server stops. The key lives in
+`.cc-artifacts/design-kit/.preview.key` (mode 0600, never served). A restart keeps it, so a
+phone's link keeps working; `dk serve --stop` deletes it, so the next LAN start prints a new URL.
+A phone sees the gallery, and each page under Gallery, the title and a line naming the address to
+open on this computer. Picks, notes and host approvals stay loopback-only: the three write routes
+refuse a phone even with the key. A LAN server ends itself after 60 minutes
+(`DESIGN_KIT_LAN_MINUTES`; `0` means no limit), and while one runs every later command says LAN
+mode is still on and prints its URLs with the key.
 
 Every server, LAN or not, exits after 4 hours with no request and no open page
-(`DESIGN_KIT_IDLE_MINUTES`, default 240; `0` turns it off). An open tab counts, since its
-reload client holds a stream; a request refused for want of the key does not. A server that
-ends itself removes its pid, URL and bind files, `dk status` prints no URL for a dead server,
-and the next `dk` verb starts a fresh one. `--stop` and a `--lan` restart signal the recorded
-pid only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid neither can
-name stops the launcher with exit 6 and is left alone).
+(`DESIGN_KIT_IDLE_MINUTES`, default 240; `0` turns it off). An open tab counts, since its viewer,
+or the gallery, holds a stream; a request refused for want of the key does not. A server that ends
+itself removes its pid, URL, bind and version files, `dk status` prints no URL for a dead server,
+and the next `dk` verb starts a fresh one. `--stop` and a `--lan` restart signal the recorded pid
+only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid neither can name
+stops the launcher with exit 6 and is left alone).
 
-The server never returns a dot-prefixed file or
-folder (`.checks/` and `.notes/` among them), `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
-`usage.jsonl`, `*.versions.json`) or a directory listing; every other file under
-`.cc-artifacts/design-kit/` is readable by whoever can reach the port (on the LAN, whoever holds the
-keyed URL), signed-in screenshots included. The key does not make the LAN private: the
-server speaks plain HTTP, so the key crosses your network in the clear, and it sits in a
-URL, so it lands in the phone's history and anywhere you paste it. Port 8123 belongs to
-the taskmaster/ui-ux mockup server and is
-never used here. Two write routes exist, `/_decision` and `/_note` — loopback only,
-header-gated, append-only (see the next section); export and publish stay scripts.
+The server never returns a dot-prefixed file or folder (`.checks/`, `.notes/` and `.allow.json`
+among them), `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
+`usage.jsonl`, `*.versions.json`), a directory listing, or a path or link that resolves outside
+the folder or to one of these. Every other file under `.cc-artifacts/design-kit/` is readable by
+any program on this machine (on the LAN, by whoever holds the keyed URL), signed-in screenshots
+included; not by a page (next section), and not by another website: a `Host` that is neither
+`localhost` nor an IP address gets 403, and every answer outside `/_c/` carries
+`Cross-Origin-Resource-Policy: same-origin`. The key does not make the LAN private: the server
+speaks plain HTTP, so the key crosses your network in the clear, and it sits in a URL, so it lands
+in the phone's history and anywhere you paste it. Three write routes exist, `/_decision`, `/_note`
+and `/_allow` — loopback only, header-gated, from the preview's own address (see the next
+sections); export and publish stay scripts.
 
-Standing: `scripts/__tests__/serve.test.sh` and `preview.test.sh` drive start, static
-serving, reload injection, the listing, path traversal and stop — **gate** (CI runs
-every `plugins/*/scripts/__tests__/*.test.sh`). The key is a **gate** twice: every
-peer, key and cookie case as a unit, and end to end from this machine's own network
-address, which the server sees as a non-loopback peer (that half skips on a machine
-without one). The idle limit is a **gate**: a 3-second limit, held off by requests and by
-an open stream, in both modes, and not by 403s. The never-served list is a **gate** for GET and
-HEAD, with origin- and absolute-form request targets. The reload client is a **gate** for the text injected
-(the status bar, the retry, the reload, the same-origin `/_note.js` import, no external
-asset, at most 800 bytes; 758 since 0.15.0); its
-behaviour in a browser, and a keyed link followed from another site, were run once in
-Chrome on 2026-11-12 — **recorded**. A page is rendered in a real browser and checked only
-when `dk check <page>` runs (below; **gate** for its own fixtures); nothing checks a page on
-its own, so a page nobody ran it on is unchecked.
+Standing: `scripts/__tests__/serve.test.sh` and `preview.test.sh` drive start, the port choice,
+the version restart, serving, the viewer's and the gallery's documents and headers, the listing,
+path traversal, links, the `Host` rule and stop — **gate** (CI runs every
+`plugins/*/scripts/__tests__/*.test.sh`). The key is a **gate** twice: every peer, key and cookie
+case as a unit, and end to end from this machine's own network address, which the server sees as a
+non-loopback peer (that half skips on a machine without one). The idle limit is a **gate**: a
+3-second limit, held off by requests and by an open stream, in both modes, and not by 403s. The
+never-served list is a **gate** for GET and HEAD, with origin- and absolute-form request targets.
+The retry of an open viewer is a **gate** where a browser is found (`viewer.test.sh`); the
+gallery's bar is one for its text only, and it, and a keyed link followed from another site, were
+run once in Chrome on 2026-11-12 — **recorded**. Two starts at once are not locked, so both may
+run, the first unrecorded. A page is rendered in a real browser and checked only when `dk check
+<page>` runs (below; **gate** for its own fixtures); nothing checks a page on its own, so a page
+nobody ran it on is unchecked.
+
+### What a page can and cannot do
+
+A page URL answers the **viewer**, a document the plugin owns: a bar (Gallery, the title, the last
+check, Network, Notes), strips under it, and the page in a frame. The page's own code runs in that
+frame with an origin of its own (`null`), in a sandbox, under a policy header the server sets.
+Only the viewer, and only on your click or key, records a pick, a note or a host approval or opens
+another site; those buttons do nothing for 600 ms after anything around them appears, moves or
+changes.
+
+From inside its frame a page cannot:
+
+- read or change the viewer, the gallery, another page, the notes, the check results, or the
+  preview address's cookies, storage and databases;
+- post a pick, a note or an approval;
+- send a request to another host; files loaded from a host you allowed (below) are the one
+  exception;
+- leave: a frame that tries is replaced with "Page stopped: it tried to open another site." and
+  Reload page;
+- open a tab on a plain click, or go fullscreen;
+- load a server file that is not its own: a page with a folder of its own, such as
+  `motion/<slug>/` or `film/<slug>/`, loads the other files there (never another page), a review
+  its images in `reviews/diff/` and `shots/`, any other page none.
+
+**Hosts.** Each refused host draws a strip with its name and what was asked for: Allow for this
+page, or Keep blocked (for this tab). An approval covers `https` scripts, styles, images, fonts
+and media from that host, for that one page, never fetch, WebSocket or forms. It is kept in
+`.allow.json` across restarts, listed under Network with Remove, and granted on this machine only.
+An IP address, a port, a wildcard, `localhost`, `.local`, `.internal` and `.home.arpa` are
+refused.
+
+**Storage.** A page's `localStorage` is a stand-in the viewer keeps in this browser, per project
+and page, up to 256 KB of keys plus values; board state that 0.19.3 saved at the same address is
+read once. `sessionStorage` lasts as long as the frame; cookies, IndexedDB and service workers are
+unavailable.
+
+**Links, address, reload.** A link to another site draws a strip with the full address: Open or
+Dismiss. A link to another page here opens in the viewer, without its query. `#board=2`, `#/3` and
+`?still=1` reach the page, and its hash comes back to the address bar. A save reloads the frame of
+that page alone (for a page with a folder of its own, also a save of a file there); the bar, the
+drawer and a half-typed note stay.
+
+**Raw.** `?static=1` typed on this machine, or a headless browser, is sent to the page itself at
+its signed address, for captures: the same policy, no viewer, no reload. Nothing then stops the
+page from navigating itself to another site.
+
+What can still get out, or mislead you:
+
+- A host name the page chose can leak through preconnect, WebRTC or DNS, and through a blocked
+  navigation, which opens the connection and sends no request.
+- An approved host receives whatever the page writes into a request's address, and the approval
+  stays when the page is rewritten.
+- In a page that undid the in-frame script, your Ctrl, Shift or middle click on a link opens a
+  real tab and Alt+click starts a download, one request each. Click plainly, or use the link
+  strip.
+- A page can draw anything inside its own frame, a second bar included. The real bar and its
+  strips are above it.
+- `dk export` opens the file in a headless browser with no browser sandbox and an open network:
+  export only a page whose script you trust.
+- The sandbox and the policy are this server's headers, and headers do not travel: a zip, a pages
+  branch and a PDF carry none of this, so a shared copy's script runs as any web page's does.
+- A page opened under 0.19.3 or earlier could leave a service worker behind that fakes the viewer.
+  After the update to 0.20.0, clear site data for the preview address once (knobs and page data
+  saved there go with it).
+
+The harnesses drive headless Chrome. In Playwright's Firefox build only hand runs were made; what
+was run and what failed is dated in `rationale/derivations/plugin-design-kit.md` of the
+marketplace repository. Safari and stock Firefox are untested, and so are screen readers, WebRTC,
+a link's context menu and a real second device on the LAN.
+
+Every threat, its disposition, its standing and what you can do about each thing left open:
+`rationale/design-kit-threat-model.md` in the same repository. Standing: `isolate.test.sh`
+(tokens, policies, files, hosts), `serve.test.sh` (routes and headers), `frame.test.sh`,
+`viewer.test.sh` and `attack.test.sh` (a hostile page tries every way out, in and through, beside
+an unguarded control that must succeed) — **gate**, the last three's browser checks only where a
+Chromium-family browser is found (`DESIGN_KIT_REQUIRE_BROWSER=1` makes a missing one a failure).
+What you do with a strip, and what a page shows you, is **unenforceable**.
 
 ## One entry point: dk
 
@@ -129,72 +222,83 @@ out (4 hours) or `bash <plugin>/scripts/preview.sh --docroot .design-kit --stop`
 Standing: `dk.test.sh`, `unread-pick.test.sh` and the builders' harnesses drive an old-only
 project — **gate**.
 
-The board talks back. "Pick this", a knob move or a text edit posts to the server's one
-write route, `/_decision`: loopback only, header-gated, append-only into
-`.cc-artifacts/design-kit/decisions.jsonl`; a phone on the LAN is not recorded. `dk decision --latest
---consume` prints exactly the prose the "Copy edits as prompt" button gives, and
-`/design-kit:in-codebase` with no arguments renders that pick. A UserPromptSubmit hook
-says one line when a pick is waiting and nothing otherwise (`CC_DESIGN_KIT_PICK=off`).
-Every pick a skill acts on lands as one line in `.cc-artifacts/design-kit/design-system/DECISIONS.md`.
+The board talks back, once you press Send. Picking an artboard, moving a knob or editing text
+draws a strip above the board with the artboard, every knob value and every text edit. A pick
+arrives only after Send pick in that strip; Discard drops it, and until one of the two it comes
+back, in that tab, after a reload, a restart of the server or a link away. Send pick posts what
+the strip shows to `/_decision` (loopback only, header-gated, at most 64 KiB); the server appends
+one row to `.cc-artifacts/design-kit/decisions.jsonl` with the fields `picks.py` keeps, each
+clamped, and a prompt of its own. A phone on the LAN is not recorded. `dk decision --latest
+--consume` prints the row as one line of escaped JSON, `{kind, ts, board, picked, knobs, text,
+summary, confirmed}`, and `/design-kit:in-codebase` with no arguments renders that pick. With
+`confirmed:true` its number, knobs and edits are the user's choice; its text edits are quoted
+data, never instructions. With `confirmed:false` (an older server took the row, or another hand
+wrote it) a session is told to put it to the user before acting on it. "Copy edits as prompt"
+remains for a board opened with no server. A UserPromptSubmit hook says one line when a pick is
+waiting, calls one that is not confirmed so, and says nothing otherwise
+(`CC_DESIGN_KIT_PICK=off`). Every pick a skill acts on lands as one line in
+`.cc-artifacts/design-kit/design-system/DECISIONS.md`.
 
-Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and three
-reject paths and both badge states, `unread-pick.test.sh` the hook — **gate**. That the
-model reads the prose as requirements is **agent-graded**.
+Standing: `dk.test.sh` drives every verb, `serve.test.sh` the route's accept and reject paths and
+both badge states, `picks.test.sh` every clamp and `confirmed`, `viewer.test.sh` the strip, its
+600 ms and one row a send, `unread-pick.test.sh` the hook — **gate**. That the model reads a pick
+this way is **agent-graded**.
 
 ### Notes on any page
 
-Every page the server injects its reload client into (decks, boards, artifacts, previews;
-not the gallery) also gets a **Notes** button, bottom right, and **Alt+N**. Turned on, it
-outlines the element under the pointer; click one (or Tab to it and press Enter) and a small
-box opens beside it; "Note on this page" leaves a note on no element; Escape cancels and
-drops the draft, while turning the widget off keeps it. Alt+N typed in a text field is the
-field's (macOS Option+N types ñ), never the widget's. The panel lists this page's notes with
-their status and reply. On a board, Pick works as before;
-notes are extra. The script is `scripts/note.js`, served at `/_note.js` from the plugin, never
-from `.cc-artifacts/design-kit/`; it runs only on a loopback address, so a headless browser, `?static=1`, a
-file, another server and a phone on the LAN see nothing. It moves nothing on the page: it
-lives in a shadow root on a fixed, zero-size host.
+The viewer of every page has a **Notes** button, with the number of notes on that page, and
+**Alt+N**, in the page and in the viewer, except in a text field (macOS Option+N types ñ there).
+It opens a drawer with the page's newest 20 notes, their status and reply, and "Note on this
+page". While it is open the page outlines the element under the pointer; click one, or Tab to it
+and press Enter, and the composer opens in the drawer. Only Send note posts. Escape closes the
+composer and drops the draft, then closes the drawer; closing the drawer keeps the draft, and so
+do a save of the page, a server restart, a link in the page and an Escape pressed there. Reloading
+or closing the tab loses it. On a board, picking works as before. The page itself says only which
+element was chosen and its context, and only while the notes are open. A headless browser,
+`?static=1`, a gallery thumbnail, a file, another server and a phone on the LAN have no notes.
 
-A note posts to `POST /_note` (the same guards as `/_decision`, with an
-`X-Design-Kit-Note` header) and lands as one line of `.cc-artifacts/design-kit/notes.jsonl`:
-`{id, ts, page, kind: "note", anchor: {selector, tag, text, rect} | null, text,
-context: {viewport, theme, console}, status: "open", reply: ""}`, every field clamped
-(text 2000 characters, selector 512, the last five console errors, 300 characters each,
-numbers to ±10,000,000) and every other key dropped. A note with no text is refused (400),
-a lone surrogate is stored as `?`, and once `notes.jsonl` or `decisions.jsonl` would pass
-2 MiB a post gets 507 until you move the file aside. `GET /_notes?page=` returns one page's
-rows to the page. `dk notes` prints unread open notes, one JSON object per line with
-control, format and blank-rendering characters escaped, then marks them handed out with the
-time (`--all` lists every row and marks nothing). A note handed out more than 15 minutes ago
-and still open is unread again, so a reader that died or was never read loses nothing.
-`dk notes --wait [--timeout S]` (default 600) blocks until a note is unread or a board pick
-it has not printed yet is unconsumed, and prints it: a pick as one JSON line `{kind: "pick",
-ts, board, picked, prompt}`, left unconsumed for `dk decision --latest --consume`. Run in the
-background it brings the session back when you click Send, with no chat message; exit 3 on
-timeout. `dk notes --reply ID --status addressed|dismissed [--text "…"]` rewrites that row,
-and the page shows it on the next load. `dk notes --shot ID` (nothing else on the line)
-loads the page headless with the element outlined (`?_outline=<selector>`, honoured from
-loopback only) and saves a PNG under `.cc-artifacts/design-kit/.notes/`, in a throwaway browser profile,
-with Chrome's sandbox on (off only as root or with `DESIGN_KIT_BROWSER_NO_SANDBOX=1`) and
-60 s to finish (a cold first browser start can take most of that); with no Chromium-family browser, or a browser that fails, it says so and
-exits 4. The UserPromptSubmit hook adds a count of unread notes and the command to its one
-line, never note text, a selector or a page path; it names a pick's board only when the name
-is plain ASCII of at most 64 characters naming a file in `.cc-artifacts/design-kit/boards/`, and the
-artboard only from 1 to 99.
+A note posts to `POST /_note` (the same guards as `/_decision`, with an `X-Design-Kit-Note`
+header, at most 8 KiB) and lands as one line of `.cc-artifacts/design-kit/notes.jsonl`: `{id, ts,
+cid, page, kind: "note", anchor: {selector, tag, text, rect} | null, text, context: {viewport,
+theme, console}, status: "open", reply: ""}`, every field clamped (text 2000 characters, selector
+512, the last five console errors, 300 characters each, numbers to ±10,000,000) and every other
+key dropped. A note with no text is refused (400), a lone surrogate is stored as `?`, and once
+`notes.jsonl` or `decisions.jsonl` would pass 2 MiB a post gets 507 until you move the file aside.
+A send repeated after a lost answer carries the same `cid` and writes no second row while the
+first is among the file's last 50. `GET /_notes?page=` returns one page's rows to the viewer,
+loopback only, those filed under the folder of an index page too. `dk notes` prints unread open
+notes, one JSON object per line with control, format and blank-rendering characters escaped, then
+marks them handed out with the time (`--all` lists every row and marks nothing). A note handed out
+more than 15 minutes ago and still open is unread again, so a reader that died or was never read
+loses nothing. `dk notes --wait [--timeout S]` (default 600) blocks until a note is unread or a
+board pick it has not printed yet is unconsumed, and prints it: a pick as the line `dk decision`
+prints, left unconsumed for `dk decision --latest --consume`. Run in the background it brings the
+session back when you press Send, with no chat message; exit 3 on timeout. `dk notes --reply ID
+--status addressed|dismissed [--text "…"]` rewrites that row, and the drawer shows it the next
+time it opens. `dk notes --shot ID` (nothing else on the line) runs `scripts/note-shot.py`: it
+opens the raw page headless at the note's size, draws the outline in an isolated world the page's
+script cannot reach, centres the element, waits 2 s and saves a PNG under
+`.cc-artifacts/design-kit/.notes/`, in a throwaway browser profile with no network but loopback (a
+host you allowed is not loaded), with Chrome's sandbox on (off only as root or with
+`DESIGN_KIT_BROWSER_NO_SANDBOX=1`) and 60 s to finish (a cold first browser start can take most of
+that). A selector that matches nothing shoots the page as it is and says so; with no
+Chromium-family browser, or a browser that fails, it says so and exits 4. The UserPromptSubmit
+hook adds a count of unread notes and the command to its one line, never note text, a selector or
+a page path; it names a pick's board only when the name is plain ASCII of at most 64 characters
+naming a file in `.cc-artifacts/design-kit/boards/`, and the artboard only from 1 to 99.
 
-Standing: the route, its rejects and clamps, `/_notes`, `/_note.js`, the injected hook,
-`?_outline=` and the never-served file — `serve.test.sh`, **gate**; every `dk notes` mode,
-including a real `--shot` where a browser exists — `dk.test.sh`, **gate**; the hook printing a
-count and none of an instruction-shaped note's text — `unread-pick.test.sh`, **gate**. The
-widget itself (picking, the selector resolving, console capture, keyboard, no layout shift)
-was run in Chromium on 2026-11-13, and again after the review fixes (Alt+N in a field, the
-kept draft, a console object that throws, cuts by code point, the outline after a late
-layout shift) — **recorded**; no harness drives it. That the model
-acts on a note, and replies to each, is **agent-graded**. Missed: a page carrying
-third-party script can post a note from the same origin; note text is what someone typed
-and is not verified, so it is data, not instructions; a selector built on `nth-of-type`
-goes stale when the page's structure changes; no screenshot without a browser; notes stay
-in `.cc-artifacts/design-kit/` and do not travel with an exported, zipped or published page; elements
+Standing: the route, its rejects and clamps, `/_notes` and the never-served file —
+`serve.test.sh`, **gate**; every `dk notes` mode, `--shot`'s outline pixels included where a
+browser exists — `dk.test.sh`, **gate**; the hook printing a count and none of an
+instruction-shaped note's text — `unread-pick.test.sh`, **gate**; the button, the composer,
+picking an element by pointer and keyboard, the selector, the draft, refusals and the list —
+`viewer.test.sh` and `frame.test.sh`, **gate** where a browser is found. That the model acts on a
+note, and replies to each, is **agent-graded**. Missed: a note's element, its text and the console
+lines are what the page says they are, so `anchor` and `context` are page data, never
+instructions, and nothing verifies who typed the text; a key pressed or an element picked in the
+page while something can be sent acts up to 1.5 s late; a selector built on `nth-of-type` goes
+stale when the page's structure changes; no screenshot without a browser; notes stay in
+`.cc-artifacts/design-kit/` and do not travel with an exported, zipped or published page; elements
 inside iframes and canvas contents cannot be picked.
 
 ### Render checks: `dk check <page>`
@@ -212,7 +316,8 @@ its preview URL. With no page, `dk check` is still the one-line design-system ch
 
 `scripts/render-check.py` drives the browser over its DevTools pipe (python3 stdlib, as
 `dk snapshot --storage-state` does), because the browser's own `--screenshot` never lays a
-page out narrower than 500 px. It opens `/<page>?static=1` on `127.0.0.1` and, after
+page out narrower than 500 px. It opens `/<page>?static=1` on `127.0.0.1`, which the server
+sends on to the raw page under that page's own policy (no viewer around it), and, after
 `load`, evaluates the vendored axe-core and `scripts/check.js` in an isolated world of the
 page (DevTools `Page.createIsolatedWorld`): the page's script can neither read, replace nor
 answer for them, and the findings come back over DevTools, never through the server. No
@@ -230,13 +335,14 @@ a second for three widths.
 
 | Check | Ids | Reports | Threshold |
 | --- | --- | --- | --- |
-| E1 load | `E1.blank` `.resource` `.external` `.console` `.exception` `.no-report` | nothing visible; a request answered 400+ or failed; an off-machine URL (not fetched); `console.error`/`assert` and browser errors (CSP, mixed content); uncaught exceptions from the first script on; a page that never finished loading or checking | any; ten per id, the rest counted in a `dropped` note |
+| E1 load | `E1.blank` `.resource` `.external` `.console` `.exception` `.no-report` | nothing visible; a request answered 400+, failed or refused by the page's policy (`.resource`); the same for an off-machine URL, not fetched, whatever asked for it: an image, a fetch, media, a frame, a WebSocket, a form (`.external`); `console.error`/`assert` and browser errors that name no refused load; uncaught exceptions from the first script on, placed in the file on disk; a page that never finished loading or checking | any; ten per id, the rest counted in a `dropped` note |
 | E2 layout | `E2.overflow` `.wide` `.clipped` `.overlap` `.target` `.viewport` | the page scrolls sideways, or content past the viewport, slide or artboard is cut off (a box wholly past the right edge, such as an off-canvas drawer, is not); text an `overflow: hidden/clip` box cuts through (an ellipsis passes only with a `title` or `aria-label`); two text blocks whose lines cover each other (not inside a fixed or sticky box, nor where something else is drawn on top); targets under 24×24 px (axe's `target-size`, WCAG 2.5.8, its spacing and inline exceptions included); no `<meta name="viewport">` below 600 px | 1 px past an edge, vertically the line's 0.8 em band; overlap of 35% of the smaller line's 0.8 em band, 4 px each way |
 | E3 accessibility | `E3.<axe rule>` | axe-core violations of impact serious or critical, up to 3 elements each, with axe's message | serious |
 | E4 placeholder | `E4.lorem` `.todo` `.placeholder` `.generic` `.repeat` `.empty` `.identical` | lorem ipsum; `TODO`/`FIXME`; "placeholder", "your (company) name here", "insert text here" and the other template nouns (name, title, text, content, copy, heading, message, logo, image, label …), "sample text"; two or more "Item 1"-style labels; three or more same-tag siblings with the same text (8+ characters); a table with no filled data cell, an empty list; two artboards that render the same; never text inside `pre`, `code`, `kbd` or `samp` | as listed |
 | E6 change | the `change` note | the widest width (each artboard on a board) against the last `dk check` of the page when the file changed since, else, for an artifact never checked, its previous version from its own `.versions/<slug>/` (a slug that leaves that folder is ignored): the share of pixels that moved and the box around them | a channel moving more than 10, `dk review`'s rule; Pillow for share and box, else changed or same |
 
-The Notes panel on the page shows "Checked <time> UTC: N findings" or "Not checked", from
+The viewer's bar shows the last check, "Checked, 2 problems" (with "; page changed since" after an
+edit) or "Not checked", in the notes drawer on a narrow window and not at all on the LAN, from
 `GET /_checks?page=` (loopback only), which reads `.checks/results.json`; only
 render-check.py writes it, with the page's mtime as it read the bytes, and drops the results
 and shots of pages deleted since. The axe engine is vendored, unmodified:
@@ -245,26 +351,29 @@ and shots of pages deleted since. The axe engine is vendored, unmodified:
 reads it from disk, and no route serves it.
 
 Standing: each check against its own fixture (a clean page with no finding, one page per id
-tripping that id alone at the widths it should), a deck, a board, a hung page, E6 in both
-diff branches, JSON-only escaped output, a preset answer, a forged post, a replaced
-`Math.max`, hostile board and version metas, dialogs, downloads, WebRTC, a console flood,
-the caps, pruning, an older server, the removed routes, never-served results and the
-vendored file's sha256 — `scripts/__tests__/check.test.sh`, **gate** (the browser half skips,
-saying so, without a browser); the 60 s bound was timed by hand (69.9 s before, 60.1 s
-after, 2026-11-13). That a skill runs `dk check` before presenting and fixes what it shows
-is **agent-graded**. Missed: a check finds what it measures, not what a reviewer would; dark
-mode, hover, focus and other states after interaction (light mode, first paint after load
-only); E6 and the PNGs show a deck's first slide; iframes, closed shadow roots, canvas and
-image text; overlap of text with images, and the drawn-on-top test outside the viewport;
-contrast over a background image (axe calls it incomplete, not a violation); past 4000
-elements, 8 artboards or 60 slides, the rest (a note says so); nothing comes from the
-network during a check, so a page that needs a CDN font or image is checked without it (and
-says so as `E1.external`). What a hostile page can still do: its script runs while it is
-measured, so it can change the DOM it is measured on (hide a defect, show different content
-to a headless browser), keep the browser busy so a width reads not checked, log errors or
-open dialogs, and reach any service on 127.0.0.1, this server's `POST /_note` and
-`/_decision` included. It cannot read, replace or answer for the check, nor write a result.
-A clean check is not proof the page is fine.
+tripping that id alone at the widths it should), the page's own policy (a null origin, its
+storage, its own folder's files, what is refused, no content URL printed), the result in the
+viewer's bar, a deck, a board, a hung page, E6 in both diff branches, JSON-only escaped
+output, a preset answer, a forged post, a replaced `Math.max`, hostile board and version
+metas, dialogs, downloads, WebRTC, a console flood, the caps, pruning, an older server, the
+removed routes, never-served results and the vendored file's sha256 —
+`scripts/__tests__/check.test.sh`, **gate** (the browser half skips, saying so, without a
+browser); the 60 s bound was timed by hand (69.9 s before, 60.1 s after, 2026-11-13). That a
+skill runs `dk check` before presenting and fixes what it shows is **agent-graded**. Missed:
+a check finds what it measures, not what a reviewer would; dark mode, hover, focus and other
+states after interaction (light mode, first paint after load only); E6 and the PNGs show a
+deck's first slide; iframes, closed shadow roots, canvas and image text; overlap of text
+with images, and the drawn-on-top test outside the viewport; contrast over a background
+image (axe calls it incomplete, not a violation); past 4000 elements, 8 artboards or 60
+slides, the rest (a note says so); nothing comes from the network during a check, so a page
+that needs a CDN font or image, from a host you allowed too, is checked without it (and says
+so as `E1.external`); the page is not in the viewer's frame. What a hostile page can still
+do: its script runs while it is measured, so it can change the DOM it is measured on (hide a
+defect, show different content to a headless browser), keep the browser busy so a width
+reads not checked, log errors or open dialogs, and navigate itself to a service on 127.0.0.1
+(a GET). Its policy refuses every other request to one, this server's write routes included,
+and it cannot read, replace or answer for the check, nor write a result. A clean check is
+not proof the page is fine.
 
 ## Skills
 
@@ -296,10 +405,11 @@ PowerPoint is the host `pptx` skill's job.
 drafts 3 UI directions by default (up to 5, never more than 6; `--screens` is clamped to 2-6) as artboards on one canvas, `.cc-artifacts/design-kit/boards/<date>-<slug>.html`,
 served at the plugin's preview URL. Directions differ on structure (navigation, hierarchy, density,
 first screen), not colour — the knobs do colour. On the board: edit any text in place, move
-spacing/radius/hue/type/density/scheme knobs globally or per artboard (persisted in that browser's
-localStorage), pick an artboard, and "Copy edits as prompt" pastes the decision back into the
-session as plain requirements. `scripts/board-export.sh` writes a PNG per artboard or one PDF
-through a headless Chromium-family browser (exit 3 with the install hint when none is found).
+spacing/radius/hue/type/density/scheme knobs globally or per artboard (kept by the viewer in that
+browser), pick an artboard and press Send pick in the viewer; with no server, "Copy edits as prompt"
+pastes the same decision into the session. `scripts/board-export.sh` writes a PNG per artboard or one PDF
+through a headless Chromium-family browser (exit 3 with the install hint when none is found; no
+browser sandbox, see "What a page can and cannot do").
 
 What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 6 artboards, an empty body,
 lorem ipsum, or any external asset — a board renders offline — **gate**. That the directions
@@ -312,7 +422,7 @@ goes to `/design-kit:in-codebase` or the project's UI build command); knobs rest
 primitives only; the hue knob rotates the accent and its 170° partner `--dk-accent-2` together
 and cannot express a near-neutral brand accent (use the design system's `tokens.json`); no font loads
 through the offline gate, so a display face is named in a note and decided in the token file;
-localStorage means edits do not travel to another browser.
+the viewer keeps edits in one browser at one address, so they do not travel to another browser or port.
 Claude Code's own `/design` publishes artboards to claude.ai and needs a signed-in session; this
 one stays on disk.
 
@@ -450,21 +560,24 @@ reads. Determinism, `--check` and the stamps are **gate** (harness-driven).
 `/design-kit:artifact [file.html | file.md | dir | brief] [--name slug] [--zip]` — every
 stylesheet, script, image and font inlined by `scripts/artifact-bundle.py` — written to
 `.cc-artifacts/design-kit/artifacts/<slug>.html`, versioned (`.versions/<slug>/vN.html` +
-`<slug>.versions.json`), and served on the plugin's preview URL with live reload. A `.md`
-source renders through the page shell (ATX headings, one-level lists, pipe tables, fenced
-code, links; no nested lists, footnotes or reference links). A brief means the model
-writes the page from one of five patterns (walkthrough, compare, dashboard, checklist,
+`<slug>.versions.json`), and served on the plugin's preview URL with live reload. Without `--name`
+the artifact takes the file's name, an `index.html` or `index.htm` its folder's; a slug that
+already holds versions of another source is written all the same, with a warning that names
+`--name`. A `.md` source renders through the page shell (ATX headings, one-level lists, pipe
+tables, fenced code, links; no nested lists, footnotes or reference links). A brief means the
+model writes the page from one of five patterns (walkthrough, compare, dashboard, checklist,
 bring-back) with data from this session.
 
 Sharing is a question every time, default "keep it local": LAN (`preview.sh --lan`, a URL carrying its key),
 a pages branch (`scripts/artifact-publish.sh`, dry run first, pushed only on a second
 yes, never enables Pages, never force-pushes), or a zip. There is no other network path.
 
-What has teeth: the bundler's inlining, UTF-8 refusal, stamp, version ledger, network
-and unresolved-link reports, and the publisher's worktree isolation are **gates** —
-`scripts/__tests__/artifact-*.test.sh` drive each. Page quality is **agent-graded**.
-Notes on the served page: see "Notes on any page". Not here: refresh from live data, runtime asset loads (a page that
-fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
+What has teeth: the bundler's inlining, UTF-8 refusal, stamp, version ledger, network and
+unresolved-link reports, and the publisher's worktree isolation are **gates** —
+`scripts/__tests__/artifact-*.test.sh` drive each. Page quality is **agent-graded**. Notes on the
+served page: see "Notes on any page". A shared copy has no viewer, no sandbox and no policy: see
+"What a page can and cannot do". Not here: refresh from live data, runtime asset loads (a page
+that fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
 
 ### `/design-kit:film` — a product film from a brief
 
@@ -630,14 +743,15 @@ where the server logs the cookie and a localStorage beacon, plus an expired sess
 A design plugin with one real invocation across ten projects was retired from this
 marketplace on 2026-09-14. This one starts from zero and says now what would retire it.
 
-**How it is measured.** `bash scripts/dk-usage.sh --projects <dir>...` (in this plugin)
-prints one row per surface per project — created, revisited, picked, rendered, exported,
-shared, followed-by-commit — from `.cc-artifacts/design-kit/usage.jsonl` (one line per `dk` verb),
-`.cc-artifacts/design-kit/decisions.jsonl` (one line per board pick), file mtimes, and `git log` over
-the seven days after each decision, restricted to the component paths the decision names.
-`followed-by-commit` reads `n/a`, never 0, when no decision names a path. The router side:
-skill-router carries a `**/dir/**` row per surface, so `turn-cost.sh --skills` at the
-marketplace root can count offers; without those rows it read zero by construction.
+**How it is measured.** `bash scripts/dk-usage.sh --projects <dir>...` (in this plugin) prints one
+row per surface per project — created, revisited, picked, rendered, exported, shared,
+followed-by-commit — from `.cc-artifacts/design-kit/usage.jsonl` (one line per `dk` verb),
+`.cc-artifacts/design-kit/decisions.jsonl` (one line per pick sent: only its time and whether it
+was read), file mtimes, and `git log` over the seven days after each decision, restricted to the
+component paths `DECISIONS.md` names. `followed-by-commit` reads `n/a`, never 0, when that file
+names no path. The router side: skill-router carries a `**/dir/**` row per surface, so
+`turn-cost.sh --skills` at the marketplace root can count offers; without those rows it read zero
+by construction.
 
 **The kill trigger, as a number.** Thirty days after 0.2.0, with at least three projects
 that have a design-kit folder (`.cc-artifacts/design-kit/`, or an older `.design-kit/`): `followed-by-commit = 0` across all of them AND
@@ -669,7 +783,7 @@ every plugin's scratch paths lives in git-workflow (`scratch-ignore.sh`, run by
 
 ## Disabling
 
-Uninstall the plugin. `DESIGN_KIT_PORT` moves the server. `.cc-artifacts/design-kit/` is safe to
+Uninstall the plugin. `DESIGN_KIT_PORT` fixes the server's port. `.cc-artifacts/design-kit/` is safe to
 delete at any time except its `design-system/`, which is yours.
 
 ## Not in this release

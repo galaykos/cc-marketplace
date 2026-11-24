@@ -11,7 +11,7 @@ const NOT_TEXT = 'script,style,noscript,template,[data-design-kit-check]';
 function cut(s, n) { return Array.from(String(s ?? '').slice(0, 2 * n)).slice(0, n).join(''); }
 function squash(s) { return String(s ?? '').replace(/\s+/g, ' ').trim(); }
 
-// note.js's selector, copied: importing note.js would start its widget
+// frame.js's selector, copied: that one runs in the page's own world, which page script can change
 function selectorOf(el) {
   if (!(el instanceof Element)) return null;
   const parts = [];
