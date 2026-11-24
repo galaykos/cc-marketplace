@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
 Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
@@ -56,6 +56,8 @@ _spec.loader.exec_module(isolate)
 NOTE_JS = os.path.join(HERE, "note.js")
 # route -> (file, loopback only); served from the plugin, never from the docroot
 SCRIPTS = {"/_note.js": (NOTE_JS, False)}
+# preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
+SERVER_VERSION = 1
 PAGE_EXT = (".html", ".htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
@@ -784,14 +786,14 @@ def _idle_exit(srv, state, limit_s, stop):
 
 
 def _drop_state(root):
-    """On the way out: remove .preview.pid, .url and .bind while the pid file still names this process (not a successor's)."""
+    """On the way out: remove .preview.pid, .url, .bind and .ver while the pid file still names this process (not a successor's)."""
     try:
         with open(os.path.join(root, ".preview.pid"), encoding="ascii") as fh:
             if fh.read().strip() != str(os.getpid()):
                 return
     except (OSError, ValueError):
         return
-    for name in (".preview.url", ".preview.bind", ".preview.pid"):
+    for name in (".preview.url", ".preview.bind", ".preview.ver", ".preview.pid"):
         try:
             os.unlink(os.path.join(root, name))
         except OSError:

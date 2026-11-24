@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives preview.sh and serve.py's lifecycle: idempotent start, the port choice (8124 busy, the recorded port, an explicit port, a full range, the moved-port line), --stop, --lan restarting a loopback server, a recorded pid that is not serve.py or cannot be named (exit 6),
+# Drives preview.sh and serve.py's lifecycle: idempotent start, the port choice (8124 busy, the recorded port, an explicit port, a full range, the moved-port line), the version record (an older server replaced on its port and bind, a newer one kept), --stop, --lan restarting a loopback server, a recorded pid that is not serve.py or cannot be named (exit 6),
 # state files gone after a self-exit, dk status on a dead server, the LAN and idle limits (DESIGN_KIT_LAN_MINUTES, DESIGN_KIT_IDLE_MINUTES in both modes, 0 = off; 403s do not count).
 # Misses: whether a browser tab's stream really holds the server open; the LAN half skips with no network address; two launches racing for a port; a serve.py slower than 0.3 s to its bind.
 set -euo pipefail
@@ -13,6 +13,10 @@ case "$out" in *"http://127.0.0.1:$port/"*) ;; *) echo "FAIL: start output: $out
 body="$(curl -s "http://127.0.0.1:$port/index.html")"
 case "$body" in "<h1>ok</h1>"*) ;; *) echo "FAIL: served body: $body"; exit 1 ;; esac
 [ "$(cat "$tmp/.preview.url")" = "http://127.0.0.1:$port/" ] || { echo "FAIL: .preview.url: $(cat "$tmp/.preview.url" 2>&1)"; exit 1; }
+version="$(python3 -c 'import importlib.util, sys
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+print(getattr(m, "SERVER_VERSION", "no SERVER_VERSION"))' "$here/serve.py")"
+[ "$(cat "$tmp/.preview.ver" 2>&1)" = "$(cat "$tmp/.preview.pid") $version" ] || { echo "FAIL: .preview.ver after a start: $(cat "$tmp/.preview.ver" 2>&1); wanted the pid and $version"; exit 1; }
 out2="$(bash "$here/preview.sh" --docroot "$tmp" --port "$port")"
 case "$out2" in *"not used"*) echo "FAIL: a second start on the running port says the port was not used: $out2"; exit 1 ;; *"already running"*) ;; *) echo "FAIL: second start not idempotent: $out2"; exit 1 ;; esac
 out3="$(bash "$here/preview.sh" --docroot "$tmp" --stop)"
@@ -101,8 +105,8 @@ curl -s --max-time 1 "http://127.0.0.1:$p3/" >/dev/null 2>&1 && { echo "FAIL: a 
 curl -s --max-time 1 "http://127.0.0.1:$p2/" >/dev/null 2>&1 && { echo "FAIL: a preview.sh server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
 curl -s --max-time 1 "http://127.0.0.1:$p4/" >/dev/null 2>&1 || { echo "FAIL: DESIGN_KIT_IDLE_MINUTES=0 still shut the server down"; exit 1; }
 kill "$offpid"
-# a self-exit removes the pid, url and bind files that still name it; dk status then prints no URL
-[ -f "$tmp/i2/.preview.pid" ] || [ -f "$tmp/i2/.preview.url" ] && { echo "FAIL: serve.py left its pid or url file after an idle exit"; exit 1; }
+# a self-exit removes the pid, url, bind and ver files that still name it; dk status then prints no URL
+[ -f "$tmp/i2/.preview.pid" ] || [ -f "$tmp/i2/.preview.url" ] || [ -f "$tmp/i2/.preview.ver" ] && { echo "FAIL: serve.py left its pid, url or ver file after an idle exit"; exit 1; }
 dk_status() { (cd "$tmp" && DESIGN_KIT_IGNORE=off DESIGN_KIT_DIR="$1" bash "$here/dk.sh" status); }
 st="$(dk_status "$tmp/i2")"; case "$st" in *"server: not running"*) ;; *) echo "FAIL: dk status after an idle exit: $st"; exit 1 ;; esac
 gone="$(bash "$here/preview.sh" --docroot "$tmp/i2" --stop)"
@@ -174,7 +178,7 @@ case "$out" in *moved*) fail "$c: a first start prints a moved-port line: $out" 
 case "$(curl -s "http://127.0.0.1:$want/index.html")" in "<h1>p2</h1>"*) ;; *) fail "$c: port $want does not serve this docroot" ;; esac
 code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$want/.preview.port")"; [ "$code" = 404 ] || fail ".preview.port is served: $code"
 launch "$tmp/p2" --stop; [ "$(port_of "$tmp/p2")" = "$want" ] || fail "$c: --stop did not keep .preview.port: $(port_of "$tmp/p2")"
-[ ! -e "$tmp/p2/.preview.pid" ] && [ ! -e "$tmp/p2/.preview.url" ] && [ ! -e "$tmp/p2/.preview.bind" ] || fail "--stop left a pid, url or bind file"
+[ ! -e "$tmp/p2/.preview.pid" ] && [ ! -e "$tmp/p2/.preview.url" ] && [ ! -e "$tmp/p2/.preview.bind" ] && [ ! -e "$tmp/p2/.preview.ver" ] || fail "--stop left a pid, url, bind or ver file"
 launch "$tmp/p1" --stop; launch "$tmp/p2"
 [ "$(url_of "$tmp/p2")" = "http://127.0.0.1:$want/" ] || fail "$c: the second start went to $(url_of "$tmp/p2"), wanted $want: $out"
 [ "$(moved "$want")" = 0 ] || fail "$c: a start on the recorded port prints the moved-port line: $out"
@@ -209,6 +213,74 @@ for o in "$flag" "$rc $out"; do [ "$o" = "4 preview.sh: server did not start (po
 c="range full exits 4"; hold 8124 8125; DESIGN_KIT_PORT_LAST=8125 launch "$tmp/p3"; release
 [ "$rc $out" = "4 preview.sh: no free port from 8124 to 8125" ] || fail "$c: exit $rc: $out"
 [ ! -e "$tmp/p3/.preview.pid" ] && [ ! -e "$tmp/p3/.preview.port" ] || fail "$c: a failed start left a pid or port file"
+
+# The version record. older <docroot> <port> [--lan]: a server started as the 0.19.3 launcher starts one, leaving .preview.ver and .preview.port as they are
+older() { local b=127.0.0.1; [ "${3:-}" = --lan ] && b=0.0.0.0
+  python3 "$here/serve.py" --docroot "$(cd "$1" && pwd -P)" --port "$2" ${3:-} >/dev/null 2>&1 & oldpid=$!; extra="$extra $oldpid"
+  echo "$oldpid" > "$1/.preview.pid"; echo "http://127.0.0.1:$2/" > "$1/.preview.url"; echo "$b" > "$1/.preview.bind"
+  for _ in $(seq 50); do curl -s -o /dev/null --max-time 1 "http://127.0.0.1:$2/" && return; sleep 0.1; done; fail "the older server did not start on port $2"; }
+pid_of() { cat "$1/.preview.pid" 2>/dev/null || true; }
+ver_of() { cat "$1/.preview.ver" 2>/dev/null || true; }
+line() { printf '%s\n' "$out" | grep -qxF "$1" || fail "$c: no line \"$1\": $out"; }
+# replaced <docroot> <port> <bind>: after a launch, oldpid is gone and a server with its own record answers on that port and bind
+replaced() { local new; new="$(pid_of "$1")"
+  [ "$rc" = 0 ] || fail "$c: exit $rc: $out"
+  if kill -0 "$oldpid" 2>/dev/null; then fail "$c: the older server still runs: $out"; fi
+  [ "$new" != "$oldpid" ] && kill -0 "$new" 2>/dev/null && [ "$(ver_of "$1")" = "$new $version" ] || fail "$c: pid file $new, record $(ver_of "$1"): $out"
+  case "$(url_of "$1")" in *":$2/") ;; *) fail "$c: moved to $(url_of "$1"), was on $2: $out" ;; esac
+  case "$(curl -s --max-time 1 --retry 3 --retry-connrefused "http://127.0.0.1:$2/index.html")" in "<h1>p5</h1>"*) ;; *) fail "$c: nothing serves this docroot on port $2" ;; esac
+  [ "$(cat "$1/.preview.bind")" = "$3" ] && [ "$(port_of "$1")" = "$2" ] || fail "$c: bind $(cat "$1/.preview.bind"), recorded port $(port_of "$1"); wanted $3 and $2"
+  local net=0; bound "$2" || net=$?
+  case "$3 $net" in "127.0.0.1 0" | "0.0.0.0 1") fail "$c: the network address answers $net (0 = yes, 1 = no) on a $3 server" ;; esac; }
+# a fresh older server on $own, and no recorded port to lead the launcher back to it
+outdate() { launch "$tmp/p5" --stop; rm -f "$tmp/p5/.preview.port"; older "$tmp/p5" "$own" "$@"; }
+# stale <what> <record>: PID in the record is the running server's
+stale() { c="$1 is replaced on its port"; outdate; [ -z "$2" ] || printf '%s\n' "${2//PID/$oldpid}" > "$tmp/p5/.preview.ver"
+  launch "$tmp/p5"; replaced "$tmp/p5" "$own" 127.0.0.1; case "$out" in *"not used"*) fail "$c: no port was asked for: $out" ;; esac; }
+mkdir -p "$tmp/p5"; echo '<h1>p5</h1>' > "$tmp/p5/index.html"; own="$(free_port)"; other="$(free_port)"
+stale "a server with no version record" ""
+stale "a server of a lower version" "PID $(( version - 1 ))"
+stale "version record for another pid is ignored and the server" "1PID $version"
+stale "a server whose version record is no number" "PID ${version}x"
+stale "a server whose version record is past any integer" "PID 99999999999999999999"
+
+c="an older server asked for on another port is replaced on its own"
+outdate; launch "$tmp/p5" --port "$other"; replaced "$tmp/p5" "$own" 127.0.0.1; line "preview: already running on port $own; --port $other not used"
+outdate; DESIGN_KIT_PORT="$other" launch "$tmp/p5"; replaced "$tmp/p5" "$own" 127.0.0.1; line "preview: already running on port $own; --port $other not used"
+
+c="an older LAN server is replaced as a LAN server"
+outdate --lan; key="$(cat "$tmp/p5/.preview.key")"; launch "$tmp/p5"; replaced "$tmp/p5" "$own" 0.0.0.0
+case "$out" in *"LAN mode"*) ;; *) fail "$c: the output does not say LAN mode is on: $out" ;; esac
+[ "$(cat "$tmp/p5/.preview.key")" = "$key" ] || fail "$c: its key changed"
+c="--lan over an older loopback server keeps its port"; outdate; launch "$tmp/p5" --lan; replaced "$tmp/p5" "$own" 0.0.0.0
+
+c="after a kill -9, a 0.19.3 start beside a stale version record is replaced"
+launch "$tmp/p5" --stop; launch "$tmp/p5" --port "$own"; pid="$(pid_of "$tmp/p5")"
+kill -9 "$pid"; for _ in $(seq 30); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+older "$tmp/p5" "$own"; [ "$(ver_of "$tmp/p5")" = "$pid $version" ] || fail "$c: the record the killed server left is not there: $(ver_of "$tmp/p5")"
+launch "$tmp/p5"; replaced "$tmp/p5" "$own" 127.0.0.1
+
+c="a newer server is kept"
+outdate; echo "$oldpid $(( version + 1 ))" > "$tmp/p5/.preview.ver"; newer="$(ver_of "$tmp/p5")"
+for args in "" "--lan" "--port $other"; do
+  launch "$tmp/p5" $args; line "preview: already running — http://127.0.0.1:$own/"; line "preview: a newer server is running; left as it is."
+  [ "$rc $(pid_of "$tmp/p5") $(ver_of "$tmp/p5")" = "0 $oldpid $newer" ] && kill -0 "$oldpid" || fail "$c: $args exit $rc, pid file $(pid_of "$tmp/p5"), record $(ver_of "$tmp/p5"): $out"
+  case "$args" in --lan) line "preview: --lan not used" ;; --port*) line "preview: already running on port $own; --port $other not used" ;; esac
+done
+
+c="an older server that takes a second to stop is waited for"
+outdate; kill -STOP "$oldpid"; { sleep 1; kill -CONT "$oldpid"; } & launch "$tmp/p5"; replaced "$tmp/p5" "$own" 127.0.0.1
+
+c="an older server that does not stop is kept recorded"
+outdate; kill -STOP "$oldpid"; launch "$tmp/p5"; kill -CONT "$oldpid"
+[ "$rc $out" = "4 preview.sh: pid $oldpid on port $own did not stop; kept the state files" ] && [ "$(pid_of "$tmp/p5")" = "$oldpid" ] || fail "$c: exit $rc, pid file $(pid_of "$tmp/p5"): $out"
+for _ in $(seq 30); do kill -0 "$oldpid" 2>/dev/null || break; sleep 0.1; done
+
+c="a server of another docroot with the same relative name is left running"; mkdir -p "$tmp/p6/.dk" "$tmp/p7/.dk"
+( cd "$tmp/p6" && exec python3 "$here/serve.py" --docroot .dk --port "$own" >/dev/null 2>&1 ) & theirs=$!; extra="$extra $theirs"
+for _ in $(seq 50); do curl -s -o /dev/null --max-time 1 "http://127.0.0.1:$own/" && break; sleep 0.1; done
+echo "$theirs" > "$tmp/p7/.dk/.preview.pid"; cd "$tmp/p7"; launch .dk --port "$other"; cd "$OLDPWD"
+started="$out"; launch "$tmp/p7/.dk" --stop; kill -0 "$theirs" 2>/dev/null || fail "$c: $started"
 
 # The order, with a python3 that only records the port it was given and dies: nothing is bound, 8123 and the whole default range included.
 mkdir -p "$tmp/fake"; printf '#!/bin/sh\necho "$5" >> "%s"\nexit 1\n' "$tmp/tried" > "$tmp/fake/python3"

@@ -381,10 +381,11 @@ http.server.ThreadingHTTPServer(("127.0.0.1", a.port), functools.partial(http.se
 PY
 abs="$(cd "$DK" && pwd -P)"
 python3 "$tmp/old/serve.py" --docroot "$abs" --port "$port" >/dev/null 2>&1 &
-bgpids="$bgpids $!"; echo "$!" > "$DK/.preview.pid"; echo "http://127.0.0.1:$port/" > "$DK/.preview.url"
+bgpids="$bgpids $!"; echo "$!" > "$DK/.preview.pid"; echo "$! 999999999" > "$DK/.preview.ver"; echo "http://127.0.0.1:$port/" > "$DK/.preview.url"
 for _ in $(seq 1 50); do curl -s -o /dev/null "$B/fx/clean.html" && break; sleep 0.1; done
 expect clean 0 "" --widths 375
-kill $bgpids 2>/dev/null || true; rm -f "$DK/.preview.pid" "$DK/.preview.url"
+kill -0 "$!" 2>/dev/null || fail "the launcher replaced a server recorded as newer"
+kill $bgpids 2>/dev/null || true; rm -f "$DK/.preview.pid" "$DK/.preview.url" "$DK/.preview.ver"
 
 sleep 0.5
 pgrep -f -- '--user-data-dir=[^ ]*/dk-check-' >/dev/null 2>&1 && fail "a browser from dk check is still running: $(pgrep -af -- '--user-data-dir=[^ ]*/dk-check-' | head -3)"
