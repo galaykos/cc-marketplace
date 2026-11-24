@@ -57,7 +57,6 @@
 # verb against a temp project; the wrapped scripts keep their own harnesses.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/dk.sh
 set -euo pipefail
-SHOT_LIMIT_S=60
 
 # Shared block templates/blocks/state-root.md — edit there, re-paste byte-for-byte.
 # Why, limits, history: rationale/derivations/templates-and-blocks.md § templates/blocks/state-root.md
@@ -445,7 +444,6 @@ PY
     # Rows are page-originated: printed as escaped JSON, never as prose. Exit 3: nothing to print; 2: bad arguments.
     notes_py() { python3 -I - "$DK" "$here/serve.py" "$@" <<'PY'
 import calendar, contextlib, hashlib, importlib.util, json, os, re, sys, tempfile, time
-from urllib.parse import quote
 dk, serve, *args = sys.argv[1:]
 spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 path = os.path.join(dk, m.NOTES)
@@ -556,9 +554,13 @@ if "--shot" in o:
     if not isinstance(sel, str) or not sel: die("note %s is on the whole page, no element to shoot" % nid, 2)
     vp = (r.get("context") or {}).get("viewport") or {}
     size = [min(max(v if isinstance(v, int) and v > 0 else d, lo), hi) for v, d, lo, hi in ((vp.get("w"), 1280, 320, 3840), (vp.get("h"), 800, 240, 2160))]
-    print(nid)
-    print("/" + quote(str(r.get("page") or ""), safe="/") + "?_outline=" + quote(sel, safe=""))
-    print("%d,%d" % tuple(size)); sys.exit(0)
+    # page data goes as arguments no shell reads; a NUL, which exec cannot take, as the U+FFFD CSS reads it as
+    shots = os.path.join(dk, ".notes"); os.makedirs(shots, exist_ok=True); os.chmod(shots, 0o700)
+    out = os.path.join(shots, nid + ".png")
+    with contextlib.suppress(FileNotFoundError): os.unlink(out)
+    plain = lambda v: m._clip(v, 512).replace("\0", "\ufffd")
+    os.execv(sys.executable, [sys.executable, "-I", os.path.join(os.path.dirname(serve), "note-shot.py"), "--docroot", dk, "--out", out,
+                              "--page=" + plain(r.get("page")), "--selector=" + plain(sel), "--size=%dx%d" % tuple(size)])
 if "--reply" in o:
     status = o.get("--status")
     if status not in ("addressed", "dismissed"): die("--status must be addressed or dismissed", 2)
@@ -594,35 +596,13 @@ PY
       case "$rc" in 0) log ok ;; 3) log skip ;; *) log fail ;; esac
       exit "$rc"
     fi
-    set +e; spec="$(notes_py "$@")"; rc=$?; set -e
-    [ "$rc" = 0 ] || { log fail; exit "$rc"; }
-    # every path below is built from the id notes_py validated, never from the raw argument
-    nid="$(printf '%s\n' "$spec" | sed -n 1p)"
-    browser="$(bash "$here/board-export.sh" --which 2>/dev/null)" \
-      || fail "no Chromium-family browser found (Chrome, Chromium, Edge, Playwright's, or DESIGN_KIT_BROWSER); no screenshot taken" "$nid" 4
-    base="$(ensure_server)" || fail "the preview server did not start; no screenshot taken" "$nid" 4
-    port="${base%/}"; port="${port##*:}"
-    # 127.0.0.1, not the URL file's host: a LAN server's printed address is not loopback, and ?_outline= answers loopback only
-    shots="$DK/.notes"; mkdir -p "$shots"; chmod 700 "$shots"; out="$shots/$nid.png"; rm -f "$out"
-    profile="$(mktemp -d)"
-    # Chrome's sandbox stays on: off only as root, where Chrome refuses to start with it, or on DESIGN_KIT_BROWSER_NO_SANDBOX=1.
-    sandbox=""; if [ "$(id -u)" = 0 ] || [ "${DESIGN_KIT_BROWSER_NO_SANDBOX:-}" = 1 ]; then sandbox="--no-sandbox"; fi
-    # 60 s: a cold first Chrome start alone ran past 30 s on a CI runner; a warm one shoots in under a second.
-    limit=""; if command -v timeout >/dev/null 2>&1; then limit="timeout $SHOT_LIMIT_S"; fi
-    set +e
-    $limit "$browser" --headless=new --disable-gpu $sandbox --hide-scrollbars --force-device-scale-factor=1 \
-      --run-all-compositor-stages-before-draw --virtual-time-budget=3000 --no-first-run --no-default-browser-check \
-      --user-data-dir="$profile" --window-size="$(printf '%s\n' "$spec" | sed -n 3p)" \
-      --screenshot="$out" "http://127.0.0.1:$port$(printf '%s\n' "$spec" | sed -n 2p)" >/dev/null 2>&1
-    brc=$?; set -e
-    rm -rf "$profile"
-    if [ "$brc" != 0 ]; then
-      rm -f "$out"
-      if [ "$brc" = 124 ] && [ -n "$limit" ]; then why="ran past $SHOT_LIMIT_S s"; else why="exited $brc"; fi
-      fail "the browser $why for note $nid; no screenshot taken" "$nid" 4
-    fi
-    [ -s "$out" ] || fail "the browser wrote no PNG for note $nid" "$nid" 4
-    echo "$out"; log ok "$out" ;;
+    set +e; out="$(notes_py "$@")"; rc=$?; set -e
+    case "$rc" in
+      0) echo "$out"; log ok "$out" ;;
+      4) log fail "$2" ;;  # note-shot.py's exit: notes_py took the id
+      *) log fail ;;
+    esac
+    exit "$rc" ;;
 
   status)
     python3 -I - "$DK" "$here/serve.py" <<'PY'

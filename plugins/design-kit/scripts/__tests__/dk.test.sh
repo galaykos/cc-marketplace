@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route; one escaped JSON line, 20 posts racing --consume, a planted row) → scratch → bundle (its report, a page's hidden characters escaped in it; page, zip and published file against a stored 0.19.3 sample) → share --zip, --pages and --lan by typed path, docroot-relative path and URL → the builders' temp file → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick as one JSON line announced once, one parse for --shot, a stand-in browser).
-# Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, and DECISIONS.md.
+# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route; one escaped JSON line, 20 posts racing --consume, a planted row) → scratch → bundle (its report, a page's hidden characters escaped in it; page, zip and published file against a stored 0.19.3 sample) → share --zip, --pages and --lan by typed path, docroot-relative path and URL → the builders' temp file → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick as one JSON line announced once, one parse for --shot, a stand-in browser that fails, then a real one: the outline's pixels, a page that works against it, the selector as data, the time limit).
+# Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, and DECISIONS.md. Without a browser --shot's PNG cases print SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1.
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first; the state root would resolve there
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -258,18 +258,16 @@ dk notes >/dev/null
 id3="$(note '{"page":"/boards/x.html","text":"no anchor"}')"
 set +e; dk notes --shot "$id3" >/dev/null 2>&1; rc=$?; set -e; [ "$rc" = 2 ] || { echo "FAIL: --shot of a note with no anchor should exit 2, got $rc"; exit 1; }
 set +e; dk notes --shot ../x >/dev/null 2>&1; rc=$?; set -e; [ "$rc" = 2 ] || { echo "FAIL: --shot ../x should exit 2, got $rc"; exit 1; }
-# A stand-in browser records its arguments and its parent, writes a PNG signature, exits $FAKE_RC.
-fake="$tmp/fake-browser"
+# A stand-in browser speaks no DevTools: it records its arguments and exits $FAKE_RC.
+fake="$tmp/fake-browser"; shots=.cc-artifacts/design-kit/.notes; mkdir "$tmp/shot-tmp" "$tmp/home"
 cat > "$fake" <<'EOF'
 #!/bin/sh
 : > "$FAKE_LOG"
 for a in "$@"; do printf '%s\n' "$a" >> "$FAKE_LOG"; done
-ps -o comm= -p "$PPID" > "$FAKE_LOG.parent" 2>/dev/null
-for a in "$@"; do case "$a" in --screenshot=*) printf '\211PNG\r\n\032\n' > "${a#--screenshot=}" ;; esac; done
 exit "${FAKE_RC:-0}"
 EOF
 chmod +x "$fake"
-fshot() { FAKE_LOG="$tmp/fake.log" DESIGN_KIT_BROWSER="$fake" dk notes "$@"; }
+fshot() { FAKE_LOG="$tmp/fake.log" TMPDIR="$tmp/shot-tmp" DESIGN_KIT_BROWSER="$fake" dk notes "$@"; }
 # one parse: the id checked is the id written, and verbs do not mix
 printf 'KEEP\n' > "$tmp/logo.png"
 set +e; fshot --shot ../../logo --shot "$id1" >/dev/null 2>&1; rc=$?; set -e
@@ -278,25 +276,89 @@ for args in "--all --shot $id1" "--shot $id1 --all" "--wait --reply $id1 --statu
   set +e; out="$(fshot $args 2>/dev/null)"; rc=$?; set -e
   [ "$rc" = 2 ] && [ -z "$out" ] || { echo "FAIL: dk notes $args should be a usage error (exit 2, nothing on stdout), got $rc: $out"; exit 1; }
 done
-out="$(fshot --shot "$id1")"
-[ "$out" = ".cc-artifacts/design-kit/.notes/$id1.png" ] || { echo "FAIL: --shot with a stand-in browser printed $out"; exit 1; }
+# a browser that fails: exit 4, the folder private, an earlier PNG of the note gone, no profile left
+mkdir -p "$shots"; chmod 755 "$shots"; printf 'OLD\n' > "$shots/$id1.png"
+set +e; out="$(FAKE_RC=7 fshot --shot "$id1" 2>&1)"; rc=$?; set -e
+[ "$rc" = 4 ] && case "$out" in *"dk notes: the browser exited 7"*"no screenshot taken") true ;; *) false ;; esac || { echo "FAIL: a browser that exits 7 should be reported with exit 4 (rc=$rc): $out"; exit 1; }
+[ "$(ls -ld "$shots" | cut -c1-10)" = drwx------ ] && [ -z "$(find "$shots" "$tmp/shot-tmp" -mindepth 1)" ] \
+  || { echo "FAIL: a failed --shot should leave an empty 0700 folder and no profile: $(ls -la "$shots" "$tmp/shot-tmp")"; exit 1; }
+tail -n 1 .cc-artifacts/design-kit/usage.jsonl | grep -q '"verb": "notes", "outcome": "fail", "artifact": "'"$id1"'"' || { echo "FAIL: usage.jsonl does not name the note of a failed --shot"; exit 1; }
 if [ "$(id -u)" = 0 ]; then grep -qx -- --no-sandbox "$tmp/fake.log" || { echo "FAIL: --shot as root lacks --no-sandbox"; exit 1; }
 else ! grep -qx -- --no-sandbox "$tmp/fake.log" || { echo "FAIL: --shot passed --no-sandbox without root or DESIGN_KIT_BROWSER_NO_SANDBOX=1"; exit 1; }; fi
 grep -q -- '^--user-data-dir=' "$tmp/fake.log" || { echo "FAIL: --shot ran the browser on the user's own profile (no --user-data-dir)"; exit 1; }
-if command -v timeout >/dev/null 2>&1; then [ "$(tr -d ' ' < "$tmp/fake.log.parent")" = timeout ] || { echo "FAIL: --shot ran the browser with no time limit (parent $(cat "$tmp/fake.log.parent"))"; exit 1; }; fi
-DESIGN_KIT_BROWSER_NO_SANDBOX=1 fshot --shot "$id1" >/dev/null
+DESIGN_KIT_BROWSER_NO_SANDBOX=1 fshot --shot "$id1" >/dev/null 2>&1 || true
 grep -qx -- --no-sandbox "$tmp/fake.log" || { echo "FAIL: DESIGN_KIT_BROWSER_NO_SANDBOX=1 did not pass --no-sandbox"; exit 1; }
-set +e; out="$(FAKE_RC=7 fshot --shot "$id1" 2>&1)"; rc=$?; set -e
-[ "$rc" != 0 ] && case "$out" in *7*) true ;; *) false ;; esac || { echo "FAIL: a browser that exits 7 should be reported with a non-zero exit (rc=$rc): $out"; exit 1; }
 set +e; out="$(DESIGN_KIT_BROWSER=/nonexistent dk notes --shot "$id1" 2>&1)"; rc=$?; set -e
 [ "$rc" = 4 ] && [ "$(printf '%s\n' "$out" | wc -l | tr -d ' ')" = 1 ] && case "$out" in *"no Chromium-family browser"*) true ;; *) false ;; esac \
   || { echo "FAIL: --shot with no browser should print one line and exit 4 (rc=$rc): $out"; exit 1; }
-if bash "$here/board-export.sh" --which >/dev/null 2>&1; then
-  printf '<!doctype html><html><body><header id="hdr" style="margin-top:1400px;height:64px;background:#ddd">Deals</header></body></html>' > .cc-artifacts/design-kit/boards/x.html
-  out="$(dk notes --shot "$id1")"
-  case "$out" in *".cc-artifacts/design-kit/.notes/$id1.png") ;; *) echo "FAIL: --shot printed $out"; exit 1 ;; esac
-  [ "$(head -c 8 "$out" | od -An -tx1 | tr -d ' \n')" = 89504e470d0a1a0a ] || { echo "FAIL: --shot wrote no PNG at $out"; exit 1; }
-  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/.notes/$id1.png")" = 404 ] || { echo "FAIL: a note's screenshot is served"; exit 1; }
+# nothing the server sends draws an outline: the raw page is the same whatever its query asks for
+printf '<!doctype html><html><head><style>body{margin:0}header{width:100px;height:60px;margin:1400px 0 1400px 100px;background:#0a7d3c}</style></head><body><header id="hdr"></header></body></html>' > .cc-artifacts/design-kit/boards/shot.html
+raw() { curl -sL -A HeadlessChrome "http://127.0.0.1:$port/boards/shot.html?static=1$1"; }
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/_note.js")" = 404 ] && case "$(raw '')" in *'<header id="hdr">'*) true ;; *) false ;; esac && [ "$(raw '')" = "$(raw '&_outline=%23hdr')" ] \
+  || { echo "FAIL: /_note.js and ?_outline= are gone: one of them still answers"; exit 1; }
+if exe="$(bash "$here/board-export.sh" --which 2>/dev/null)"; then
+  pinned() { note '{"page":"/boards/'"$1"'","text":"t","anchor":{"selector":"'"$2"'"},"context":{"viewport":{"w":400,"h":300}}}'; }  # <page> <selector, as JSON text>
+  rshot() { set +e; out="$(HOME="$tmp/home" DESIGN_KIT_BROWSER="$exe" TMPDIR="$tmp/shot-tmp" dk notes --shot "$1" 2>"$tmp/shot.err")"; rc=$?; set -e; }  # sets out and rc
+  # px <png> <x,y>…: the PNG's size and those pixels, decoded as Chrome writes it (8-bit RGB or RGBA, not interlaced)
+  px() { [ -s "$1" ] || { echo "no PNG"; return; }; python3 -I - "$@" <<'PY'
+import struct, sys, zlib
+with open(sys.argv[1], "rb") as fh: data = fh.read()
+at, packed = 8, b""
+while at < len(data):
+    n, kind = struct.unpack(">I4s", data[at:at + 8]); body = data[at + 8:at + 8 + n]; at += 12 + n
+    if kind == b"IHDR": w, h, depth, colour, _, _, laced = struct.unpack(">IIBBBBB", body)
+    if kind == b"IDAT": packed += body
+assert data[:8] == b"\x89PNG\r\n\x1a\n" and (depth, laced) == (8, 0), "not a PNG px can read"
+bpp = {2: 3, 6: 4}[colour]; line = w * bpp; flat = zlib.decompress(packed); rows, up = [], bytes(line)
+for y in range(h):
+    how, row = flat[y * (line + 1)], bytearray(flat[y * (line + 1) + 1:(y + 1) * (line + 1)])
+    for i in range(line):
+        a, b, c = (row[i - bpp], up[i], up[i - bpp]) if i >= bpp else (0, up[i], 0)
+        paeth = min((abs(b - c), 0, a), (abs(a - c), 1, b), (abs(a + b - 2 * c), 2, c))[2]
+        row[i] = (row[i] + (0, a, b, (a + b) // 2, paeth)[how]) & 255
+    rows.append(row); up = row
+print("%dx%d" % (w, h), *(rows[y][x * bpp:x * bpp + 3].hex() for x, y in (map(int, s.split(",")) for s in sys.argv[2:])))
+PY
+  }
+  # the element, 100 by 60, ends up centred at 100,120 to 200,180: a pixel of the outline past each edge, then the gap, the element, the page dimmed
+  spots="96,150 203,150 150,116 150,183 99,150 100,150 50,150"; outlined="400x300 d93025 d93025 d93025 d93025 ffffff 0a7d3c cccccc"
+  id="$(pinned shot.html '#hdr')"; bash "$here/preview.sh" --docroot .cc-artifacts/design-kit --stop >/dev/null   # this shot starts the server, the next ones reuse it
+  rshot "$id"
+  [ "$rc" = 0 ] && [ "$out" = "$shots/$id.png" ] && ! grep -q 'no element' "$tmp/shot.err" || { echo "FAIL: --shot (rc=$rc) printed $out: $(cat "$tmp/shot.err")"; exit 1; }
+  got="$(px "$out" $spots)"
+  [ "$got" = "$outlined" ] || { echo "FAIL: shot PNG has the outline colour at the element edge: want $outlined, got $got"; exit 1; }
+  echo "ok: shot PNG has the outline colour at the element edge"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/.notes/$id.png")" = 404 ] || { echo "FAIL: a note's screenshot is served"; exit 1; }
+  # a page whose script answers for the DOM and starts a download, whose rules style every div and scroll smoothly, and whose element comes into place once it is scrolled to
+  cat > .cc-artifacts/design-kit/boards/hostile.html <<'EOF'
+<!doctype html><html><head><style>html{scroll-behavior:smooth}body{margin:0}div{margin:9px;padding:30px;opacity:.5;transition:all 1s}
+header{width:100px;height:60px;margin:1400px 0 1400px 100px;background:#3c0a7d;opacity:0;transform:translate(90px,50px);transition:all .5s}header.in{opacity:1;transform:none}
+</style></head><body><header id="hdr"></header><script>
+document.querySelector = () => null; Element.prototype.scrollIntoView = () => {}; Element.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 9, 9);
+new IntersectionObserver((all) => { if (all[0].isIntersecting) all[0].target.className = 'in'; }).observe(document.getElementById('hdr'));
+addEventListener('load', () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['x'])); a.download = 'dk-planted.txt'; a.click(); });
+</script></body></html>
+EOF
+  rshot "$(pinned hostile.html '#hdr')"; got="$(px "$out" $spots)"; want="${outlined/0a7d3c/3c0a7d}"
+  [ "$got" = "$want" ] || { echo "FAIL: a page's script, styles and late moves should leave the outline at the element (rc=$rc): want $want, got $got: $(cat "$tmp/shot.err")"; exit 1; }
+  [ -z "$(find "$tmp/home" -name 'dk-planted*')" ] || { echo "FAIL: a download the page started was saved"; exit 1; }
+  # the selector is data: one that matches nothing, or is no selector, shoots the page as it is and says so
+  for sel in '#gone' '--p\");document.body.style.background=\"#f0f\";(\"$(>pwned)\u0000'; do
+    rshot "$(pinned shot.html "$sel")"; got="$(px "$out" 96,150 50,150)"
+    [ "$rc" = 0 ] && [ "$got" = "400x300 ffffff ffffff" ] && [ ! -e pwned ] && grep -q '^dk notes: no element ' "$tmp/shot.err" \
+      || { echo "FAIL: the selector $sel should shoot the page plain and say so (rc=$rc, $got): $(cat "$tmp/shot.err")"; exit 1; }
+  done
+  rshot "$(pinned shot.html '#gone,\n#hdr')"; got="$(px "$out" $spots)"
+  [ "$got" = "$outlined" ] || { echo "FAIL: a selector with a newline in it did not reach the page whole (rc=$rc, $got): $(cat "$tmp/shot.err")"; exit 1; }
+  # the 60 s limit, lowered to 3, on a page that never lets go
+  printf '<script>for (;;);</script>' > .cc-artifacts/design-kit/boards/stuck.html; began=$SECONDS
+  set +e; out="$(TMPDIR="$tmp/shot-tmp" python3 -I -c 'import importlib.util, sys
+spec = importlib.util.spec_from_file_location("shot", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+m.check.TOTAL_S = m.check.START_S = 3; sys.exit(m.main(sys.argv[2:]))' "$here/note-shot.py" --docroot .cc-artifacts/design-kit --page boards/stuck.html --selector h1 --size 400x300 --out stuck.png 2>&1)"; rc=$?; set -e
+  [ "$rc" = 4 ] && [ ! -e stuck.png ] && [ $((SECONDS - began)) -lt 19 ] && case "$out" in *"the browser ran past 3 s; no screenshot taken") true ;; *) false ;; esac \
+    || { echo "FAIL: a page that never lets go should end at the limit with exit 4 (rc=$rc, $((SECONDS - began)) s): $out"; exit 1; }
+  [ -z "$(ls -A "$tmp/shot-tmp")" ] || { echo "FAIL: a shot left its browser's profile: $(ls -A "$tmp/shot-tmp")"; exit 1; }
+elif [ "${DESIGN_KIT_REQUIRE_BROWSER:-}" = 1 ]; then echo "FAIL: no Chromium-family browser found"; exit 1
 else echo "SKIP: no Chromium-family browser — dk notes --shot ran its no-browser path only"; fi
 
 # SUBDIRECTORY cwd — the model's `cd` (finding 2 of the marketplace's
