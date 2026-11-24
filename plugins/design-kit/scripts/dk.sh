@@ -327,7 +327,7 @@ case "$verb" in
     read -r art slug ver <<<"$(printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["out"], d["slug"], d["version"])')"
     printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin)
 for n in sorted(set(d.get("network",[]))): print("network:", n)
-for u in sorted(set(d.get("unresolved",[]))): print("unresolved-link:", u)
+for u in sorted(set(d.get("unresolved_links",[]))): print("unresolved-link:", u)
 for w in d.get("warnings",[]): print("WARN:", w)
 if d.get("zip"): print("zip:", d["zip"])'
     base="$(ensure_server)"

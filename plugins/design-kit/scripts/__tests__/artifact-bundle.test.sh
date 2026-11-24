@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Drives artifact-bundle.py: a page with local css/js/png/woff and a relative link
-# becomes ONE file (data URIs, no local refs left), stamped, v1 then v2 kept; an
-# https script is reported not inlined; a markdown fixture renders headings, a
-# table and code through the shell; --zip writes an archive; a Latin-1 file is
-# refused with a position.
+# Drives artifact-bundle.py: a page with local css/js/png/woff and a relative link becomes ONE file (data URIs, no local refs left), stamped, v1 then v2 kept; an https script is reported not inlined; a markdown fixture renders headings, a table and code through the shell; --zip writes an archive; a Latin-1 file is refused with a position; an index page is named after its folder, and a slug whose ledger names another source warns.
+# NOT PROVEN here: that dk bundle prints the report (dk.test.sh).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -90,5 +87,44 @@ grep -q 'href="../secret/key.txt"' "$out/probe.html" || { echo "FAIL: out-of-tre
 # size ceiling warns (exit 0) — ceiling lowered through the harness-only env override
 o="$(DESIGN_KIT_MAX_BYTES=100 $b "$tmp/tree/probe.html" --out-dir "$out" 2>&1)" || { echo "FAIL: over-ceiling should still exit 0"; exit 1; }
 case "$o" in *"over the 16 MiB ceiling"*) ;; *) echo "FAIL: no size warning: $o"; exit 1 ;; esac
+
+# an index page takes its folder's name, so two of them keep two histories; the same source again says nothing
+idx="$tmp/idx"; real="$(cd "$tmp" && pwd -P)"; mkdir -p "$tmp/a" "$tmp/b" "$tmp/C d" "$tmp/other/a" "$tmp/index"
+for p in a/index.html b/index.html "C d/Index.htm" other/a/index.html index/index.html; do printf '<html><head></head><body>from %s</body></html>' "$p" > "$tmp/$p"; done
+o="$($b "$tmp/a/index.html" --out-dir "$idx"; $b "$tmp/b" --out-dir "$idx"; $b "$tmp/C d/Index.htm" --out-dir "$idx"; cd "$tmp/a"; $b index.html --out-dir "$idx")"
+[ "$(cd "$idx" && echo *.html)" = "a.html b.html c-d.html" ] && grep -q 'from a/index' "$idx/a.html" && grep -q 'from b/index' "$idx/b.html" \
+  || { echo "FAIL: two index pages in different folders make two slugs: $(cd "$idx" && echo *.html)"; exit 1; }
+case "$o" in *WARN:*) echo "FAIL: one source per slug warned: $o"; exit 1 ;; esac
+# another source for a slug warns and joins the history as it stands; the ledger then names it
+one="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["versions"])' "$idx/a.versions.json")"
+o="$($b "$tmp/other/a/index.html" --out-dir "$idx")"
+case "$o" in *"WARN: slug \"a\" already holds versions of $real/a/index.html; pass --name to keep them apart"*) ;; *) echo "FAIL: a second source for a slug warns: $o"; exit 1 ;; esac
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert str(d["versions"][:2])==sys.argv[2] and len(d["versions"])==3 and d["source"]==sys.argv[3], d' "$idx/a.versions.json" "$one" "$real/other/a/index.html" \
+  || { echo "FAIL: a second source rewrote the ledger's versions or is not its source"; exit 1; }
+case "$($b "$tmp/other/a/index.html" --out-dir "$idx")" in *WARN:*) echo "FAIL: the ledger's own source warned"; exit 1 ;; esac
+# a ledger from before 0.20.0 names no source: it takes this one and says nothing; a link to the same file is the same source
+printf '{"slug": "old", "versions": [{"v": 1, "sha256": "x"}]}' > "$idx/old.versions.json"
+cp "$tmp/a/index.html" "$tmp/old.html"; ln -s old.html "$tmp/link.html"
+o="$($b "$tmp/old.html" --out-dir "$idx"; $b "$tmp/link.html" --name old --out-dir "$idx")"
+case "$o" in *WARN:*) echo "FAIL: a ledger with no source adopts silently: $o"; exit 1 ;; esac
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d.get("source")==sys.argv[2] and d["versions"][0]=={"v":1,"sha256":"x"} and [v["v"] for v in d["versions"]]==[1,2,3], d' "$idx/old.versions.json" "$real/old.html" \
+  || { echo "FAIL: a ledger with no source adopts this one and keeps its versions"; exit 1; }
+# the index.html every index page shared until 0.20.0 is left and named, unless --name chose the slug or the page itself writes it
+left="WARN: artifacts/index.html from an earlier bundle is left in place"
+printf OLD > "$idx/index.html"
+case "$($b "$tmp/b/index.html" --out-dir "$idx")" in *"$left"*) ;; *) echo "FAIL: an earlier artifacts/index.html is not named"; exit 1 ;; esac
+case "$($b "$tmp/b/index.html" --name b --out-dir "$idx")" in *"$left"*) echo "FAIL: --name b named the earlier index.html"; exit 1 ;; esac
+[ "$(cat "$idx/index.html")" = OLD ] || { echo "FAIL: the earlier index.html was touched"; exit 1; }
+case "$($b "$tmp/index" --out-dir "$idx")" in *"$left"*) echo "FAIL: a folder named index was told its own page is left in place"; exit 1 ;; esac
+# at the filesystem root the folder has no name: the file's own name stays
+python3 -I -B - "$here/artifact-bundle.py" "$tmp/root" >/dev/null <<'PY'
+import importlib.util, os, sys
+spec = importlib.util.spec_from_file_location("ab", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+isfile = os.path.isfile
+os.path.isfile = lambda p: p == "/index.html" or isfile(p)
+m.read_utf8 = lambda p: "<p>at the root</p>"
+m.main(["/index.html", "--out-dir", sys.argv[2]])
+PY
+[ "$(cd "$tmp/root" && echo *.html)" = index.html ] || { echo "FAIL: /index.html should keep the name index: $(cd "$tmp/root" && echo *.html)"; exit 1; }
 
 echo "PASS artifact-bundle.test.sh"

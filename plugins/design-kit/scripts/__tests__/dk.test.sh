@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# Drives every dk.sh verb against a temp Vite React project: system → check → slides →
-# board → decision (posted through the server's loopback route) → scratch → bundle →
-# share --zip → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick
-# as one JSON line announced once, one parse for --shot, a stand-in browser). Asserts workshop.json keys,
-# usage.jsonl lines, the URL never being a literal port, and DECISIONS.md.
+# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route) → scratch → bundle (its report; page, zip and published file against a stored 0.19.3 sample) → share --zip and --pages → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick as one JSON line announced once, one parse for --shot, a stand-in browser).
+# Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, and DECISIONS.md.
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first; the state root would resolve there
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -21,7 +18,7 @@ printf '# Deck\nsub\n\n## Claim one\n- a\n- b\n> notes: n\n' > outline.md
 cat > spec.json <<'J'
 {"title":"Fx board","brief":"b","boards":[{"title":"A","tradeoff":"t","body":"<div class=\"dk-pad\"><h1>Alpha</h1><p>Real text</p></div>"},{"title":"B","tradeoff":"t","body":"<div class=\"dk-pad\"><h1>Beta</h1><p>Real text</p></div>"}]}
 J
-printf '<!doctype html><html><head><title>Page</title></head><body><p>hi</p></body></html>' > page.html
+printf '<!doctype html><html><head><title>Page</title></head><body><p>hi</p><a href="about.html">more</a></body></html>' > page.html
 export DESIGN_KIT_PORT="$port"
 dk() { bash "$here/dk.sh" "$@"; }
 
@@ -83,6 +80,7 @@ dk scratch --verify >/dev/null || { echo "FAIL: verify after a subdirectory clea
 
 out="$(dk bundle page.html --name pg 2>/dev/null)"
 case "$out" in *"artifact=.cc-artifacts/design-kit/artifacts/pg.html v1"*"url=http://127.0.0.1:$port/artifacts/pg.html"*) ;; *) echo "FAIL: bundle: $out"; exit 1 ;; esac
+case "$out" in *"unresolved-link: about.html"*) ;; *) echo "FAIL: unresolved-link: printed: $out"; exit 1 ;; esac
 z="$(dk share .cc-artifacts/design-kit/artifacts/pg.html --zip)"; [ -f .cc-artifacts/design-kit/artifacts/pg.zip ] || { echo "FAIL: share zip: $z"; exit 1; }
 
 if DESIGN_KIT_BROWSER=/nonexistent dk export "$deck" --pdf >/dev/null 2>&1; then echo "FAIL: export without browser should fail"; exit 1; fi
@@ -94,6 +92,10 @@ case "$st" in *"server: http://127.0.0.1:$port/"*) ;; *) echo "FAIL: status serv
 # gallery flow strip + badge
 gal="$(curl -s "http://127.0.0.1:$port/")"
 case "$gal" in *'class="flow"'*"picked 2"*) ;; *) echo "FAIL: gallery flow strip"; exit 1 ;; esac
+
+# the bundler's warning that a slug holds another source's versions reaches dk bundle's output
+cp page.html other.html; out="$(dk bundle other.html --name pg 2>/dev/null)"
+case "$out" in *"WARN: slug \"pg\" already holds versions of $(pwd -P)/page.html; pass --name to keep them apart"*) ;; *) echo "FAIL: a second source warns through dk bundle: $out"; exit 1 ;; esac
 
 # dk notes: rows posted to /_note come back as JSON data, are handed out once, take a reply in place, and end a wait
 case "$(dk --help)" in *"dk notes"*"--wait"*"--reply"*"--shot"*) ;; *) echo "FAIL: dk --help does not document dk notes"; exit 1 ;; esac
@@ -334,5 +336,50 @@ calls="$(wc -l < "$tmp/node-calls" | tr -d ' ')"
 [ "$calls" = 1 ] || { echo "FAIL: dk system --source rendered loaded the page $calls times, want 1"; exit 1; }
 grep -q '"1f2937"' ds-r/tokens.json && case "$out" in *"url=http://127.0.0.1:$port/previews/kit.html"*) ;; *) false ;; esac \
   || { echo "FAIL: dk system --source rendered wrote no record or no URL: $out"; exit 1; }
+
+# bundle output, zip members and the published file equal what 0.19.3 wrote for this page, the stamped date masked (no commit yet: the stamp's revision is none)
+mkdir -p sample/css sample/img
+printf 'body{background:url("../img/dot.png")}\n' > sample/css/a.css
+printf '\x89PNG\r\n\x1a\nfake' > sample/img/dot.png
+printf 'document.title += "!";\n' > sample/app.js
+cat > sample/page.html <<'EOF'
+<!doctype html>
+<html lang="en"><head><title>Sample</title>
+<link rel="stylesheet" href="css/a.css">
+</head><body>
+<img src="img/dot.png" alt="dot"> <a href="#top">top</a> <a href="https://example.com/">out</a>
+<script src="app.js"></script>
+</body></html>
+EOF
+cat > sample-0.19.3.html <<'EOF'
+<!doctype html>
+<html lang="en"><head>
+<meta name="design-kit-tokens" content="none none">
+<meta name="design-kit-artifact" content="sample v1 DATE"><title>Sample</title>
+<style data-inlined="css/a.css">
+body{background:url("data:image/png;base64,iVBORw0KGgpmYWtl")}
+
+</style>
+</head><body>
+<img src="data:image/png;base64,iVBORw0KGgpmYWtl" alt="dot"> <a href="#top">top</a> <a href="https://example.com/">out</a>
+<script data-inlined="app.js">
+document.title += "!";
+
+</script>
+</body></html>
+EOF
+same() { sed -E 's/(content="sample v1 )[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}\+00:00"/\1DATE"/' "$1" | diff sample-0.19.3.html - >&2; }
+art=.cc-artifacts/design-kit/artifacts/sample
+members() { python3 -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); print([(n, z.read(n)==open(sys.argv[2],"rb").read()) for n in z.namelist()])' "$art.zip" "$art.html"; }
+dk bundle sample/page.html --name sample --zip >/dev/null 2>&1
+same "$art.html" || { echo "FAIL: the bundled page differs from the 0.19.3 sample"; exit 1; }
+[ "$(members)" = "[('sample.html', True)]" ] || { echo "FAIL: dk bundle --zip members differ from 0.19.3: $(members)"; exit 1; }
+rm "$art.zip"; dk share "$art.html" --zip >/dev/null
+[ "$(members)" = "[('sample.html', True)]" ] || { echo "FAIL: dk share --zip members differ from 0.19.3: $(members)"; exit 1; }
+git -c user.name=t -c user.email=t@x commit -q --allow-empty -m init
+git init -q --bare pages.git; git remote add origin "$tmp/pages.git"
+dk share "$art.html" --pages --push >/dev/null 2>&1 || { echo "FAIL: dk share --pages --push exited non-zero"; exit 1; }
+git fetch -q origin design-kit-pages; git show FETCH_HEAD:artifacts/sample.html > published.html
+same published.html || { echo "FAIL: the published file differs from the 0.19.3 sample"; exit 1; }
 
 echo "PASS dk.test.sh"
