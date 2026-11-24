@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's reload and focus, the deleted and server-lost strips, a restart, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
+# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, reload (at a save of its own page, its last messages in first), hash and Back, the deleted and server-lost strips, a restart, also with a draft, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
 # Misses: a hostile page (attack.test.sh), a real second device, what a screen reader says, browsers outside Chromium.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -208,25 +208,39 @@ def bar(b):
         eq("at %d px the frame fills the window under the bar, the title is cut and nothing scrolls sideways" % w, lambda: tab.evaluate("(() => { const bar = document.querySelector('#bar').getBoundingClientRect(), f = document.querySelector('iframe').getBoundingClientRect(), t = document.querySelector('#bar h1'), n = document.querySelector('#notes').getBoundingClientRect(); return [bar.top, f.top === bar.bottom, f.bottom, f.left, f.width, document.documentElement.scrollWidth, getComputedStyle(t).textOverflow, t.scrollWidth > t.clientWidth || innerWidth > 1000, n.right <= innerWidth, %s]; })()" % (SHOWN % "#chip")),
            [0, True, 800, 0, w, w, "ellipsis", True, True, w == 1280])
 
+MARK = "window.mark = document.querySelector('iframe'); 1"
+NEW = "document.querySelector('iframe') !== window.mark"
+
+def reframed(tab, do):
+    """The frame the viewer builds anew once do() happened."""
+    tab.evaluate(MARK)
+    do()
+    if not tab.wait(NEW, 12):
+        raise TimeoutError("the frame was not replaced")
+    return tab.frame()
+
 def reload(b):
     tab = visit(b, server.url + "/decks/fixture.html")
     tab.frame()
     eq("the frame takes focus on load", lambda: tab.wait(FOCUS + " === 'iframe'") and tab.evaluate(FOCUS), "iframe")
-    tab.evaluate("window.mark = document.querySelector('iframe'); 1")
+    tab.evaluate(MARK)
     before = tab.evaluate("history.length")
+    page("decks/other.html")
+    put("shots/two.png", png())
+    eq("saving another page, or a file that is not the page's own, reloads nothing", lambda: (time.sleep(2.4), tab.evaluate(NEW))[1], False)
     page("decks/fixture.html", title="saved")
     eq("a save reloads the frame alone, as a new frame, with no new history entry, and renames the bar", lambda: (tab.wait("document.querySelector('iframe') !== window.mark", 8), tab.wait(FOCUS + " === 'iframe'"), tab.frame().evaluate(H1), tab.evaluate("[!!window.mark, history.length - %d, document.title, document.querySelector('#bar h1').textContent]" % before))[1:],
        (True, "saved", [True, 0, "saved", "saved"]))
-    tab.evaluate("window.mark = document.querySelector('iframe'); document.querySelector('#notes').focus(); 1")
-    page("decks/fixture.html", title="again")
-    eq("a reload leaves the focus on a viewer control", lambda: (tab.wait("document.querySelector('iframe') !== window.mark", 8), tab.frame().evaluate(H1), time.sleep(0.2), tab.evaluate(FOCUS))[1:], ("again", None, "notes"))
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    eq("a reload leaves the focus on a viewer control", lambda: (reframed(tab, lambda: page("decks/fixture.html", title="again")).evaluate(H1), time.sleep(0.2), tab.evaluate(FOCUS)), ("again", None, "notes"))
     say = "postMessage(%s, '*'); 1"
     ready = "{ dk: 1, t: 'ready', hash: '#' }"
     tab.evaluate("document.activeElement.blur(); 1")
-    tab.evaluate(say % ready)
-    for shape in ("{ dk: 2, t: 'ready', hash: '#' }", "{ dk: 1, t: 'ready' }", "{ dk: 1, t: 'ready', hash: 7 }", "{ dk: 1, t: 'ready', hash: '#<' }", "{ dk: 1, t: ['ready'], hash: '#' }", "{ dk: 1, t: 'toString', hash: '#' }", "{ dk: 1, t: 'open', hash: '#' }", "null", "'ready'"):
+    for mine in (ready, "{ dk: 1, t: 'hash', hash: '#/9' }"):
+        tab.evaluate(say % mine)
+    for shape in ("{ dk: 2, t: 'ready', hash: '#' }", "{ dk: 1, t: 'ready' }", "{ dk: 1, t: 'ready', hash: 7 }", "{ dk: 1, t: 'ready', hash: '#<' }", "{ dk: 1, t: ['ready'], hash: '#' }", "{ dk: 1, t: 'toString', hash: '#' }", "{ dk: 1, t: 'open', hash: '#' }", "null", "'ready'", "{ dk: 1, t: 'hash' }", "{ dk: 1, t: 'hash', hash: '#<' }", "{ dk: 1, t: 'hash', hash: '/decks/old.htm' }"):
         tab.frame().evaluate("parent." + say % shape)
-    eq("a message from another window, of another shape or an unknown type changes nothing", lambda: (time.sleep(0.2), tab.evaluate(FOCUS))[1], "body")
+    eq("a message from another window, of another shape or an unknown type changes nothing", lambda: (time.sleep(0.2), tab.evaluate("[%s, location.pathname + location.hash]" % FOCUS))[1], ["body", "/decks/fixture.html"])
     tab.frame().evaluate("parent." + say % ready)
     eq("the frame's own ready message focuses it", lambda: tab.wait(FOCUS + " === 'iframe'"), True)
     tab = visit(b, server.url + "/artifacts/nest.html")
@@ -236,15 +250,50 @@ def reload(b):
     f.evaluate("document.querySelector('iframe').contentWindow.postMessage(1, '*'); 1")
     eq("a message from a frame inside the page changes nothing", lambda: (time.sleep(0.2), tab.evaluate(FOCUS))[1], "body")
 
+def place(b):
+    deck = "/decks/placed.html"
+    page(deck[1:])
+    for what, happen in (("a save", lambda: page(deck[1:], title="saved")), ("a server restart", lambda: (server.stop(), server.start()))):
+        tab = visit(b, server.url + "/artifacts/fixture.html")
+        tab.frame()
+        b.chrome.call("Page.navigate", {"url": server.url + deck + "#/2"}, tab.sid)
+        tab.wait("location.hash")
+        moving = tab.frame()
+        eq("the frame opens at the address's hash", lambda: moving.evaluate("location.hash"), "#/2")
+        moving.evaluate("history.replaceState(null, '', '#/3'); 1")
+        eq("a move in the frame moves the address", lambda: (tab.wait("location.hash === '#/3'"), tab.evaluate("location.pathname + location.hash"))[1], deck + "#/3")
+        eq("after %s at #/3 the frame stays at #/3" % what, lambda: (reframed(tab, happen).evaluate("location.hash"), tab.evaluate("[location.pathname + location.hash, !!window.mark]")), ("#/3", [deck + "#/3", True]))
+        tab.evaluate("history.back(); 1")
+        eq("Back after %s goes to the page before" % what, lambda: (tab.wait("location.pathname !== '%s'" % deck), tab.evaluate("location.pathname + location.hash"), tab.frame().evaluate(H1))[1:], ("/artifacts/fixture.html", "fixture"))
+
+def drops(b):
+    name = "decks/writes.html"
+    writes = "<script>let n = 0; setInterval(() => localStorage.setItem('n', ++n), 10); setInterval(() => parent.postMessage({ dk: 1, t: 'pong', n: 0 }, '*'), 40)</script>"
+    page(name, head=writes)
+    tab = visit(b, server.url + "/" + name)
+    # before the viewer's own listener, and a window's run in the order they came
+    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": "window.heard = []; addEventListener('message', (e) => { const { t, n } = e.data; heard.push(e.source && (n === 0 ? 'forged' : t)); if (window.deaf && t === 'pong' && n) e.stopImmediatePropagation(); })"}, tab.sid)
+    b.chrome.call("Page.reload", {}, tab.sid)
+    tab.wait("window.heard && heard.includes('ready')", 10)
+    tab.evaluate("new MutationObserver(() => heard.push('replaced')).observe(document.querySelector('#frame'), { childList: true }); 1")
+    reframed(tab, lambda: page(name, title="saved", head=writes))
+    eq("a frame is replaced once its last write is in", lambda: tab.evaluate("heard.filter((t) => t !== 'forged').join().split(',replaced')[0].split(',').slice(-2)"), ["store", "pong"])
+    tab.evaluate("window.deaf = true")
+    eq("a frame that does not answer is replaced all the same", lambda: reframed(tab, lambda: page(name, title="unanswered")).evaluate(H1), "unanswered")
+    eq("and no sooner for a pong that answers no ping", lambda: tab.evaluate("heard.join().split(',replaced')[1].split(',pong').pop().split('forged').length > 3"), True)
+
 def gone(b):
     page("decks/going.html", title="going")
     tab = visit(b, server.url + "/decks/going.html")
     tab.frame()
-    time.sleep(1.6)
     os.unlink(os.path.join(ROOT, "decks/going.html"))
     eq("a page deleted while open says so", lambda: (tab.wait(STRIPS + ".length", 8), tab.evaluate(STRIPS))[1], ["This page was deleted"])
+    server.stop()
+    eq("then a lost server too", lambda: (tab.wait(STRIPS + ".length > 1", 8), tab.evaluate(STRIPS))[1], ["This page was deleted", "Preview server stopped; retrying"])
+    server.start()
+    eq("and once it is back, the deleted page alone", lambda: (tab.wait(STRIPS + ".length === 1", 8), tab.evaluate(STRIPS))[1], ["This page was deleted"])
     page("decks/going.html", title="back")
-    eq("and shows again when it returns", lambda: (tab.wait("!%s.length" % STRIPS, 8), tab.wait("document.title === 'back'"), tab.frame().evaluate(H1))[1:], (True, "back"))
+    eq("the page shows again when it returns", lambda: (tab.wait("!%s.length" % STRIPS, 12), tab.wait("document.title === 'back'"), tab.frame().evaluate(H1))[1:], (True, "back"))
 
 def lost(b):
     tab = visit(b, server.url + "/" + BOARD)
@@ -257,8 +306,13 @@ def lost(b):
     server.start()
     eq("the strip goes when the server answers again", lambda: tab.wait("!%s.length" % STRIPS, 12), True)
     eq("the frame is then a new one, at the new server's address for the page; the bar stayed", lambda: (tab.wait("document.querySelector('iframe') !== window.mark"), tab.frame().evaluate(H1), tab.evaluate("[document.querySelector('iframe').src !== window.was, %s]" % FOCUS))[1:], ("fixture", [True, "notes"]))
-    server.stop()
-    server.start(newer=1)
+    tab.evaluate("document.querySelector('#drawer').append(Object.assign(document.createElement('textarea'), { value: 'half a note' })); 1")
+    def newer():
+        server.stop()
+        server.start(newer=1)
+    eq("a viewer older than the server that came back keeps a draft: the frame alone is new", lambda: (reframed(tab, newer).evaluate(H1), tab.evaluate("[!!window.was, document.querySelector('textarea').value]")), ("fixture", [True, "half a note"]))
+    tab.evaluate("document.querySelector('textarea').remove(); 1")
+    newer()
     eq("a viewer older than the server that came back reloads itself", lambda: (tab.wait("!window.was && document.body.dataset.version === '%d'" % (m.SERVER_VERSION + 1), 12), tab.frame().evaluate(H1))[1], "fixture")
     server.stop()
     server.start()
@@ -326,7 +380,7 @@ server = Server(free_port())
 server.start()
 try:
     with browser_lib.browser(240) as b:
-        for part in (kinds, files, bar, reload, gone, lost, gallery, worker, far):
+        for part in (kinds, files, bar, reload, place, drops, gone, lost, gallery, worker, far):
             try:
                 part(b)
             except Exception as exc:

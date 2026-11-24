@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed thumbnails, policy), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
+# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed thumbnails, policy), /_index.json, SSE (the gallery's, a page's own), never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer), /_page, /_c/ and /_allow included; that half skips without one.
 # Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh), the reconnect bar and the cookie page in a browser, and a real second device (each run by hand in Chrome: 2026-11-12).
 set -euo pipefail
@@ -120,11 +120,83 @@ PY
 rm -rf "$tmp/motion" "$tmp/decks/q\"<b>.html"
 idx="$(curl -s "http://127.0.0.1:$port/_index.json")"
 case "$idx" in *'"path": "decks/a.html"'*) ;; *) echo "FAIL: _index.json: $idx"; exit 1 ;; esac
-( curl -s -N --max-time 3 "http://127.0.0.1:$port/_events" > "$tmp/.sse" 2>/dev/null || true ) &
-sleep 1.0
-printf '<html><body>changed</body></html>' > "$tmp/decks/b.html"
-sleep 2.4
-grep -q "data: reload" "$tmp/.sse" || { echo "FAIL: no reload event after a write"; cat "$tmp/.sse"; exit 1; }
+# /_events says reload at any change; with ?page= at a change of that page or of a file in its own folder alone, and gone when its file is deleted
+python3 - "$here" "$tmp" "$port" <<'PY' || exit 1
+import http.client, importlib.util, os, sys, threading, time
+from urllib.parse import quote
+here, root, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
+spec = importlib.util.spec_from_file_location("dkserve", here + "/serve.py"); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+said, failed = {}, []
+def eq(claim, got, want):
+    if got != want:
+        failed.append(claim)
+        print("FAIL: %s: got %.500r, want %.500r" % (claim, got, want), flush=True)
+def put(name, body, like=None):
+    """Saves a file in one step; like: keeps that mtime, in ns."""
+    path = os.path.join(root, name)
+    tmp = os.path.join(os.path.dirname(path), ".put")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(tmp, "w") as fh: fh.write(body)
+    if like: os.utime(tmp, ns=(like, like))
+    os.replace(tmp, path)
+def answer(query=""):
+    con = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    con.request("GET", "/_events" + query)
+    return con.getresponse()
+def listen(page=None):
+    r, said[page] = answer("" if page is None else "?page=" + quote(page, safe="")), []
+    eq("%s has a stream" % page, (r.status, r.headers["Content-Type"]), (200, "text/event-stream"))
+    def read():
+        for line in r:
+            if line.startswith(b"data: "): said[page].append(line[6:].decode().strip())
+    threading.Thread(target=read, daemon=True).start()
+def heard(*first, more=0.0):
+    """What each stream that said anything said, the gallery's last word alone, more seconds after each of first did."""
+    until = time.monotonic() + 6
+    while time.monotonic() < until and not all(said[p] for p in first): time.sleep(0.05)
+    time.sleep(more)
+    got = {p: said[p][:] if p else said[p][-1:] for p in said if said[p]}
+    for p in said: del said[p][:]
+    return got
+TWO_POLLS = 1.6
+
+for name in ("decks/b.html", "motion/x/index.html", "motion/x/other.html", "motion/x/style.css", "motion/x/sub/n.js", "motion/y/index.html", "decks/ino.html", "decks/size.html", "decks/time.html"):
+    put(name, "<html><body>saved</body></html>")
+for page in (None, "decks/a.html", "decks/b.html", "motion/x/index.html", "motion/y/index.html", "decks/ino.html", "decks/size.html", "decks/time.html"):
+    listen(page)
+heard(more=TWO_POLLS)
+for name in ("decks/b.html", "motion/x/.put.css", "motion/x/.d/n.js", "motion/x/other.html"):
+    put(name, "<html><body>changed</body></html>")
+got = heard(None, "decks/b.html", more=TWO_POLLS)
+eq("a save reaches the page's own stream, once, and the gallery's", (got.pop("decks/b.html", None), got.pop(None, None)), (["reload"], ["reload"]))
+eq("saving another page sends nothing on this page's stream, in its own folder too, nor does a dot file there", got, {})
+put("motion/x/style.css", "i {}")
+eq("saving motion/x/style.css reloads motion/x/index.html only", heard(None, "motion/x/index.html", more=TWO_POLLS), {None: ["reload"], "motion/x/index.html": ["reload"]})
+stat_of = lambda name: os.stat(os.path.join(root, "decks", name + ".html"))
+was = {name: stat_of(name) for name in ("ino", "size", "time")}
+put("decks/ino.html", "<html><body>again</body></html>", like=was["ino"].st_mtime_ns)
+eq("the inode alone moved", [getattr(stat_of("ino"), k) == getattr(was["ino"], k) for k in ("st_ino", "st_size", "st_mtime_ns")], [False, True, True])
+with open(os.path.join(root, "decks/size.html"), "a") as fh: fh.write(" ")
+os.utime(fh.name, ns=(was["size"].st_mtime_ns,) * 2)
+os.utime(os.path.join(root, "decks/time.html"), ns=(was["time"].st_mtime_ns + 1000,) * 2)
+put("motion/x/sub/n.js", "1")
+os.unlink(os.path.join(root, "decks/b.html"))
+got = heard("decks/ino.html", "decks/size.html", "decks/time.html", "motion/x/index.html", "decks/b.html")
+got.pop(None, None)
+eq("an inode, a size or an mtime alone, and a file below the page's own folder, is a change; a deleted file is gone", {page: lines[-1] for page, lines in got.items()},
+   {"decks/ino.html": "reload", "decks/size.html": "reload", "decks/time.html": "reload", "motion/x/index.html": "reload", "decks/b.html": "gone"})
+put("decks/b.html", "<html><body>back</body></html>")
+eq("a page that returns reloads, after one gone", heard("decks/b.html").get("decks/b.html"), ["reload"])
+eq("no stream for what is not a page", {q: answer(q).status for q in ("?page=decks/none.html", "?page=", "?page=motion/x", "?page=motion/x/style.css", "?page=../serve.py", "?page=/decks/a.html")}, dict.fromkeys(("?page=decks/none.html", "?page=", "?page=motion/x", "?page=motion/x/style.css", "?page=../serve.py", "?page=/decks/a.html"), 404))
+walked, walk = [], os.walk
+m.os.walk = lambda top, **more: (walked.append(os.path.relpath(top, root)), walk(top, **more))[1]
+m.page_state(root, "decks/a.html"); m.page_state(root, "reviews/r.html")
+eq("a page with no folder of its own walks nothing", walked, [])
+m.page_state(root, "motion/x/index.html")
+eq("a page with one walks that folder alone", walked, ["motion/x"])
+sys.exit(1 if failed else 0)
+PY
+rm -rf "$tmp/motion" "$tmp/decks/ino.html" "$tmp/decks/size.html" "$tmp/decks/time.html"
 echo "OUTSIDE" > "$tmp.outside.txt"
 for probe in "/../$(basename "$tmp").outside.txt" "/%2e%2e/$(basename "$tmp").outside.txt" "/../../etc/passwd"; do
   curl -s --path-as-is "http://127.0.0.1:$port$probe" | grep -qE "OUTSIDE|root:" && { echo "FAIL: path traversal via $probe"; exit 1; }

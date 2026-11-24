@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: /_gallery, and / and /index.html while the docroot has no index.html, a gallery (flow strip, token badges, each page in a sandboxed frame; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /_page?page= (Sec-Fetch-Site absent or same-origin: a page's title and framed content URL, and its allowed hosts for a peer that may write), /_c/<segment>/ (GET and HEAD, with no LAN key once isolate.open_segment opens the segment: its page with frame.js first, or a file isolate.may_load gives that page both by its path and by what it resolves to, each under page_policy, readable from any origin, no-store; a framed one opened as a document is 303 to its page URL), a page URL (text/html, .html, .htm, a folder's index.html or index.htm) the viewer (/_viewer.js, /_viewer.css), never the page itself, except that a loopback peer with a headless user agent or ?static=1, and Sec-Fetch-Site absent or none, is sent (303) to the page's static segment, any other file as it is; three write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON), POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), both one row per cid among the file's last 50, and POST /_allow (a host one page may load from, in or out of .allow.json through isolate.set_allow, <= 8 KiB), each under its file's lock, loopback peer and Host, an Origin, when sent, of http:// and that Host, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot or to one of these. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); whoever holds a content URL reads that page and its files with no key until the server stops; a hard link to a never-served file is served; a raw page opened by hand (?static=1) runs with no viewer around it; where no Sec-Fetch-Dest is sent (plain-HTTP LAN) only frame.js takes a top-level framed page to its page URL; a cid older than its file's last 50 rows is recorded again; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: /_gallery, and / and /index.html while the docroot has no index.html, a gallery (flow strip, token badges, each page in a sandboxed frame; a design-system/ folder in it is not listed), /_events SSE (0.75 s poll: reload at any change; with ?page= at a change of that page's inode, size or mtime, or of the newest mtime of a file in its own folder that is not a page, gone when its file goes, 404 where there is no page), /_index.json, /_page?page= (Sec-Fetch-Site absent or same-origin: a page's title and framed content URL, and its allowed hosts for a peer that may write), /_c/<segment>/ (GET and HEAD, with no LAN key once isolate.open_segment opens the segment: its page with frame.js first, or a file isolate.may_load gives that page both by its path and by what it resolves to, each under page_policy, readable from any origin, no-store; a framed one opened as a document is 303 to its page URL), a page URL (text/html, .html, .htm, a folder's index.html or index.htm) the viewer (/_viewer.js, /_viewer.css), never the page itself, except that a loopback peer with a headless user agent or ?static=1, and Sec-Fetch-Site absent or none, is sent (303) to the page's static segment, any other file as it is; three write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON), POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), both one row per cid among the file's last 50, and POST /_allow (a host one page may load from, in or out of .allow.json through isolate.set_allow, <= 8 KiB), each under its file's lock, loopback peer and Host, an Origin, when sent, of http:// and that Host, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot or to one of these. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
+Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); whoever holds a content URL reads that page and its files with no key until the server stops; a hard link to a never-served file is served; a raw page opened by hand (?static=1) runs with no viewer around it; where no Sec-Fetch-Dest is sent (plain-HTTP LAN) only frame.js takes a top-level framed page to its page URL; a cid older than its file's last 50 rows is recorded again; a page's stream says nothing of a file that comes into its folder older than the newest there; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
@@ -401,12 +401,13 @@ def _title_of(path):
     return html.unescape(head[i + 7:j].strip()) if j > i else None
 
 
-def _newest_mtime(root):
+def _newest_mtime(root, but=()):
+    """The newest mtime of the non-dot files under root, state files and those ending in one of but left out."""
     newest = 0.0
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for fn in filenames:
-            if fn in IGNORED or fn.startswith("."):
+            if fn in IGNORED or fn.startswith(".") or fn.lower().endswith(but):
                 continue
             try:
                 m = os.stat(os.path.join(dirpath, fn)).st_mtime
@@ -414,6 +415,18 @@ def _newest_mtime(root):
                 continue
             newest = max(newest, m)
     return newest
+
+
+def page_state(root, page):
+    """What a page's stream compares: its file's inode, size and mtime, and the newest mtime in its own folder, other pages left out; None with no file."""
+    folder, _, name = page.rpartition("/")
+    folder = folder.split("/")
+    try:
+        st = os.stat(os.path.join(root, *folder, name))
+    except OSError:
+        return None
+    own = isolate.may_load(page, folder + ["any file"])
+    return st.st_ino, st.st_size, st.st_mtime_ns, own and _newest_mtime(os.path.join(root, *folder), PAGE_EXT)
 
 
 def _read_json(path, default):
@@ -734,7 +747,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
         path, query = split_target(self.path)
         if path == "/_events":
-            return self._events()
+            return self._events((parse_qs(query, keep_blank_values=True).get("page") or [None])[0])
         if path == "/_page":
             return self._page((parse_qs(query).get("page") or [""])[0])
         if path == "/_index.json":
@@ -859,22 +872,24 @@ class Handler(SimpleHTTPRequestHandler):
         """True for a headless browser, or ?static=1: an open /_events stream keeps a capture's virtual time from ever running out."""
         return ("static", "1") in parse_qsl(query) or "headless" in (self.headers.get("User-Agent") or "").lower()
 
-    def _events(self):
+    def _events(self, page):
+        """The stream of a page, or the gallery's when page is None."""
+        if page is not None and not self._page_file(page):
+            return self.send_error(HTTPStatus.NOT_FOUND)
+        look = (lambda: self.state["version"]) if page is None else (lambda: page_state(self.root, page))
+        seen = look()  # before the headers: a client that reads the page once the stream opened misses no save
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Connection", "keep-alive")
         self.end_headers()
-        seen = self.state["version"]
         with self.streams_lock:
             self.state["streams"] += 1
         try:
             while True:
-                if self.state["version"] != seen:
-                    seen = self.state["version"]
-                    self.wfile.write(b"data: reload\n\n")
-                else:
-                    self.wfile.write(b": ping\n\n")
+                now = look()
+                self.wfile.write(b": ping\n\n" if now == seen else b"data: gone\n\n" if now is None else b"data: reload\n\n")
+                seen = now
                 self.wfile.flush()
                 time.sleep(0.75)
         except (BrokenPipeError, ConnectionResetError, OSError):
