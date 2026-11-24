@@ -311,6 +311,14 @@ done
 c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/decks/n.html","text":"big","anchor":{"selector":"p","rect":{"x":1e308,"y":-1e308,"w":3,"h":1e999}},"context":{"viewport":{"w":3e9,"h":NaN}}}')"
 [ "$c" = 200 ] && tail -n 1 "$tmp/notes.jsonl" | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["anchor"]["rect"]=={"x":10000000,"y":-10000000,"w":3,"h":0} and r["context"]["viewport"]=={"w":10000000,"h":0}, (r["anchor"]["rect"], r["context"]["viewport"])' \
   || { echo "FAIL: note numbers are not clamped to +-1e7 ($c): $(tail -n 1 "$tmp/notes.jsonl" | cut -c1-300)"; exit 1; }
+# a folder's index page lists what was filed under the folder's own name too, and nothing else does
+for p in motion/w motion/w/index.html motion/w/other.html motion/ww; do
+  c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/'"$p"'","text":"at '"$p"'"}')"; [ "$c" = 200 ] || { echo "FAIL: a note on $p should be 200, got $c"; exit 1; }
+done
+for q in "motion/w/index.html=at motion/w,at motion/w/index.html" "motion/w/index.htm=at motion/w" "motion/w=at motion/w" "motion/w/other.html=at motion/w/other.html"; do
+  got="$(curl -s "http://127.0.0.1:$port/_notes?page=/${q%%=*}" | python3 -c 'import json,sys; print(",".join(r["text"] for r in json.load(sys.stdin)))')"
+  [ "$got" = "${q#*=}" ] || { echo "FAIL: /_notes for ${q%%=*}: got $got, want ${q#*=}"; exit 1; }
+done
 # a lone surrogate (a page slicing through an emoji) is stored as ?, and the post gets its answer
 c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/decks/s\ud83d.html","text":"cut \ud83d","anchor":{"selector":"p\udc00","tag":"p\ud83d","text":"\ud83d","rect":{}},"context":{"theme":"\ud83d","console":["e\ud83d"]}}')"
 [ "$c" = 200 ] && tail -n 1 "$tmp/notes.jsonl" | python3 -c '

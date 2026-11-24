@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a link over a draft, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus (document.hasFocus is faked).
+# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
+# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus (document.hasFocus is faked).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -9,7 +9,7 @@ unset DESIGN_KIT_PORT
 
 rc=0
 python3 - "$here" "$tmp/dk" <<'PY' || rc=$?
-import base64, contextlib, http.server, io, json, os, re, signal, socket, struct, subprocess, sys, threading, time, wave, zlib
+import base64, contextlib, http.client, http.server, io, json, os, re, signal, socket, struct, subprocess, sys, threading, time, wave, zlib
 from urllib.parse import quote, unquote
 
 here, ROOT = sys.argv[1:3]
@@ -308,6 +308,7 @@ WRONG = (
     "{ dk: 1, t: 'store', items: [['k'.repeat(257), '1']] }", "{ dk: 1, t: 'store', items: [['k', '1'], , ['j', '1']] }", "{ dk: 1, t: 'store', items: new Array(2 ** 32 - 1) }", "{ dk: 1, t: 'store', items: { 0: ['k', '1'], length: 1 } }", "{ dk: 1, t: 'store', clear: 1 }", "{ dk: 1, t: 'store', clear: true, items: [['k', '1']] }",
     "{ dk: 1, t: 'key' }", "{ dk: 1, t: 'key', name: 'Print' }", "{ dk: 1, t: 'key', name: ['print'] }", "{ dk: 1, t: 'key', name: 'constructor' }",
     "{ dk: 1, t: 'pong', n: 0 }", "{ dk: 1, t: 'pong', n: 1e9 }", "{ dk: 1, t: 'pong', n: '1' }",
+    "{ dk: 1, t: 'blocked' }", "{ dk: 1, t: 'blocked', host: 7, kind: 'script' }", "{ dk: 1, t: 'blocked', host: '', kind: 'script' }", "{ dk: 1, t: 'blocked', host: 'x'.repeat(254), kind: 'script' }", "{ dk: 1, t: 'blocked', host: 'a.example', kind: 'connect' }", "{ dk: 1, t: 'blocked', host: 'a.example', kind: ['script'] }",
     "{ dk: 1, t: 'anchor', anchor: { selector: 'h1', tag: 'h1', text: 'x', rect: { x: 0, y: 0, w: 1, h: 1 } }, context: { viewport: { w: 1, h: 1 }, theme: '', console: [] } }", "{ dk: 1, t: 'context', context: { viewport: { w: 1, h: 1 }, theme: '', console: [] } }",
 )
 
@@ -797,7 +798,7 @@ def catching(b):
     paused, keep = [], b.chrome.keep
     b.chrome.keep = lambda e: paused.append(e["params"]["requestId"]) if e["method"] == "Fetch.requestPaused" else keep(e)
     def caught(tab, do, stage, method, meanwhile=lambda: None, **params):
-        b.chrome.call("Fetch.enable", {"patterns": [{"urlPattern": at, "requestStage": stage} for at in ("*/_decision", "*/_note")]}, tab.sid)
+        b.chrome.call("Fetch.enable", {"patterns": [{"urlPattern": at, "requestStage": stage} for at in ("*/_decision", "*/_note", "*/_allow")]}, tab.sid)
         do()
         until = time.monotonic() + 3
         while not paused and time.monotonic() < until:
@@ -908,12 +909,32 @@ def once(b):
 TIMES = "window.drawn = 0; window.pressed = []; new MutationObserver(() => { drawn = performance.now(); }).observe(document.querySelector('#strips'), { childList: true, subtree: true, attributes: true }); document.querySelector('#strips').addEventListener('click', (e) => { if (e.target.localName === 'button') pressed.push(e.timeStamp - drawn); }, true); 1"
 EARLY_SEND = {"click": "click 300 ms after a strip appears writes none", "Enter": "Enter inside the window sends nothing", " ": "Space inside the window sends nothing"}
 
+def resized(b, tab):
+    b.chrome.call("Emulation.setDeviceMetricsOverride", {"width": 1200, "height": 800, "deviceScaleFactor": 1, "mobile": False}, tab.sid)
+
+def unseen(b, tab):
+    tab.evaluate("document.hasFocus = () => true; 1")  # so the tab's own change alone counts
+    other = b.page("about:blank")
+    b.chrome.call("Page.bringToFront", {}, tab.sid)
+    b.chrome.call("Page.close", {}, other.sid)
+    tab.wait("!document.hidden")
+    tab.evaluate("delete document.hasFocus; 1")
+
+def elsewhere(tab):
+    tab.evaluate("document.hasFocus = () => false; 1")
+    time.sleep(0.8)
+    tab.evaluate("delete document.hasFocus; 1")
+
+def above(tab, f, on):
+    """The storage strip there, above what can be sent, or gone again."""
+    f.evaluate("parent." + POST % ("{ dk: 1, t: 'store', items: [['big', %s]] }" % ("'x'.repeat(300 * 1024)" if on else "null")) + "1")
+    tab.wait("!!document.querySelector('#strips [data-kind=storage]') === %s" % json.dumps(on), 4)
+
 def consent(b):
     forget()
     tab = visit(b, server.url + "/" + BOARD)
     tab.evaluate(TIMES)
     f = tab.frame()
-    metrics = lambda w: b.chrome.call("Emulation.setDeviceMetricsOverride", {"width": w, "height": 800, "deviceScaleFactor": 1, "mobile": False}, tab.sid)
     for how, said in EARLY_SEND.items():
         for control, name in ((DISCARD, "Discard"), (SEND, "Send pick")):
             says(f, 1)
@@ -953,25 +974,11 @@ def consent(b):
         eq(name, lambda: [tab.wait(HEAD + ".startsWith('Artboard %d')" % n), time.sleep(0.3), recorded()][2], [])
         time.sleep(ACTS)
 
-    def unseen():
-        tab.evaluate("document.hasFocus = () => true; 1")  # so the tab's own change alone counts
-        other = b.page("about:blank")
-        b.chrome.call("Page.bringToFront", {}, tab.sid)
-        b.chrome.call("Page.close", {}, other.sid)
-        tab.wait("!document.hidden")
-        tab.evaluate("delete document.hasFocus; 1")
-    def elsewhere():
-        tab.evaluate("document.hasFocus = () => false; 1")
-        time.sleep(0.8)
-        tab.evaluate("delete document.hasFocus; 1")
     def fullscreen():
         b.chrome.call("Runtime.evaluate", {"expression": "document.documentElement.requestFullscreen()", "awaitPromise": True, "userGesture": True}, tab.sid)
         time.sleep(0.8)
         tab.evaluate("document.exitFullscreen()")
-    def above(on):
-        f.evaluate("parent." + POST % ("{ dk: 1, t: 'store', items: [['big', %s]] }" % ("'x'.repeat(300 * 1024)" if on else "null")) + "1")
-        tab.wait(STRIPS + ".length === %d" % (1 + on), 4)
-    for what, happen in (("another strip appeared above it", lambda: above(True)), ("that strip was removed", lambda: above(False)), ("a resize", lambda: metrics(1200)), ("the tab became visible", unseen), ("the window gained focus", elsewhere),
+    for what, happen in (("another strip appeared above it", lambda: above(tab, f, True)), ("that strip was removed", lambda: above(tab, f, False)), ("a resize", lambda: resized(b, tab)), ("the tab became visible", lambda: unseen(b, tab)), ("the window gained focus", lambda: elsewhere(tab)),
                          ("fullscreen ended", fullscreen), ("a drawer opened", lambda: tab.evaluate("document.querySelector('#drawer').hidden = false; 1")), ("a row changed in it", lambda: tab.evaluate("document.querySelector('#drawer').textContent = 'a row'; 1")), ("it closed", lambda: tab.evaluate("document.querySelector('#drawer').hidden = true; 1"))):
         time.sleep(PACE if "strip" in what else ACTS)
         tab.evaluate("document.querySelector('%s').focus(); pressed.length = 0; 1" % SEND)
@@ -1352,6 +1359,327 @@ def lists(b):
     os.unlink(os.path.join(ROOT, odd))
     forget("notes.jsonl")
 
+CDN, IMAGES, NET, OTHER = "cdn.example.org", "img.example.net", "artifacts/net.html", "artifacts/fixture.html"
+EVERY = ["script-src", "style-src", "img-src", "font-src", "media-src"]
+BLOCKED = "#strips [data-kind=blocked]"
+ALLOW, ROW = BLOCKED + " [data-consent]", "#drawer .hosts button"
+ASKS = "[...document.querySelectorAll('%s')].map((s) => [...s.children].map((e) => e.textContent))" % BLOCKED
+LISTED = "[...document.querySelectorAll('#drawer .hosts')].map((ul) => [...ul.children].map((li) => [...li.children].map((e) => e.textContent)))"
+NETWORK = "(({ hidden, textContent }) => (hidden ? null : textContent))(document.querySelector('#network'))"
+PANELS = "[...document.querySelectorAll('#bar button[aria-controls=drawer]')].map((e) => [e.id, e.getAttribute('aria-expanded')]).concat([...document.querySelectorAll('#drawer section')].filter((e) => e.checkVisibility()).map((e) => e.ariaLabel))"
+
+def loads(title="net", body='<script src="https://%s/a.js"></script><link rel="stylesheet" href="https://%s/a.css"><img src="https://%s/i.png" alt="">' % (CDN, CDN, IMAGES)):
+    page(NET, title=title, body=body)
+
+def asks(host, kinds, *whys):
+    return ["%s blocked: %s" % (host, kinds)] + list(whys) + ["Allow for this page", "Keep blocked"]
+
+def blocked(f, host, kind="script"):
+    """The page says it was refused a file of this kind from host."""
+    f.evaluate("parent." + POST % json.dumps({"dk": 1, "t": "blocked", "host": host, "kind": kind}) + "1")
+
+def becomes(tab, expression, want, seconds=8):
+    """expression's value once it is want, else its last when the seconds run out."""
+    tab.wait("JSON.stringify(%s) === %s" % (expression, json.dumps(json.dumps(want, separators=(",", ":"), ensure_ascii=False))), seconds)
+    return tab.evaluate(expression)
+
+def policy(name, host=CDN):
+    """The directives of this page's policy that name host."""
+    def get(path):
+        con = http.client.HTTPConnection("127.0.0.1", server.port, timeout=5)
+        con.request("GET", path)
+        answer = con.getresponse()
+        return answer.headers["Content-Security-Policy"], answer.read()
+    csp, _ = get(json.loads(get("/_page?page=" + quote(name))[1])["src"])
+    return [directive.split()[0] for directive in csp.split("; ") if "https://" + host in directive.split()]
+
+def approved(hosts=None):
+    """.allow.json with these hosts for NET, or none."""
+    for name in (".allow.json", ".allow.json.bad"):
+        if os.path.exists(os.path.join(ROOT, name)):
+            os.unlink(os.path.join(ROOT, name))
+    if hosts is not None:
+        put(".allow.json", hosts if isinstance(hosts, str) else json.dumps({NET: hosts}))
+
+def approves(b):
+    approved()
+    loads()
+    tab = visit(b, server.url + "/" + NET)
+    tab.frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    of_cdn, of_images = asks(CDN, "scripts, styles"), asks(IMAGES, "images")
+    eq("a blocked host shows one strip with its name and kinds", lambda: becomes(tab, ASKS, [of_cdn, of_images]), [of_cdn, of_images])
+    eq("and takes no focus", lambda: tab.evaluate(FOCUS), "iframe")
+    eq("Network appears with a count when a host is blocked", lambda: tab.evaluate(NETWORK), "Network (2)")
+    time.sleep(ACTS)
+    tab.evaluate("window.said = []; new MutationObserver((all) => { for (const one of all) for (const el of one.addedNodes) said.push(el.textContent); }).observe(document.querySelector('#strips'), { childList: true, subtree: true }); 1")
+    was = policy(NET)
+    reframed(tab, lambda: press(tab, ALLOW))
+    eq("Allow changes this page's policy only", lambda: [was, policy(NET), policy(OTHER), policy(NET, IMAGES)], [[], EVERY, [], []])
+    eq("Allow reloads the frame, which asks for that host no more; the host still blocked is not said again", lambda: [time.sleep(2.8), tab.evaluate("[%s, %s, said]" % (ASKS, NETWORK))][1], [[of_images], "Network (2)", []])
+    eq("the browser keeps no approval", lambda: tab.evaluate("[localStorage, sessionStorage].flatMap(Object.entries).filter((one) => one.join().includes('%s'))" % CDN), [])
+    press(tab, "#network")
+    both = [[[CDN, "Remove"]], [[IMAGES, "images", "Allow"]]]
+    eq("Network lists allowed hosts with Remove and blocked ones with Allow, under their names", lambda: tab.evaluate("[%s, [...document.querySelectorAll('#drawer h3')].map((e) => e.textContent), [...document.querySelectorAll('%s')].map((e) => e.ariaLabel)]" % (LISTED, ROW)), [both, ["Allowed", "Blocked"], ["Remove: " + CDN, "Allow: " + IMAGES]])
+    eq("the list survives a restart", lambda: [bool(reframed(tab, lambda: (server.stop(), server.start()))), policy(NET), tab.evaluate(LISTED)], [True, EVERY, both])
+    again(b, tab)
+    press(tab, "#network")
+    eq("and a tab reload", lambda: becomes(tab, LISTED, both), both)
+    time.sleep(ACTS)
+    tab.evaluate("document.querySelector('%s').focus(); 1" % ROW)
+    reframed(tab, lambda: tab.key("Enter"))
+    eq("Remove takes it away, the focus stays at its host, and it is asked for as the page loads it again", lambda: [policy(NET), becomes(tab, ASKS, [of_images, of_cdn]), tab.evaluate("document.activeElement.ariaLabel"), tab.evaluate(LISTED)],
+       [[], [of_images, of_cdn], "Allow: " + CDN, [[[IMAGES, "images", "Allow"], [CDN, "scripts, styles", "Allow"]]]])
+    fitted(tab, tab.frame())
+    press(tab, BLOCKED + "[data-key='%s'] button:last-child" % CDN)
+    eq("Keep blocked takes the strip away", lambda: becomes(tab, ASKS, [of_images]), [of_images])
+    listed = tab.evaluate(LISTED)
+    reframed(tab, lambda: loads("saved"))
+    eq("Keep blocked survives a frame reload, and Network lists the host with Allow", lambda: [time.sleep(2.8), tab.evaluate("[%s, %s]" % (ASKS, LISTED))][1], [[of_images], listed])
+    again(b, tab)
+    tab.wait(NETWORK)
+    press(tab, "#network")
+    listed[0].reverse()
+    eq("and a reload of the tab", lambda: [becomes(tab, LISTED, listed), time.sleep(0.5), tab.evaluate(ASKS)], [listed, None, [of_images]])
+    time.sleep(PACE)
+    def twice():
+        for _ in range(2):
+            press(tab, "#drawer [data-host='%s']" % CDN)
+            time.sleep(0.15)
+    reframed(tab, twice)
+    eq("Allow in Network allows a host kept blocked, a double click too", lambda: [policy(NET), becomes(tab, LISTED, both), time.sleep(0.5), policy(NET)], [EVERY, both, None, EVERY])
+    reframed(tab, lambda: loads("empty", ""))
+    eq("a host the page asks no more for leaves the list", lambda: [becomes(tab, NETWORK, "Network (1)"), tab.evaluate("[%s, %s]" % (ASKS, LISTED))], ["Network (1)", [[], both[:1]]])
+    time.sleep(ACTS)
+    tab.evaluate("document.querySelector('%s').focus(); 1" % ROW)
+    reframed(tab, lambda: tab.key("Enter"))
+    eq("Network hidden again with no host left", lambda: [becomes(tab, NETWORK, None), tab.evaluate("[%s, %s]" % (DRAWN, FOCUS)), policy(NET)], [None, [False, "iframe"], []])
+    reframed(tab, lambda: loads())
+    eq("and there again with one, asked for anew where Allow had ended Keep blocked", lambda: [becomes(tab, ASKS, [of_cdn, of_images]), tab.evaluate(NETWORK)], [[of_cdn, of_images], "Network (2)"])
+    tab = visit(b, server.url + "/" + NET)
+    eq("Keep blocked lasts for the tab", lambda: becomes(tab, ASKS, [of_cdn, of_images]), [of_cdn, of_images])
+    for _ in range(2):
+        fitted(tab, tab.frame())
+        press(tab, BLOCKED + " button:last-child")
+    reframed(tab, lambda: loads("empty again", ""))
+    eq("with none allowed the last blocked host hides Network too", lambda: [becomes(tab, NETWORK, None), tab.evaluate(ASKS)], [None, []])
+    reframed(tab, lambda: loads())
+    becomes(tab, NETWORK, "Network (2)")
+    approved([IMAGES])
+    reframed(tab, lambda: loads("by another tab"))
+    eq("an approval made elsewhere is taken at the next load", lambda: [tab.evaluate(NETWORK), press(tab, "#network"), tab.evaluate(LISTED)], ["Network (2)", None, [[[IMAGES, "Remove"]], [[CDN, "scripts, styles", "Allow"]]]])
+
+def refuses(b):
+    loads()
+    of_images = asks(IMAGES, "images")
+    full = ["h%d.example.org" % n for n in range(20)]
+    approved(full)
+    tab = visit(b, server.url + "/" + NET)
+    becomes(tab, ASKS, [asks(CDN, "scripts, styles"), of_images])
+    time.sleep(ACTS)
+    press(tab, ALLOW)
+    why = "Not recorded: a page may load from at most 20 hosts; remove one first"
+    eq("a cap's refusal names the cap, and Allow stays", lambda: becomes(tab, ASKS, [asks(CDN, "scripts, styles", why), of_images]), [asks(CDN, "scripts, styles", why), of_images])
+    press(tab, "#network")
+    eq("Network says so too", lambda: tab.evaluate("[document.querySelector('#drawer section:last-child [role=status]').textContent, %s]" % NETWORK), [CDN + ": " + why, "Network (22)"])
+    with catching(b) as (caught, paused):
+        def meanwhile():
+            for how in ("click", "Enter"):
+                press(tab, ALLOW, how)
+            eq("while a POST is pending its host's buttons are disabled and a press posts nothing more", lambda: [time.sleep(0.3), tab.evaluate("[...document.querySelectorAll('[data-host=\"%s\"]')].map((e) => e.ariaDisabled)" % CDN), len(paused)], [None, ["true", "true"], 1])
+        time.sleep(ACTS)
+        caught(tab, lambda: press(tab, ALLOW), "Request", "failRequest", meanwhile, errorReason="ConnectionReset")
+    lost = asks(CDN, "scripts, styles", "The preview server did not answer")
+    eq("a lost answer is said, and Allow acts again", lambda: [becomes(tab, ASKS, [lost, of_images]), tab.evaluate("document.querySelector('%s').ariaDisabled" % ALLOW)], [[lost, of_images], None])
+    approved("{")
+    reframed(tab, lambda: loads("unreadable"))
+    broken = "Approvals file unreadable; all hosts blocked"
+    eq("an unreadable approvals file blocks all hosts, and the viewer says so", lambda: [becomes(tab, ASKS + ".map((parts) => parts[1])", [broken, "Allow for this page"]), policy(NET, full[0]), tab.evaluate("[document.querySelector('#drawer section:last-child div .why').textContent, %s]" % NETWORK)], [[broken, "Allow for this page"], [], [broken, "Network (2)"]])
+    time.sleep(ACTS)
+    reframed(tab, lambda: press(tab, ALLOW))
+    with open(os.path.join(ROOT, ".allow.json.bad")) as fh:
+        eq("the next Allow keeps that file aside and starts a new one", lambda: [fh.read(), policy(NET), becomes(tab, ASKS, [of_images]), tab.evaluate("[...document.querySelectorAll('#drawer section:last-child .why')].map((e) => e.textContent)")], ["{", EVERY, [of_images], [""]])
+    approved()
+
+    tab = visit(b, server.url + "/" + OTHER)
+    f = tab.frame()
+    for n in range(10):
+        blocked(f, "h%d.example" % n)
+    ten = [asks("h%d.example" % n, "scripts") for n in range(10)]
+    count = "(document.querySelector('#strips [data-kind=more]') || {}).textContent"
+    eq("ten blocked hosts are ten strips", lambda: [becomes(tab, ASKS, ten) == ten, tab.evaluate(count)], [True, None])
+    blocked(f, "h0.example", "font")
+    ten[0] = asks("h0.example", "scripts, fonts")
+    eq("a strip that changes stays where it is", lambda: becomes(tab, ASKS, ten) == ten, True)
+    blocked(f, "h10.example")
+    eq("an eleventh blocked host becomes a count", lambda: [becomes(tab, count, "1 more host blocked; Network lists it"), tab.evaluate(ASKS) == ten, tab.evaluate(NETWORK)], ["1 more host blocked; Network lists it", True, "Network (11)"])
+    press(tab, BLOCKED + " button:last-child", "Enter")
+    eq("and the tenth strip once one was kept blocked", lambda: [becomes(tab, ASKS, ten[1:] + [asks("h10.example", "scripts")]) == ten[1:] + [asks("h10.example", "scripts")], tab.evaluate("%s === undefined" % count)], [True, True])
+    f.evaluate("for (let n = 11; n < 49; n++) parent.postMessage({ dk: 1, t: 'blocked', host: 'h' + n + '.example', kind: 'img' }, '*'); 1")
+    time.sleep(1.2)
+    f.evaluate("for (let n = 49; n < 99; n++) parent.postMessage({ dk: 1, t: 'blocked', host: 'h' + n + '.example', kind: 'img' }, '*'); 1")
+    time.sleep(1.2)
+    f.evaluate("for (let n = 99; n < 120; n++) parent.postMessage({ dk: 1, t: 'blocked', host: 'h' + n + '.example', kind: 'img' }, '*'); 1")
+    eq("no more than 100 are listed, whatever a page names", lambda: [becomes(tab, NETWORK, "Network (100)"), time.sleep(PACE), tab.evaluate("[%s, %s, [...document.querySelectorAll('#strips > *')].map((s) => s.dataset.kind)]" % (NETWORK, count))], ["Network (100)", None, ["Network (100)", "89 more hosts blocked; Network lists them", ["blocked"] * 10 + ["more"]]])
+    tab = visit(b, server.url + "/" + OTHER)
+    f = tab.frame()
+    odd = "<img src=x onerror=alert(1)>" + chr(0x202e)
+    blocked(f, odd, "font")
+    shown = asks(odd.replace(chr(0x202e), "U+202E"), "fonts")
+    eq("a host holding markup shows as text, a character that draws nothing as its number", lambda: becomes(tab, ASKS, [shown]), [shown])
+    tab = visit(b, server.url + "/" + OTHER)
+    blocked(tab.frame(), "127.0.0.1")
+    tab.wait(ASKS + ".length")
+    time.sleep(ACTS)
+    press(tab, ALLOW)
+    shown = asks("127.0.0.1", "scripts", "Not recorded: host must be a public https host name with no port, such as cdn.example.org")
+    eq("a host the server refuses stays blocked, for the server's reason", lambda: [becomes(tab, ASKS, [shown]), policy(OTHER, "127.0.0.1"), os.path.exists(os.path.join(ROOT, ".allow.json"))], [[shown], [], False])
+
+PLACED = """(() => { const at = (s) => document.querySelector(s).getBoundingClientRect(), d = at('#drawer'), f = at('iframe'), p = at('BLOCKED p'), a = at('ALLOW'), k = at('BLOCKED button:last-child'), wide = innerWidth > 600;
+  return { drawer: [d.left, d.right, d.top === at('#strips').bottom, wide || d.height <= innerHeight * .6], frame: wide ? f.right === d.left : f.top === d.bottom, stacked: wide ? a.left >= p.right && a.top === k.top : a.top >= p.bottom && k.top >= a.bottom,
+    tall: [...document.querySelectorAll('BLOCKED button, ROW')].every((e) => e.getBoundingClientRect().height >= 24), sideways: [document.documentElement.scrollWidth, document.querySelector('#strips').scrollWidth <= innerWidth, document.querySelector('#drawer').scrollWidth <= document.querySelector('#drawer').clientWidth] }; })()""".replace("BLOCKED", BLOCKED).replace("ALLOW", ALLOW).replace("ROW", ROW)
+
+def panels(b):
+    approved([CDN])
+    loads()
+    for w in (1280, 375):
+        tab = visit(b, server.url + "/" + NET, w)
+        tab.wait(ASKS + ".length")
+        press(tab, "#network")
+        eq("the list opens below the strips, in the drawer's place, the strip's buttons beside its text or under it, nothing sideways, at %d px" % w, lambda: tab.evaluate(PLACED),
+           {"drawer": [976 if w == 1280 else 0, w, True, True], "frame": True, "stacked": True, "tall": True, "sideways": [w, True, True]})
+    tab = visit(b, server.url + "/" + NET)
+    f = tab.frame()
+    tab.wait(ASKS + ".length")
+    blocked(f, CDN.upper())
+    eq("a host that is allowed is not asked for, whatever the page says", lambda: [time.sleep(PACE), tab.evaluate("[%s, %s]" % (ASKS, NETWORK))][1], [[asks(IMAGES, "images")], "Network (2)"])
+    writes(tab, f, "half a note")
+    notes_open, network_open, none_open = [["network", "false"], ["notes", "true"], "Notes on this page"], [["network", "true"], ["notes", "false"], "Network"], [["network", "false"], ["notes", "false"]]
+    def after(selector=None, key=None):
+        if selector:
+            press(tab, selector, key or "click")
+        time.sleep(0.2)
+        return tab.evaluate(PANELS)
+    def hovered():
+        fitted(tab, f)
+        tab.hover(*f.at("h1"))
+        return f.wait("!!document.querySelector('[data-design-kit-note]')", 0.4)
+    eq("one panel open at a time", lambda: [after(), after("#network"), hovered(), after("#notes"), hovered(), tab.evaluate(VALUE)], [notes_open, network_open, False, notes_open, True, "half a note"])
+    press(tab, "#network")
+    eq("Escape closes Network, keeps a half-typed note, and focus returns to Network", lambda: [after("#network", "Escape"), tab.evaluate("[%s, %s]" % (FOCUS, VALUE))], [none_open, ["network", "half a note"]])
+    press(tab, "#network")
+    time.sleep(PACE)
+    eq("also from its list, and from the page", lambda: [after(ROW, "Escape"), tab.evaluate(FOCUS), press(tab, "#network"), time.sleep(PACE), after("iframe", "Escape"), tab.evaluate(FOCUS)], [none_open, "network", None, None, none_open, "network"])
+    press(tab, "#network")
+    tab.evaluate("document.querySelector('#network').focus(); 1")
+    eq("Alt+N opens the notes in its place", lambda: [tab.key("Alt+n"), after(), tab.evaluate(FOCUS)], [None, notes_open, "notes"])
+    approved()
+
+LINKS = "artifacts/links.html"
+
+def links(b):
+    page(LINKS, body="".join('<p><a id="%s" href="%s">%s</a></p>' % (one, href, one) for one, href in (("out", "https://out.example/a?b=1#c"), ("mail", "mailto:a@b.example?subject=x"), ("js", "javascript:window.ran = 1"), ("data", "data:text/html,x"), ("file", "file:///etc/hosts"),
+                                                                                           ("page", "../decks/old.htm?static=1&key=k#/2"), ("folder", "/motion/one/?x"), ("image", "/shots/one.png?x#y"))))
+    tab = visit(b, server.url + "/" + LINKS)
+    f = tab.frame()
+    tab.evaluate("window.opened = []; window.open = (...args) => { opened.push(args); }; 1")
+    here, offers = "[location.href, document.querySelectorAll('iframe').length, opened]", "[...document.querySelectorAll('%s > *')].map((e) => e.textContent)" % LINK
+    stays = [server.url + "/" + LINKS, 1, []]
+    def goes(href):
+        f.evaluate("parent." + POST % json.dumps({"dk": 1, "t": "link", "href": href}) + "1")
+    goes(server.url + "/decks/old.htm")
+    eq("a page-to-page link no one clicked does nothing", lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (here, STRIPS))][1], [stays, []])
+    for one, href in (("js", "javascript:alert(1)"), ("data", "data:text/html,x"), ("file", "file:///etc/hosts")):
+        tab.click(*f.at("#" + one))
+        goes(href)
+        eq("%s: link shows nothing" % href.split(":")[0], lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (here, STRIPS))][1], [stays, []])
+    tab.click(*f.at("#out"))
+    at = "https://out.example/a?b=1#c"
+    eq("an https link shows its full address", lambda: [becomes(tab, offers, [at, "Open", "Dismiss"]), time.sleep(ACTS), tab.evaluate(here)], [[at, "Open", "Dismiss"], None, stays])
+    press(tab, LINK + " button")
+    eq("and opens only on Open", lambda: [tab.evaluate("opened"), becomes(tab, offers, [])], [[[at, "_blank", "noopener,noreferrer"]], []])
+    for one, at in (("mail", "mailto:a@b.example?subject=x"), ("image", server.url + "/shots/one.png#y")):
+        fitted(tab, f)
+        tab.click(*f.at("#" + one))
+        eq("so does %s; Dismiss opens nothing" % ("a mailto link" if one == "mail" else "a file of this server, its query dropped"), lambda: [becomes(tab, offers, [at, "Open", "Dismiss"]), fitted(tab, f), press(tab, LINK + " button:last-child"), becomes(tab, offers, []), tab.evaluate("opened.length")], [[at, "Open", "Dismiss"], None, None, [], 1])
+    for one, at, name in (("page", "/decks/old.htm#/2", "decks/old.htm"), ("folder", "/motion/one/", "motion/one/index.html"), ("h1", "//decks/old.htm", "decks/old.htm")):
+        fitted(tab, f)
+        tab.click(*f.at("#" + one if one != "h1" else one))
+        if one == "h1":
+            goes(server.url + at)
+        eq("a page-to-page link opens in the viewer without its query: " + at, lambda: [tab.wait("document.body.dataset.page === '%s'" % name), tab.evaluate("location.href"), tab.frame().evaluate("location.search + location.hash")], [True, server.url + at, at[at.find("#"):] if "#" in at else ""])
+        tab.evaluate("history.back(); 1")
+        tab.wait("document.body.dataset.page === '%s'" % LINKS)
+        f = tab.frame()
+    tab.click(*f.at("h1"))
+    asked_for = server.url + "/shots/one.png"
+    f.evaluate("let n = 0; const flood = setInterval(() => { for (let i = 0; i < 10; i++, n++) parent." + POST % json.dumps({"dk": 1, "t": "link", "href": asked_for}) + "if (n === 500) clearInterval(flood); }, 12); 1")
+    time.sleep(2.5)
+    eq("500 link messages act at most 50 times", lambda: tab.evaluate("(() => { const acted = performance.getEntriesByType('resource').filter((e) => e.name === %s).map((e) => e.startTime); return [Math.max(...acted.map((t) => acted.filter((u) => u >= t && u < t + 990).length)) <= 50, acted.length >= 40]; })()" % json.dumps(asked_for)), [True, True])
+    eq("and leave one strip, with Dismiss", lambda: tab.evaluate("[%s, document.querySelectorAll('%s').length]" % (offers, LINK)), [[asked_for, "Open", "Dismiss"], 1])
+
+KEPT_HOST, GUARDED = "kept.example.org", "boards/guarded.html"
+
+def guards(b):
+    forget()
+    approved()
+    page(GUARDED, body='<script src="https://%s/a.js"></script>' % CDN)
+    tab = visit(b, server.url + "/" + GUARDED)
+    f = tab.frame()
+    tab.evaluate("window.did = []; window.open = () => { did.push('open'); }; { const real = fetch; window.fetch = (at, init) => { if (init && init.body) did.push(at); return real(at, init); }; } window.presses = 0; document.addEventListener('click', (e) => { if ('consent' in e.target.dataset) presses++; }, true); 1")
+    blocked(f, KEPT_HOST)
+    tab.wait(ASKS + ".length === 2", 6)
+    press(tab, BLOCKED + "[data-key='%s'] button:last-child" % KEPT_HOST, "Enter")
+    says(f, 1)
+    f.evaluate("parent." + POST % json.dumps({"dk": 1, "t": "link", "href": "https://out.example/"}) + "1")
+    tab.wait("!!document.querySelector('%s') && %s" % (LINK, THERE), 6)
+    eq("pick, blocked and link are in that order, whichever came first", lambda: tab.evaluate("[...document.querySelectorAll('#strips > *')].map((s) => s.dataset.kind)"), ["pick", "blocked", "link"])
+    press(tab, "#network")
+    tab.evaluate("document.querySelector('#drawer section:last-child').style.paddingBottom = '2000px'; 1")
+    controls, rows = [SEND, ALLOW, LINK + " button", "#drawer .hosts [data-consent]"], "document.querySelectorAll('#drawer .hosts li').length"
+    def changed_row():
+        blocked(f, KEPT_HOST, "font")
+        tab.wait("document.querySelector('#drawer').textContent.includes('scripts, fonts')", 4)
+    def row(n):
+        def there():
+            if n == 2:
+                blocked(tab.frame(), KEPT_HOST)
+            tab.wait(rows + " === %d" % n, 8)
+        return there
+    def left_row():
+        reframed(tab, lambda: page(GUARDED, title="again", body='<script src="https://%s/a.js"></script>' % CDN))
+        row(1)()
+    def moved():
+        tab.evaluate("document.querySelector('#drawer').scrollBy(0, 20); 1")
+        tab.evaluate(browser_lib.check.SETTLE_JS)
+    def updated():
+        says(f, 2)
+        tab.wait(HEAD + ".includes('Updated')", 4)
+    for what, happen in (("a strip appeared and moved others", lambda: above(tab, f, True)), ("a strip left", lambda: above(tab, f, False)), ("a strip changed", updated), ("a Network row changed", changed_row), ("a Network row left", left_row), ("a Network row appeared", row(2)), ("Network rows moved", moved),
+                         ("a drawer closed", lambda: tab.key("Escape")), ("a drawer opened", lambda: press(tab, "#network")), ("a resize", lambda: resized(b, tab)), ("the tab became visible", lambda: unseen(b, tab)), ("the window gained focus", lambda: elsewhere(tab))):
+        time.sleep(PACE if "strip" in what or "row" in what else ACTS)
+        tab.evaluate("presses = 0")
+        happen()
+        shown = controls[:3] if what == "a drawer closed" else controls
+        def pressed():
+            for how in ("click", "Enter", " "):
+                for control in shown:
+                    press(tab, control, how)
+            time.sleep(0.2)
+            return tab.evaluate("[presses, did]")
+        eq("Open, Send pick, strip Allow and Network Allow guarded after " + what, pressed, [3 * len(shown), []])
+    for control, how, want in ((LINK + " button", "Enter", "open"), (SEND, " ", "/_decision"), (ALLOW, "Enter", "/_allow"), ("#drawer [data-host='%s']" % KEPT_HOST, "click", "/_allow")):
+        if KEPT_HOST in control:
+            blocked(tab.frame(), KEPT_HOST)
+            tab.wait(rows + " === 2", 4)
+        time.sleep(ACTS)
+        press(tab, control, how)
+        eq("and once nothing changed for a while it acts: %s on %s" % (how.strip() or "Space", control.split(" button")[0].split(" [data-consent]")[0]), lambda: [tab.wait("did.length"), tab.evaluate("did.splice(0)")][1], [want])
+        tab.wait("!document.querySelector('[aria-disabled=true]')")
+        time.sleep(0.5)
+    forget()
+    approved()
+
 class Older(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -1398,6 +1726,13 @@ def far(b):
     tab = visit(b, url + "/" + quote(OWN + "index.html") + "?static=1")
     eq("another device gets the viewer, whatever it asks, with Gallery and the title alone; the page loads its own files", lambda: (tab.frame().evaluate("document.querySelector('img').naturalWidth"), tab.evaluate("[...document.querySelectorAll('#bar *')].filter((e) => !e.children.length && e.checkVisibility()).map((e) => e.textContent)")), (1, ["Gallery", "fixture"]))
     eq("and logs no refused request", lambda: logged(b, tab), [])
+    loads()
+    tab = visit(b, url + "/" + NET)
+    tab.frame()
+    eq("and no host to approve: no strip, no Network", lambda: [time.sleep(1.5), tab.evaluate("[%s, %s]" % (STRIPS, NETWORK))][1], [[], None])
+    tab = visit(b, url + "/" + NOTED)
+    tab.click(*tab.frame().at("#far"))
+    eq("a page-to-page link opens in the viewer there too", lambda: [tab.wait("document.body.dataset.page === 'decks/old.htm'"), tab.evaluate("location.href")], [True, url + "/decks/old.htm#/2"])
     tab = visit(b, url + "/" + BOARD)
     says(tab.frame(), 1, {"all": {"space": 12}})
     eq("and has no pick to send", lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (STRIPS, KEPT))][1], [[], []])
@@ -1413,8 +1748,8 @@ def far(b):
 server = Server(free_port())
 server.start()
 try:
-    with browser_lib.browser(420) as b:
-        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, notes, drafts, sends, lists, gallery, worker, far):
+    with browser_lib.browser(600) as b:
+        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, notes, drafts, sends, lists, approves, refuses, panels, links, guards, gallery, worker, far):
             try:
                 part(b)
             except Exception as exc:

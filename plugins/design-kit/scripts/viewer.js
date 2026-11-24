@@ -1,5 +1,5 @@
-// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; lists the page's newest 20 notes in a drawer, where a note is typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link clicked while a note is half typed in a strip; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
-// Misses: approvals, and a link with no note half typed; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
+// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted and no note is half typed; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
+// Misses: a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.js
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -28,19 +28,20 @@
   const HUNG = { text: 'This page is not answering', acts: [['Reload page', show]] };
   const FULL = { text: 'Storage is full; changes to this page are not saved' };
   // in the order they are shown
-  const STRIPS = ['page', 'server', 'storage', 'pick', 'blocked', 'link'];
-  /** Shows spec.text (a string or the nodes of a line), the elements of spec.more, and spec.acts (buttons, or a [label, act] for each) as the strip of this kind, or removes that strip when spec is null; the same again is left alone, so it is announced once. The focus stays on the control it was on, else on the strip's first button, else goes to the frame. */
-  function strip(kind, spec) {
-    const all = [...$('strips').children], old = all.find((s) => s.dataset.kind === kind), el = make('div');
+  const STRIPS = ['page', 'server', 'storage', 'pick', 'blocked', 'more', 'link'];
+  /** Shows spec.text (a string or the nodes of a line), the elements of spec.more, and spec.acts (buttons, or a [label, act] for each) as the strip of this kind, and of this key where a kind has several, or removes that strip when spec is null; the same again is left alone, so it is announced once. The focus stays on the control it was on, else on the strip's first button, else goes to the frame. */
+  function strip(kind, spec, key = '') {
+    const all = [...$('strips').children], old = all.find((s) => s.dataset.kind === kind && s.dataset.key === key), el = make('div');
     if (spec) {
-      el.dataset.kind = kind;
+      Object.assign(el.dataset, { kind, key });
       el.append(make('p'), ...(spec.more || []), ...(spec.acts || []).map((act) => (Array.isArray(act) ? button(...act) : act)));
       el.firstChild.append(...[spec.text].flat());
       if (old?.isEqualNode(el)) return;
     }
     const held = old?.contains(document.activeElement) && document.activeElement;
-    old?.remove();
-    if (spec) $('strips').insertBefore(el, all.find((s) => STRIPS.indexOf(s.dataset.kind) > STRIPS.indexOf(kind)) || null);
+    if (!spec) old?.remove();
+    else if (old) old.replaceWith(el);
+    else $('strips').insertBefore(el, all.find((s) => STRIPS.indexOf(s.dataset.kind) > STRIPS.indexOf(kind)) || null);
     const is = (s) => s.localName === held.localName && (s.localName === 'ul' || s.textContent === held.textContent);
     if (held) ([...el.querySelectorAll('button, ul')].find(is) || el.querySelector('button') || frame)?.focus();
   }
@@ -58,7 +59,7 @@
   }
   const seen = new MutationObserver(() => { changed = performance.now(); hold(); });
   for (const id of ['strips', 'drawer']) seen.observe($(id), { attributes: true, characterData: true, childList: true, subtree: true });
-  for (const [on, type] of [[$('strips'), 'scroll'], [window, 'resize'], [document, 'visibilitychange'], [document, 'fullscreenchange']]) on.addEventListener(type, hold);
+  for (const [on, type] of [[$('strips'), 'scroll'], [$('drawer'), 'scroll'], [window, 'resize'], [document, 'visibilitychange'], [document, 'fullscreenchange']]) on.addEventListener(type, hold);
   let away = false;
   // not the focus event: the window gets one when the focus leaves the frame too, and none when it comes back with the focus in the frame
   setInterval(() => {
@@ -138,12 +139,13 @@
   const query = location.search.slice(1).split('&').filter((field) => !['static', 'key'].includes([...new URLSearchParams(field).keys()][0])).join('&');
   let frame;
   function build(at) {
-    frame = document.createElement('iframe');
+    const mine = frame = document.createElement('iframe');
     frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-downloads');
     frame.setAttribute('allow', 'clipboard-write');
     frame.title = at.title;
     frame.name = JSON.stringify({ dk: 1, store: Object.fromEntries(stored(at)) });
     frame.src = at.src + (query && '?' + query) + location.hash;
+    frame.onload = () => setTimeout(() => { if (mine === frame) unlist(); }, 1000);
     strip('storage', null);
     $('frame').replaceChildren(frame);
     watch();
@@ -249,12 +251,12 @@
   const REFUSALS = [400, 403, 413, 507];
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const newCid = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('');
-  /** Posts body to a write route: why it is not recorded, '' once it is, and whether the same again would be refused too. */
-  async function post(route, header, body) {
+  /** Posts body to a write route: what it said, why it is not recorded, '' once it is (taken says which answer says so), and whether the same again would be refused too. */
+  async function post(route, header, body, taken = (said) => said?.recorded === true) {
     try {
       const r = await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json', [header]: '1' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
       const said = await r.json().catch(() => null);
-      return { why: r.ok && said?.recorded === true ? '' : 'Not recorded: ' + (said?.error || 'the server answered ' + r.status), refused: REFUSALS.includes(r.status) };
+      return { said, why: r.ok && taken(said) ? '' : 'Not recorded: ' + (said?.error || 'the server answered ' + r.status), refused: REFUSALS.includes(r.status) };
     } catch (e) {
       return { why: 'The preview server did not answer', refused: false };
     }
@@ -327,6 +329,104 @@
   const anchorOf = ({ selector, tag, text, rect: { x, y, w, h } }) => ({ selector: cut(selector, 512), tag: cut(tag, 32), text: cut(text, 200), rect: { x, y, w, h } });
   const contextOf = ({ viewport: { w, h }, theme, console: lines }) => ({ viewport: { w, h }, theme: cut(theme, 16), console: lines.map((line) => cut(line, 300)) });
 
+  const local = !$('notes').hidden; // another device leaves no note and approves no host
+  const LOADS = new Map([['script', 'scripts'], ['style', 'styles'], ['img', 'images'], ['font', 'fonts'], ['media', 'media']]);
+  const isBlocked = ({ host, kind }) => isText(host) && host.length > 0 && host.length <= 253 && LOADS.has(kind);
+  const words = (kinds) => [...LOADS].filter(([kind]) => kinds.has(kind)).map(([, word]) => word).join(', ');
+  // the hosts this page may load from; why it may from none; those to stay blocked in this tab, and sessionStorage's name for them; those a change is asked for; the last one refused
+  let hosts = [], broken = '', kept = new Set(), keptAt = '', failed = {};
+  const asking = new Set();
+  // host -> the kinds of file the page was refused from it, none yet when it was just removed, and the frame last refused one
+  const refused = new Map();
+  let listing = make('div');
+  const refusal = make('p', null, { className: 'why', role: 'status' });
+  function refuse({ host: given, kind }) {
+    const host = given.toLowerCase(), { kinds = new Set() } = refused.get(host) || {};
+    if (hosts.includes(host) || !refused.has(host) && refused.size === 100) return; // a page may name any number
+    refused.set(host, { kinds: kinds.add(kind), frame });
+    bring('blocked', drawHosts);
+  }
+  /** Forgets the hosts that only a frame before this one was refused; called once this one is loaded and has said its own. */
+  function unlist() {
+    for (const [host, at] of refused) if (at.frame !== frame) refused.delete(host);
+    bring('blocked', drawHosts);
+  }
+  /** Takes /_page's word for what this page may load. */
+  function admit(at) {
+    if (!local) return;
+    hosts = at.hosts;
+    broken = at.hosts_error ? at.hosts_error[0].toUpperCase() + at.hosts_error.slice(1) : '';
+    for (const host of hosts) refused.delete(host);
+    keptAt = `dk-blocked:${at.project}:${page}`;
+    try {
+      kept = new Set(JSON.parse(sessionStorage.getItem(keptAt)) || []);
+    } catch (e) { /* this browser keeps no site data: as long as this viewer */ }
+    drawHosts();
+  }
+  function keepBlocked(host, on) {
+    if (on) kept.add(host); else kept.delete(host);
+    try { sessionStorage.setItem(keptAt, JSON.stringify([...kept])); } catch (e) { /* as above */ }
+  }
+  /** Has the server let this page load from host, or no longer, and the page framed anew once it does. */
+  async function permit(host, allow) {
+    if (asking.has(host)) return;
+    asking.add(host);
+    failed = {};
+    for (const one of document.querySelectorAll('[data-host]')) if (one.dataset.host === host) one.ariaDisabled = 'true';
+    const { said: answer, why } = await post('/_allow', 'X-Design-Kit-Allow', { page, host, allow }, (given) => Array.isArray(given?.hosts));
+    asking.delete(host);
+    if (why) failed = { host, why };
+    else {
+      hosts = answer.hosts;
+      refused.delete(host);
+      if (allow) keepBlocked(host, false); else refused.set(host, { kinds: new Set() });
+    }
+    drawHosts();
+    if (!why) show();
+  }
+  /** A button that lets this page load from host, or ends that: guarded both ways, as a double click on Allow reaches the Remove that takes its place. */
+  function permitting(label, host, allow) {
+    const control = button(label, null, { ariaLabel: `${label}: ${drawn(host).textContent}`, ariaDisabled: asking.has(host) ? 'true' : null });
+    control.dataset.host = host;
+    return guard(control, () => permit(host, allow));
+  }
+  function drawHosts() {
+    const asks = [...refused].filter(([host, { kinds }]) => kinds.size && !kept.has(host)), shown = new Map(asks.slice(0, 10)), more = asks.length - shown.size;
+    for (const { dataset: { key } } of $('strips').querySelectorAll('[data-kind="blocked"]')) if (!shown.has(key)) strip('blocked', null, key);
+    for (const [host, { kinds }] of shown) {
+      const whys = [host === asks[0][0] && broken, host === failed.host && failed.why].filter(Boolean);
+      strip('blocked', {
+        text: [drawn(host), ' blocked: ' + words(kinds)],
+        more: whys.map((why) => make('p', why, { className: 'why' })),
+        acts: [permitting('Allow for this page', host, true), button('Keep blocked', () => { keepBlocked(host, true); drawHosts(); }, { ariaLabel: 'Keep blocked: ' + drawn(host).textContent })],
+      }, host);
+    }
+    strip('more', more ? { text: `${more} more ${more === 1 ? 'host' : 'hosts'} blocked; Network lists ${more === 1 ? 'it' : 'them'}` } : null);
+    const n = hosts.length + refused.size, at = document.activeElement, held = at === $('network') || listing.contains(at);
+    $('network').hidden = !n;
+    $('network').textContent = `Network (${n})`;
+    if (!n && open === 'network') toggle('network');
+    if (!n && held) frame?.focus();
+    drawListing();
+  }
+  /** Lists the hosts while their panel is open; the focus stays at its host, else goes to the first. */
+  function drawListing() {
+    const now = make('div'), group = (title, rows) => (rows.length ? [make('h3', title), list(title + ' hosts', rows, { className: 'hosts' })] : []);
+    if (open === 'network') {
+      now.append(
+        ...(broken ? [make('p', broken, { className: 'why' })] : []),
+        ...group('Allowed', hosts.map((host) => [drawn(host), permitting('Remove', host, false)])),
+        ...group('Blocked', [...refused].map(([host, { kinds }]) => [drawn(host), ...(kinds.size ? [make('span', words(kinds))] : []), permitting('Allow', host, true)])),
+      );
+    }
+    refusal.textContent = failed.why ? `${drawn(failed.host).textContent}: ${failed.why}` : '';
+    if (listing.isEqualNode(now)) return;
+    const held = listing.contains(document.activeElement) && document.activeElement.dataset.host;
+    listing.replaceWith(now);
+    listing = now;
+    if (held) ([...now.querySelectorAll('button')].find((one) => one.dataset.host === held) || now.querySelector('button'))?.focus();
+  }
+
   const path = '/' + page.split('/').map(encodeURIComponent).join('/'); // as page_of reads it
   const HINT = 'Click an element, or Tab to one and press Enter, to leave a note on it. Escape closes.';
   const chips = [$('chip'), make('p', null, { id: 'check' })];
@@ -338,33 +438,47 @@
     tell('ask');
   });
   let listed = list('Notes left on this page', []);
-  // whether the notes are open; the note being written, or null: its elements, the button that opened it, what the page said, the body last sent with its cid
-  let noting = false, note = null;
-  if (!$('notes').hidden) { // another device leaves none
-    const panel = make('section', null, { ariaLabel: 'Notes on this page' });
-    panel.append(make('h2', 'Notes on this page'), chips[1], onPage, said, listed);
-    $('drawer').append(panel);
-    Object.assign($('notes'), { title: 'Notes on this page (Alt+N)', ariaKeyShortcuts: 'Alt+N', ariaExpanded: 'false', onclick: toggle });
-    $('notes').setAttribute('aria-controls', 'drawer');
+  // the id of the button whose panel is open in the drawer, '' when none is; whether that is the notes; the note being written, or null: its elements, the button that opened it, what the page said, the body last sent with its cid
+  let open = '', noting = false, note = null;
+  const panels = new Map();
+  function panel(id, title, ...parts) {
+    const section = make('section', null, { ariaLabel: title, hidden: true });
+    section.append(make('h2', title), ...parts);
+    $('drawer').append(section);
+    Object.assign($(id), { ariaExpanded: 'false', onclick: () => toggle(id) });
+    $(id).setAttribute('aria-controls', 'drawer');
+    panels.set(id, section);
   }
-  /** Opens or closes the notes; while they are open the page reports what is picked in it. */
-  function toggle() {
-    if ($('notes').hidden) return;
-    noting = !noting;
-    $('drawer').hidden = !noting;
-    $('notes').ariaExpanded = String(noting);
-    tell('notes', { on: noting });
+  if (local) {
+    panel('notes', 'Notes on this page', chips[1], onPage, said, listed);
+    Object.assign($('notes'), { title: 'Notes on this page (Alt+N)', ariaKeyShortcuts: 'Alt+N' });
+    panel('network', 'Network', refusal, listing);
+  }
+  /** Opens a panel, in place of the other, or closes it; while the notes are open the page reports what is picked in it. */
+  function toggle(id) {
+    if (!local) return;
+    open = open === id ? '' : id;
+    $('drawer').hidden = !open;
+    for (const [one, section] of panels) {
+      section.hidden = one !== open;
+      $(one).ariaExpanded = String(one === open);
+    }
+    const on = open === 'notes';
+    if (on !== noting) tell('notes', { on });
+    noting = on;
     said.textContent = '';
     if (noting) {
       refresh();
       requestAnimationFrame(() => { said.textContent = HINT; }); // a live region reads out only what changes once it is shown
     } else if (note && !note.sending && !note.text.value.trim()) leave(false);
+    drawListing();
   }
   function back() {
-    if (!noting) return;
-    if (note) return drop();
-    toggle();
-    $('notes').focus();
+    if (!open) return;
+    if (noting && note) return drop();
+    const was = $(open);
+    toggle(open);
+    was.focus();
   }
   async function refresh() {
     check();
@@ -441,9 +555,21 @@
 
   const isLink = ({ href }) => isText(href) && href.length <= 2048 && /^(https?|mailto):/.test(href) && URL.canParse(href);
   function offer(to) {
-    if (to.origin === location.origin) to.search = '';
     const done = () => strip('link', null);
-    strip('link', { text: to.href, acts: [guard(button('Open'), () => { open(to.href, '_blank', 'noopener,noreferrer'); done(); }), ['Dismiss', done]] });
+    strip('link', { text: to.href, acts: [guard(button('Open'), () => { window.open(to.href, '_blank', 'noopener,noreferrer'); done(); }), ['Dismiss', done]] });
+  }
+  /** Goes to a page of this docroot when the user acted and no note is half typed; offers any other address. */
+  async function follow(to) {
+    const active = () => !!navigator.userActivation?.isActive;
+    if (to.origin === location.origin) {
+      to.search = '';
+      if (!drafted()) {
+        const there = active() && await fetch(to.href, { method: 'HEAD', cache: 'no-store' }).catch(() => null);
+        if (!active()) return;
+        if (there?.ok && /^text\/html\b/.test(there.headers.get('Content-Type')) && !drafted()) return location.assign(to.href);
+      }
+    }
+    bring('link', () => offer(to));
   }
 
   /** A key of the page: pressed there only while the page has the focus, and done while it still has. */
@@ -453,8 +579,8 @@
   }
   const KEYS = new Map([
     ['print', () => tell('print')],
-    ['notes', () => pressed(toggle)],
-    ['escape', () => pressed(() => { if (!drafted()) back(); })],
+    ['notes', () => pressed(() => toggle('notes'))],
+    ['escape', () => pressed(() => { if (!noting || !drafted()) back(); })],
   ]);
   const isHash = (h) => typeof h === 'string' && /^#[\w/=&.%-]{0,128}$/.test(h);
   // message type -> [whether its fields have their shape, what it does]
@@ -466,7 +592,8 @@
     ['pick', [(m) => place && isPick(m), report]],
     ['anchor', [(m) => noting && isAnchor(m.anchor) && isContext(m.context), ({ anchor, context }) => bring('note', () => { if (noting && !note?.sending) compose(anchor && anchorOf(anchor), contextOf(context), $('notes')); })]],
     ['context', [(m) => note?.asked && isContext(m.context), (m) => Object.assign(note, { context: contextOf(m.context), asked: false })]],
-    ['link', [isLink, ({ href }) => { if (drafted()) bring('link', () => offer(new URL(href))); }]],
+    ['blocked', [(m) => local && isBlocked(m), refuse]],
+    ['link', [isLink, ({ href }) => follow(new URL(href))]],
     ['key', [(m) => KEYS.has(m.name), (m) => KEYS.get(m.name)()]],
   ]);
   const acted = []; // when, the last 50
@@ -490,7 +617,7 @@
   addEventListener('keydown', (e) => {
     if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyN' && !/^(input|textarea|select)$/.test(e.target.localName)) {
       e.preventDefault();
-      toggle();
+      toggle('notes');
       $('notes').focus();
     } else if (e.key === 'Escape' && !e.isComposing) back(); // one that ends an IME's composition drops no draft
   });
@@ -523,6 +650,7 @@
     document.title = $('title').textContent = at.title;
     unstash(at);
     build(at);
+    admit(at);
     if (at.writable) refresh();
     if (!pruned) prune(at.project);
     pruned = true;

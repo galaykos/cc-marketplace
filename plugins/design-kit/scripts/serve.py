@@ -757,7 +757,9 @@ class Handler(SimpleHTTPRequestHandler):
             if why:
                 return self._reject(HTTPStatus.FORBIDDEN, why)
             page = page_of((parse_qs(query).get("page") or [""])[0])
-            return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") == page])
+            folder, _, name = page.rpartition("/")
+            filed = (page, folder) if name in ("index.html", "index.htm") else (page,)
+            return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") in filed])
         if path == "/_checks":
             why = self._not_local("check results", "read")
             if why:

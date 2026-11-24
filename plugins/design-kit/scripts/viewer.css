@@ -1,5 +1,5 @@
 /* viewer.css — serve.py's /_viewer.css: the bar, strips, notes drawer and frame area of the viewer, in the reader's light or dark scheme.
-   Misses: no rules for the network list.
+   Misses: no rules for print or forced colours.
    Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.css */
 :root {
   color-scheme: light dark;
@@ -46,9 +46,12 @@ code { padding: 0 4px; border: 1px solid var(--edge); border-radius: 4px; font-s
 #drawer h2 { margin: 0 0 8px; font-size: 14px; }
 #drawer p { margin: 8px 0; color: var(--soft); }
 #drawer .why { color: var(--err); }
+#drawer h3 { margin: 12px 0 0; font-size: 13px; }
 #drawer ul { margin: 8px 0 0; padding: 0; list-style: none; }
 #drawer li { padding: 8px 0; border-top: 1px solid var(--line); }
-#drawer .reply { color: var(--soft); }
+#drawer .reply, .hosts span { color: var(--soft); }
+.hosts li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hosts bdi { flex: 1; min-width: 8rem; font-weight: 600; }
 #drawer #check { display: none; width: fit-content; }
 #drawer label { font-weight: 600; }
 #drawer [role="group"] > div { display: flex; flex-wrap: wrap; gap: 8px; }
