@@ -14,7 +14,7 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { display: grid; grid-template: "bar bar" auto "strips strips" auto "frame drawer" minmax(0, 1fr) / minmax(0, 1fr) auto; height: 100vh; height: 100dvh; margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+body { display: grid; grid-template: "bar bar" auto "strips strips" auto "frame drawer" minmax(20vh, 1fr) / minmax(0, 1fr) auto; height: 100vh; height: 100dvh; margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
 #bar { grid-area: bar; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
 #bar > * { flex: none; }
 a, button { padding: 4px 10px; border: 1px solid var(--edge); border-radius: 8px; font: inherit; font-weight: 600; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; }
@@ -59,9 +59,10 @@ textarea { display: block; width: 100%; min-height: 80px; margin-top: 4px; paddi
 #frame { grid-area: frame; }
 /* Canvas, as for a page opened by itself: a frame is see-through where its page paints nothing. */
 #frame iframe { display: block; width: 100%; height: 100%; border: 0; background: Canvas; }
+iframe[data-reached] { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (max-width: 600px) {
   #bar #title { flex: 1; }
-  body { grid-template: "bar" auto "strips" auto "drawer" auto "frame" minmax(0, 1fr) / minmax(0, 1fr); }
+  body { grid-template: "bar" auto "strips" auto "drawer" auto "frame" minmax(20vh, 1fr) / minmax(0, 1fr); }
   #chip { display: none; }
   #drawer { width: auto; max-height: 60vh; border-inline-start: 0; border-bottom: 1px solid var(--line); }
   #drawer #check:not(:empty) { display: block; }

@@ -1,5 +1,5 @@
-// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted and no note is half typed; shows the last dk check, focuses the frame, forgets what deleted pages stored, and unregisters service workers.
-// Misses: a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
+// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted and no note is half typed; on another device has no pick, approval or note to send and says where they are; shows the last dk check, focuses the frame on load and by Tab, forgets what deleted pages stored, and unregisters service workers.
+// Misses: a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a kind of file a host is refused 300 ms or more after its first, said with the host again; the ring of a frame reached by Tab, there until the focus is back in the viewer; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.js
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -28,7 +28,7 @@
   const HUNG = { text: 'This page is not answering', acts: [['Reload page', show]] };
   const FULL = { text: 'Storage is full; changes to this page are not saved' };
   // in the order they are shown
-  const STRIPS = ['page', 'server', 'storage', 'pick', 'blocked', 'more', 'link'];
+  const STRIPS = ['page', 'server', 'storage', 'pick', 'blocked', 'more', 'link', 'lan'];
   /** Shows spec.text (a string or the nodes of a line), the elements of spec.more, and spec.acts (buttons, or a [label, act] for each) as the strip of this kind, and of this key where a kind has several, or removes that strip when spec is null; the same again is left alone, so it is announced once. The focus stays on the control it was on, else on the strip's first button, else goes to the frame. */
   function strip(kind, spec, key = '') {
     const all = [...$('strips').children], old = all.find((s) => s.dataset.kind === kind && s.dataset.key === key), el = make('div');
@@ -183,7 +183,7 @@
     watch(); say({ hung: false });
     const held = [left, document.body].includes(document.activeElement);
     if (!held) area.setAttribute('role', 'alert');
-    acts.append(button('Reload page', show, { className: 'primary' }), make('a', 'Back to gallery', { href: '/_gallery' }));
+    acts.append(button('Reload page', show, { className: 'primary' }), make('a', 'Back to gallery', { href: '/_gallery', draggable: false }));
     area.className = 'stopped';
     area.append(text, acts);
     $('frame').replaceChildren(area);
@@ -344,7 +344,7 @@
     const host = given.toLowerCase(), { kinds = new Set() } = refused.get(host) || {};
     if (hosts.includes(host) || !refused.has(host) && refused.size === 100) return; // a page may name any number
     refused.set(host, { kinds: kinds.add(kind), frame });
-    bring('blocked', drawHosts);
+    setTimeout(() => bring('blocked', drawHosts), 300); // the refusals of one load come one by one, and are said once
   }
   /** Forgets the hosts that only a frame before this one was refused; called once this one is loaded and has said its own. */
   function unlist() {
@@ -621,6 +621,15 @@
       $('notes').focus();
     } else if (e.key === 'Escape' && !e.isComposing) back(); // one that ends an IME's composition drops no draft
   });
+  // Chrome's Tab passes by a frame whose page has nothing to focus, a deck say
+  addEventListener('keydown', (e) => {
+    if (!frame || e.key !== 'Tab' || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target !== [...document.querySelectorAll('a, button, textarea, [tabindex="0"]')].filter((one) => one.checkVisibility()).pop()) return;
+    e.preventDefault();
+    frame.focus();
+    frame.dataset.reached = '';
+  });
+  document.addEventListener('focusin', () => frame?.removeAttribute('data-reached'));
   addEventListener('hashchange', () => show()); // typed into the address: the frame's own hash comes by replaceState, which tells no one
 
   async function check() {
@@ -652,6 +661,7 @@
     build(at);
     admit(at);
     if (at.writable) refresh();
+    else strip('lan', { text: `Open ${at.local} on the computer running the server to leave notes, picks or approvals.` });
     if (!pruned) prune(at.project);
     pruned = true;
   }
@@ -677,6 +687,7 @@
     if (deleted) say({ gone: true });
   }
 
+  document.querySelector('#bar a').draggable = false;
   navigator.serviceWorker?.getRegistrations().then((all) => all.forEach((one) => one.unregister()));
   connect();
   show();

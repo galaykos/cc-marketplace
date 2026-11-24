@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus (document.hasFocus is faked).
+# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the contract's seven states at 1280 and 375 px (what is where, nothing sideways, axe-core, Tab order, nothing draggable, a strip said once and never focused, a screenshot of each in the temp dir), the strips' order, 40 notes and 12 blocked hosts at 375 px, Tab into a page with nothing to focus, the LAN viewer at this machine's own address (a SKIP line without one: at a faked peer's then), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the bounce of a top-level framed page and what the LAN viewer asks for; browser_lib.py's exit 4 where no browser starts.
+# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium, the dark scheme's contrast; a window that really loses and gets the focus (document.hasFocus is faked).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -107,8 +107,8 @@ class Server:
     def __init__(self, port):
         self.port, self.url, self.proc = port, "http://127.0.0.1:%d" % port, None
 
-    def start(self, newer=0, root=ROOT):
-        self.proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(here, "serve.py"), str(newer), "--docroot", root, "--port", str(self.port)],
+    def start(self, newer=0, root=ROOT, *more):
+        self.proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(here, "serve.py"), str(newer), "--docroot", root, "--port", str(self.port), *more],
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=dict(os.environ, DESIGN_KIT_IDLE_MINUTES="0"))
         for _ in range(100):
             try:
@@ -144,16 +144,24 @@ UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chr
 
 visited = []
 
-def visit(b, url, w=1280, h=800):
-    """The one open tab, at url, with a person's user agent: a headless one is sent to the raw page, and each viewer left open keeps one of the six connections Chrome gives a host."""
+def visit(b, url, w=1280, h=800, source=""):
+    """The one open tab, at url, with a person's user agent: a headless one is sent to the raw page, and each viewer left open keeps one of the six connections Chrome gives a host; source before any script of a document."""
     while visited:
         b.chrome.call("Page.close", {}, visited.pop().sid)
     tab = b.page("about:blank", w, h)
     visited.append(tab)
     b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": UA}, tab.sid)
+    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": source}, tab.sid)
     b.chrome.call("Page.navigate", {"url": url}, tab.sid)
     tab.wait("location.href !== 'about:blank' && document.readyState === 'complete'", 10)
     return tab
+
+def got(path):
+    """The policy and the body the server answers this path with."""
+    con = http.client.HTTPConnection("127.0.0.1", server.port, timeout=5)
+    con.request("GET", path)
+    answer = con.getresponse()
+    return answer.headers["Content-Security-Policy"], answer.read()
 
 def logged(b, tab):
     return [str((e["params"].get("entry") or {}).get("text") or e["params"])[:200] for e in b.chrome.events if e.get("sessionId") == tab.sid and e["method"] in ("Log.entryAdded", "Runtime.exceptionThrown", "Runtime.consoleAPICalled")]
@@ -186,8 +194,9 @@ LOADED = """(async () => {
     audio: audio.duration > 0, json: await fetch('d.json').then((r) => r.json()).catch((e) => e.name), gone: await fetch('gone.json').then((r) => r.status).catch((e) => e.name) };
 })()"""
 
+OWN_FILES = {"script": 1, "module": 2, "font": ["loaded"], "image": 1, "audio": True, "json": {"three": 3}, "gone": 404}
+
 def files(b):
-    want = {"script": 1, "module": 2, "font": ["loaded"], "image": 1, "audio": True, "json": {"three": 3}, "gone": 404}
     image = "[document.querySelector('img').complete, document.querySelector('img').naturalWidth]"
     def framed(name):
         return visit(b, server.url + "/" + quote(name)).frame()
@@ -196,7 +205,7 @@ def files(b):
         eq("?static=1 opens %s raw, at its own address" % name, lambda: tab.evaluate("[self.origin, location.pathname.startsWith('/_c/'), location.search, document.querySelectorAll('#bar').length]"), ["null", True, "", 0])
         return tab
     for how, at in (("framed", framed), ("raw", raw)):
-        eq("a page in a folder named 'a;b, c ü' loads its script, module, font, image, audio and JSON, %s, and reads a 404 for a file that is not there" % how, lambda: at(OWN + "index.html").evaluate(LOADED), want)
+        eq("a page in a folder named 'a;b, c ü' loads its script, module, font, image, audio and JSON, %s, and reads a 404 for a file that is not there" % how, lambda: at(OWN + "index.html").evaluate(LOADED), OWN_FILES)
         eq("a review page shows its shots/ image, %s" % how, lambda: at("reviews/r.html").wait(image), [True, 1])
         eq("a deck loads no server file, %s" % how, lambda: at("decks/loads.html").evaluate("(async () => [window.script || 0, document.querySelector('img').naturalWidth, await fetch('../shots/one.png').then((r) => r.status, (e) => e.name)])()"), [0, 0, "TypeError"])
 
@@ -219,11 +228,13 @@ def bar(b):
     eq("a page title holding markup shows as text in the bar", lambda: (tab.frame(), tab.evaluate("[document.title, document.querySelector('#bar h1').textContent, document.querySelector('#bar').querySelectorAll('img').length, document.querySelector('iframe').title]"))[1], [title, title, 0, title])
     with open(os.path.join(here, "viewer.js"), encoding="utf-8") as fh:
         eq("viewer.js builds no markup from text", re.findall(r"innerHTML|outerHTML|insertAdjacentHTML|document\.write|createContextualFragment|DOMParser", fh.read()), [])
+    eq("the policy carries require-trusted-types-for 'script', and the browser refuses markup from a string for it", lambda: ["require-trusted-types-for 'script'" in got("/" + BOARD)[0].split("; "), tab.evaluate("(() => { try { document.createElement('p').innerHTML = '<b>b</b>'; return 'built'; } catch (e) { return e.name; } })()")], [True, "TypeError"])
     for w in (1280, 375):
         tab = visit(b, server.url + "/artifacts/long.html", w)
         tab.frame()
         eq("at %d px the frame fills the window under the bar, the title is cut and nothing scrolls sideways" % w, lambda: tab.evaluate("(() => { const bar = document.querySelector('#bar').getBoundingClientRect(), f = document.querySelector('iframe').getBoundingClientRect(), t = document.querySelector('#bar h1'), n = document.querySelector('#notes').getBoundingClientRect(); return [bar.top, f.top === bar.bottom, f.bottom, f.left, f.width, document.documentElement.scrollWidth, getComputedStyle(t).textOverflow, t.scrollWidth > t.clientWidth || innerWidth > 1000, n.right <= innerWidth, %s]; })()" % (SHOWN % "#chip")),
            [0, True, 800, 0, w, w, "ellipsis", True, True, w == 1280])
+    eq("at 375 px a long title ends in an ellipsis", lambda: tab.evaluate("(({ scrollWidth, clientWidth }, { textOverflow, overflowX, whiteSpace }) => [scrollWidth > clientWidth, textOverflow, overflowX, whiteSpace])(document.querySelector('#bar h1'), getComputedStyle(document.querySelector('#bar h1')))"), [True, "ellipsis", "hidden", "nowrap"])
 
 # before the viewer's own listener, and a window's run in the order they came; deaf: the viewer hears no answer
 HEARD = "window.heard = []; addEventListener('message', (e) => { const { t, n } = e.data, forged = n === 1 || n === 1e9; heard.push(e.source && (forged ? 'forged' : t)); if (window.mute || window.deaf && t === 'pong' && !forged) e.stopImmediatePropagation(); });"
@@ -1193,6 +1204,7 @@ def drafts(b):
     fitted(tab, f)
     tab.click(*f.at("#far"))
     tab.wait("!!document.querySelector('%s')" % LINK, 3)
+    fitted(tab, f)
     press(tab, LINK + " button:last-child")
     eq("Dismiss opens nothing", lambda: [tab.evaluate("opened.length"), tab.evaluate("!document.querySelector('%s')" % LINK)], [1, True])
     for href in ("7", "'javascript:alert(1)'", "'data:text/html,x'", "'file:///etc'", "'http://'", "'https://a.example/' + 'x'.repeat(2048)"):
@@ -1359,6 +1371,8 @@ def lists(b):
     os.unlink(os.path.join(ROOT, odd))
     forget("notes.jsonl")
 
+# which strips were drawn, in turn, since the document began
+SAID = "window.said = []; addEventListener('DOMContentLoaded', () => { const at = document.querySelector('#strips'); if (at) new MutationObserver((all) => { for (const one of all) for (const el of one.addedNodes) said.push(el.dataset.kind); }).observe(at, { childList: true }); });"
 CDN, IMAGES, NET, OTHER = "cdn.example.org", "img.example.net", "artifacts/net.html", "artifacts/fixture.html"
 EVERY = ["script-src", "style-src", "img-src", "font-src", "media-src"]
 BLOCKED = "#strips [data-kind=blocked]"
@@ -1385,12 +1399,7 @@ def becomes(tab, expression, want, seconds=8):
 
 def policy(name, host=CDN):
     """The directives of this page's policy that name host."""
-    def get(path):
-        con = http.client.HTTPConnection("127.0.0.1", server.port, timeout=5)
-        con.request("GET", path)
-        answer = con.getresponse()
-        return answer.headers["Content-Security-Policy"], answer.read()
-    csp, _ = get(json.loads(get("/_page?page=" + quote(name))[1])["src"])
+    csp, _ = got(json.loads(got("/_page?page=" + quote(name))[1])["src"])
     return [directive.split()[0] for directive in csp.split("; ") if "https://" + host in directive.split()]
 
 def approved(hosts=None):
@@ -1404,11 +1413,11 @@ def approved(hosts=None):
 def approves(b):
     approved()
     loads()
-    tab = visit(b, server.url + "/" + NET)
+    tab = visit(b, server.url + "/" + NET, source=SAID)
     tab.frame()
     tab.wait(FOCUS + " === 'iframe'")
     of_cdn, of_images = asks(CDN, "scripts, styles"), asks(IMAGES, "images")
-    eq("a blocked host shows one strip with its name and kinds", lambda: becomes(tab, ASKS, [of_cdn, of_images]), [of_cdn, of_images])
+    eq("a blocked host shows one strip with its name and kinds, said once", lambda: [becomes(tab, ASKS, [of_cdn, of_images]), tab.evaluate("said")], [[of_cdn, of_images], ["blocked"] * 2])
     eq("and takes no focus", lambda: tab.evaluate(FOCUS), "iframe")
     eq("Network appears with a count when a host is blocked", lambda: tab.evaluate(NETWORK), "Network (2)")
     time.sleep(ACTS)
@@ -1680,6 +1689,267 @@ def guards(b):
     forget()
     approved()
 
+KINDS_SHOWN = "[...document.querySelectorAll('#strips > *')].map((s) => s.dataset.kind)"
+SEEN = """(() => {
+  const words = (s) => [...document.querySelectorAll(s)].filter((e) => e.checkVisibility()).map((e) => e.textContent || e.localName);
+  return [words('#bar > *'), words('#strips :is(p, li, button)'), words('#drawer :is(h2, h3, #check, button, textarea, .st, .reply, bdi)'), words('#frame :is(iframe, p, button, a)')];
+})()"""
+# the rules of the Visual contract's placement that do not hold
+ASTRAY = """(() => {
+  const all = (s) => [...document.querySelectorAll(s)].filter((e) => e.checkVisibility()), box = (s) => document.querySelector(s).getBoundingClientRect();
+  const w = innerWidth, h = innerHeight, wide = w > 600, bar = box('#bar'), strips = box('#strips'), drawer = box('#drawer'), main = box('#frame'), open = drawer.height > 0, frame = document.querySelector('iframe');
+  const items = all('#bar > *').map((e) => e.getBoundingClientRect()), last = all('#bar button').map((e) => e.getBoundingClientRect()).pop();
+  const stands = (e) => { const r = e.getBoundingClientRect(), was = e.previousElementSibling.getBoundingClientRect(); return wide ? e.previousElementSibling.localName !== 'button' || r.top === was.top && r.left > was.right : r.top >= was.bottom; };
+  const scroll = (e) => ['auto', 'scroll'].includes(getComputedStyle(e).overflowX) && e.scrollWidth > e.clientWidth;
+  return Object.entries({
+    'the bar is above all, in one line, its buttons at the right': bar.top === 0 && bar.left === 0 && bar.right === w && items[0].left === 12 && items.every((r, i) => Math.abs(r.top + r.bottom - bar.top - bar.bottom + 1) < 3 && (!i || r.left > items[i - 1].right)) && (!last || last.right === w - 12),
+    'the strips are under the bar, across the window': strips.top === bar.bottom && strips.left === 0 && strips.right === w,
+    "a strip's buttons are in a row, or stacked under its text when narrow": all('#strips button').every(stands),
+    'the drawer is below the strips, at the right, or full width and at most 60vh when narrow': !open || drawer.top === strips.bottom && drawer.right === w && (wide ? drawer.left > w / 2 && drawer.bottom === h : drawer.left === 0 && drawer.height <= h * .6),
+    'the frame area fills the rest': main.left === 0 && main.top === (open && !wide ? drawer.bottom : strips.bottom) && main.right === (open && wide ? drawer.left : w) && main.bottom === h,
+    'the frame fills its area': !frame || ['top', 'left', 'right', 'bottom'].every((k) => frame.getBoundingClientRect()[k] === main[k]),
+    'nothing is wider than the window': document.documentElement.scrollWidth === w && !all('body *').some((e) => { const r = e.getBoundingClientRect(); return r.left < 0 || r.right > w || scroll(e); }),
+    'the window does not scroll': document.documentElement.scrollHeight === h,
+  }).filter(([, holds]) => !holds).map(([rule]) => rule);
+})()"""
+with open(browser_lib.check.AXE_PATH, encoding="utf-8") as fh:
+    AXE = fh.read()
+AXE_RUN = "axe.run(document, { iframes: false, rules: { 'target-size': { enabled: true } } }).then((r) => (r.passes.length > 9 ? r.violations.map((v) => [v.id, v.nodes.map((n) => n.html.slice(0, 120))]) : ['axe checked next to nothing']))"
+STOP = "((e) => e.localName + ': ' + (e.ariaLabel || e.textContent).slice(0, 40))"
+STOPS = "[...document.querySelectorAll('*')].filter((e) => e.tabIndex >= 0 && e.checkVisibility())"
+# a list that scrolls is one, so that a keyboard can scroll it
+OTHERS = STOPS + ".filter((e) => e.tabIndex > 0 || !/^(a|button|textarea|iframe)$/.test(e.localName)).map((e) => %s(e) + (e.tabIndex > 0 ? ', tabindex ' + e.tabIndex : ''))" % STOP
+DRAGGED = "[...document.querySelectorAll('*')].filter((e) => e.draggable).map((e) => e.outerHTML.slice(0, 80))"
+PRESSES = re.compile("(aux|dbl)?click|contextmenu|(mouse|pointer|touch|key)(down|up|start|end|press)")
+
+def reached(tab):
+    """What Tab reaches from the top of the viewer, each once, until it leaves the viewer."""
+    tab.evaluate("document.querySelector('#bar a').focus(); 1")
+    tab.key("Shift+Tab")
+    stops = []
+    for _ in range(60):
+        tab.key("Tab")
+        at = tab.evaluate("document.activeElement === document.body ? '' : %s(document.activeElement)" % STOP)
+        if not at or at in stops[:1]:
+            break
+        if at not in stops[-1:]:
+            stops.append(at)
+    return stops
+
+def listens(b, tab):
+    """(type, tag) of every listener of the viewer's window and document."""
+    heard = set()
+    for of in ("window", "document"):
+        at = b.chrome.call("Runtime.evaluate", {"expression": of}, tab.sid)["result"]["objectId"]
+        for one in b.chrome.call("DOMDebugger.getEventListeners", {"objectId": at, "depth": -1}, tab.sid)["listeners"]:
+            node = b.chrome.call("DOM.describeNode", {"backendNodeId": one["backendNodeId"]}, tab.sid)["node"]["localName"] if of == "document" else of
+            heard.add((one["type"], node))
+    return heard
+
+def own_address():
+    """This machine's own address on its network, or None."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            s.connect(("192.0.2.1", 9))
+            at = s.getsockname()[0]
+        except OSError:
+            return None
+    return None if at.startswith("127.") else at
+
+@contextlib.contextmanager
+def away():
+    """The preview as another device opens it, (its URL, what its first request adds, the port): at this machine's own address and with the LAN key, or at Far where it has none."""
+    if not LAN:
+        srv = threaded(Far)
+        try:
+            yield "http://127.0.0.1:%d" % srv.server_port, "", srv.server_port
+        finally:
+            srv.shutdown()
+        return
+    there = Server(free_port())
+    there.start(0, ROOT, "--lan")
+    try:
+        with open(os.path.join(ROOT, ".preview.key")) as fh:
+            yield "http://%s:%d" % (LAN, there.port), "?key=" + fh.read().strip(), there.port
+    finally:
+        there.stop()
+
+def leave_it(port, name):
+    """The line of decision 25."""
+    return "Open http://127.0.0.1:%d/%s on the computer running the server to leave notes, picks or approvals." % (port, quote(name))
+
+ALLOWED = "fonts.example.org"
+
+def note_rows(n, of):
+    """n notes on this page, the newest last, as the server keeps them."""
+    return "".join(json.dumps({"id": "%08d" % i, "ts": "2026-11-24T10:00:00Z", "page": of, "kind": "note", "anchor": None, "text": "note %d" % i, "context": {}, "status": ("dismissed", "open", "addressed")[i % 3], "reply": "done" if i % 3 == 2 else ""}) + "\n" for i in range(1, n + 1))
+
+def states(b, w, there):
+    """Each state of the contract on the fixture board at this width: its name, its tab, what is in the bar, the strips, the drawer and the frame area, which strips were drawn, and what has the focus."""
+    left, frame = ["Gallery", "fixture"] + ["Not checked"] * (w == 1280), ["iframe"]
+    def opened(url=server.url + "/" + BOARD):
+        tab = visit(b, url, w, source=SAID)
+        tab.wait("document.body.dataset.page === '%s' && !!document.querySelector('iframe')" % BOARD)
+        f = tab.frame()
+        tab.wait(FOCUS + " === 'iframe'")
+        fitted(tab, f)
+        return tab, f
+    forget()
+    forget("notes.jsonl")
+    approved()
+    put(".checks/results.json", "{}")
+    tab, f = opened()
+    tab.wait("document.querySelector('#chip').textContent")
+    yield "empty", tab, [left + ["Notes"], [], [], frame], [], "iframe"
+    tab, f = opened()
+    says(f, 2, {"all": {"space": 12}}, {"1": {"h1:0": {"was": "One", "now": "Two"}}})
+    tab.wait(THERE, 4)
+    fitted(tab, f)
+    yield "pick", tab, [left + ["Notes"], ["Artboard 2 picked", "All artboards: spacing base 12px", "Artboard 1 text, h1:0: “One” → “Two”", "Send pick", "Discard"], [], frame], ["pick"], "iframe"
+    put(".allow.json", json.dumps({BOARD: [ALLOWED]}))
+    tab, f = opened()
+    f.evaluate("".join("parent." + POST % json.dumps({"dk": 1, "t": "blocked", "host": host, "kind": kind}) for host, kind in ((CDN, "script"), (CDN, "style"), (IMAGES, "img"))) + "1")
+    tab.wait(ASKS + ".length === 2", 4)
+    time.sleep(PACE)
+    fitted(tab, f)
+    asked_for = asks(CDN, "scripts, styles") + asks(IMAGES, "images")
+    yield "blocked", tab, [left + ["Network (3)", "Notes"], asked_for, [], frame], ["blocked"] * 2, "iframe"
+    tab.evaluate("document.querySelector('iframe').focus(); said.length = 0; 1")
+    press(tab, "#network")
+    fitted(tab, f)
+    yield "network", tab, [left + ["Network (3)", "Notes"], asked_for, ["Network", "Allowed", ALLOWED, "Remove", "Blocked", CDN, "Allow", IMAGES, "Allow"], frame], [], "network"
+    approved()
+    put("notes.jsonl", note_rows(3, BOARD))
+    tab, f = opened()
+    opens(tab, f)
+    press(tab, ON_PAGE)
+    fitted(tab, f)
+    yield "notes", tab, [left + ["Notes (3)"], [], ["Notes on this page"] + ["Not checked"] * (w == 375) + ["Note on this page", "textarea", "Send note", "Cancel", "dismissed", "addressed", "Reply: done", "open"], frame], [], "textarea"
+    forget("notes.jsonl")
+    tab, f = opened()
+    f.evaluate("location.href = 'https://out.example/'; 1")
+    tab.wait("!document.querySelector('iframe')")
+    yield "stopped", tab, [left + ["Notes"], [], [], [text for _, text in STOPPED]], [], "p"
+    url, key, port = there
+    tab, f = opened(url + "/" + BOARD + key)
+    tab.wait(STRIPS + ".length", 3)
+    fitted(tab, f)
+    yield "LAN", tab, [left[:2], [leave_it(port, BOARD)], [], frame], ["lan"], "iframe"
+
+def walk(b):
+    shots = os.path.join(os.path.dirname(ROOT), "shots")
+    os.makedirs(shots)
+    walked, violations, order, others, dragged = {}, {}, {}, {}, {}
+    with away() as there:
+        for w in (1280, 375):
+            for name, tab, seen, said, focus in states(b, w, there):
+                at = "%s at %d px" % (name, w)
+                eq("placed as the contract says: " + at, lambda: [tab.evaluate(SEEN), tab.evaluate(ASTRAY)], [seen, []])
+                eq("strips announce once and never take focus: " + at, lambda: tab.evaluate("[said, [...document.querySelectorAll('[aria-live]')].map((e) => e.id + ' ' + e.ariaLive), %s]" % FOCUS), [said, ["strips polite"], focus])
+                shot = os.path.join(shots, "%s-%d.png" % (name, w))
+                with open(shot, "wb") as fh:
+                    fh.write(base64.b64decode(b.chrome.call("Page.captureScreenshot", {}, tab.sid)["data"]))
+                with open(shot, "rb") as fh:
+                    walked[at] = list(struct.unpack(">II", fh.read(24)[16:]))
+                tab.evaluate(AXE + "; 1", 20)
+                violations[at] = tab.evaluate(AXE_RUN, 30)
+                others[at] = tab.evaluate(OTHERS)
+                dragged[at] = tab.evaluate(DRAGGED) + sorted(one for one in listens(b, tab) if one[0].startswith(("drag", "drop")) or PRESSES.fullmatch(one[0]) and one[1] not in ("button", "a", "textarea") and one != ("keydown", "window"))
+                want = tab.evaluate(STOPS + ".map(%s)" % STOP)
+                order[at] = [reached(tab), want]
+    eq("7 states walked at 375 and 1280, with a screenshot of each", walked, {"%s at %d px" % (name, w): [w, 800] for w in (1280, 375) for name in ("empty", "pick", "blocked", "network", "notes", "stopped", "LAN")})
+    eq("0 axe violations in 7 states at 375 and 1280", {at: found for at, found in violations.items() if found}, {})
+    eq("Tab order equals DOM order, in every state", {at: both for at, both in order.items() if both[0] != both[1] or len(both[0]) < 2}, {})
+    eq("each stop is a button, a link, a textarea, the frame or the pick's list, none with a positive tabindex", {at: found for at, found in others.items() if found}, {"pick at %d px" % w: ["ul: Changes"] for w in (1280, 375)})
+    eq("nothing draggable, and nothing else takes a press", {at: found for at, found in dragged.items() if found}, {})
+
+def ordered(b):
+    forget()
+    approved()
+    tab = quick(b, visit(b, server.url + "/" + BOARD, source=SAID))
+    f = tab.frame()
+    blocked(f, CDN)
+    tab.wait(ASKS + ".length", 4)
+    says(f, 1)
+    tab.wait(THERE, 4)
+    tab.evaluate("window.deaf = true")
+    three = ["page", "pick", "blocked"]
+    eq("three strips in contract order: not answering, pick to send, blocked host, whichever came first", lambda: becomes(tab, KINDS_SHOWN, three), three)
+    tab.evaluate("document.querySelector('iframe').focus(); 1")
+    f.evaluate("parent." + POST % json.dumps({"dk": 1, "t": "link", "href": "https://out.example/"}) + "parent." + POST % "{ dk: 1, t: 'store', items: [['big', 'x'.repeat(300 * 1024)]] }" + "1")
+    tab.wait("!!document.querySelector('%s')" % LINK, 4)
+    server.stop()
+    every = ["page", "server", "storage", "pick", "blocked", "link"]
+    eq("and all six, each said once, the focus still in the page", lambda: [becomes(tab, KINDS_SHOWN, every), tab.evaluate("[said.sort(), %s]" % FOCUS)], [every, [sorted(every), "iframe"]])
+    server.start()
+    forget()
+
+def tabs(b):
+    ring = "[%s, getComputedStyle(document.querySelector('iframe')).outlineStyle]" % FOCUS
+    tab = visit(b, server.url + "/" + DECK)
+    tab.frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    on_load = tab.evaluate(ring)
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    tab.key("Tab")
+    eq("Tab from the last control reaches a page with nothing to focus, with a ring there was none of on load", lambda: [on_load, tab.evaluate(ring)], [["iframe", "none"], ["iframe", "solid"]])
+    tab.key("ArrowRight")
+    eq("whose keys then work", lambda: tab.wait("location.hash === '#/2'"), True)
+    tab.key("Shift+Tab")
+    eq("Shift+Tab goes back, and the ring away", lambda: tab.evaluate(ring), ["notes", "none"])
+    tab = visit(b, server.url + "/" + NOTED)
+    f = tab.frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    for _ in range(2):
+        tab.key("Tab")
+    eq("in a page with controls the next Tab is on the first of them", lambda: [tab.evaluate(FOCUS), f.evaluate(FOCUS)], ["iframe", "one"])
+
+def crowds(b):
+    put("notes.jsonl", note_rows(40, NOTED))
+    tab = visit(b, server.url + "/" + NOTED, 375)
+    tab.frame()
+    press(tab, "#notes")
+    tab.wait("document.querySelectorAll('#drawer li').length === 20")
+    tab.hover(*tab.at("#drawer"))
+    x, y = tab.at("#drawer")
+    b.chrome.call("Input.dispatchMouseEvent", {"type": "mouseWheel", "x": x, "y": y, "deltaX": 0, "deltaY": 300}, tab.sid)
+    eq("drawer scrolls at 60vh, inside itself, with 40 notes at 375 px", lambda: [tab.evaluate(COUNT), tab.wait("document.querySelector('#drawer').scrollTop > 100"), tab.evaluate("[document.querySelector('#drawer').getBoundingClientRect().height, scrollY, document.documentElement.scrollHeight]")], ["Notes (40)", True, [480, 0, 800]])
+    forget("notes.jsonl")
+    approved()
+    tab = visit(b, server.url + "/" + OTHER, 375)
+    f = tab.frame()
+    f.evaluate("for (let n = 0; n < 12; n++) parent.postMessage({ dk: 1, t: 'blocked', host: 'h' + n + '.example', kind: 'script' }, '*'); 1")
+    tab.wait("!!document.querySelector('#strips [data-kind=more]')", 4)
+    high = []
+    for _ in range(3):
+        high.append(tab.evaluate("[document.querySelector('iframe').getBoundingClientRect().height, document.querySelector('#drawer').hidden]"))
+        press(tab, "#network", "Enter")
+    eq("with 12 blocked hosts at 375 px the page keeps a fifth of the window, before their list is open, while it is and after", high, [[160, True], [160, False], [160, True]])
+
+def lan(b):
+    if not LAN:
+        print("SKIP: no non-loopback address — the LAN viewer ran at a faked peer address only")
+    with away() as (url, key, port):
+        tab = visit(b, url + "/" + quote(OWN + "index.html") + key)
+        tab.wait("!!document.querySelector('iframe')")
+        eq("on the LAN address the page shows, and its own-folder files load", lambda: [(f := tab.frame()).evaluate(H1), f.evaluate(LOADED)], ["fixture", OWN_FILES])
+        words = "document.body.innerText.split('\\n').filter(Boolean)"
+        want = ["Gallery", "fixture", leave_it(port, OWN + "index.html")]
+        eq("under Gallery and the title alone, with where to leave notes, picks or approvals", lambda: becomes(tab, words, want), want)
+        tab = visit(b, url + "/" + BOARD)
+        f = tab.frame()
+        want[2] = leave_it(port, BOARD)
+        tab.wait(STRIPS + ".length")
+        says(f, 1, {"all": {"space": 12}})
+        blocked(f, CDN)
+        for how in ("{ dk: 1, t: 'key', name: 'notes' }", ANCHOR, ANCHOR.replace("'anchor'", "'context'").replace("anchor: {", "x: {", 1)):
+            f.evaluate("parent." + POST % how + "1")
+        for at in ("iframe", "#bar a"):
+            tab.evaluate("document.querySelector('%s').focus(); 1" % at)
+            tab.key("Alt+n")
+        eq("LAN viewer has no composer, Send pick or Allow", lambda: [time.sleep(PACE), tab.evaluate("[%s, document.querySelectorAll('textarea, section, ul, [role=group], [data-consent], [data-host]').length, %s]" % (words, STOPS + ".map(%s)" % STOP))][1], [want, 0, ["a: Gallery", "iframe: "]])
+
 class Older(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -1729,13 +1999,15 @@ def far(b):
     loads()
     tab = visit(b, url + "/" + NET)
     tab.frame()
-    eq("and no host to approve: no strip, no Network", lambda: [time.sleep(1.5), tab.evaluate("[%s, %s]" % (STRIPS, NETWORK))][1], [[], None])
+    line = [leave_it(srv.server_port, NET)]
+    eq("and no host to approve: no strip of one, no Network", lambda: [time.sleep(1.5), tab.evaluate("[%s, %s]" % (STRIPS, NETWORK))][1], [line, None])
     tab = visit(b, url + "/" + NOTED)
     tab.click(*tab.frame().at("#far"))
     eq("a page-to-page link opens in the viewer there too", lambda: [tab.wait("document.body.dataset.page === 'decks/old.htm'"), tab.evaluate("location.href")], [True, url + "/decks/old.htm#/2"])
     tab = visit(b, url + "/" + BOARD)
     says(tab.frame(), 1, {"all": {"space": 12}})
-    eq("and has no pick to send", lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (STRIPS, KEPT))][1], [[], []])
+    line = [leave_it(srv.server_port, BOARD)]
+    eq("and has no pick to send", lambda: [time.sleep(0.4), tab.evaluate("[%s, %s]" % (STRIPS, KEPT))][1], [line, []])
     del asked[:]
     tab.wait(FOCUS + " === 'iframe'")
     for at in ("iframe", "#bar a"):
@@ -1745,11 +2017,14 @@ def far(b):
     eq("and no notes: no list, no composer, nothing asked of the server", lambda: [time.sleep(0.4), tab.evaluate("[%s, document.querySelector('#drawer').childElementCount]" % DRAWN), [p for p in asked if p.startswith("/_notes")]][1:], [[False, 0], []])
     srv.shutdown()
 
+LAN = own_address()
+if LAN:
+    browser_lib.check.NO_NETWORK[:] = [flag + ", EXCLUDE " + LAN if "resolver" in flag else flag for flag in browser_lib.check.NO_NETWORK] + ["--proxy-bypass-list=" + LAN]  # the browser's only way to it
 server = Server(free_port())
 server.start()
 try:
     with browser_lib.browser(600) as b:
-        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, notes, drafts, sends, lists, approves, refuses, panels, links, guards, gallery, worker, far):
+        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, notes, drafts, sends, lists, approves, refuses, panels, links, guards, walk, ordered, tabs, crowds, lan, gallery, worker, far):
             try:
                 part(b)
             except Exception as exc:
