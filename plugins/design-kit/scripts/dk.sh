@@ -41,7 +41,7 @@
 # to the unread-pick hook and to a `dk decision` run from the root (the cwd drift is
 # finding 2 of the marketplace's rationale/2026-09-25-session-plugin-usage-review.md).
 # At the root $DK stays the relative `.cc-artifacts/design-kit`, so every path printed there
-# is root-relative; from a subdirectory it is absolute. An explicit DESIGN_KIT_DIR is used
+# is root-relative (dk share --zip's is absolute); from a subdirectory it is absolute. An explicit DESIGN_KIT_DIR is used
 # exactly as given. Either way it is EXPORTED, so the scripts dk runs (deck-build,
 # board-build, artifact-bundle, deck-export, snapshot) write where dk reads; run on their
 # own they fall back to .cc-artifacts/design-kit at the git toplevel. $DS, the design system
@@ -214,6 +214,11 @@ ensure_server() { # stdout: the URL only; preview.sh's own lines go to stderr
   echo "$u"
 }
 fail() { log fail "${2:-}"; echo "dk $verb: $1" >&2; exit "${3:-1}"; }
+build() { # build <script> [args]: sets out and rc; the script's stderr follows its exit
+  err="$(mktemp)"; trap 'rm -f "$err"' EXIT
+  set +e; out="$(python3 "$@" 2>"$err")"; rc=$?; set -e
+  cat "$err" >&2
+}
 # ds_file <name>: $DS/<name>, else the design-system/<name> plugins before 2026-11-14 wrote, while $DS lacks it.
 ds_file() { if [ ! -f "$DS/$1" ] && [ -f "design-system/$1" ]; then printf 'design-system/%s' "$1"; else printf '%s/%s' "$DS" "$1"; fi; }
 tokens_sha() { python3 -c 'import hashlib,sys
@@ -296,8 +301,7 @@ case "$verb" in
 
   board)
     spec="${1:-}"; [ -n "$spec" ] || fail "needs a spec path" "" 2; shift
-    set +e; out="$(python3 "$here/board-build.py" "$spec" "$@" 2>/tmp/dk-board.$$)"; rc=$?; set -e
-    cat /tmp/dk-board.$$ >&2; rm -f /tmp/dk-board.$$
+    build "$here/board-build.py" "$spec" "$@"
     [ "$rc" = 0 ] || fail "board-build exited $rc" "$spec" "$rc"
     board="$(echo "$out" | tail -1)"
     base="$(ensure_server)"
@@ -321,15 +325,18 @@ case "$verb" in
 
   bundle)
     input="${1:-}"; [ -n "$input" ] || fail "needs an input" "" 2; shift
-    set +e; out="$(python3 "$here/artifact-bundle.py" "$input" --out-dir "$DK/artifacts" --json "$@" 2>/tmp/dk-bundle.$$)"; rc=$?; set -e
-    cat /tmp/dk-bundle.$$ >&2; rm -f /tmp/dk-bundle.$$
+    build "$here/artifact-bundle.py" "$input" --out-dir "$DK/artifacts" --json "$@"
     [ "$rc" = 0 ] || fail "artifact-bundle exited $rc" "$input" "$rc"
     read -r art slug ver <<<"$(printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["out"], d["slug"], d["version"])')"
-    printf '%s\n' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin)
-for n in sorted(set(d.get("network",[]))): print("network:", n)
-for u in sorted(set(d.get("unresolved_links",[]))): print("unresolved-link:", u)
-for w in d.get("warnings",[]): print("WARN:", w)
-if d.get("zip"): print("zip:", d["zip"])'
+    # Values the page wrote: serve.py's rule keeps each on its own line. -I: the cwd's own html.py must not shadow a module serve.py imports.
+    printf '%s\n' "$out" | python3 -I -c 'import importlib.util, json, sys
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+def line(tag, text): print(tag, "".join(json.dumps(c)[1:-1] if m._hidden(c) else c for c in text))
+d = json.load(sys.stdin)
+for n in sorted(set(d.get("network",[]))): line("network:", n)
+for u in sorted(set(d.get("unresolved_links",[]))): line("unresolved-link:", u)
+for w in d.get("warnings",[]): line("WARN:", w)
+if d.get("zip"): print("zip:", d["zip"])' "$here/serve.py"
     base="$(ensure_server)"
     ws_set "artifacts+" "{\"slug\":\"$slug\",\"version\":$ver,\"at\":\"$(now)\",\"file\":\"$art\"}"
     echo "artifact=$art v$ver"; echo "url=$(keyed "${base}artifacts/$(basename "$art")")"; log ok "$art" ;;
@@ -337,13 +344,30 @@ if d.get("zip"): print("zip:", d["zip"])'
   share)
     page="${1:-}"; [ -n "$page" ] || fail "needs a page" "" 2; shift
     mode="${1:-}"; [ -n "$mode" ] || fail "needs --lan | --pages [--push] | --zip" "" 2; shift
+    resolve_py() { python3 -I - "$here/render-check.py" "$DK" "$page" <<'PY'
+import importlib.util, sys
+from urllib.parse import quote
+script, dk, page = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("dkcheck", script); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+def die(msg, rc):
+    print("dk share: " + msg, file=sys.stderr); sys.exit(rc)
+m.die = die
+real, rel = m.resolve(dk, page)
+print(quote(rel)); print(real)
+PY
+    }
+    # the page as given is never logged: a preview URL carries the port and the LAN key
+    set +e; found="$(resolve_py)"; rc=$?; set -e
+    [ "$rc" = 0 ] || { log fail; exit "$rc"; }
+    # the first line is the quoted path; the rest, the real path, may hold a newline
+    rel="${found%%$'\n'*}"; real="${found#*$'\n'}"
     case "$mode" in
-      --lan) base="$(ensure_server --lan)"; echo "url=$(keyed "${base}${page#"$DK"/}")"; log ok "$page" ;;
-      --pages) bash "$here/artifact-publish.sh" "$page" "$@" || fail "publish failed" "$page" 1; log ok "$page" ;;
-      --zip) z="${page%.html}.zip"; python3 -c 'import sys,zipfile,os
+      --lan) base="$(ensure_server --lan)"; echo "url=$(keyed "$base$rel")"; log ok "$real" ;;
+      --pages) bash "$here/artifact-publish.sh" "$real" "$@" || fail "publish failed" "$real" 1; log ok "$real" ;;
+      --zip) z="${real%.html}.zip"; python3 -c 'import sys,zipfile,os
 p,z=sys.argv[1:3]
 with zipfile.ZipFile(z,"w",zipfile.ZIP_DEFLATED) as zf: zf.write(p, os.path.basename(p))
-print("zip:", z)' "$page" "$z"; log ok "$z" ;;
+print("zip:", z)' "$real" "$z"; log ok "$z" ;;
       *) fail "unknown share mode $mode" "" 2 ;;
     esac ;;
 

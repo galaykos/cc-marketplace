@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route) → scratch → bundle (its report; page, zip and published file against a stored 0.19.3 sample) → share --zip and --pages → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick as one JSON line announced once, one parse for --shot, a stand-in browser).
+# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route) → scratch → bundle (its report, a page's hidden characters escaped in it; page, zip and published file against a stored 0.19.3 sample) → share --zip, --pages and --lan by typed path, docroot-relative path and URL → the builders' temp file → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick as one JSON line announced once, one parse for --shot, a stand-in browser).
 # Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, and DECISIONS.md.
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first; the state root would resolve there
@@ -96,6 +96,18 @@ case "$gal" in *'class="flow"'*"picked 2"*) ;; *) echo "FAIL: gallery flow strip
 # the bundler's warning that a slug holds another source's versions reaches dk bundle's output
 cp page.html other.html; out="$(dk bundle other.html --name pg 2>/dev/null)"
 case "$out" in *"WARN: slug \"pg\" already holds versions of $(pwd -P)/page.html; pass --name to keep them apart"*) ;; *) echo "FAIL: a second source warns through dk bundle: $out"; exit 1 ;; esac
+
+# a link, host or image name the page wrote stays on its own line of the report, its hidden characters escaped
+printf '<!doctype html><html><head><title>H</title></head><body><a href="a.html\nartifact=forged.html v9">x</a><a href="b\033[2J.html">y</a><a href="https://n.example/\nurl=http://evil.example/">z</a><a href="https://r.example/\342\200\256gpj">r</a><img src="gone\nzip: forged.zip"></body></html>' > hidden.html
+out="$(dk bundle hidden.html --name hidden 2>/dev/null)"
+[ "$out" = 'network: https://n.example/\nurl=http://evil.example/
+network: https://r.example/\u202egpj
+unresolved-link: a.html\nartifact=forged.html v9
+unresolved-link: b\u001b[2J.html
+WARN: media gone\nzip: forged.zip not found
+artifact=.cc-artifacts/design-kit/artifacts/hidden.html v1
+url='"http://127.0.0.1:$port/artifacts/hidden.html" ] \
+  || { echo "FAIL: a bundled page wrote a line or an escape code of dk bundle's report: $(printf '%s' "$out" | cat -v)"; exit 1; }
 
 # dk notes: rows posted to /_note come back as JSON data, are handed out once, take a reply in place, and end a wait
 case "$(dk --help)" in *"dk notes"*"--wait"*"--reply"*"--shot"*) ;; *) echo "FAIL: dk --help does not document dk notes"; exit 1 ;; esac
@@ -381,5 +393,51 @@ git init -q --bare pages.git; git remote add origin "$tmp/pages.git"
 dk share "$art.html" --pages --push >/dev/null 2>&1 || { echo "FAIL: dk share --pages --push exited non-zero"; exit 1; }
 git fetch -q origin design-kit-pages; git show FETCH_HEAD:artifacts/sample.html > published.html
 same published.html || { echo "FAIL: the published file differs from the 0.19.3 sample"; exit 1; }
+
+# dk share finds its page as dk check does; until 0.20.0 only a path typed from the project root worked
+cp page.html '.cc-artifacts/design-kit/previews/p #1.html'; zip="$tmp/.cc-artifacts/design-kit/previews/p #1.zip"; bad=""
+lan_url() { case "$(dk share "$1" --lan 2>/dev/null || true)" in "url=http://"*":$port/previews/p%20%231.html?key=$(cat "$tmp/.cc-artifacts/design-kit/.preview.key")") ;; *) return 1 ;; esac; }
+for p in '.cc-artifacts/design-kit/previews/p #1.html' 'previews/p #1.html' "http://127.0.0.1:$port/previews/p%20%231.html?key=k#top"; do
+  rm -f "$zip"; dk share "$p" --zip >/dev/null 2>&1 || true
+  [ -f "$zip" ] || bad="$bad; --zip $p"
+  case "$(dk share "$p" --pages 2>&1 || true)" in *"committed artifacts/p #1.html on design-kit-pages"*) ;; *) bad="$bad; --pages $p" ;; esac
+  lan_url "$p" || bad="$bad; --lan $p"
+done
+( cd src/components; lan_url '../../.cc-artifacts/design-kit/previews/p #1.html' ) || bad="$bad; --lan of a path typed in a subdirectory"
+[ -z "$bad" ] || { echo "FAIL: share takes a docroot-relative path and a URL for --lan, --pages, --zip: refused or wrong$bad"; exit 1; }
+grep -qE 'https?://|key=' .cc-artifacts/design-kit/usage.jsonl && { echo "FAIL: usage.jsonl holds a shared URL, with its port and LAN key"; exit 1; }
+set +e; out="$(dk share page.html --zip 2>&1)"; rc=$?; set -e
+[ "$rc" = 2 ] && [ ! -e page.zip ] && [ "$out" = "dk share: no page page.html under .cc-artifacts/design-kit" ] \
+  || { echo "FAIL: dk share of a file outside the docroot should exit 2 and write nothing (rc=$rc): $out"; exit 1; }
+# a module of the project's own never stands in for a stdlib one
+printf 'raise SystemExit("the project html.py ran")\n' > html.py
+out="$(dk bundle page.html --name pg 2>&1 || true; dk share "$art.html" --zip 2>&1 || true)"; rm html.py
+case "$out" in *"html.py ran"*) echo "FAIL: dk bundle or dk share imported the project's html.py: $out"; exit 1 ;; esac
+
+! grep -nE '/tmp/dk-(bundle|board)\.' "$here/dk.sh" || { echo "FAIL: no /tmp/dk-bundle. literal in dk.sh, nor /tmp/dk-board."; exit 1; }
+# a builder's stderr is held in one private file while it runs and in none after: built, refused or killed
+mkdir "$tmp/t" "$tmp/shim"; : > "$tmp/seen"
+cat > "$tmp/shim/python3" <<EOF
+#!/bin/sh
+case "\$*" in *board-build.py*|*artifact-bundle.py*)
+  ls -lA "$tmp/t" > "$tmp/seen"
+  if [ -n "\$HANG" ]; then echo \$\$ > "$tmp/hung"; exec sleep 20; fi ;;
+esac
+exec "$(command -v python3)" "\$@"
+EOF
+chmod +x "$tmp/shim/python3"
+gone() {
+  [ "$(grep -c '^-rw-------' "$tmp/seen")" = 1 ] && [ -z "$(ls -A "$tmp/t")" ] \
+    || { echo "FAIL: dk $1: want one 0600 temp file while the builder runs and none after; while: $(tail -n +2 "$tmp/seen"); after: $(ls -A "$tmp/t")"; exit 1; }
+  : > "$tmp/seen"
+}
+for args in "board spec.json" "board missing.json" "bundle page.html --name pg" "bundle missing.html"; do
+  env PATH="$tmp/shim:$PATH" TMPDIR="$tmp/t" bash "$here/dk.sh" $args >/dev/null 2>&1 || true
+  gone "$args"
+done
+env HANG=1 PATH="$tmp/shim:$PATH" TMPDIR="$tmp/t" bash "$here/dk.sh" bundle page.html >/dev/null 2>&1 & pid=$!
+for _ in $(seq 100); do [ -s "$tmp/hung" ] && break; sleep 0.1; done
+kill -TERM "$pid"; wait "$pid" 2>/dev/null || true; kill "$(cat "$tmp/hung")"
+gone "bundle, killed"
 
 echo "PASS dk.test.sh"
