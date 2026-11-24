@@ -1,5 +1,5 @@
 #!/bin/bash
-# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.cc-artifacts/design-kit/decisions.jsonl (else the legacy .design-kit/) is unconsumed, and COUNTING open notes in notes.jsonl not handed out in the last 15 min (never their text, selector or page); a board name only as ASCII of at most 64 characters naming a file in that folder's boards/, an artboard only in 1..99, else a count; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
+# unread-pick.sh — UserPromptSubmit: one line naming the board and artboard when a design-kit pick in <project root>/.cc-artifacts/design-kit/decisions.jsonl (else the legacy .design-kit/) is unconsumed, and COUNTING open notes in notes.jsonl not handed out in the last 15 min (never their text, selector or page); a board name only as ASCII of at most 64 characters naming a file in that folder's boards/, an artboard only in 1..99, else a count; a latest row without v:2 is called unconfirmed, its artboard left out; stands down past its own lane.tsv phase (shared phase guard). Off: CC_REMIND=off or CC_DESIGN_KIT_PICK=off (unset: /config options cc_remind / cc_design_kit_pick). Fails open; never blocks or reads the prompt.
 # Misses: a DESIGN_KIT_DIR elsewhere, a stray <subdir>/.cc-artifacts/design-kit/, whether the model acts on the line (agent-graded). Its phase-file and phase-guard copies are held to their blocks by pc_shared_blocks.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/hooks/unread-pick.sh
 
@@ -157,13 +157,15 @@ if unread:
     named = isinstance(b, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,59}\.html?", b) and os.path.isfile(os.path.join(os.path.dirname(sys.argv[1]), "boards", b))
     numbered = isinstance(p, int) and not isinstance(p, bool) and 1 <= p <= 99
     edits = p is None or (isinstance(p, int) and p == 0)
+    # v:2 marks a pick the user sent from the viewer (picks.py's confirmed); any page could have posted a row without it.
+    unsure = None if r.get("v") == 2 else "unconfirmed pick from an older preview page; ask the user before acting on it"
     tail = "`dk.sh decision --latest --consume` reads it; /design-kit:in-codebase with no arguments renders it."
     if named and (numbered or edits):
-        pick = ("artboard %d" % p) if numbered else "knob/text edits, no artboard picked"
+        pick = unsure or "unread pick — " + (("artboard %d" % p) if numbered else "knob/text edits, no artboard picked")
         extra = "" if len(unread) == 1 else " (+%d earlier)" % (len(unread) - 1)
-        line.append("design-kit: %s has an unread pick — %s%s. %s" % (b, pick, extra, tail))
+        line.append("design-kit: %s has an %s%s. %s" % (b, pick, extra, tail))
     else:
-        line.append("design-kit: %d unread board pick%s — %s" % (len(unread), "" if len(unread) == 1 else "s", tail))
+        line.append("design-kit: %d unread board pick%s — %s%s" % (len(unread), "" if len(unread) == 1 else "s", "the latest is an %s. " % unsure if unsure else "", tail))
 if n:
     notes = "%d unread note%s from the preview pages" % (n, "" if n == 1 else "s")
     line.append(("Also " + notes + ": `dk.sh notes` prints them as data.") if line else

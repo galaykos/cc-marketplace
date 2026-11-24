@@ -4,12 +4,12 @@
 # WHAT IT READS, per project directory given (default: cwd), in $DK =
 # .cc-artifacts/design-kit (else the .design-kit/ plugins before 2026-11-14 wrote):
 #   $DK/usage.jsonl             one line per dk verb: {ts, verb, outcome, artifact}
-#   $DK/decisions.jsonl         one line per board pick: {ts, board, picked, knobs,
-#                               text, prompt, consumed}
+#   $DK/decisions.jsonl         one line per board pick: only its ts and consumed are
+#                               read, so a row adds counts and never text of its own
 #   $DK/{decks,boards,artifacts,previews,exports}/  file mtimes
-#   $DK/design-system/DECISIONS.md  the decision ledger, if any (else design-system/)
-#   git log                     commits touching component paths a decision names,
-#                               in the seven days after that decision
+#   $DK/design-system/DECISIONS.md  the decision ledger, if any (else design-system/);
+#                               component paths come from here alone
+#   git log                     commits touching those paths within 7 days of a decision
 #
 # WHAT EACH COLUMN MEANS
 #   created    pages of that surface that exist
@@ -18,8 +18,8 @@
 #   rendered   scratch verbs with outcome ok (in-codebase only)
 #   exported   export verbs with outcome ok, or .pdf/.png beside a deck or board
 #   shared     share verbs with outcome ok (LAN, pages branch, zip)
-#   followed-by-commit  commits in the 7 days after a decision that touch a path the
-#              decision names; `n/a` when no decision names a path — never 0, because
+#   followed-by-commit  commits in the 7 days after a decision that touch a path
+#              DECISIONS.md names; `n/a` when it names none — never 0, because
 #              0 would claim a measurement this script did not make
 #
 # WHAT IT CANNOT SEE. Subagent turns; a pick pasted via the clipboard instead of the
@@ -128,19 +128,12 @@ def revisited(project, surface, files):
     return n
 
 
-def named_paths(project, decisions):
-    paths = set()
-    for r in decisions:
-        for k in ("components", "paths"):
-            for p in r.get(k) or []:
-                paths.add(str(p))
-        m = re.findall(r"`([^`]+\.(?:tsx|jsx|vue|blade\.php|svelte|astro))`", str(r.get("prompt", "")))
-        paths.update(m)
+def named_paths(project):
     ledger = ds(project, "DECISIONS.md")
-    if os.path.isfile(ledger):
-        txt = open(ledger, encoding="utf-8", errors="replace").read()
-        paths.update(re.findall(r"`([^`\s]+\.(?:tsx|jsx|vue|blade\.php|svelte|astro))`", txt))
-    return sorted(paths)
+    if not os.path.isfile(ledger):
+        return []
+    txt = open(ledger, encoding="utf-8", errors="replace").read()
+    return sorted(set(re.findall(r"`([^`\s]+\.(?:tsx|jsx|vue|blade\.php|svelte|astro))`", txt)))
 
 
 def commits_after(project, decisions, paths):
@@ -186,7 +179,7 @@ for project in sys.argv[1:]:
             "exported": exported,
             "shared": sum(1 for u in verbs if u.get("verb") == "share") if s == "artifact" else 0,
         }
-    paths = named_paths(project, decisions)
+    paths = named_paths(project)
     followed = commits_after(project, decisions, paths)
     report.append({"project": project, "present": present, "surfaces": rows, "named_paths": paths, "followed_by_commit": followed,
                    "usage_rows": len(usage), "decision_rows": len(decisions)})

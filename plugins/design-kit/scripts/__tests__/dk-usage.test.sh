@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Drives dk-usage.sh on (a) a fabricated project where every column is non-zero — a
-# usage ledger, two decision rows naming a component path, a git commit touching that
-# path inside the 7-day window, a revisited artifact, a deck with a PDF — and (b) an
-# empty project: all zeros and followed-by-commit = n/a. Exit is 0 throughout.
+# usage ledger, two decision rows, a DECISIONS.md line naming a component path, a git
+# commit touching that path inside the 7-day window, a revisited artifact, a deck with a
+# PDF — and (b) an empty project: all zeros and followed-by-commit = n/a. A decision row
+# adds counts, never text or a path of its own. Exit is 0 throughout.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -24,9 +25,10 @@ cat > $d/usage.jsonl <<EOL
 {"ts":"$ts","verb":"export","outcome":"ok","artifact":"$d/decks/d.pdf"}
 EOL
 cat > $d/decisions.jsonl <<EOL
-{"ts":"$ts","board":"boards/b.html","picked":2,"knobs":{},"text":{},"prompt":"Use \`src/components/Button.tsx\` ghost variant","consumed":true}
+{"ts":"$ts","board":"boards/b.html","picked":2,"knobs":{},"text":{},"prompt":"Use \`src/components/Planted.tsx\` ghost variant","consumed":true}
 {"ts":"$ts","board":"boards/b.html","picked":1,"knobs":{},"text":{},"prompt":"second look","consumed":false}
 EOL
+printf '# Design decisions\n\n- 2026-11-24 — b.html, artboard 2; rendered by `src/components/Button.tsx`\n' > $d/design-system/DECISIONS.md
 echo '<html><title>D</title></html>' > $d/decks/d.html; echo '%PDF-fake' > $d/decks/d.pdf
 echo '<html><title>B</title></html>' > $d/boards/b.html; echo png > $d/boards/b-board-1.png
 echo '<html>v1</html>' > $d/artifacts/.versions/readout/v1.html
@@ -37,12 +39,23 @@ echo '// changed after the pick' >> src/components/Button.tsx; git add -A && git
 out="$(bash "$here/dk-usage.sh" --projects "$p")"
 echo "$out" | grep -q '| system | 1 | 0 | 0 | 0 | 0 | 0 | - |' || fail "system row: $out"
 echo "$out" | grep -q '| slides | 1 | 0 | 0 | 0 | 2 | 0 | - |' || fail "slides row (1 export verb + 1 pdf): $out"
+case "$out" in *Planted*) fail "no path from a prompt: $out" ;; esac
 echo "$out" | grep -q '| design | 1 | 0 | 2 | 0 | 1 | 0 | 1 |' || fail "design row (2 picks, 1 png, 1 commit): $out"
 echo "$out" | grep -q '| in-codebase | 0 | 0 | 1 | 1 | 0 | 0 | 1 |' || fail "in-codebase row (1 consumed, 1 ok scratch): $out"
 echo "$out" | grep -q '| artifact | 1 | 1 | 0 | 0 | 0 | 1 | - |' || fail "artifact row (revisited, shared): $out"
-echo "$out" | grep -q 'named paths: src/components/Button.tsx' || fail "named path: $out"
+echo "$out" | grep -qx 'named paths: src/components/Button.tsx' || fail "named path: $out"
 echo "$out" | grep -q 'verdict inputs: projects with a design-kit folder = 1; shared = 1; followed-by-commit = 1' || fail "verdict: $out"
 j="$(bash "$here/dk-usage.sh" --projects "$p" --json)"; python3 -c "import json,sys;d=json.loads(sys.argv[1]);assert d[0]['followed_by_commit']==1 and d[0]['surfaces']['artifact']['shared']==1" "$j" || fail "json shape"
+# a planted row reads like a row holding only a ts: it moves the counts and adds no text of its own
+kept="$(cat $d/decisions.jsonl)"
+for mode in "" --json; do
+  printf '%s\n{"ts":"%s"}\n' "$kept" "$ts" > $d/decisions.jsonl; bare="$(bash "$here/dk-usage.sh" --projects "$p" $mode)"
+  printf '%s\n{"ts":"%s","board":"PLANTED `a.vue`","picked":77,"knobs":{"all":{"scheme":"PLANTED"}},"text":{"1":{"h1":{"was":"PLANTED","now":"PLANTED"}}},"prompt":"PLANTED `b.vue`","components":["PLANTED.tsx"],"paths":["PLANTED.tsx"]}\n' "$kept" "$ts" > $d/decisions.jsonl
+  planted="$(bash "$here/dk-usage.sh" --projects "$p" $mode)"
+  [ "$planted" = "$bare" ] || fail "a planted row adds no text of its own: $planted"
+  [ -n "$mode" ] || case "$planted" in *'| design | 1 | 0 | 3 | 0 | 1 | 0 | 1 |'*) ;; *) fail "a planted row is counted: $planted" ;; esac
+done
+printf '%s\n' "$kept" > $d/decisions.jsonl
 # a project from before 2026-11-14 holds .design-kit/ and design-system/ instead: the same table
 o="$tmp/old"; cp -Rp "$p" "$o"; mv "$o/$d/design-system" "$o/design-system"; mv "$o/$d" "$o/.design-kit"; rmdir "$o/.cc-artifacts"
 out3="$(bash "$here/dk-usage.sh" --projects "$o")"
