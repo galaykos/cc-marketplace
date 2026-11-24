@@ -1,15 +1,15 @@
 /* viewer.css — serve.py's /_viewer.css: the bar, strips and frame area of the viewer, in the reader's light or dark scheme.
-   Misses: no rules for the drawer, a strip's buttons or the stopped area.
+   Misses: no rules for the drawer.
    Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.css */
 :root {
   color-scheme: light dark;
   --ink: #18181b; --soft: #52525b; --paper: #fff; --surface: #fafafa; --line: #e4e4e7; --edge: #8a8a94; --accent: #2563eb;
-  --ok-ink: #166534; --ok: #dcfce7; --ok-edge: #86efac; --warn-ink: #854d0e; --warn: #fef9c3; --warn-edge: #fde047;
+  --ok-ink: #166534; --ok: #dcfce7; --ok-edge: #86efac; --warn-ink: #854d0e; --warn: #fef9c3; --warn-edge: #fde047; --err: #dc2626;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --ink: #f4f4f5; --soft: #a1a1aa; --paper: #1b1b1f; --surface: #26262b; --line: #3a3a42; --edge: #7a7a84; --accent: #60a5fa;
-    --ok-ink: #86efac; --ok: #0f2e1c; --ok-edge: #1f6b3f; --warn-ink: #fde047; --warn: #2e2410; --warn-edge: #7a5c14;
+    --ok-ink: #86efac; --ok: #0f2e1c; --ok-edge: #1f6b3f; --warn-ink: #fde047; --warn: #2e2410; --warn-edge: #7a5c14; --err: #f87171;
   }
 }
 * { box-sizing: border-box; }
@@ -17,20 +17,27 @@
 body { display: flex; flex-direction: column; height: 100vh; height: 100dvh; margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
 #bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
 #bar > * { flex: none; }
-#bar a, #bar button { padding: 4px 10px; border: 1px solid var(--edge); border-radius: 8px; font: inherit; font-weight: 600; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; }
-#bar a:hover, #bar button:hover { border-color: var(--accent); }
-:is(a, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a, button { padding: 4px 10px; border: 1px solid var(--edge); border-radius: 8px; font: inherit; font-weight: 600; color: var(--ink); background: var(--paper); text-decoration: none; cursor: pointer; }
+:is(a, button):hover { border-color: var(--accent); }
+.primary { color: var(--paper); background: var(--accent); border-color: var(--accent); }
+:is(a, button, p):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #bar #title { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #network:not([hidden]), #network[hidden] + #notes { margin-inline-start: auto; }
 #chip { padding: 1px 8px; border: 1px solid var(--edge); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--soft); }
 #chip.ok { color: var(--ok-ink); background: var(--ok); border-color: var(--ok-edge); }
 #chip.warn { color: var(--warn-ink); background: var(--warn); border-color: var(--warn-edge); }
 #chip:empty { display: none; }
-#strips > * { padding: 8px 12px; border-bottom: 1px solid var(--line); border-inline-start: 3px solid var(--accent); background: var(--surface); overflow-wrap: anywhere; }
+#strips > *, .stopped { padding: 8px 12px; border-inline-start: 3px solid var(--accent); background: var(--surface); overflow-wrap: anywhere; }
+#strips > * { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); }
+#strips p { flex: 1; margin: 0; }
+.stopped { margin: 12px; border-inline-start-color: var(--err); }
+.stopped p { width: fit-content; margin: 0 0 8px; }
+.stopped div { display: flex; flex-wrap: wrap; gap: 8px; }
 #frame { flex: 1; min-height: 0; }
 /* Canvas, as for a page opened by itself: a frame is see-through where its page paints nothing. */
 #frame iframe { display: block; width: 100%; height: 100%; border: 0; background: Canvas; }
 @media (max-width: 600px) {
   #bar #title { flex: 1; }
   #chip { display: none; }
+  #strips > * { flex-direction: column; align-items: flex-start; }
 }

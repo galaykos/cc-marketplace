@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, reload (at a save of its own page, its last messages in first), hash and Back, the deleted and server-lost strips, a restart, also with a draft, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), a real second device, what a screen reader says, browsers outside Chromium.
+# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the LAN viewer and the bounce of a top-level framed page; browser_lib.py's exit 4 where no browser starts.
+# Misses: a hostile page (attack.test.sh), a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -73,7 +73,21 @@ page("decks/loads.html", head='<script src="s.js"></script>', body='<img src="..
 put("decks/s.js", "window.script = 1")
 page("decks/sized.html", head="<script>window.sized = [innerWidth, innerHeight]</script>")
 page("motion/top/index.html", head="<script>if (parent === window) new Image().src = 'ran.png'</script>")
-page("artifacts/nest.html", body="<iframe srcdoc=\"<script>onmessage = () => parent.parent.postMessage({ dk: 1, t: 'ready', hash: '#' }, '*')</script>\"></iframe>")
+page("artifacts/bridge.html", head="<script>window.printed = 0; addEventListener('beforeprint', () => printed++)</script>", body="<iframe srcdoc=\"<script>onmessage = (e) => parent.parent.postMessage(e.data, '*')</script>\"></iframe>")
+page("artifacts/copies.html", body="""<button id="clip" onclick="navigator.clipboard.writeText('by clipboard').then(() => { window.said = 'copied'; }, (e) => { window.said = e.name; })">clip</button>
+<button id="exec" onclick="const t = document.createElement('textarea'); t.value = 'by execCommand'; document.body.append(t); t.select(); window.said = document.execCommand('copy'); t.remove()">exec</button>
+<a id="data" download="data.txt" href="data:text/plain,x">data</a> <a id="blob" download="blob.txt">blob</a><script>document.querySelector('#blob').href = URL.createObjectURL(new Blob(['y']))</script>""")
+
+def built(script, name, spec):
+    """A page one of the kit's builders makes."""
+    src = os.path.join(os.path.dirname(ROOT), os.path.basename(name) + ".spec." + ("json" if spec[0] == "{" else "md"))
+    with open(src, "w") as fh:
+        fh.write(spec)
+    subprocess.run([sys.executable, os.path.join(here, script), src, "--out", os.path.join(ROOT, name)], cwd=os.path.dirname(ROOT), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+DECK, PICKS = "decks/slides.html", "boards/my, picks.html"
+built("deck-build.py", DECK, "# Review\n\n## One\n\n- a\n\n## Two\n\n- b\n\n## Three\n\n- c\n")
+built("board-build.py", PICKS, json.dumps({"title": "Checkout", "brief": "errors", "device": "phone", "boards": [{"title": t, "tradeoff": "wide", "body": "<h1>%s</h1>" % t} for t in ("One", "Two")]}))
 
 SERVE = "import importlib.util, sys; s = importlib.util.spec_from_file_location('dkserve', sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); m.SERVER_VERSION += int(sys.argv[2]); sys.exit(m.main(sys.argv[3:]))"
 
@@ -88,8 +102,8 @@ class Server:
     def __init__(self, port):
         self.port, self.url, self.proc = port, "http://127.0.0.1:%d" % port, None
 
-    def start(self, newer=0):
-        self.proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(here, "serve.py"), str(newer), "--docroot", ROOT, "--port", str(self.port)],
+    def start(self, newer=0, root=ROOT):
+        self.proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(here, "serve.py"), str(newer), "--docroot", root, "--port", str(self.port)],
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=dict(os.environ, DESIGN_KIT_IDLE_MINUTES="0"))
         for _ in range(100):
             try:
@@ -208,6 +222,24 @@ def bar(b):
         eq("at %d px the frame fills the window under the bar, the title is cut and nothing scrolls sideways" % w, lambda: tab.evaluate("(() => { const bar = document.querySelector('#bar').getBoundingClientRect(), f = document.querySelector('iframe').getBoundingClientRect(), t = document.querySelector('#bar h1'), n = document.querySelector('#notes').getBoundingClientRect(); return [bar.top, f.top === bar.bottom, f.bottom, f.left, f.width, document.documentElement.scrollWidth, getComputedStyle(t).textOverflow, t.scrollWidth > t.clientWidth || innerWidth > 1000, n.right <= innerWidth, %s]; })()" % (SHOWN % "#chip")),
            [0, True, 800, 0, w, w, "ellipsis", True, True, w == 1280])
 
+# before the viewer's own listener, and a window's run in the order they came; deaf: the viewer hears no answer
+HEARD = "window.heard = []; addEventListener('message', (e) => { const { t, n } = e.data, forged = n === 1 || n === 1e9; heard.push(e.source && (forged ? 'forged' : t)); if (window.mute || window.deaf && t === 'pong' && !forged) e.stopImmediatePropagation(); });"
+QUICK = "{ const real = setTimeout; window.setTimeout = (fn, ms) => real(fn, { 2000: 200, 8000: 1000 }[ms] || ms); }"
+
+def quick(b, tab):
+    """The viewer in tab loaded again, with its pings 10 and its patience 8 times as short."""
+    again(b, tab, HEARD + QUICK)
+    tab.wait("heard.includes('ready')", 10)
+    return tab
+
+def again(b, tab, source=""):
+    """The tab, loaded again, and from now on source before any script of its document."""
+    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": source}, tab.sid)
+    tab.evaluate("window.was = 1")
+    b.chrome.call("Page.reload", {}, tab.sid)
+    tab.wait("!window.was && !!document.querySelector('iframe')", 10)
+    return tab
+
 MARK = "window.mark = document.querySelector('iframe'); 1"
 NEW = "document.querySelector('iframe') !== window.mark"
 
@@ -232,62 +264,297 @@ def reload(b):
     eq("a save reloads the frame alone, as a new frame, with no new history entry, and renames the bar", lambda: (tab.wait("document.querySelector('iframe') !== window.mark", 8), tab.wait(FOCUS + " === 'iframe'"), tab.frame().evaluate(H1), tab.evaluate("[!!window.mark, history.length - %d, document.title, document.querySelector('#bar h1').textContent]" % before))[1:],
        (True, "saved", [True, 0, "saved", "saved"]))
     tab.evaluate("document.querySelector('#notes').focus(); 1")
-    eq("a reload leaves the focus on a viewer control", lambda: (reframed(tab, lambda: page("decks/fixture.html", title="again")).evaluate(H1), time.sleep(0.2), tab.evaluate(FOCUS)), ("again", None, "notes"))
-    say = "postMessage(%s, '*'); 1"
-    ready = "{ dk: 1, t: 'ready', hash: '#' }"
-    tab.evaluate("document.activeElement.blur(); 1")
-    for mine in (ready, "{ dk: 1, t: 'hash', hash: '#/9' }"):
-        tab.evaluate(say % mine)
-    for shape in ("{ dk: 2, t: 'ready', hash: '#' }", "{ dk: 1, t: 'ready' }", "{ dk: 1, t: 'ready', hash: 7 }", "{ dk: 1, t: 'ready', hash: '#<' }", "{ dk: 1, t: ['ready'], hash: '#' }", "{ dk: 1, t: 'toString', hash: '#' }", "{ dk: 1, t: 'open', hash: '#' }", "null", "'ready'", "{ dk: 1, t: 'hash' }", "{ dk: 1, t: 'hash', hash: '#<' }", "{ dk: 1, t: 'hash', hash: '/decks/old.htm' }"):
-        tab.frame().evaluate("parent." + say % shape)
-    eq("a message from another window, of another shape or an unknown type changes nothing", lambda: (time.sleep(0.2), tab.evaluate("[%s, location.pathname + location.hash]" % FOCUS))[1], ["body", "/decks/fixture.html"])
-    tab.frame().evaluate("parent." + say % ready)
-    eq("the frame's own ready message focuses it", lambda: tab.wait(FOCUS + " === 'iframe'"), True)
-    tab = visit(b, server.url + "/artifacts/nest.html")
+    on_bar = (reframed(tab, lambda: page("decks/fixture.html", title="again")), time.sleep(0.2), tab.evaluate(FOCUS))[2]
+    name = "decks/hung.html"
+    page(name, title="first")
+    tab = quick(b, visit(b, server.url + "/" + name))
+    tab.evaluate("window.said = 0; new MutationObserver((all) => { for (const one of all) window.said += one.addedNodes.length; }).observe(document.querySelector('#strips'), { childList: true }); 1")
+    eq("a frame that answers shows no strip", lambda: (time.sleep(1.4), tab.evaluate("window.said"))[1], 0)
+    tab.evaluate("window.deaf = true")
+    tab.wait(STRIPS + ".length", 3)
+    tab.evaluate("document.querySelector('#strips button')?.focus(); window.was = document.querySelector('#strips').firstChild; 1")
+    said = "[document.activeElement.textContent, window.was?.isConnected]"
+    eq("reload keeps focus on a viewer control", lambda: [on_bar, reframed(tab, lambda: page(name, title="second")).evaluate(H1), (time.sleep(0.3), tab.evaluate(said))[1]], ["notes", "second", ["Reload page", True]])
+    eq("Reload page frames the page again and keeps the focus until it answers", lambda: [reframed(tab, lambda: tab.key("Enter")).evaluate(H1), (time.sleep(0.3), tab.evaluate(said))[1]], ["second", ["Reload page", True]])
+    tab.evaluate("window.deaf = false")
+    eq("an answer takes the strip away and gives the page its focus", lambda: (tab.wait("!%s.length" % STRIPS, 3), tab.evaluate(FOCUS)), (True, "iframe"))
+    tab.evaluate("heard.length = 0")
+    eq("one ping every 2 s, 10 times as fast here, however often the frame was replaced", lambda: (time.sleep(1), 3 <= tab.evaluate("heard.filter((t) => t === 'pong').length") <= 6)[1], True)
+    tab.evaluate("window.deaf = true; Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); 1")
+    reframed(tab, lambda: page(name, title="third"))
+    tab.evaluate("heard.length = 0")
+    eq("a hidden viewer pings nothing and shows no strip", lambda: (time.sleep(1.4), tab.evaluate("[heard.filter((t) => t === 'pong').length < 2, %s]" % STRIPS))[1], [True, []])
+    tab.evaluate("delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); 1")
+    eq("and pings again once it is visible", lambda: (tab.wait(STRIPS + ".length", 3), tab.evaluate("heard.includes('pong')")), (1, True))
+    tab.frame().evaluate("location.href = 'https://out.example/'; 1")
+    eq("a frame that left is not one that does not answer", lambda: (tab.wait("!document.querySelector('iframe')"), time.sleep(1.4), tab.evaluate(STRIPS))[2], [])
+    again(b, tab, "window.mute = true")
+    eq("a frame that never starts is", lambda: tab.wait(STRIPS + ".length", 3), 1)
+
+def entries(tab, part=""):
+    return {k: v for k, v in tab.evaluate("Object.entries(localStorage)") if k.startswith("dk-store:") and part in k}
+
+WHOLE = "JSON.stringify([location.href, document.title, document.body.innerHTML, Object.entries(localStorage).sort(), %s])" % FOCUS
+POST = "postMessage(%s, '*'); "
+KINDLY = ("{ dk: 1, t: 'ready', hash: '#' }", "{ dk: 1, t: 'hash', hash: '#/9' }", "{ dk: 1, t: 'store', items: [['forged', '1']] }", "{ dk: 1, t: 'key', name: 'print' }")
+WRONG = (
+    "null", "'ready'", "{ dk: 2, t: 'ready', hash: '#' }", "{ dk: 1, t: ['ready'], hash: '#' }", "{ dk: 1, t: 'toString', hash: '#' }", "{ dk: 1, t: 'open', hash: '#' }",
+    "{ dk: 1, t: 'ready' }", "{ dk: 1, t: 'ready', hash: 7 }", "{ dk: 1, t: 'ready', hash: '#<' }",
+    "{ dk: 1, t: 'hash' }", "{ dk: 1, t: 'hash', hash: '#<' }", "{ dk: 1, t: 'hash', hash: '/decks/old.htm' }", "{ dk: 1, t: 'hash', hash: '#' + 'x'.repeat(129) }", "{ dk: 1, t: 'hash', hash: ['#/9'] }",
+    "{ dk: 1, t: 'store' }", "{ dk: 1, t: 'store', items: 'k' }", "{ dk: 1, t: 'store', items: [['k', 1]] }", "{ dk: 1, t: 'store', items: [['k']] }", "{ dk: 1, t: 'store', items: [['k', '1', '2']] }", "{ dk: 1, t: 'store', items: [['j', '1'], [1, '1']] }",
+    "{ dk: 1, t: 'store', items: [['k'.repeat(257), '1']] }", "{ dk: 1, t: 'store', items: [['k', '1'], , ['j', '1']] }", "{ dk: 1, t: 'store', items: new Array(2 ** 32 - 1) }", "{ dk: 1, t: 'store', items: { 0: ['k', '1'], length: 1 } }", "{ dk: 1, t: 'store', clear: 1 }", "{ dk: 1, t: 'store', clear: true, items: [['k', '1']] }",
+    "{ dk: 1, t: 'key' }", "{ dk: 1, t: 'key', name: 'Print' }", "{ dk: 1, t: 'key', name: ['print'] }", "{ dk: 1, t: 'key', name: 'constructor' }",
+    "{ dk: 1, t: 'pong', n: 0 }", "{ dk: 1, t: 'pong', n: 1e9 }", "{ dk: 1, t: 'pong', n: '1' }",
+    "{ dk: 1, t: 'anchor', anchor: { selector: 'h1', tag: 'h1', text: 'x', rect: { x: 0, y: 0, w: 1, h: 1 } }, context: { viewport: { w: 1, h: 1 }, theme: '', console: [] } }", "{ dk: 1, t: 'context', context: { viewport: { w: 1, h: 1 }, theme: '', console: [] } }",
+)
+
+def bridge(b):
+    tab = visit(b, server.url + "/artifacts/bridge.html")
     f = tab.frame()
     tab.wait(FOCUS + " === 'iframe'")
+    f.evaluate("parent." + POST % "{ dk: 1, t: 'store', items: [['mine', '1']] }" + "1")
+    tab.wait("Object.keys(localStorage).some((k) => k.endsWith(':mine'))", 2)
     tab.evaluate("document.activeElement.blur(); 1")
-    f.evaluate("document.querySelector('iframe').contentWindow.postMessage(1, '*'); 1")
-    eq("a message from a frame inside the page changes nothing", lambda: (time.sleep(0.2), tab.evaluate(FOCUS))[1], "body")
+    before = tab.evaluate(WHOLE)
+    tab.evaluate("".join(POST % one for one in KINDLY + ("{ dk: 1, t: 'store', clear: true }",)) + "1")
+    eq("a message from another window changes nothing", lambda: (time.sleep(0.2), tab.evaluate(WHOLE), f.evaluate("printed"))[1:], (before, 0))
+    f.evaluate("".join("document.querySelector('iframe').contentWindow." + POST % one for one in KINDLY + ("{ dk: 1, t: 'store', clear: true }",)) + "1")
+    eq("a message from a frame inside the page changes nothing", lambda: (time.sleep(0.2), tab.evaluate(WHOLE), f.evaluate("printed"))[1:], (before, 0))
+    f.evaluate("".join("parent." + POST % one for one in WRONG) + "1")
+    eq("a wrong shape, an unknown type and an anchor with notes off change nothing", lambda: (time.sleep(0.2), tab.evaluate(WHOLE), f.evaluate("printed"))[1:], (before, 0))
+    f.evaluate("".join("parent." + POST % one for one in KINDLY) + "1")
+    eq("the page's own of the same four types are acted on", lambda: (f.wait("printed"), tab.wait(FOCUS + " === 'iframe'"), tab.evaluate("location.hash"), sorted(k.split(":")[-1] for k in entries(tab, "bridge.html")))[1:], (True, "#/9", ["forged", "mine"]))
+    tab.evaluate("window.moves = []; history.replaceState = function (...args) { moves.push(performance.now()); History.prototype.replaceState.apply(this, args); }; 1")
+    f.evaluate("let n = 0; const flood = setInterval(() => { for (let i = 0; i < 10; i++, n++) { parent." + POST % "{ dk: 1, t: 'hash', hash: '#/' + n }" + "if (n % 100 === 0) parent." + POST % "{ dk: 1, t: 'store', items: [['n' + n, 'x']] }" + "} if (n === 500) clearInterval(flood); }, 12); 1")
+    tab.wait("Object.keys(localStorage).some((k) => k.endsWith(':n400'))", 5)
+    time.sleep(0.3)
+    eq("of 500 hash messages in a second at most 50 are acted on, while store messages still land", lambda: tab.evaluate("[Math.max(...moves.map((t) => moves.filter((u) => u >= t && u < t + 990).length)) <= 50, moves.length >= 40, Object.keys(localStorage).filter((k) => /:n\\d+$/.test(k)).length]"), [True, True, 5])
 
 def place(b):
-    deck = "/decks/placed.html"
-    page(deck[1:])
-    for what, happen in (("a save", lambda: page(deck[1:], title="saved")), ("a server restart", lambda: (server.stop(), server.start()))):
+    deck = "/" + DECK
+    with open(os.path.join(ROOT, DECK), encoding="utf-8") as fh:
+        slides = fh.read()
+    isolated = "[location.hash, [...document.querySelectorAll('.dk-board')].findIndex((one) => one.classList.contains('isolated')) + 1]"
+    slide = "[location.hash, [...document.querySelectorAll('.slide')].findIndex((one) => one.classList.contains('current')) + 1]"
+    eq("a board opens at #board=2", lambda: visit(b, server.url + "/" + quote(PICKS) + "#board=2").frame().evaluate(isolated), ["#board=2", 2])
+    for what, happen in (("moving slides", None), ("a save", lambda: put(DECK, slides)), ("a server restart", lambda: (server.stop(), server.start()))):
         tab = visit(b, server.url + "/artifacts/fixture.html")
         tab.frame()
         b.chrome.call("Page.navigate", {"url": server.url + deck + "#/2"}, tab.sid)
         tab.wait("location.hash")
-        moving = tab.frame()
-        eq("the frame opens at the address's hash", lambda: moving.evaluate("location.hash"), "#/2")
-        moving.evaluate("history.replaceState(null, '', '#/3'); 1")
-        eq("a move in the frame moves the address", lambda: (tab.wait("location.hash === '#/3'"), tab.evaluate("location.pathname + location.hash"))[1], deck + "#/3")
-        eq("after %s at #/3 the frame stays at #/3" % what, lambda: (reframed(tab, happen).evaluate("location.hash"), tab.evaluate("[location.pathname + location.hash, !!window.mark]")), ("#/3", [deck + "#/3", True]))
+        f = tab.frame()
+        eq("a deck opens at #/2", lambda: f.evaluate(slide), ["#/2", 2])
+        tab.wait(FOCUS + " === 'iframe'")
+        tab.key("ArrowRight")
+        eq("an arrow key right after load moves the deck, and the address with it", lambda: (tab.wait("location.hash === '#/3'"), f.evaluate(slide), tab.evaluate("location.pathname + location.hash"))[1:], (["#/3", 3], deck + "#/3"))
+        if happen:
+            eq("after %s at #/3 the frame stays at #/3" % what, lambda: (reframed(tab, happen).evaluate(slide), tab.evaluate("[location.pathname + location.hash, !!window.mark]")), (["#/3", 3], [deck + "#/3", True]))
         tab.evaluate("history.back(); 1")
         eq("Back after %s goes to the page before" % what, lambda: (tab.wait("location.pathname !== '%s'" % deck), tab.evaluate("location.pathname + location.hash"), tab.frame().evaluate(H1))[1:], ("/artifacts/fixture.html", "fixture"))
+    tab = visit(b, server.url + "/_gallery")
+    asked_for = "?still=1&static=1&key=k&capture=a%20b&st%61tic=1&x"
+    tab.evaluate("location.href = '/decks/fixture.html%s#/2'; 1" % asked_for)  # from the gallery, as ?static=1 typed opens the raw page
+    tab.wait("document.body.dataset.page")
+    f = tab.frame()
+    eq("?still=1 reaches the frame and static does not", lambda: f.evaluate("location.search + location.hash"), "?still=1&capture=a%20b&x#/2")
+    f.evaluate("location.hash = '#/4'; 1")
+    eq("the address keeps its own query as the frame moves", lambda: (tab.wait("location.hash === '#/4'"), tab.evaluate("location.search + location.hash"))[1], asked_for + "#/4")
+    f.evaluate("document.body.append(Object.assign(document.createElement('a'), { href: '#/5', id: 'inside', textContent: 'inside' })); 1")
+    tab.evaluate(MARK)
+    tab.click(*f.at("#inside"))
+    tab.wait("location.hash === '#/5'")
+    tab.evaluate("history.back(); 1")
+    eq("Back after a link inside the page steps back in it", lambda: (tab.wait("location.hash === '#/4'"), time.sleep(0.5), f.evaluate("location.hash"), tab.evaluate(NEW)), (True, None, "#/4", False))
+    eq("a hash typed into the address moves the frame", lambda: reframed(tab, lambda: tab.evaluate("location.hash = '#/1'; 1")).evaluate("location.hash"), "#/1")
+
+def copies(b):
+    tab = visit(b, server.url + "/artifacts/copies.html")
+    f = tab.frame()
+    del b.chrome.downloads[:]
+    tab.evaluate("document.body.append(document.createElement('textarea')); document.querySelector('textarea').style.cssText = 'position: fixed; right: 0; bottom: 0'; 1")
+    def copied(how):
+        f.evaluate("window.said = null")
+        tab.click(*f.at(how))
+        said = f.wait("window.said")
+        tab.evaluate("document.querySelector('textarea').value = ''; document.querySelector('textarea').focus(); 1")
+        b.chrome.call("Input.dispatchKeyEvent", {"type": "rawKeyDown", "commands": ["paste"]}, tab.sid)
+        tab.wait("document.querySelector('textarea').value", 2)
+        return [said, tab.evaluate("document.querySelector('textarea').value")]
+    eq("copy by clipboard works in the frame", lambda: copied("#clip"), ["copied", "by clipboard"])
+    eq("copy by execCommand works in the frame", lambda: copied("#exec"), [True, "by execCommand"])
+    for one in ("#data", "#blob"):
+        tab.click(*f.at(one))
+    eq("a download link works in the frame", lambda: (tab.evaluate("new Promise((r) => setTimeout(r, 300))"), sorted(b.chrome.downloads))[1], ["blob.txt", "data.txt"])
+
+def prints(b):
+    said = []
+    for at, key in (("iframe", "p"), ("iframe", "Control+p"), ("#notes", "Control+p"), ("#notes", "Meta+p"), ("#notes", "p"), ("#notes", "Control+b"), ("#notes", "Control+Shift+p")):  # headless Chrome prints once a document
+        tab = visit(b, server.url + "/" + DECK)
+        f = tab.frame()
+        f.evaluate("window.printed = 0; addEventListener('beforeprint', () => printed++); 1")
+        tab.wait(FOCUS + " === 'iframe'")
+        tab.evaluate("document.querySelector('%s').focus(); 1" % at)
+        tab.key(key)
+        time.sleep(0.3)
+        said.append(f.evaluate("printed"))
+    eq("P and Ctrl+P fire beforeprint in the frame, Ctrl+P and Cmd+P on a viewer control too, no other key there does", said, [1, 1, 1, 1, 0, 0, 0])
+
+STOPPED = [["p", "Page stopped: it tried to open another site."], ["button", "Reload page"], ["a", "Back to gallery"]]
+AREA = "[...document.querySelectorAll('#frame *')].filter((e) => !e.children.length).map((e) => [e.localName, e.textContent])"
+BAR = "[...document.querySelectorAll('#bar *')].filter((e) => !e.children.length && e.checkVisibility()).map((e) => e.textContent)"
+
+def stops(b):
+    tab = visit(b, server.url + "/artifacts/fixture.html")
+    tab.wait("document.querySelector('#chip').textContent")
+    bar = tab.evaluate(BAR)
+    for how in ("location.href = 'https://out.example/'", "location.replace('/_gallery')"):
+        tab.wait(FOCUS + " === 'iframe'")
+        tab.frame().evaluate(how + "; 1")
+        eq("a frame that navigates away shows the stopped area", lambda: (tab.wait("!document.querySelector('iframe')"), tab.evaluate("[%s, %s, %s]" % (AREA, STRIPS, BAR)))[1], [STOPPED, [], bar])
+        eq("the stopped area is read out where the page had the focus", lambda: tab.evaluate("document.activeElement.textContent"), STOPPED[0][1])
+        eq("Reload page in the stopped area brings the page back", lambda: (tab.click(*tab.at("#frame button")), tab.frame().evaluate(H1), tab.wait(FOCUS + " === 'iframe'"))[1:], ("fixture", True))
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    tab.frame().evaluate("location.href = 'https://out.example/'; 1")
+    tab.wait("!document.querySelector('iframe')")
+    eq("a viewer control keeps the focus: the area is announced, and nothing there happens by itself", lambda: (time.sleep(2.2), tab.evaluate("[%s, %s, %s, document.querySelector('#frame [role=alert]').textContent]" % (AREA, STRIPS, FOCUS)))[1], [STOPPED, [], "notes", "".join(text for _, text in STOPPED)])
+    eq("and the viewer threw nothing", lambda: [e["params"] for e in b.chrome.events if e.get("sessionId") == tab.sid and e["method"] == "Runtime.exceptionThrown"], [])
+    eq("Back to gallery opens the gallery", lambda: (tab.click(*tab.at("#frame a")), tab.wait("location.pathname === '/_gallery'"), tab.evaluate("document.title"))[2], "design-kit gallery")
+
+def hangs(b):
+    page("artifacts/busy.html", title="busy", body="<script>const from = Date.now(); while (Date.now() - from < 9000);</script>")
+    tab = visit(b, server.url + "/artifacts/fixture.html")
+    b.chrome.call("Page.navigate", {"url": server.url + "/artifacts/busy.html"}, tab.sid)
+    tab.wait("document.body.dataset.page === 'artifacts/busy.html' && !!document.querySelector('iframe')")
+    tab.evaluate(MARK)
+    eq("a frame blocked 9 s shows the not-answering strip", lambda: (tab.wait(STRIPS + ".length", 10), tab.evaluate("[[...document.querySelectorAll('#strips > * > *')].map((e) => [e.localName, e.textContent]), %s]" % FOCUS))[1], [[["p", "This page is not answering"], ["button", "Reload page"]], "iframe"])
+    eq("its answer clears the strip, and nothing was reloaded", lambda: (tab.wait("!%s.length" % STRIPS, 5), tab.evaluate(NEW), tab.frame().evaluate(H1)), (True, False, "busy"))
+    os.unlink(os.path.join(ROOT, "artifacts/busy.html"))  # before the gallery frames it
+
+TRY = "const t = (f) => { try { f(); return 'ok'; } catch (e) { return e.name; } };"
+WRITES = "localStorage.clear(); new Promise((done) => { let n = 0; const tick = () => { localStorage.setItem('count', String(++n)); if (n < 120) setTimeout(tick, 8); else { %s; done(1); } }; tick(); })"
+
+def keeps(b):
+    name, other = "boards/keeps.html", "boards/keeps.html:k.html"
+    for one in (name, other, "boards/going.html", "boards/kept.shtml"):
+        page(one)
+    page("design-system/kit.html")
+    at = lambda one: server.url + "/" + quote(one)
+    mine = "[localStorage.k, localStorage.getItem('at:' + location.pathname), localStorage.getItem('__proto__'), localStorage.length]"
+    tab = visit(b, at(name))
+    f = tab.frame()
+    f.evaluate("localStorage.setItem('k', 'one'); localStorage.setItem('at:' + location.pathname, 'two'); localStorage.setItem('gone', '1'); 1")
+    tab.wait("Object.keys(localStorage).some((k) => k.endsWith(':gone'))")
+    f.evaluate("localStorage.removeItem('gone'); localStorage.setItem('__proto__', 'three'); 1")
+    tab.wait("!Object.keys(localStorage).some((k) => k.endsWith(':gone'))")
+    want = ["one", "two", "three", 3]
+    eq("storage survives a frame reload, a key holding the content path included", lambda: reframed(tab, lambda: page(name, title="saved")).evaluate(mine), want)
+    eq("storage survives a server restart", lambda: reframed(tab, lambda: (server.stop(), server.start())).evaluate(mine), want)
+    tab = visit(b, at(other))
+    f = tab.frame()
+    eq("another page sees nothing", lambda: f.evaluate("Object.keys(localStorage)"), [])
+    f.evaluate("localStorage.setItem('k', 'of the other'); localStorage.clear(); localStorage.setItem('j', 'of the other'); 1")
+    tab.wait("Object.keys(localStorage).some((k) => k.endsWith(':j'))")
+    eq("nor does what it writes, or its clear(), reach this one", lambda: visit(b, at(name)).frame().evaluate(mine), want)
+    second = os.path.join(os.path.dirname(ROOT), "second")
+    os.makedirs(os.path.join(second, "boards"))
+    theirs = "boards/going.html"
+    for one in (name, theirs):
+        with open(os.path.join(second, one), "w") as fh:
+            fh.write("<!doctype html><title>second</title><h1>second</h1>")
+    server.stop()
+    server.start(root=second)
+    try:
+        for one in (name, theirs):
+            tab = visit(b, at(one))
+            f = tab.frame()
+            eq("another docroot on the same port sees nothing", lambda: f.evaluate("[document.title, Object.keys(localStorage)]"), ["second", []])
+            f.evaluate("localStorage.setItem('k', 'of the second'); 1")
+            tab.wait("Object.entries(localStorage).filter(([k, v]) => v === 'of the second').length === %d" % (1 + (one == theirs)))
+        time.sleep(0.5)
+    finally:
+        server.stop()
+        server.start()
+    tab = visit(b, at(name))
+    f = tab.frame()
+    eq("and its own writes, and its list of pages, leave this one's", lambda: f.evaluate(mine), want)
+    eq("a write past the cap throws QuotaExceededError and the page goes on", lambda: f.evaluate(TRY + "[t(() => localStorage.setItem('big', 'x'.repeat(256 * 1024))), t(() => localStorage.setItem('after', '1'))]"), ["QuotaExceededError", "ok"])
+    eq("and keeps what it writes after that", lambda: (tab.wait("Object.keys(localStorage).some((k) => k.endsWith(':after'))"), tab.evaluate(STRIPS))[1], [])
+    def big(f, *keys):
+        """What the viewer keeps once the page, going round its client, posted each of these keys with 100 KB, or removed it: -2."""
+        f.evaluate("for (const i of %s) parent." % json.dumps(keys) + POST % "{ dk: 1, t: 'store', items: [['big' + Math.abs(i), i < 0 ? null : 'x'.repeat(100 * 1024)]] }" + "1")
+        time.sleep(0.3)
+        return [sorted(k.split(":")[-1] for k in entries(tab, "big")), tab.evaluate(STRIPS + ".length")]
+    eq("nor does the viewer keep more than 256 KB for a page that goes round its client, a key counted once however often written", lambda: big(f, 1, 1, 1, 2, 3), [["big1", "big2"], 1])
+    f = reframed(tab, lambda: page(name, title="big"))
+    eq("a reload takes the strip away and counts what is there", lambda: [tab.evaluate(STRIPS), big(f, 4), big(f, -1, -2, 4), big(f, 1, 2)], [[], [["big1", "big2"], 1], [["big4"], 0], [["big1", "big4"], 1]])
+    f.evaluate("parent." + POST % "{ dk: 1, t: 'store', clear: true }" + "1")
+    eq("and so does a clear()", lambda: big(f), [[], 0])
+
+    f.evaluate(WRITES % "location.reload()")
+    eq("120 writes a second to one key, then the page's own reload, keep the last value", lambda: (tab.wait("Object.entries(localStorage).some(([k, v]) => k.endsWith(':count') && v === '120')"), tab.frame().wait("localStorage.count === '120'"))[1], True)
+    tab.frame().evaluate(WRITES % "1")
+    eq("and then the viewer's", lambda: again(b, tab).frame().evaluate("localStorage.count"), "120")
+
+    for one in ("boards/going.html", "boards/kept.shtml", "design-system/kit.html"):
+        tab = visit(b, at(one))
+        tab.frame().evaluate("localStorage.setItem('k', 'here'); 1")
+        tab.wait("Object.keys(localStorage).some((k) => k.includes(':%s:'))" % one)
+    os.unlink(os.path.join(ROOT, "boards/going.html"))
+    before = entries(tab)
+    tab = visit(b, at(BOARD))
+    tab.wait("!Object.entries(localStorage).some(([k, v]) => k.includes(':boards/going.html:') && v === 'here')", 5)
+    time.sleep(0.3)
+    eq("entries of a deleted page are gone on the next load, those of a page no list names and of another docroot are not", lambda: [sorted(k.split(":", 2)[2] for k in set(before) - set(entries(tab))), len([k for k in entries(tab) if "kept.shtml" in k or "kit.html" in k]), list(entries(tab).values()).count("of the second")], [["boards/going.html:k"], 2, 2])
+
+    state, newer = ({"knobs": {"all": {"space": n}}, "text": {}, "picked": None} for n in (12, 14))
+    old = "localStorage.%s('design-kit:' + new URL('/" + PICKS + "', location).pathname%s); 1"
+    board = "window.designKit.state()"
+    tab.evaluate(old % ("setItem", ", " + json.dumps(json.dumps(state))))
+    tab = visit(b, at(PICKS))
+    eq("a board's state left by 0.19.3 is read", lambda: tab.frame().evaluate(board), state)
+    tab.evaluate(old % ("setItem", ", " + json.dumps(json.dumps(newer))))
+    tab = visit(b, at(PICKS))
+    eq("not where the board has one of its own", lambda: tab.frame().evaluate(board), state)
+    tab.evaluate(old % ("removeItem", ""))
+    tab.frame().evaluate("localStorage.clear(); 1")
+    tab.wait("!Object.keys(localStorage).some((k) => k.includes(':%s:'))" % PICKS)
+    eq("and once", lambda: visit(b, at(PICKS)).frame().evaluate(board + ".knobs"), {})
+
+def full(b):
+    tab = visit(b, server.url + "/" + BOARD)
+    f = tab.frame()
+    tab.evaluate("for (const size of [1 << 20, 1 << 10]) { try { for (let i = 0; ; i++) localStorage.setItem('fill' + size + i, 'x'.repeat(size)); } catch (e) { /* full */ } } 1")
+    f.evaluate("localStorage.setItem('late', 'y'.repeat(4096)); 1")
+    eq("storage-full strip shown", lambda: (tab.wait(STRIPS + ".length"), tab.evaluate("[%s, %s]" % (STRIPS, FOCUS)))[1], [["Storage is full; changes to this page are not saved"], "iframe"])
+    f.evaluate("localStorage.setItem('small', 'z'); 1")
+    eq("it stays while a change is not saved", lambda: (time.sleep(0.4), tab.evaluate(STRIPS))[1], ["Storage is full; changes to this page are not saved"])
+    tab.evaluate("for (const k of Object.keys(localStorage)) if (k.startsWith('fill')) localStorage.removeItem(k); 1")
+    f.evaluate("localStorage.setItem('next', 'z'); 1")
+    eq("it goes, and the refused write is saved, with the next write there is room for", lambda: (tab.wait("!%s.length" % STRIPS), sorted((k.split(":")[-1], len(v)) for k, v in entries(tab, BOARD).items())), (True, [("late", 4096), ("next", 1), ("small", 1)]))
+    f = again(b, tab, "Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('refused', 'SecurityError'); } })").frame()
+    f.evaluate("localStorage.setItem('late', 'y'); 1")
+    eq("a browser that keeps no site data shows the page, and says its changes are not saved", lambda: (tab.wait(STRIPS + ".length"), tab.evaluate(STRIPS), f.evaluate(H1 + " + localStorage.late"))[1:], (["Storage is full; changes to this page are not saved"], "fixturey"))
 
 def drops(b):
     name = "decks/writes.html"
-    writes = "<script>let n = 0; setInterval(() => localStorage.setItem('n', ++n), 10); setInterval(() => parent.postMessage({ dk: 1, t: 'pong', n: 0 }, '*'), 40)</script>"
+    writes = "<script>let n = 0; setInterval(() => localStorage.setItem('n', ++n), 10); let k = 0; setInterval(() => parent.postMessage({ dk: 1, t: 'pong', n: k++ % 2 ? 1 : 1e9 }, '*'), 40)</script>"
     page(name, head=writes)
     tab = visit(b, server.url + "/" + name)
-    # before the viewer's own listener, and a window's run in the order they came
-    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": "window.heard = []; addEventListener('message', (e) => { const { t, n } = e.data; heard.push(e.source && (n === 0 ? 'forged' : t)); if (window.deaf && t === 'pong' && n) e.stopImmediatePropagation(); })"}, tab.sid)
-    b.chrome.call("Page.reload", {}, tab.sid)
-    tab.wait("window.heard && heard.includes('ready')", 10)
+    again(b, tab, HEARD)
+    tab.wait("heard.includes('ready')", 10)
     tab.evaluate("new MutationObserver(() => heard.push('replaced')).observe(document.querySelector('#frame'), { childList: true }); 1")
     reframed(tab, lambda: page(name, title="saved", head=writes))
-    eq("a frame is replaced once its last write is in", lambda: tab.evaluate("heard.filter((t) => t !== 'forged').join().split(',replaced')[0].split(',').slice(-2)"), ["store", "pong"])
+    eq("a frame is replaced once its last write is in", lambda: tab.evaluate("heard.filter((t) => t !== 'forged').join().split(',replaced')[0].replace(/(,pong)+$/, ',pong').split(',').slice(-2)"), ["store", "pong"])
     tab.evaluate("window.deaf = true")
     eq("a frame that does not answer is replaced all the same", lambda: reframed(tab, lambda: page(name, title="unanswered")).evaluate(H1), "unanswered")
-    eq("and no sooner for a pong that answers no ping", lambda: tab.evaluate("heard.join().split(',replaced')[1].split(',pong').pop().split('forged').length > 3"), True)
+    eq("and no sooner for a pong that answers no ping, or an earlier one", lambda: tab.evaluate("heard.join().split(',replaced')[1].split(',pong').pop().split('forged').length > 3"), True)
 
 def gone(b):
     page("decks/going.html", title="going")
     tab = visit(b, server.url + "/decks/going.html")
     tab.frame()
     os.unlink(os.path.join(ROOT, "decks/going.html"))
-    eq("a page deleted while open says so", lambda: (tab.wait(STRIPS + ".length", 8), tab.evaluate(STRIPS))[1], ["This page was deleted"])
+    eq("a page deleted while open says so, its frame answering or not", lambda: (tab.wait(STRIPS + ".length", 8), time.sleep(2.2), tab.evaluate(STRIPS))[2], ["This page was deleted"])
     server.stop()
     eq("then a lost server too", lambda: (tab.wait(STRIPS + ".length > 1", 8), tab.evaluate(STRIPS))[1], ["This page was deleted", "Preview server stopped; retrying"])
     server.start()
@@ -321,7 +588,7 @@ def gallery(b):
     for at in ("/_gallery", "/", "/index.html"):
         tab = visit(b, server.url + at)
         eq("the gallery answers at %s, its pages sandboxed" % at, lambda: tab.evaluate("[document.title, [...document.querySelectorAll('iframe')].every((f) => f.getAttribute('sandbox') === 'allow-scripts' && f.getAttribute('src').startsWith('/_c/')), document.querySelectorAll('iframe').length > 5]"), ["design-kit gallery", True, True])
-    eq("a thumbnail is a page in its null origin", lambda: tab.frame().evaluate("self.origin"), "null")
+    eq("a thumbnail is a page in its null origin", lambda: browser_lib.Frame(tab, b.chrome.children[tab.sid][0]).evaluate("self.origin"), "null")  # the first: Chrome paints no thumbnail below the window
     tab.evaluate("window.mark = 1")
     page("decks/new.html", title="a new deck")
     eq("the gallery reloads on a save, under its own policy", lambda: (tab.wait("!window.mark && document.body.textContent.includes('a new deck')", 8), logged(b, tab))[1], [])
@@ -379,8 +646,8 @@ def far(b):
 server = Server(free_port())
 server.start()
 try:
-    with browser_lib.browser(240) as b:
-        for part in (kinds, files, bar, reload, place, drops, gone, lost, gallery, worker, far):
+    with browser_lib.browser(420) as b:
+        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, gallery, worker, far):
             try:
                 part(b)
             except Exception as exc:
