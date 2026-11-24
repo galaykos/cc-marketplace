@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
+# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed thumbnails, policy), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer), /_page, /_c/ and /_allow included; that half skips without one.
-# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh), the reconnect bar, the cookie page and the note widget in a browser, and a real second device (each run by hand in Chrome: 2026-11-12, the widget 2026-11-13).
+# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh), the reconnect bar and the cookie page in a browser, and a real second device (each run by hand in Chrome: 2026-11-12).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp" "$tmp.out"' EXIT
@@ -12,37 +12,112 @@ bash "$here/preview.sh" --docroot "$tmp" --port "$port" >/dev/null
 sleep 0.4
 gal="$(curl -s "http://127.0.0.1:$port/")"
 case "$gal" in *"design-kit gallery"*"Deck A"*) ;; *) echo "FAIL: gallery missing page: ${gal:0:200}"; exit 1 ;; esac
-page="$(curl -s "http://127.0.0.1:$port/decks/a.html")"
-case "$page" in *"data-design-kit-reload"*"</body>"*) ;; *) echo "FAIL: reload snippet not injected"; exit 1 ;; esac
-# the injected client reconnects: a role=status bar while the stream is down, a retry timer, no external asset, kept small
-snip="$(printf '%s' "$page" | python3 -c 'import re,sys;m=re.search(r"<script data-design-kit-reload>.*?</script>",sys.stdin.read(),re.S);print(m.group(0) if m else "")')"
+# the gallery's client reconnects: a role=status bar while the stream is down, a retry timer, no external asset; none for a headless browser or ?static=1
+snip="$(printf '%s' "$gal" | python3 -c 'import re,sys;m=re.search(r"<script data-design-kit-reload>.*?</script>",sys.stdin.read(),re.S);print(m.group(0) if m else "")')"
 for want in '"role","status"' setTimeout location.reload; do
-  case "$snip" in *"$want"*) ;; *) echo "FAIL: the injected client lacks $want (reconnect bar, retry, reload): $snip"; exit 1 ;; esac
+  case "$snip" in *"$want"*) ;; *) echo "FAIL: the gallery's client lacks $want (reconnect bar, retry, reload): $snip"; exit 1 ;; esac
 done
-case "$snip" in *"src="*|*"href="*|*"http"*|*"//"*) echo "FAIL: the reload client loads an external asset: $snip"; exit 1 ;; esac
-# the note widget's one hook: the client imports /_note.js from its own origin, nothing else
-case "$snip" in *'location.origin+"/_note.js"'*) ;; *) echo "FAIL: the reload client does not load the note widget from its own origin: $snip"; exit 1 ;; esac
-[ "$(printf '%s' "$snip" | wc -c)" -le 800 ] || { echo "FAIL: the reload client grew past 800 bytes ($(printf '%s' "$snip" | wc -c)); it is injected into every page"; exit 1; }
-case "$gal" in *"data-design-kit-reload"*) ;; *) echo "FAIL: the gallery lost its reload client"; exit 1 ;; esac
-case "$gal" in *"_note.js"*) echo "FAIL: the gallery loads the note widget; it is not a page"; exit 1 ;; esac
-c="$(curl -s -o "$tmp/.resp" -w '%{http_code} %{content_type}' "http://127.0.0.1:$port/_note.js")"
-case "$c" in "200 text/javascript"*) ;; *) echo "FAIL: /_note.js should be 200 JavaScript, got $c"; exit 1 ;; esac
-grep -qE "[\"']/_note[\"']" "$tmp/.resp" && grep -q 'X-Design-Kit-Note' "$tmp/.resp" || { echo "FAIL: /_note.js does not post to /_note"; exit 1; }
-# ?_outline= from loopback: the outline helper alone, for a headless shot; no reload client
-page_o="$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/decks/a.html?_outline=h1")"
-case "$page_o" in *"data-design-kit-outline"*) ;; *) echo "FAIL: ?_outline= did not inject the outline helper"; exit 1 ;; esac
-case "$page_o" in *"data-design-kit-reload"*) echo "FAIL: ?_outline= injected the reload client into a headless page"; exit 1 ;; esac
-# the outline tag imports from the page's own origin too: a bare src="/_note.js" follows a page's <base href> to another host
-case "$page_o" in *'src="/_note.js"'*|*'src=\"/_note.js'*) echo "FAIL: the outline tag loads /_note.js by bare path"; exit 1 ;; esac
-case "$page_o" in *'location.origin+"/_note.js"'*) ;; *) echo "FAIL: the outline tag does not import /_note.js from location.origin"; exit 1 ;; esac
-gal_h="$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/")"
-case "$gal_h" in *"data-design-kit-reload"*) echo "FAIL: gallery carries the reload snippet for a headless UA"; exit 1 ;; esac
-page_h="$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/decks/a.html")"
-case "$page_h" in *"data-design-kit-reload"*) echo "FAIL: reload snippet injected for a headless UA"; exit 1 ;; esac
-page_s="$(curl -s "http://127.0.0.1:$port/decks/a.html?static=1")"
-case "$page_s" in *"data-design-kit-reload"*) echo "FAIL: reload snippet injected despite static=1"; exit 1 ;; esac
-case "$page_h" in *"_note.js"*) echo "FAIL: a headless page loads the note script"; exit 1 ;; esac
-case "$page_s" in *"_note.js"*) echo "FAIL: a ?static=1 page loads the note script"; exit 1 ;; esac
+case "$snip" in *"src="*|*"href="*|*"http"*|*"//"*) echo "FAIL: the gallery's client loads an external asset: $snip"; exit 1 ;; esac
+case "$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/")$(curl -s "http://127.0.0.1:$port/_gallery?static=1")" in *"<script"*) echo "FAIL: the gallery carries its reload client for a headless UA or ?static=1"; exit 1 ;; *"Deck A"*"Deck A"*) ;; *) echo "FAIL: no gallery for a headless UA or ?static=1"; exit 1 ;; esac
+# a page URL answers the viewer, or sends a capture of this machine to the static segment; the gallery has an address of its own and runs nothing of a page's
+mkdir -p "$tmp/motion/y" "$tmp/motion/z"
+printf '<!doctype html><html><head><title>&lt;b&gt; &amp; "two"</title></head><body><h1>own</h1></body></html>' | tee "$tmp/motion/y/index.html" "$tmp/motion/z/index.htm" > "$tmp/decks/q\"<b>.html"
+python3 - "$here" "$tmp" "$port" <<'PY' || exit 1
+import base64, hashlib, html.parser, http.client, importlib.util, os, re, sys
+from urllib.parse import quote
+here, root, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
+spec = importlib.util.spec_from_file_location("dkserve", here + "/serve.py"); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+host, failed = "127.0.0.1:%d" % port, []
+def eq(claim, got, want):
+    if got != want: failed.append("FAIL: %s: got %.500r, want %.500r" % (claim, got, want))
+def ask(path, method="GET", **headers):
+    con = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    con.request(method, path, headers={k.replace("_", "-"): v for k, v in headers.items()})
+    r = con.getresponse()
+    return r.status, r.headers, r.read()
+def parsed(body):
+    tags, texts = [], {}
+    class P(html.parser.HTMLParser):
+        def handle_starttag(self, tag, attrs): tags.append((tag, dict(attrs)))
+        def handle_data(self, data): texts.setdefault(tags[-1][0] if tags else "", data)
+    P().feed(body.decode())
+    return tags, texts
+def document(page, *notes):
+    return [("html", {"lang": "en"}), ("head", {}), ("meta", {"charset": "utf-8"}), ("meta", {"name": "viewport", "content": "width=device-width,initial-scale=1"}), ("title", {}), ("link", {"rel": "stylesheet", "href": "/_viewer.css"}),
+            ("body", {"data-page": page, "data-version": str(m.SERVER_VERSION)}), ("header", {"id": "bar"}), ("a", {"href": "/_gallery"}), ("h1", {"id": "title"}), ("span", {"id": "chip"}),
+            ("button", {"type": "button", "id": "network", "hidden": None}), ("button", dict({"type": "button", "id": "notes"}, **{n: None for n in notes})),
+            ("div", {"id": "strips", "aria-live": "polite"}), ("div", {"id": "drawer", "hidden": None}), ("main", {"id": "frame"}), ("script", {"src": "/_viewer.js"})]
+def viewed(path, **headers):
+    """The page a viewer answer names, or the answer's status."""
+    status, _, body = ask(path, **headers)
+    found = re.search(rb'<body data-page="([^"]*)"', body)
+    return found.group(1).decode() if status == 200 and found else status
+
+page = "decks/a.html"
+status, headers, body = ask("/" + page)
+tags, texts = parsed(body)
+eq("a page URL answers the viewer's document", (status, tags), (200, document(page)))
+eq("with the page's title and the bar's words, and nothing of the page", (texts, b"<h1>a</h1>" in body), ({"title": "Deck A", "a": "Gallery", "h1": "Deck A", "button": "Network"}, False))
+eq("the viewer's headers", [headers.get_all(h) for h in ("Content-Type", "Content-Security-Policy", "Cross-Origin-Opener-Policy", "Cache-Control")], [["text/html; charset=utf-8"], [m.isolate.viewer_policy(host)], ["same-origin"], ["no-store"]])
+again = ask("/" + page, "HEAD")
+eq("HEAD of a page URL answers the viewer's headers", (again[0], again[1]["Content-Length"], again[1]["Content-Security-Policy"], again[2]), (200, str(len(body)), m.isolate.viewer_policy(host), b""))
+status, headers, body = ask("/" + page, Host="192.0.2.7:%d" % port)
+eq("at an address no write route takes the viewer hides Notes", (status, parsed(body)[0], headers["Content-Security-Policy"]), (200, document(page, "hidden"), m.isolate.viewer_policy("192.0.2.7:%d" % port)))
+odd = 'decks/q"<b>.html'
+tags, texts = parsed(ask("/" + quote(odd))[2])
+eq("a page name and a title holding markup are text in the viewer", (tags, texts.get("title"), texts.get("h1")), (document(odd), '<b> & "two"', '<b> & "two"'))
+eq("a missing page is 404", [ask("/decks/none.html", method)[0] for method in ("GET", "HEAD")], [404, 404])
+for path, want in (("/motion/y/", "motion/y/index.html"), ("/motion/y%2f", "motion/y/index.html"), ("/motion/y%2F", "motion/y/index.html"), ("/motion/y/index.html", "motion/y/index.html"), ("/motion/z/", "motion/z/index.htm"), ("/decks%2fa.html", page), ("/decks/../decks//a.html", page)):
+    eq("a page is named by its file path: %s" % path, viewed(path), want)
+eq("a folder asked without its slash is sent to it", (ask("/motion/y")[0], ask("/motion/y")[1]["Location"]), (301, "/motion/y/"))
+
+HEADLESS = "Mozilla/5.0 (X11) HeadlessChrome/130"
+static = re.compile(r"/_c/([\w-]{22}\.[\w-]+\.s)/decks/a\.html")
+for site, want in ((None, "static"), ("none", "static"), ("cross-site", page), ("same-site", page), ("same-origin", page), ("", page)):
+    sent = {} if site is None else {"Sec_Fetch_Site": site}
+    for claim, path, more in (("?static=1", "/%s?static=1" % page, {}), ("a headless browser", "/" + page, {"User_Agent": HEADLESS})):
+        for method in ("GET", "HEAD"):
+            status, headers, _ = ask(path, method, **dict(more, **sent))
+            got = "static" if status == 303 and static.fullmatch(headers["Location"] or "") else viewed(path, **dict(more, **sent)) if status == 200 else status
+            eq("%s with Sec-Fetch-Site %s gets the %s: %s" % (claim, site, "static segment" if want == "static" else "viewer", method), got, want)
+status, headers, _ = ask("/decks/a.html?capture&static=1&key=K&a=%20b+c&st%61tic=1&static=0")
+at, _, query = (headers["Location"] or "").partition("?")
+eq("the 303 keeps the query as it was typed, static and key left out", (status, bool(static.fullmatch(at)), query), (303, True, "capture&a=%20b+c"))
+eq("only static=1 asks for the raw page", [viewed("/decks/a.html?" + q) for q in ("static=10", "xstatic=1", "static=0", "static")], [page] * 4)
+eq("a folder's index is raw too", [re.sub(r"/_c/[^/]+", "", ask(p, User_Agent=HEADLESS)[1]["Location"] or "") for p in ("/motion/y/", "/motion/y%2f")], ["/motion/y/index.html"] * 2)
+status, headers, body = ask(at or "/")
+with open(os.path.join(root, page), "rb") as fh: raw = fh.read()
+eq("that static segment is the page under its static policy, with the in-frame client and no other script of the plugin's", (status, headers["Content-Security-Policy"], body.replace(m.FRAME_TAG, b"")), (200, m.isolate.page_policy("s", page, (at.split("/") + ["", ""])[2], [], host), raw))
+status, headers, _ = ask("/decks/a.html?_outline=h1", User_Agent=HEADLESS)
+eq("?_outline= is a query field like any other, and /_note.js is gone", (status, b"data-design-kit-outline" in ask(headers["Location"] or "/")[2], ask("/_note.js")[0]), (303, False, 404))
+for path, name, ctype in (("/_viewer.js", "viewer.js", "text/javascript; charset=utf-8"), ("/_viewer.css", "viewer.css", "text/css; charset=utf-8")):
+    with open(os.path.join(here, name), "rb") as fh: want = fh.read()
+    status, headers, body = ask(path)
+    eq("%s is the plugin's file" % path, (status, headers["Content-Type"], body), (200, ctype, want))
+
+def gallery(path):
+    status, headers, body = ask(path)
+    tags, _ = parsed(body)
+    scripts = re.findall(r"<script[^>]*>(.*?)</script>", body.decode(), re.S)
+    sha = base64.b64encode(hashlib.sha256(scripts[0].encode()).digest()).decode() if scripts else ""
+    frames = [a for t, a in tags if t == "iframe"]
+    eq("the gallery is at %s" % path, (status, b"<title>design-kit gallery</title>" in body, len(frames) >= 4, headers["Cross-Origin-Opener-Policy"]), (200, True, True, "same-origin"))
+    eq("%s: every thumbnail carries sandbox and a framed /_c/ src" % path, [a for a in frames if a.get("sandbox") != "allow-scripts" or not re.match(r"/_c/[\w-]{22}\.[\w-]+/", a.get("src", ""))], [])
+    eq("%s: a thumbnail's src is its page" % path, {ask(a["src"], Sec_Fetch_Dest="iframe")[0] for a in frames}, {200})
+    eq("%s: the policy allows its one inline script by its SHA-256" % path, (len(scripts), headers["Content-Security-Policy"]), (1, m.isolate.gallery_policy(host, sha)))
+    eq("%s: no unsafe-inline in its script-src" % path, re.findall(r"script-src ([^;]*)", headers["Content-Security-Policy"] or ""), ["'sha256-%s'" % sha])
+    eq("%s: a card's link opens a page of any name" % path, [viewed(a["href"]) for t, a in tags if t == "a" and a.get("class") == "card" and "q%22" in a["href"]], [odd.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")])
+for path in ("/", "/index.html", "/_gallery"):
+    gallery(path)
+eq("HEAD of the gallery answers its headers", [(ask(p, "HEAD")[0], ask(p, "HEAD")[1]["Content-Length"]) for p in ("/", "/_gallery")], [(200, str(len(ask("/")[2])))] * 2)
+with open(os.path.join(root, "index.html"), "w") as fh: fh.write("<h1>mine</h1>")
+eq("with an index.html in the docroot / is that page", [viewed(p) for p in ("/", "/index.html")], ["index.html"] * 2)
+gallery("/_gallery")
+os.unlink(os.path.join(root, "index.html"))
+print("\n".join(failed), end="\n" if failed else "")
+sys.exit(1 if failed else 0)
+PY
+rm -rf "$tmp/motion" "$tmp/decks/q\"<b>.html"
 idx="$(curl -s "http://127.0.0.1:$port/_index.json")"
 case "$idx" in *'"path": "decks/a.html"'*) ;; *) echo "FAIL: _index.json: $idx"; exit 1 ;; esac
 ( curl -s -N --max-time 3 "http://127.0.0.1:$port/_events" > "$tmp/.sse" 2>/dev/null || true ) &
@@ -78,8 +153,6 @@ for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /usage.jsonl 
   never_served "$probe" "SECRET\|one.png"
 done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }
-# gallery thumbnails must not each hold an SSE connection (six fill a browser's per-host pool)
-case "$gal" in *'src="/decks/a.html?static=1"'*) ;; *) echo "FAIL: gallery iframe lacks ?static=1"; exit 1 ;; esac
 # /_decision: loopback + header + size + JSON, append-only; a row holds what picks.py keeps (its bounds: picks.test.sh) and the server's own prompt
 post() { curl -s -o "$tmp/.resp" -w '%{http_code}' -X POST "$@" "http://127.0.0.1:$port/_decision"; }
 c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' --data '{"board":"a.html","picked":1,"knobs":{"all":{"hue":400,"evil":"x"}},"text":{"1":{"h1":{"was":"Old","now":"New","evil":"x"}}},"prompt":"POSTED","evil":"x","v":9,"ts":"x","consumed":true}')"
@@ -283,7 +356,7 @@ base="http://127.0.0.1:$port"
 code() { curl -s -o "$tmp/.resp" -w '%{http_code}' --max-time 2 "$@" || true; }
 for n in evil.example localhost.evil "evil.example:$port" empty missing; do
   case "$n" in empty) h='Host;' ;; missing) h='Host:' ;; *) h="Host: $n" ;; esac
-  for p in / /decks/a.html /_index.json /_events /_note.js; do
+  for p in / /_gallery /decks/a.html /_index.json /_events /_viewer.js; do
     c="$(code -H "$h" "$base$p")"; [ "$c" = 403 ] || { echo "FAIL: GET with Host $n is 403: $p got $c"; exit 1; }
     c="$(code -I -H "$h" "$base$p")"; [ "$c" = 403 ] || { echo "FAIL: HEAD with Host $n is 403: $p got $c"; exit 1; }
   done
@@ -294,7 +367,7 @@ for n in "127.0.0.1:$port" localhost "LOCALHOST:$port" "[::1]:$port" "192.0.2.7:
   c="$(code -I -H "Host: $n" "$base/decks/a.html")"; [ "$c" = 200 ] || { echo "FAIL: HEAD with Host $n is 200: got $c"; exit 1; }
   c="$(code -X POST -H "Host: $n" --data '{}' "$base/decks/a.html")"; [ "$c" = 501 ] || { echo "FAIL: POST with Host $n passes the Host check (501, no such route): got $c"; exit 1; }
 done
-for p in / /decks/a.html /_note.js; do
+for p in / /decks/a.html /_viewer.js; do
   c="$(code -H 'Service-Worker: script' "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: Service-Worker: script is 404: GET $p got $c"; exit 1; }
   c="$(code -I -H 'Service-Worker: script' "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: Service-Worker: script is 404: HEAD $p got $c"; exit 1; }
 done
@@ -308,7 +381,7 @@ for p in /decks/out.html /shots/out.png /decks/outdir /decks/outdir/ /decks/outd
   c="$(code -I "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: symlink leaving the docroot is 404: HEAD $p got $c"; exit 1; }
 done
 case "$(curl -s "$base/_index.json")" in *OUTSIDE*) echo "FAIL: /_index.json gives the title of a page outside the docroot"; exit 1 ;; *'"path": "decks/in.html"'*) ;; *) echo "FAIL: /_index.json lost a link that stays inside the docroot"; exit 1 ;; esac
-c="$(code "$base/decks/in.html")"; [ "$c" = 200 ] && grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: a symlink that stays inside the docroot is still served: got $c"; exit 1; }
+c="$(code -L "$base/decks/in.html?static=1")"; [ "$c" = 200 ] && grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: a symlink that stays inside the docroot is still served: got $c"; exit 1; }
 ln -s ../auth/walk.json "$tmp/decks/in.json"; ln -s ../auth "$tmp/decks/indir"; ln -s ../artifacts/.versions/a/v1.html "$tmp/decks/inver.html"; ln -s ../artifacts/a.versions.json "$tmp/decks/inled.json"; ln -s ../workshop.json "$tmp/shots/in.png"
 for p in /decks/in.json /decks/indir /decks/indir/ /decks/indir/walk.json /decks/inver.html /decks/inled.json /shots/in.png; do
   c="$(code "$base$p")"; [ "$c" = 404 ] && ! grep -q SECRET "$tmp/.resp" || { echo "FAIL: a link to a never-served file is 404: GET $p got $c"; exit 1; }
@@ -331,7 +404,7 @@ has_common() {
     [ "$(printf '%s\n' "$2" | grep -cxF "$h")" = 1 ] || { echo "FAIL: every answer carries one $h: $1: $2"; exit 1; }
   done
 }
-for p in / /decks/a.html /_index.json /_notes /_checks /_events /_note.js /shots/one.png /decks /auth/walk.json /nope; do has_common "GET $p" "$(heads "$base$p")"; done
+for p in / /_gallery /decks/a.html "/decks/a.html?static=1" /_index.json /_notes /_checks /_events /_viewer.js /_viewer.css /shots/one.png /decks /auth/walk.json /nope; do has_common "GET $p" "$(heads "$base$p")"; done
 has_common "HEAD a page" "$(heads -I "$base/decks/a.html")"
 has_common "a 304" "$(heads -H 'If-Modified-Since: Fri, 01 Jan 2100 00:00:00 GMT' "$base/shots/one.png")"
 has_common "a 403 on Host" "$(heads -H 'Host: evil.example' "$base/")"
@@ -425,6 +498,7 @@ for claim, path, ctype in (("a framed page carries its policy", src, "text/html;
         status, headers, _ = ask(path, method, If_Modified_Since="Fri, 01 Jan 2100 00:00:00 GMT")
         eq("%s: %s" % (claim, method), [status] + [headers.get_all(h) for h in ("Content-Type", "Content-Security-Policy", "Access-Control-Allow-Origin", "Cross-Origin-Resource-Policy", "X-Content-Type-Options", "Referrer-Policy", "X-DNS-Prefetch-Control")],
            [200, [ctype], [policy], ["*"], ["cross-origin"], ["nosniff"], ["no-referrer"], ["off"]])
+eq("a page reads the 404 of a file it may load, never of another path", [ask(p)[1]["Access-Control-Allow-Origin"] for p in (at + "/gone.js", "/_c/" + seg + "/decks/a.html")], ["*", None])
 eq("that policy is the page's: sandboxed, framed here alone", (policy.startswith("sandbox allow-scripts "), policy.endswith("; frame-ancestors http://" + host)), (True, True))
 print("\n".join(failed), end="\n" if failed else "")
 sys.exit(1 if failed else 0)
@@ -454,10 +528,11 @@ for name in ("decks/x.dkpage", "decks/x.htm"):
     found, body = ask("GET", "/_page?page=" + name)
     page = json.loads(body) if found.status == 200 else {}
     framed, _ = ask("GET", page.get("src", "/_c/"))
-    got.append((found.status, page.get("project"), framed.status, framed.getheader("Content-Type")))
+    _, viewer = ask("GET", "/" + name)
+    got.append((found.status, page.get("project"), framed.status, framed.getheader("Content-Type"), ('data-page="%s"' % name).encode() in viewer))
 srv.shutdown()
 policy = m.isolate.page_policy("s", "decks/a.html", src.split("/")[2], [], "127.0.0.1:%d" % srv.server_port)
-page = (200, hashlib.sha256(os.path.realpath(sys.argv[2]).encode()).hexdigest()[:12], 200, "text/html; charset=utf-8")
+page = (200, hashlib.sha256(os.path.realpath(sys.argv[2]).encode()).hexdigest()[:12], 200, "text/html; charset=utf-8", True)
 assert got == [(200, "cross-origin", "*", policy), (200, "same-origin", None, None), page, page], got
 PY
 rm -f "$tmp/decks/x.dkpage" "$tmp/decks/x.htm" "$tmp/.lnk"
@@ -597,7 +672,7 @@ else
   case "$out" in *"/?key=$key"*) ;; *) echo "FAIL: preview.sh --lan URL lacks the key: $out"; exit 1 ;; esac
   L="http://$lanip:$port"
   hc() { curl -s -o "$tmp/.resp" -w '%{http_code}' "$@" || true; }
-  for probe in / /decks/a.html /_index.json "/decks/a.html?key=wrong" "/decks/a.html?key="; do
+  for probe in / /_gallery /decks/a.html /_index.json /_viewer.js "/decks/a.html?static=1" "/decks/a.html?key=wrong" "/decks/a.html?key="; do
     c="$(hc "$L$probe")"; [ "$c" = 403 ] || { echo "FAIL: $probe from a LAN peer without the key should be 403, got $c"; exit 1; }
   done
   c="$(hc --max-time 2 "$L/_events")"; [ "$c" = 403 ] || { echo "FAIL: /_events from a LAN peer without the key should be 403, got $c"; exit 1; }
@@ -611,7 +686,7 @@ else
   has_common "the cookie page" "$hdr"
   ck="$(printf '%s\n' "$hdr" | grep -i '^set-cookie:' || true)"
   case "$ck" in *"design_kit_key=$key"*HttpOnly*SameSite=Strict*) ;; *) echo "FAIL: cookie lacks the key, HttpOnly or SameSite=Strict: $ck"; exit 1 ;; esac
-  c="$(hc -b "design_kit_key=$key" "$L/decks/a.html")"; [ "$c" = 200 ] && grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: the cookie should serve the page, got $c"; exit 1; }
+  c="$(hc -b "design_kit_key=$key" "$L/decks/a.html")"; [ "$c" = 200 ] && grep -q 'data-page="decks/a.html"' "$tmp/.resp" && grep -q 'id="notes" hidden' "$tmp/.resp" || { echo "FAIL: the cookie should serve the viewer, with no Notes, got $c: $(head -c 400 "$tmp/.resp")"; exit 1; }
   c="$(hc -b "design_kit_key=$key" "$L/_index.json")"; [ "$c" = 200 ] || { echo "FAIL: the cookie should serve /_index.json, got $c"; exit 1; }
   c="$(hc -b "design_kit_key=$key" --max-time 2 "$L/_events")"; [ "$c" = 200 ] || { echo "FAIL: the cookie should open /_events, got $c"; exit 1; }
   n="$(wc -l < "$tmp/decisions.jsonl")"
@@ -621,9 +696,8 @@ else
   c="$(hc -b "design_kit_key=$key" -X POST -H 'X-Design-Kit-Note: 1' --data '{"text":"from a phone"}' "$L/_note?key=$key")"
   [ "$c" = 403 ] && [ "$(wc -l < "$tmp/notes.jsonl")" = "$n" ] || { echo "FAIL: /_note from a LAN peer with the key should be 403 and not append, got $c"; exit 1; }
   c="$(hc -b "design_kit_key=$key" "$L/_notes?page=decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: /_notes from a LAN peer with the key should be 403, got $c"; exit 1; }
-  c="$(hc -b "design_kit_key=$key" -A "Mozilla/5.0 HeadlessChrome/130" "$L/decks/a.html?_outline=h1")"
-  [ "$c" = 200 ] && ! grep -q 'data-design-kit-outline' "$tmp/.resp" || { echo "FAIL: ?_outline= from a LAN peer injected the outline helper ($c)"; exit 1; }
-  c="$(hc "$L/_note.js")"; [ "$c" = 403 ] || { echo "FAIL: /_note.js from a LAN peer without the key should be 403, got $c"; exit 1; }
+  c="$(hc -b "design_kit_key=$key" -A "Mozilla/5.0 HeadlessChrome/130" "$L/decks/a.html?static=1")"
+  [ "$c" = 200 ] && grep -q 'data-page="decks/a.html"' "$tmp/.resp" || { echo "FAIL: a LAN peer asking for the raw page should get the viewer, got $c"; exit 1; }
   # a signed content URL needs no key; what names one and what allows a host do, and a LAN peer may change nothing
   c="$(hc "$L/_page?page=decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: /_page from a LAN peer without the key should be 403, got $c"; exit 1; }
   hc -b "design_kit_key=$key" "$L/_page?page=decks/a.html" > /dev/null

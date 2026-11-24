@@ -11,7 +11,9 @@ echo '<h1>ok</h1>' > "$tmp/index.html"
 out="$(bash "$here/preview.sh" --docroot "$tmp" --port "$port")"
 case "$out" in *"http://127.0.0.1:$port/"*) ;; *) echo "FAIL: start output: $out"; exit 1 ;; esac
 body="$(curl -s "http://127.0.0.1:$port/index.html")"
-case "$body" in "<h1>ok</h1>"*) ;; *) echo "FAIL: served body: $body"; exit 1 ;; esac
+case "$body" in *'<body data-page="index.html"'*) ;; *) echo "FAIL: served body is not the viewer: $body"; exit 1 ;; esac
+raw="$(curl -sL "http://127.0.0.1:$port/index.html?static=1")"
+case "$raw" in "<script data-design-kit-frame>"*"</script><h1>ok</h1>") ;; *) echo "FAIL: ?static=1 does not lead to the raw body: $raw"; exit 1 ;; esac
 [ "$(cat "$tmp/.preview.url")" = "http://127.0.0.1:$port/" ] || { echo "FAIL: .preview.url: $(cat "$tmp/.preview.url" 2>&1)"; exit 1; }
 version="$(python3 -c 'import importlib.util, sys
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
@@ -175,7 +177,7 @@ launch "$tmp/p1" --port 8124
 want="$(first_free 8125)"; launch "$tmp/p2"
 [ "$rc" = 0 ] && [ "$(url_of "$tmp/p2")" = "http://127.0.0.1:$want/" ] && [ "$(port_of "$tmp/p2")" = "$want" ] || fail "$c: wanted port $want, got exit $rc, url $(url_of "$tmp/p2"), recorded $(port_of "$tmp/p2"): $out"
 case "$out" in *moved*) fail "$c: a first start prints a moved-port line: $out" ;; esac
-case "$(curl -s "http://127.0.0.1:$want/index.html")" in "<h1>p2</h1>"*) ;; *) fail "$c: port $want does not serve this docroot" ;; esac
+case "$(curl -sL "http://127.0.0.1:$want/index.html?static=1")" in *"</script><h1>p2</h1>") ;; *) fail "$c: port $want does not serve this docroot" ;; esac
 code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$want/.preview.port")"; [ "$code" = 404 ] || fail ".preview.port is served: $code"
 launch "$tmp/p2" --stop; [ "$(port_of "$tmp/p2")" = "$want" ] || fail "$c: --stop did not keep .preview.port: $(port_of "$tmp/p2")"
 [ ! -e "$tmp/p2/.preview.pid" ] && [ ! -e "$tmp/p2/.preview.url" ] && [ ! -e "$tmp/p2/.preview.bind" ] && [ ! -e "$tmp/p2/.preview.ver" ] || fail "--stop left a pid, url, bind or ver file"
@@ -228,7 +230,7 @@ replaced() { local new; new="$(pid_of "$1")"
   if kill -0 "$oldpid" 2>/dev/null; then fail "$c: the older server still runs: $out"; fi
   [ "$new" != "$oldpid" ] && kill -0 "$new" 2>/dev/null && [ "$(ver_of "$1")" = "$new $version" ] || fail "$c: pid file $new, record $(ver_of "$1"): $out"
   case "$(url_of "$1")" in *":$2/") ;; *) fail "$c: moved to $(url_of "$1"), was on $2: $out" ;; esac
-  case "$(curl -s --max-time 1 --retry 3 --retry-connrefused "http://127.0.0.1:$2/index.html")" in "<h1>p5</h1>"*) ;; *) fail "$c: nothing serves this docroot on port $2" ;; esac
+  case "$(curl -sL --max-time 1 --retry 3 --retry-connrefused "http://127.0.0.1:$2/index.html?static=1")" in *"</script><h1>p5</h1>") ;; *) fail "$c: nothing serves this docroot on port $2" ;; esac
   [ "$(cat "$1/.preview.bind")" = "$3" ] && [ "$(port_of "$1")" = "$2" ] || fail "$c: bind $(cat "$1/.preview.bind"), recorded port $(port_of "$1"); wanted $3 and $2"
   local net=0; bound "$2" || net=$?
   case "$3 $net" in "127.0.0.1 0" | "0.0.0.0 1") fail "$c: the network address answers $net (0 = yes, 1 = no) on a $3 server" ;; esac; }

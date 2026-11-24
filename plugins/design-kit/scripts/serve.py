@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /_page?page= (Sec-Fetch-Site absent or same-origin: a page's title and framed content URL, and its allowed hosts for a peer that may write), /_c/<segment>/ (GET and HEAD, with no LAN key once isolate.open_segment opens the segment: its page with frame.js first, or a file isolate.may_load gives that page both by its path and by what it resolves to, each under page_policy, readable from any origin, no-store; a framed one opened as a document is 303 to its page URL), /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); three write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON), POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), both one row per cid among the file's last 50, and POST /_allow (a host one page may load from, in or out of .allow.json through isolate.set_allow, <= 8 KiB), each under its file's lock, loopback peer and Host, an Origin, when sent, of http:// and that Host, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot or to one of these. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); whoever holds a content URL reads that page and its files with no key until the server stops; a hard link to a never-served file is served; a page at its page URL can still POST /_decision, /_note and /_allow, so a bundled page carrying third-party script can plant a pick, a note or an allowed host; a cid older than its file's last 50 rows is recorded again; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: /_gallery, and / and /index.html while the docroot has no index.html, a gallery (flow strip, token badges, each page in a sandboxed frame; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /_page?page= (Sec-Fetch-Site absent or same-origin: a page's title and framed content URL, and its allowed hosts for a peer that may write), /_c/<segment>/ (GET and HEAD, with no LAN key once isolate.open_segment opens the segment: its page with frame.js first, or a file isolate.may_load gives that page both by its path and by what it resolves to, each under page_policy, readable from any origin, no-store; a framed one opened as a document is 303 to its page URL), a page URL (text/html, .html, .htm, a folder's index.html or index.htm) the viewer (/_viewer.js, /_viewer.css), never the page itself, except that a loopback peer with a headless user agent or ?static=1, and Sec-Fetch-Site absent or none, is sent (303) to the page's static segment, any other file as it is; three write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON), POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), both one row per cid among the file's last 50, and POST /_allow (a host one page may load from, in or out of .allow.json through isolate.set_allow, <= 8 KiB), each under its file's lock, loopback peer and Host, an Origin, when sent, of http:// and that Host, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot or to one of these. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
+Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); whoever holds a content URL reads that page and its files with no key until the server stops; a hard link to a never-served file is served; a raw page opened by hand (?static=1) runs with no viewer around it; where no Sec-Fetch-Dest is sent (plain-HTTP LAN) only frame.js takes a top-level framed page to its page URL; a cid older than its file's last 50 rows is recorded again; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
+import base64
 import contextlib
 import hashlib
 import hmac
@@ -25,14 +26,14 @@ import time
 import unicodedata
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, parse_qsl, quote, unquote, urlencode, urlsplit
+from urllib.parse import parse_qs, parse_qsl, quote, unquote, unquote_plus, urlsplit
 
 try:
     import fcntl
 except ImportError:
     fcntl = None
 
-# Stream lost: a role=status bar (no animation, so nothing to reduce), retries at 1, 2, 4 ... 30 s; back: reload.
+# The gallery's. Stream lost: a role=status bar (no animation, so nothing to reduce), retries at 1, 2, 4 ... 30 s; back: reload.
 RELOAD_JS = (
     '(function(){var b,d=0;function go(){var s;try{s=new EventSource("/_events")}catch(e){return}'
     's.onopen=function(){if(b){b.remove();location.reload()}};'
@@ -43,11 +44,8 @@ RELOAD_JS = (
     '(document.body||document.documentElement).appendChild(b);b.textContent="Preview server stopped; retrying"}'
     'd=Math.min(d?d*2:1000,30000);setTimeout(go,d)}}go()})();'
 )
-# location.origin, not a bare path: a page's <base href> must not send the import to another host.
-NOTE_HOOK = 'import(location.origin+"/_note.js").catch(function(){});'
-RELOAD_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + NOTE_HOOK + '</script>'
 GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
-OUTLINE_TAG = '<script data-design-kit-outline>' + NOTE_HOOK + '</script>'
+RELOAD_SHA = base64.b64encode(hashlib.sha256(RELOAD_JS.encode()).digest()).decode()
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -61,12 +59,13 @@ def _beside(name):
 
 isolate = _beside("isolate")
 picks = _beside("picks")
-NOTE_JS = os.path.join(HERE, "note.js")
 with open(os.path.join(HERE, "frame.js"), "rb") as _fh:
     FRAME_TAG = b"<script data-design-kit-frame>" + _fh.read() + b"</script>"
 CONTENT = "/_c/"
-# route -> (file, loopback only); served from the plugin, never from the docroot
-SCRIPTS = {"/_note.js": (NOTE_JS, False)}
+FRAME_WAIT_S = 0.05
+GALLERY = "/_gallery"
+# route -> (file, type); served from the plugin, never from the docroot
+SCRIPTS = {"/_viewer.js": ("viewer.js", "text/javascript; charset=utf-8"), "/_viewer.css": ("viewer.css", "text/css; charset=utf-8")}
 # preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
 SERVER_VERSION = 1
 PAGE_EXT = (".html", ".htm")
@@ -276,9 +275,9 @@ def opened(path):
     return signed and (seg,) + signed + (_parts(rest),)
 
 
-def without_key(path, query):
-    """Where a first keyed visit, or a framed page opened as a document, is sent: path with one leading slash (so never another host), every query field but key."""
-    rest = urlencode([(k, v) for k, v in parse_qsl(query, keep_blank_values=True) if k != "key"])
+def without_key(path, query, drop=("key",)):
+    """Where a first keyed visit, a framed page opened as a document or a raw page is sent: path with one leading slash (so never another host), every query field but those to drop, as it was typed (a page may read ?capture by its text)."""
+    rest = "&".join(field for field in query.split("&") if unquote_plus(field.partition("=")[0]) not in drop)
     return "/" + path.lstrip("/") + ("?" + rest if rest else "")
 
 
@@ -525,7 +524,7 @@ def _gallery_html(pages, live=True, root=None):
     for group, items in groups.items():
         parts.append(f"<h2>{html.escape(group)}</h2><div class=\"grid\">")
         for p in items:
-            href = "/" + "/".join(html.escape(seg) for seg in p["path"].split("/"))
+            href = "/" + quote(p["path"])
             when = time.strftime("%Y-%m-%d %H:%M", time.localtime(p["mtime"]))
             tok = p.get("tokens") or {}
             badge = ""
@@ -534,12 +533,24 @@ def _gallery_html(pages, live=True, root=None):
             elif tok.get("current") is False:
                 badge = "<span class=\"badge stale\" title=\"design-system/tokens.json changed after this page was built — rebuild it\">tokens moved since build</span>"
             parts.append(
-                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" src=\"{href}?static=1\" title=\"{html.escape(p['title'])}\"></iframe>"
+                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" sandbox=\"allow-scripts\" src=\"{isolate.content_url(p['path'], 'f')}\" title=\"{html.escape(p['title'])}\"></iframe>"
                 f"<div class=\"t\">{html.escape(p['title'])}{badge}</div><div class=\"p\">{html.escape(p['path'])} · {when}</div></a>"
             )
         parts.append("</div>")
     parts.append((GALLERY_SNIPPET if live else "") + "</body></html>")
     return "".join(parts)
+
+
+def _viewer_html(page, title, local):
+    """The viewer's document for a page; a peer that may not write (local false) is shown Gallery and the title alone."""
+    page, title = html.escape(page), html.escape(title)
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>{title}</title><link rel="stylesheet" href="/_viewer.css"></head><body data-page="{page}" data-version="{SERVER_VERSION}">'
+        f'<header id="bar"><a href="{GALLERY}">Gallery</a><h1 id="title">{title}</h1><span id="chip"></span>'
+        f'<button type="button" id="network" hidden>Network</button><button type="button" id="notes"{"" if local else " hidden"}>Notes</button></header>'
+        '<div id="strips" aria-live="polite"></div><div id="drawer" hidden></div><main id="frame"></main><script src="/_viewer.js"></script></body></html>'
+    )
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -619,19 +630,20 @@ class Handler(SimpleHTTPRequestHandler):
         path = split_target(self.path)[0]
         if path.startswith(CONTENT):
             return self._content()
-        loopback = self.client_address[0] in LOOPBACK
         if path in SCRIPTS:
-            src, local_only = SCRIPTS[path]
+            name, ctype = SCRIPTS[path]
             try:
-                if local_only and not loopback:
-                    raise OSError("loopback only")
-                with open(src, "rb") as fh:
+                with open(os.path.join(HERE, name), "rb") as fh:
                     script = fh.read()
             except OSError:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return None
-            self._head(len(script), "text/javascript; charset=utf-8")
+            self._head(len(script), ctype)
             return io.BytesIO(script)
+        query = split_target(self.path)[1]
+        if path == GALLERY or path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
+            text = _gallery_html(_walk_pages(self.root), live=not self._wants_raw(query), root=self.root)
+            return self._control_document(text, isolate.gallery_policy(self.headers["Host"], RELOAD_SHA))
         parts = _parts(path)
         if not _servable(parts):
             self.send_error(HTTPStatus.NOT_FOUND)
@@ -639,29 +651,20 @@ class Handler(SimpleHTTPRequestHandler):
         full = os.path.join(self.root, *parts)
         # %2f too: http.server takes it for a trailing slash and would open the index itself, unchecked.
         if os.path.isdir(full) and path.endswith(("/", "%2f", "%2F")):
-            full = next((os.path.join(full, i) for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))), full)
+            parts = parts + [i for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))][:1]
+            full = os.path.join(self.root, *parts)
         if _real_parts(self.root, full) is None:
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
-        if not (os.path.isfile(full) and full.lower().endswith(PAGE_EXT)):
-            if isolate.scriptable(self.guess_type(full)):
-                self._csp = isolate.XML_POLICY
-            return super().send_head()
-        try:
-            with open(full, "rb") as fh:
-                body = fh.read()
-        except OSError:
-            self.send_error(HTTPStatus.NOT_FOUND)
-            return None
-        i = body.lower().rfind(b"</body>")
-        query = parse_qs(split_target(self.path)[1])
-        if i >= 0 and b"data-design-kit-reload" not in body:
-            if "_outline" in query and loopback:
-                body = body[:i] + OUTLINE_TAG.encode() + body[i:]
-            elif self._wants_live():
-                body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
-        self._head(len(body), "text/html; charset=utf-8")
-        return io.BytesIO(body)
+        page = "/".join(parts)
+        if self._page_file(page):
+            if self.client_address[0] in LOOPBACK and self.headers.get("Sec-Fetch-Site") in (None, "none") and self._wants_raw(query):
+                return self._empty(HTTPStatus.SEE_OTHER, ("Location", without_key(isolate.content_url(page, "s"), query, ("key", "static"))))
+            text = _viewer_html(page, _title_of(full) or parts[-1], not self._not_local("approvals"))
+            return self._control_document(text, isolate.viewer_policy(self.headers["Host"]))
+        if isolate.scriptable(self.guess_type(full)):
+            self._csp = isolate.XML_POLICY
+        return super().send_head()
 
     def _content(self):
         """GET and HEAD under /_c/: the page its segment signs, with the client injected, or a file that page may load, under the page's policy."""
@@ -675,6 +678,7 @@ class Handler(SimpleHTTPRequestHandler):
         full, own = os.path.join(self.root, *parts), "/".join(parts) == page
         real = _real_parts(self.root, full)
         if not (real and _servable(parts) and os.path.isfile(full) and (own or isolate.may_load(page, parts) and isolate.may_load(page, real))):
+            self._cors = isolate.may_load(page, parts)  # so a page looking for a file it may load reads the 404
             return self._empty(HTTPStatus.NOT_FOUND)
         try:
             fh = open(full, "rb")
@@ -688,6 +692,12 @@ class Handler(SimpleHTTPRequestHandler):
         with fh:
             body = isolate.inject(fh.read(), FRAME_TAG)
         self._head(len(body), "text/html; charset=utf-8")
+        if mode == "f" and self.command == "GET":
+            # Chrome sizes a frame in a process of its own only after its document began: the page's own script waits for that size.
+            at = body.find(FRAME_TAG) + len(FRAME_TAG)
+            self.wfile.write(body[:at])
+            time.sleep(FRAME_WAIT_S)
+            body = body[at:]
         return io.BytesIO(body)
 
     def _page_file(self, page):
@@ -740,8 +750,6 @@ class Handler(SimpleHTTPRequestHandler):
             if why:
                 return self._reject(HTTPStatus.FORBIDDEN, why)
             return self._json(check_status(self.root, page_of((parse_qs(query).get("page") or [""])[0])))
-        if path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
-            return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
         return super().do_GET()
 
     def list_directory(self, path):
@@ -847,13 +855,9 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _wants_live(self):
-        """Headless browsers taking a screenshot or a print must not get the
-        reload snippet: its open EventSource never goes idle, so a virtual-time
-        budget never expires and the capture hangs. `?static=1` opts any client out."""
-        if "static=1" in split_target(self.path)[1]:
-            return False
-        return "headless" not in (self.headers.get("User-Agent") or "").lower()
+    def _wants_raw(self, query):
+        """True for a headless browser, or ?static=1: an open /_events stream keeps a capture's virtual time from ever running out."""
+        return ("static", "1") in parse_qsl(query) or "headless" in (self.headers.get("User-Agent") or "").lower()
 
     def _events(self):
         self.send_response(HTTPStatus.OK)
@@ -882,14 +886,16 @@ class Handler(SimpleHTTPRequestHandler):
     def _json(self, obj):
         self._bytes(json.dumps(obj, indent=1).encode(), "application/json")
 
-    def _html(self, text):
-        self._bytes(text.encode(), "text/html; charset=utf-8")
+    def _control_document(self, text, policy):
+        """The head of the gallery or of a viewer, and its body to copy."""
+        body, self._csp = text.encode(), policy
+        self._head(len(body), "text/html; charset=utf-8", ("Cross-Origin-Opener-Policy", "same-origin"))
+        return io.BytesIO(body)
 
-    def _head(self, length, ctype):
+    def _head(self, length, ctype, *headers):
         self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(length))
-        self.send_header("Cache-Control", "no-store")
+        for name, value in headers + (("Content-Type", ctype), ("Content-Length", str(length)), ("Cache-Control", "no-store")):
+            self.send_header(name, value)
         self.end_headers()
 
     def _bytes(self, body, ctype):
