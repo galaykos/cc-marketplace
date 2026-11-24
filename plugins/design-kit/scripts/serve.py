@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON) and POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), each under its file's lock, one row per cid among its last 50, loopback peer, Host and Origin, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
+Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; a cid older than its file's last 50 rows is recorded again; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
@@ -49,10 +49,18 @@ RELOAD_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + NOTE_HOOK + '</
 GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
 OUTLINE_TAG = '<script data-design-kit-outline>' + NOTE_HOOK + '</script>'
 HERE = os.path.dirname(os.path.abspath(__file__))
-# By path, not by name: render-check.py and dk.sh load this file by path too, so its folder is not on sys.path.
-_spec = importlib.util.spec_from_file_location("dkisolate", os.path.join(HERE, "isolate.py"))
-isolate = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(isolate)
+
+
+def _beside(name):
+    """The module in name.py beside this file, by path: render-check.py and dk.sh load this file by path too, so its folder is not on sys.path."""
+    spec = importlib.util.spec_from_file_location("dk" + name, os.path.join(HERE, name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+isolate = _beside("isolate")
+picks = _beside("picks")
 NOTE_JS = os.path.join(HERE, "note.js")
 # route -> (file, loopback only); served from the plugin, never from the docroot
 SCRIPTS = {"/_note.js": (NOTE_JS, False)}
@@ -63,6 +71,7 @@ KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
 NOTES = "notes.jsonl"
 NOTES_LOCK = ".notes.lock"  # dk.sh takes the same lock before it rewrites notes.jsonl
+DECISIONS_LOCK = ".decisions.lock"
 CHECKS = ".checks"  # dk check's results and shots: a dot folder, so never served and never a reload
 CHECK_RESULTS = "results.json"
 # Variation selectors and the letters that render blank (Hangul fillers, the empty Braille cell): not C*, yet they hide text.
@@ -70,7 +79,10 @@ BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x
 IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
-DECISION_MAX = 8 * 1024
+DECISION_MAX = 64 * 1024
+NOTE_MAX = 8 * 1024
+CID = re.compile("[0-9a-f]{16}")  # made by the sender, kept for a retry of the same send
+RECENT_ROWS = 50
 JSONL_MAX = 2 * 1024 * 1024  # notes.jsonl and decisions.jsonl stop growing here (507): a page looping posts must not fill the disk
 PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
@@ -94,6 +106,10 @@ def locked(path):
 
 def notes_lock(root):
     return locked(os.path.join(root, NOTES_LOCK))
+
+
+def decisions_lock(root):
+    return locked(os.path.join(root, DECISIONS_LOCK))
 
 
 def checks_dir(root):
@@ -145,7 +161,7 @@ def _num(value):
     return round(value)
 
 
-def note_row(body):
+def note_row(body, cid):
     """One notes.jsonl row from a posted object: every field clamped, any other key dropped; None without text."""
     text = _clip(body.get("text"), 2000)
     if not text.strip():
@@ -161,6 +177,7 @@ def note_row(body):
     return {
         "id": secrets.token_hex(4),
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "cid": cid,
         "page": page_of(body.get("page")),
         "kind": "note",
         "anchor": anchor,
@@ -202,6 +219,15 @@ def append_row(path, row):
     finally:
         os.close(fd)
     return True
+
+
+def append_once(path, row):
+    """The row path holds for this send: the one of its last RECENT_ROWS with row's cid, else row, appended; None when append_row refuses it. Call it under path's lock."""
+    if row["cid"]:
+        for kept in _jsonl(path)[-RECENT_ROWS:]:
+            if kept.get("cid") == row["cid"]:
+                return kept
+    return row if append_row(path, row) else None
 
 
 def lan_gate(key, peer, query, cookie):
@@ -381,10 +407,10 @@ def _jsonl(path):
     """The JSON objects in a .jsonl file; other lines, a missing file and a symlink (never followed) give nothing."""
     rows = []
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fh = open(path, "rb", opener=lambda p, flags: os.open(p, flags | getattr(os, "O_NOFOLLOW", 0)))
     except OSError:
         return rows
-    with os.fdopen(fd, "rb") as fh:
+    with fh:
         for line in fh:
             try:
                 row = json.loads(line.decode("utf-8", "replace"))
@@ -651,9 +677,9 @@ class Handler(SimpleHTTPRequestHandler):
             return
         path = split_target(self.path)[0]
         if path == "/_decision":
-            what, header, record = "decisions", "X-Design-Kit-Decision", self._decision
+            what, header, limit, record = "decisions", "X-Design-Kit-Decision", DECISION_MAX, self._decision
         elif path == "/_note":
-            what, header, record = "notes", "X-Design-Kit-Note", self._note
+            what, header, limit, record = "notes", "X-Design-Kit-Note", NOTE_MAX, self._note
         else:
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
         why = self._not_local(what)
@@ -665,8 +691,8 @@ class Handler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length") or "0")
         except ValueError:
             return self._reject(HTTPStatus.BAD_REQUEST, "bad Content-Length")
-        if length <= 0 or length > DECISION_MAX:
-            return self._reject(HTTPStatus.REQUEST_ENTITY_TOO_LARGE if length > DECISION_MAX else HTTPStatus.BAD_REQUEST, "body must be 1..%d bytes" % DECISION_MAX)
+        if length <= 0 or length > limit:
+            return self._reject(HTTPStatus.REQUEST_ENTITY_TOO_LARGE if length > limit else HTTPStatus.BAD_REQUEST, "body must be 1..%d bytes" % limit)
         raw = self.rfile.read(length)
         try:
             body = json.loads(raw.decode("utf-8"))
@@ -676,38 +702,38 @@ class Handler(SimpleHTTPRequestHandler):
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: %s" % exc)
         except RecursionError:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
+        cid = body.get("cid")
+        if cid is not None and not (isinstance(cid, str) and CID.fullmatch(cid)):
+            return self._reject(HTTPStatus.BAD_REQUEST, "cid must be 16 of 0-9 a-f")
         try:
-            record(body)
+            record(body, cid)
         except RecursionError:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
 
-    def _store(self, name, row, answer):
-        """Append row to <root>/name and answer: 507 at JSONL_MAX, a JSON 500 when the write fails."""
+    def _store(self, name, lock, row, *fields):
+        """Append row to <root>/name under its lock, once per cid, and answer fields of the row there: 507 at JSONL_MAX, a JSON 500 when the write fails."""
         try:
-            if not append_row(os.path.join(self.root, name), row):
-                return self._reject(HTTPStatus.INSUFFICIENT_STORAGE, "%s has reached its %d MiB cap; move it aside to record more" % (name, JSONL_MAX // (1024 * 1024)))
+            with lock(self.root):
+                kept = append_once(os.path.join(self.root, name), row)
         except OSError as exc:
             return self._reject(HTTPStatus.INTERNAL_SERVER_ERROR, "could not write %s: %s" % (name, exc.strerror or exc))
-        self._json(answer)
+        if kept is None:
+            return self._reject(HTTPStatus.INSUFFICIENT_STORAGE, "%s has reached its %d MiB cap; move it aside to record more" % (name, JSONL_MAX // (1024 * 1024)))
+        self._json(dict({"recorded": True}, **{f: kept.get(f) for f in fields}))
 
-    def _note(self, body):
-        row = note_row(body)
+    def _note(self, body, cid):
+        row = note_row(body, cid)
         if row is None:
             return self._reject(HTTPStatus.BAD_REQUEST, "a note needs text")
-        with notes_lock(self.root):
-            self._store(NOTES, row, {"recorded": True, "id": row["id"], "ts": row["ts"]})
+        self._store(NOTES, notes_lock, row, "id", "cid", "ts")
 
-    def _decision(self, body):
-        row = {
-            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "board": _clean(str(body.get("board") or "")[:256]),
-            "picked": body.get("picked") if isinstance(body.get("picked"), int) else None,
-            "knobs": _clean(body.get("knobs")) if isinstance(body.get("knobs"), dict) else {},
-            "text": _clean(body.get("text")) if isinstance(body.get("text"), dict) else {},
-            "prompt": _clean(str(body.get("prompt") or "")[:4096]),
-            "consumed": False,
-        }
-        self._store("decisions.jsonl", row, {"recorded": True, "ts": row["ts"]})
+    def _decision(self, body, cid):
+        pick, why = picks.clean_pick(body, _clean, _hidden)
+        if pick is None:
+            return self._reject(HTTPStatus.BAD_REQUEST, why)
+        row = dict({"v": 2, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cid": cid}, **pick)
+        row.update(prompt=picks.fixed_prompt(pick["board"], pick["picked"]), consumed=False)
+        self._store("decisions.jsonl", decisions_lock, row, "cid", "ts")
 
     def _reject(self, status, why):
         body = json.dumps({"recorded": False, "error": why}).encode()

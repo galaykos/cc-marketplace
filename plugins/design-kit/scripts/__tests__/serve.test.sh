@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot, the headers of every answer, SVG/XHTML/XML policy, /_decision, /_note (clamps, text required, lone surrogates, the 2 MiB cap, no symlink, a failed write), /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
+# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer); that half skips without one.
 # Misses: the reconnect bar, the cookie page and the note widget in a browser, and a real second device (each run by hand in Chrome: 2026-11-12, the widget 2026-11-13).
 set -euo pipefail
@@ -80,15 +80,20 @@ done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }
 # gallery thumbnails must not each hold an SSE connection (six fill a browser's per-host pool)
 case "$gal" in *'src="/decks/a.html?static=1"'*) ;; *) echo "FAIL: gallery iframe lacks ?static=1"; exit 1 ;; esac
-# /_decision: the one write route — loopback + header + size + JSON, append-only
+# /_decision: loopback + header + size + JSON, append-only; a row holds what picks.py keeps (its bounds: picks.test.sh) and the server's own prompt
 post() { curl -s -o "$tmp/.resp" -w '%{http_code}' -X POST "$@" "http://127.0.0.1:$port/_decision"; }
-c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' --data '{"board":"a.html","picked":1,"knobs":{},"text":{},"prompt":"pick 1"}')"
+c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' --data '{"board":"a.html","picked":1,"knobs":{"all":{"hue":400,"evil":"x"}},"text":{"1":{"h1":{"was":"Old","now":"New","evil":"x"}}},"prompt":"POSTED","evil":"x","v":9,"ts":"x","consumed":true}')"
 [ "$c" = 200 ] || { echo "FAIL: decision accept http $c: $(cat "$tmp/.resp")"; exit 1; }
-grep -q '"picked": 1' "$tmp/decisions.jsonl" 2>/dev/null || grep -q '"picked":1' "$tmp/decisions.jsonl" || { echo "FAIL: decisions.jsonl not appended"; cat "$tmp/decisions.jsonl" 2>/dev/null; exit 1; }
-grep -q '"consumed": false' "$tmp/decisions.jsonl" || { echo "FAIL: consumed flag missing"; exit 1; }
+python3 - "$tmp/decisions.jsonl" <<'PY' || { echo "FAIL: posted prompt never stored, every other field as picks.py keeps it: $(cat "$tmp/decisions.jsonl" 2>/dev/null)"; exit 1; }
+import json, re, sys
+row = json.loads(open(sys.argv[1], encoding="utf-8").read())
+assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", row.pop("ts")), row
+assert row == {"v": 2, "cid": None, "board": "a.html", "picked": 1, "knobs": {"all": {"hue": 360}}, "text": {"1": {"h1": {"was": "Old", "now": "New"}}},
+               "prompt": "From the design board a.html, implement artboard 1. Update design-kit in this session to read adjustments and text edits.", "consumed": False}, row
+PY
 c="$(post -H 'Content-Type: application/json' --data '{"board":"a.html"}')"; [ "$c" = 403 ] || { echo "FAIL: missing header should be 403, got $c"; exit 1; }
-big="$(python3 -c 'print("{\"prompt\":\"" + "x"*9000 + "\"}")')"
-c="$(post -H 'X-Design-Kit-Decision: 1' --data "$big")"; [ "$c" = 413 ] || { echo "FAIL: oversize should be 413, got $c"; exit 1; }
+big="$(python3 -c 'print("{\"board\":\"a.html\",\"prompt\":\"" + "x"*70000 + "\"}")')"
+c="$(post -H 'X-Design-Kit-Decision: 1' --data "$big")"; [ "$c" = 413 ] || { echo "FAIL: a 70 KiB pick should be 413, got $c"; exit 1; }
 c="$(post -H 'X-Design-Kit-Decision: 1' --data 'not json')"; [ "$c" = 400 ] || { echo "FAIL: bad json should be 400, got $c"; exit 1; }
 c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data '{}' "http://127.0.0.1:$port/decks/a.html")"; [ "$c" = 501 ] || { echo "FAIL: POST elsewhere should be 501, got $c"; exit 1; }
 ok_body='{"board":"a.html","picked":2,"prompt":"planted"}'
@@ -96,14 +101,22 @@ c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Host: attacker.example' --data "$ok_
 c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Origin: http://attacker.example' --data "$ok_body")"; [ "$c" = 403 ] || { echo "FAIL: a foreign Origin should be 403, got $c"; exit 1; }
 c="$(post -H 'X-Design-Kit-Decision: 1' -H "Origin: http://127.0.0.1:$port" --data '{"board":"a.html","picked":3}')"; [ "$c" = 200 ] || { echo "FAIL: the page's own Origin should be 200, got $c"; exit 1; }
 c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":4}' "http://localhost:$port/_decision")"; [ "$c" = 200 ] || { echo "FAIL: localhost should be 200, got $c"; exit 1; }
+c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a\ud83d.html","picked":5}')"
+[ "$c" = 400 ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False and d["error"].startswith("board must be"), d' "$tmp/.resp" \
+  || { echo "FAIL: a board picks.py refuses should be 400 with its reason, got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
 [ "$(wc -l < "$tmp/decisions.jsonl" | tr -d ' ')" = 3 ] || { echo "FAIL: rejected posts must not append"; exit 1; }
+fits="$(python3 -c 'import json; print(json.dumps({"board": "a.html", "picked": 2, "text": {"1": {"h1:%d" % i: {"was": "w" * 295, "now": "n" * 295} for i in range(100)}}}))')"
+[ "${#fits}" -ge 61440 ] || { echo "FAIL: the big pick is under 60 KiB: ${#fits}"; exit 1; }
+c="$(post -H 'X-Design-Kit-Decision: 1' --data "$fits")"
+[ "$c" = 200 ] && tail -n 1 "$tmp/decisions.jsonl" | python3 -c 'import json,sys; t=json.load(sys.stdin)["text"]["1"]; assert len(t) == 100 and all(e == {"was": "w" * 295, "now": "n" * 295} for e in t.values())' \
+  || { echo "FAIL: a 60 KiB pick should be recorded whole, got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
 never_served /decisions.jsonl '"picked"'
 
 # /_note: /_decision's guards with its own header; every field clamped, unknown keys dropped; notes.jsonl never served
 npost() { curl -s -o "$tmp/.resp" -w '%{http_code}' -X POST "$@" "http://127.0.0.1:$port/_note"; }
 nbody="$(python3 -c '
 import json
-b = {"page": "/decks/a.html?x=1", "text": "y" * 2500, "evil": "dropped", "status": "addressed",
+b = {"page": "/decks/a.html?x=1", "text": "y" * 2500, "evil": "dropped", "status": "addressed", "cid": "0123456789abcdef",
      "anchor": {"selector": "s" * 600, "tag": "t" * 40, "text": "z" * 300, "rect": {"x": 1.4, "y": "2", "w": 3, "h": 7}, "more": 1},
      "context": {"viewport": {"w": 800, "h": 600}, "theme": "d" * 30, "console": ["e%d" % i + "c" * 400 for i in range(7)] + [5], "x": 1}}
 print(json.dumps(b).replace("\"h\": 7", "\"h\": Infinity"))')"
@@ -114,7 +127,8 @@ c="$(npost -H 'X-Design-Kit-Note: 1' -H "Origin: http://localhost:$port" --data 
 python3 - "$tmp/notes.jsonl" <<'PY' || { echo "FAIL: notes.jsonl rows: $(cat "$tmp/notes.jsonl" 2>/dev/null)"; exit 1; }
 import json, re, sys
 a, b = [json.loads(l) for l in open(sys.argv[1], encoding="utf-8")]
-assert set(a) == {"id", "ts", "page", "kind", "anchor", "text", "context", "status", "reply"}, sorted(a)
+assert set(a) == set(b) == {"id", "ts", "cid", "page", "kind", "anchor", "text", "context", "status", "reply"}, (sorted(a), sorted(b))
+assert (a["cid"], b["cid"]) == ("0123456789abcdef", None), (a["cid"], b["cid"])
 assert re.fullmatch(r"[0-9a-f]{8}", a["id"]) and a["id"] != b["id"], (a["id"], b["id"])
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", a["ts"]), a["ts"]
 assert (a["page"], a["kind"], a["status"], a["reply"]) == ("decks/a.html", "note", "open", ""), a
@@ -131,8 +145,8 @@ c="$(npost -H 'Content-Type: application/json' --data '{"text":"x"}')"; [ "$c" =
 c="$(npost -H 'X-Design-Kit-Decision: 1' --data '{"text":"x"}')"; [ "$c" = 403 ] || { echo "FAIL: the decision header must not open /_note, got $c"; exit 1; }
 c="$(npost -H 'X-Design-Kit-Note: 1' -H 'Host: attacker.example' --data '{"text":"x"}')"; [ "$c" = 403 ] || { echo "FAIL: a note with a foreign Host should be 403, got $c"; exit 1; }
 c="$(npost -H 'X-Design-Kit-Note: 1' -H 'Origin: http://attacker.example' --data '{"text":"x"}')"; [ "$c" = 403 ] || { echo "FAIL: a note with a foreign Origin should be 403, got $c"; exit 1; }
-big="$(python3 -c 'print("{\"text\":\"" + "x"*9000 + "\"}")')"
-c="$(npost -H 'X-Design-Kit-Note: 1' --data "$big")"; [ "$c" = 413 ] || { echo "FAIL: an oversize note should be 413, got $c"; exit 1; }
+big="$(python3 -c 'print("{\"text\":\"" + "x"*9216 + "\"}")')"
+c="$(npost -H 'X-Design-Kit-Note: 1' --data "$big")"; [ "$c" = 413 ] || { echo "FAIL: a 9 KiB note should be 413, got $c"; exit 1; }
 c="$(npost -H 'X-Design-Kit-Note: 1' --data 'not json')"; [ "$c" = 400 ] || { echo "FAIL: a non-JSON note should be 400, got $c"; exit 1; }
 c="$(npost -H 'X-Design-Kit-Note: 1' --data '["a list"]')"; [ "$c" = 400 ] || { echo "FAIL: a note that is not a JSON object should be 400, got $c"; exit 1; }
 [ "$(wc -l < "$tmp/notes.jsonl" | tr -d ' ')" = 2 ] || { echo "FAIL: rejected notes must not append"; exit 1; }
@@ -159,29 +173,87 @@ import json,sys
 r=json.loads(sys.stdin.buffer.read().decode("utf-8")); a=r["anchor"]
 assert (r["page"], r["text"], a["selector"], a["tag"], a["text"], r["context"]["theme"], r["context"]["console"]) == ("decks/s?.html", "cut ?", "p?", "p?", "?", "?", ["e?"]), r' \
   || { echo "FAIL: a note with a lone surrogate should be 200 and stored with ? ($c): $(tail -n 1 "$tmp/notes.jsonl" | cut -c1-200)"; exit 1; }
-c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a\ud83d.html","picked":1,"knobs":{"k\ud83d":{"v":"\udc00"}},"text":{"t":"\ud83d"},"prompt":"p\ud83d"}')"
+c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1,"text":{"1":{"h1":{"was":"w\ud83d","now":"\udc00"}}}}')"
 [ "$c" = 200 ] && tail -n 1 "$tmp/decisions.jsonl" | python3 -c '
 import json,sys
 r=json.loads(sys.stdin.buffer.read().decode("utf-8"))
-assert (r["board"], r["knobs"], r["text"], r["prompt"]) == ("a?.html", {"k?": {"v": "?"}}, {"t": "?"}, "p?"), r' \
-  || { echo "FAIL: a decision with a lone surrogate should be 200 and stored with ? ($c): $(tail -n 1 "$tmp/decisions.jsonl" | cut -c1-200)"; exit 1; }
+assert r["text"] == {"1": {"h1": {"was": "w?", "now": "?"}}}, r' \
+  || { echo "FAIL: a text edit with a lone surrogate should be 200 and stored with ? ($c): $(tail -n 1 "$tmp/decisions.jsonl" | cut -c1-200)"; exit 1; }
 deep="$(python3 -c 'print("[" * 8000)')"
 c="$(npost -H 'X-Design-Kit-Note: 1' --data "$deep")"; [ "$c" = 400 ] || { echo "FAIL: 8 KiB of nesting to /_note should be 400, got $c"; exit 1; }
-c="$(post -H 'X-Design-Kit-Decision: 1' --data "$deep")"; [ "$c" = 400 ] || { echo "FAIL: 8 KiB of nesting to /_decision should be 400, got $c"; exit 1; }
+deep="$(python3 -c 'print("[" * 65000)')"
+c="$(post -H 'X-Design-Kit-Decision: 1' --data "$deep")"; [ "$c" = 400 ] || { echo "FAIL: 64 KiB of nesting to /_decision should be 400, got $c"; exit 1; }
+# one row per cid, both routes: the same send answers the row on disk and writes nothing, only the last 50 rows count, the file's lock covers the search and the write
+python3 - "$here/serve.py" "$tmp" "$port" <<'PY' || { echo "FAIL: one row per cid"; exit 1; }
+import http.client, importlib.util, json, os, sys, threading, time
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+root, port = sys.argv[2], int(sys.argv[3])
+A, B, C = "00000000000000aa", "00000000000000bb", "00000000000000cc"
+bad = []
+for route, header, name, lock, body, keys in (
+        ("/_decision", "X-Design-Kit-Decision", "decisions.jsonl", ".decisions.lock", {"board": "a.html", "picked": 1}, {"recorded", "cid", "ts"}),
+        ("/_note", "X-Design-Kit-Note", "notes.jsonl", ".notes.lock", {"page": "/decks/a.html", "text": "t"}, {"recorded", "id", "cid", "ts"})):
+    path = os.path.join(root, name)
+    def check(case, got, want):
+        if got != want: bad.append("  %s %s: got %r, want %r" % (route, case, got, want))
+    def send(cid):
+        con = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        con.request("POST", route, json.dumps(dict(body, cid=cid)), {header: "1"})
+        r = con.getresponse()
+        return r.status, json.loads(r.read())
+    def rows():
+        with open(path, encoding="utf-8") as fh: return [json.loads(line) for line in fh]
+    with open(path, "rb") as fh: kept = fh.read()
+    n = len(rows())
+    first = send(A); row = rows()[-1]
+    check("a new cid is recorded", first, (200, {k: True if k == "recorded" else row.get(k) for k in keys}))
+    check("the cid is stored", (row.get("cid"), len(rows())), (A, n + 1))
+    check("one row per cid", (send(A), len(rows())), (first, n + 1))
+    check("a new cid writes a second row", (send(B)[0], len(rows())), (200, n + 2))
+    for cid in ("a" * 15, "a" * 17, "A" * 16, "g" * 16, "a" * 16 + "\n", "", 1234567890123456, False, [A]):
+        check("cid %r is refused" % (cid,), (send(cid)[0], len(rows())), (400, n + 2))
+    old = {"cid": C, "ts": "2001-01-01T00:00:00Z", "id": "0badc0de"}
+    with open(path, "w", encoding="utf-8") as fh:
+        for r in [old] + [{"cid": None}] * 49: fh.write(json.dumps(r) + "\n")
+    check("the 50th row from the end answers its own ts", (send(C), len(rows())), ((200, {k: True if k == "recorded" else old[k] for k in keys}), 50))
+    with open(path, "a", encoding="utf-8") as fh: fh.write('{"cid": null}\n')
+    check("the 51st is not searched", (send(C)[0], len(rows())), (200, 52))
+    got = []
+    threads = [threading.Thread(target=lambda: got.append(send(A))) for _ in range(4)]
+    with m.locked(os.path.join(root, lock)):
+        for t in threads: t.start()
+        time.sleep(0.5)
+        check("nothing is written while %s is held" % lock, (got, len(rows())), ([], 52))
+    for t in threads: t.join()
+    check("four sends that waited make one row", ([g == got[0] for g in got], got[0][0], len(rows())), ([True] * 4, 200, 53))
+    with open(path, "wb") as fh: fh.write(kept)
+for b in bad: print(b)
+sys.exit(1 if bad else 0)
+PY
 # appends stop at 2 MiB: 507 with a JSON reason, the file untouched
 for f in notes.jsonl decisions.jsonl; do
   cp "$tmp/$f" "$tmp/.keep"
   python3 -c '
 import json,sys
 with open(sys.argv[1],"a") as h:
-    while h.tell() < 2*1024*1024: h.write(json.dumps({"id":"pad","page":"old.html","text":"p"*500,"status":"dismissed","consumed":True})+"\n")' "$tmp/$f"
+    while h.tell() < 2*1024*1024: h.write(json.dumps({"id":"pad","cid":"00000000000000dd","page":"old.html","text":"p"*500,"status":"dismissed","consumed":True})+"\n")' "$tmp/$f"
   size="$(wc -c < "$tmp/$f" | tr -d ' ')"
-  if [ "$f" = notes.jsonl ]; then c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"text":"one more"}')"; else c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1}')"; fi
+  send() { if [ "$f" = notes.jsonl ]; then npost -H 'X-Design-Kit-Note: 1' --data "{\"text\":\"one more\",\"cid\":\"$1\"}"; else post -H 'X-Design-Kit-Decision: 1' --data "{\"board\":\"a.html\",\"picked\":1,\"cid\":\"$1\"}"; fi; }
+  c="$(send 00000000000000dd)"; [ "$c" = 200 ] || { echo "FAIL: a send a full $f already holds should be answered, got $c"; exit 1; }
+  c="$(send 00000000000000ee)"
   [ "$c" = 507 ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False and "MiB" in d["error"], d' "$tmp/.resp" \
     || { echo "FAIL: a post to a full $f should be 507 with a JSON reason, got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
   [ "$(wc -c < "$tmp/$f" | tr -d ' ')" = "$size" ] || { echo "FAIL: $f grew past the cap"; exit 1; }
   mv "$tmp/.keep" "$tmp/$f"
 done
+# a pick that cannot be written answers 500 and leaves nothing behind
+mv "$tmp/decisions.jsonl" "$tmp/.keep"; mkdir "$tmp/decisions.jsonl"
+for b in '{"board":"a.html","picked":1}' '{"board":"a.html","picked":1,"cid":"00000000000000aa"}'; do
+  c="$(post -H 'X-Design-Kit-Decision: 1' --data "$b" || true)"
+  [ "$c" = 500 ] && [ -z "$(ls -A "$tmp/decisions.jsonl")" ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False and d["error"], d' "$tmp/.resp" \
+    || { echo "FAIL: a pick while decisions.jsonl is a folder should be a JSON 500 ($b), got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
+done
+rmdir "$tmp/decisions.jsonl"; mv "$tmp/.keep" "$tmp/decisions.jsonl"
 # notes.jsonl is never followed through a symlink (a tracked one would let a post append to its target), and a failed append answers 500
 mv "$tmp/notes.jsonl" "$tmp/.keep"
 printf '{"id":"out1","page":"decks/a.html","kind":"note","text":"FROM-OUTSIDE","status":"open"}\n' > "$tmp.target.jsonl"
