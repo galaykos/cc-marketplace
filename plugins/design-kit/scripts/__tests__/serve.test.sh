@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), /_decision, /_note (clamps, text required, lone surrogates, the 2 MiB cap, no symlink, a failed write), /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
+# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot, the headers of every answer, SVG/XHTML/XML policy, /_decision, /_note (clamps, text required, lone surrogates, the 2 MiB cap, no symlink, a failed write), /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer); that half skips without one.
 # Misses: the reconnect bar, the cookie page and the note widget in a browser, and a real second device (each run by hand in Chrome: 2026-11-12, the widget 2026-11-13).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
-tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
+tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp" "$tmp.out"' EXIT
 port=$(( 20000 + RANDOM % 10000 ))
 mkdir -p "$tmp/decks"
 printf '<!doctype html><html><head><title>Deck A</title></head><body><h1>a</h1></body></html>' > "$tmp/decks/a.html"
@@ -206,6 +206,81 @@ assert m._newest_mtime(sys.argv[2]) == before
 os.unlink(os.path.join(sys.argv[2], ".notes.jsonl.tmp"))
 PY
 
+# what the control origin refuses, on every method and route: a Host that is not localhost or an IP literal (a rebound DNS name), a service worker's script
+base="http://127.0.0.1:$port"
+code() { curl -s -o "$tmp/.resp" -w '%{http_code}' --max-time 2 "$@" || true; }
+for n in evil.example localhost.evil "evil.example:$port" empty missing; do
+  case "$n" in empty) h='Host;' ;; missing) h='Host:' ;; *) h="Host: $n" ;; esac
+  for p in / /decks/a.html /_index.json /_events /_note.js; do
+    c="$(code -H "$h" "$base$p")"; [ "$c" = 403 ] || { echo "FAIL: GET with Host $n is 403: $p got $c"; exit 1; }
+    c="$(code -I -H "$h" "$base$p")"; [ "$c" = 403 ] || { echo "FAIL: HEAD with Host $n is 403: $p got $c"; exit 1; }
+  done
+  c="$(code -X POST -H "$h" --data '{}' "$base/decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: POST with Host $n is 403: got $c"; exit 1; }
+done
+for n in "127.0.0.1:$port" localhost "LOCALHOST:$port" "[::1]:$port" "192.0.2.7:$port"; do
+  c="$(code -H "Host: $n" "$base/decks/a.html")"; [ "$c" = 200 ] || { echo "FAIL: GET with Host $n is 200: got $c"; exit 1; }
+  c="$(code -I -H "Host: $n" "$base/decks/a.html")"; [ "$c" = 200 ] || { echo "FAIL: HEAD with Host $n is 200: got $c"; exit 1; }
+  c="$(code -X POST -H "Host: $n" --data '{}' "$base/decks/a.html")"; [ "$c" = 501 ] || { echo "FAIL: POST with Host $n passes the Host check (501, no such route): got $c"; exit 1; }
+done
+for p in / /decks/a.html /_note.js; do
+  c="$(code -H 'Service-Worker: script' "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: Service-Worker: script is 404: GET $p got $c"; exit 1; }
+  c="$(code -I -H 'Service-Worker: script' "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: Service-Worker: script is 404: HEAD $p got $c"; exit 1; }
+done
+# a file or folder that resolves outside the docroot is 404 and unlisted; %2f is a trailing slash to http.server, which would open the index itself
+mkdir -p "$tmp.out" "$tmp/decks/sub"
+printf '<!doctype html><title>OUTSIDE</title><body>OUTSIDE</body>' | tee "$tmp.out/index.html" > "$tmp.out/p.html"; printf 'OUTSIDE' > "$tmp.out/p.png"
+ln -s "$tmp.out/p.html" "$tmp/decks/out.html"; ln -s "$tmp.out/p.png" "$tmp/shots/out.png"; ln -s "$tmp.out" "$tmp/decks/outdir"
+ln -s "$tmp.out/index.html" "$tmp/decks/sub/index.html"; ln -s a.html "$tmp/decks/in.html"
+for p in /decks/out.html /shots/out.png /decks/outdir /decks/outdir/ /decks/outdir%2f /decks/outdir/p.html /decks/outdir/p.png /decks/sub/ /decks/sub%2f /decks/sub%2F /decks/%00; do
+  c="$(code "$base$p")"; [ "$c" = 404 ] && ! grep -q OUTSIDE "$tmp/.resp" || { echo "FAIL: symlink leaving the docroot is 404: GET $p got $c"; exit 1; }
+  c="$(code -I "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: symlink leaving the docroot is 404: HEAD $p got $c"; exit 1; }
+done
+case "$(curl -s "$base/_index.json")" in *OUTSIDE*) echo "FAIL: /_index.json gives the title of a page outside the docroot"; exit 1 ;; *'"path": "decks/in.html"'*) ;; *) echo "FAIL: /_index.json lost a link that stays inside the docroot"; exit 1 ;; esac
+c="$(code "$base/decks/in.html")"; [ "$c" = 200 ] && grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: a symlink that stays inside the docroot is still served: got $c"; exit 1; }
+rm -rf "$tmp.out" "$tmp/decks/out.html" "$tmp/decks/outdir" "$tmp/decks/in.html" "$tmp/decks/sub" "$tmp/shots/out.png"
+# an XML type opened directly runs no script: the policy, GET and HEAD; other types carry none
+heads() { curl -s -D - -o /dev/null --max-time 2 "$@" | tr -d '\r' || true; }
+for f in x.svg X.SVG x.xhtml x.xml x.pdf; do printf '<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>' > "$tmp/decks/$f"; done
+xml="Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
+for f in x.svg X.SVG x.xhtml x.xml; do
+  for m in "" -I; do hd="$(heads $m "$base/decks/$f")"; [ "$(printf '%s\n' "$hd" | grep -cxF "$xml")" = 1 ] || { echo "FAIL: $f opened directly carries the sandbox policy ($m): $hd"; exit 1; }; done
+done
+for f in /decks/x.pdf /shots/one.png; do hd="$(heads "$base$f")"; case "$hd" in *" 200 "*) ;; *) echo "FAIL: $f is 200: $hd"; exit 1 ;; esac; case "$hd" in *Content-Security-Policy*) echo "FAIL: $f carries no sandbox policy: $hd"; exit 1 ;; esac; done
+# every answer carries the common headers and CORP same-origin, once each
+has_common() {
+  local h
+  for h in 'X-Content-Type-Options: nosniff' 'Referrer-Policy: no-referrer' 'X-DNS-Prefetch-Control: off' 'Cross-Origin-Resource-Policy: same-origin'; do
+    [ "$(printf '%s\n' "$2" | grep -cxF "$h")" = 1 ] || { echo "FAIL: every answer carries one $h: $1: $2"; exit 1; }
+  done
+}
+for p in / /decks/a.html /_index.json /_notes /_checks /_events /_note.js /shots/one.png /decks /auth/walk.json /nope; do has_common "GET $p" "$(heads "$base$p")"; done
+has_common "HEAD a page" "$(heads -I "$base/decks/a.html")"
+has_common "a 304" "$(heads -H 'If-Modified-Since: Fri, 01 Jan 2100 00:00:00 GMT' "$base/shots/one.png")"
+has_common "a 403 on Host" "$(heads -H 'Host: evil.example' "$base/")"
+has_common "a refused POST" "$(heads -X POST --data '{}' "$base/_note")"
+has_common "a recorded POST" "$(heads -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1}' "$base/_decision")"
+has_common "an unknown method" "$(heads -X PUT "$base/")"
+# _cors drops CORP same-origin from that answer alone, and nothing else
+python3 - "$here/serve.py" "$tmp" <<'PY' || { echo "FAIL: Handler._cors drops Cross-Origin-Resource-Policy and keeps the common headers"; exit 1; }
+import http.client, importlib.util, sys, threading, time
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+class H(m.Handler):
+    root, state, protocol_version = sys.argv[2], {"version": 0, "last": time.monotonic(), "streams": 0}, "HTTP/1.1"
+    def do_GET(self):
+        self._cors = self.path == "/decks/x.svg"
+        super().do_GET()
+srv = m.ThreadingHTTPServer(("127.0.0.1", 0), H); srv.daemon_threads = True
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+con = http.client.HTTPConnection("127.0.0.1", srv.server_port, timeout=5)
+got = []
+for method, path in (("GET", "/decks/x.svg"), ("HEAD", "/shots/one.png")):
+    con.request(method, path); r = con.getresponse(); r.read()
+    got.append((r.status, r.getheader("Cross-Origin-Resource-Policy"), r.getheader("X-Content-Type-Options"), r.getheader("Content-Security-Policy")))
+srv.shutdown()
+assert got == [(200, None, "nosniff", m.isolate.XML_POLICY), (200, "same-origin", "nosniff", None)], got
+PY
+rm -f "$tmp/decks/x.svg" "$tmp/decks/X.SVG" "$tmp/decks/x.xhtml" "$tmp/decks/x.xml" "$tmp/decks/x.pdf"
+
 # token badge: a stamped page vs <docroot>/design-system/tokens.json; the design-system/ folder is not a gallery group
 dr="$tmp.ds/.cc-artifacts/design-kit"
 mkdir -p "$dr/design-system"; printf '{"color":{"a":{"$value":"#000"}}}' > "$dr/design-system/tokens.json"
@@ -296,6 +371,7 @@ else
   case "$hdr" in "HTTP/1."?" 200"*) ;; *) echo "FAIL: first keyed visit should be 200: $hdr"; exit 1 ;; esac
   grep -qF 'http-equiv="refresh" content="0;url=/decks/a.html?static=1"' "$tmp/.resp" || { echo "FAIL: first keyed visit does not refresh to the clean URL: $(cat "$tmp/.resp")"; exit 1; }
   grep -qF "$key" "$tmp/.resp" && { echo "FAIL: the cookie page echoes the key"; exit 1; }
+  has_common "the cookie page" "$hdr"
   ck="$(printf '%s\n' "$hdr" | grep -i '^set-cookie:' || true)"
   case "$ck" in *"design_kit_key=$key"*HttpOnly*SameSite=Strict*) ;; *) echo "FAIL: cookie lacks the key, HttpOnly or SameSite=Strict: $ck"; exit 1 ;; esac
   c="$(hc -b "design_kit_key=$key" "$L/decks/a.html")"; [ "$c" = 200 ] && grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: the cookie should serve the page, got $c"; exit 1; }

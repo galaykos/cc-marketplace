@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
 Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
@@ -10,6 +10,7 @@ import contextlib
 import hashlib
 import hmac
 import html
+import importlib.util
 import io
 import json
 import math
@@ -48,6 +49,10 @@ RELOAD_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + NOTE_HOOK + '</
 GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
 OUTLINE_TAG = '<script data-design-kit-outline>' + NOTE_HOOK + '</script>'
 HERE = os.path.dirname(os.path.abspath(__file__))
+# By path, not by name: render-check.py and dk.sh load this file by path too, so its folder is not on sys.path.
+_spec = importlib.util.spec_from_file_location("dkisolate", os.path.join(HERE, "isolate.py"))
+isolate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(isolate)
 NOTE_JS = os.path.join(HERE, "note.js")
 # route -> (file, loopback only); served from the plugin, never from the docroot
 SCRIPTS = {"/_note.js": (NOTE_JS, False)}
@@ -317,6 +322,8 @@ def _walk_pages(root):
             if fn.startswith(".") or fn in IGNORED or not fn.lower().endswith(PAGE_EXT):
                 continue
             full = os.path.join(dirpath, fn)
+            if not isolate.inside(root, full):
+                continue
             rel = os.path.relpath(full, root).replace(os.sep, "/")
             group = rel.split("/")[0] if "/" in rel else "(root)"
             stamp = _stamp_of(full)
@@ -495,9 +502,30 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, *_):
         pass
 
+    def end_headers(self):
+        for name, value in isolate.COMMON:
+            self.send_header(name, value)
+        if not self._cors:
+            self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        if self._csp:
+            self.send_header("Content-Security-Policy", self._csp)
+        super().end_headers()
+
+    def _refused(self):
+        """True once answered: 403 for a Host that is not localhost or an IP literal, 404 for a service worker's script."""
+        if not isolate.host_ok(self.headers.get("Host")):
+            self.send_error(HTTPStatus.FORBIDDEN, "open this preview at localhost or an IP address")
+        elif self.headers.get("Service-Worker") == "script":
+            self.send_error(HTTPStatus.NOT_FOUND)
+        else:
+            return False
+        return True
+
     def _gate(self):
-        """True to go on; else the cookie page of a first keyed visit, or the 403, has been sent.
+        """True to go on; else the refusal, the cookie page of a first keyed visit, or the 403, has been sent.
         That page redirects by meta refresh, not 303: a 303 ends a link followed from another site, where Chrome withholds a SameSite=Strict cookie."""
+        if self._refused():
+            return False
         path, query = split_target(self.path)
         verdict = lan_gate(self.key, self.client_address[0], query, self.headers.get("Cookie"))
         self._admitted = verdict != "deny"
@@ -522,7 +550,8 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_HEAD()
 
     def handle_one_request(self):
-        self._admitted = False
+        self._admitted = self._cors = False
+        self._csp = None
         try:
             super().handle_one_request()
         finally:
@@ -533,7 +562,7 @@ class Handler(SimpleHTTPRequestHandler):
         return os.path.join(self.root, *_parts(split_target(path)[0]))
 
     def send_head(self):
-        """GET and HEAD: 404 unless servable; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
+        """GET and HEAD: 404 unless servable and inside the docroot; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
         path = split_target(self.path)[0]
         loopback = self.client_address[0] in LOOPBACK
         if path in SCRIPTS:
@@ -553,9 +582,15 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
         full = os.path.join(self.root, *parts)
-        if os.path.isdir(full) and path.endswith("/"):
+        # %2f too: http.server takes it for a trailing slash and would open the index itself, unchecked.
+        if os.path.isdir(full) and path.endswith(("/", "%2f", "%2F")):
             full = next((os.path.join(full, i) for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))), full)
+        if not isolate.inside(self.root, full):
+            self.send_error(HTTPStatus.NOT_FOUND)
+            return None
         if not (os.path.isfile(full) and full.lower().endswith(PAGE_EXT)):
+            if isolate.scriptable(self.guess_type(full)):
+                self._csp = isolate.XML_POLICY
             return super().send_head()
         try:
             with open(full, "rb") as fh:
