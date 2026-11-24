@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON) and POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), each under its file's lock, one row per cid among its last 50, loopback peer, Host and Origin, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; a cid older than its file's last 50 rows is recorded again; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
+Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /_page?page= (Sec-Fetch-Site absent or same-origin: a page's title and framed content URL, and its allowed hosts for a peer that may write), /_c/<segment>/ (GET and HEAD, with no LAN key once isolate.open_segment opens the segment: its page with frame.js first, or a file isolate.may_load gives that page both by its path and by what it resolves to, each under page_policy, readable from any origin, no-store; a framed one opened as a document is 303 to its page URL), /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); three write routes, POST /_decision (a v:2 pick of the fields picks.py keeps and the server's own prompt into decisions.jsonl, <= 64 KiB of JSON), POST /_note (a note row with text, every field clamped, numbers to +-1e7, into notes.jsonl, <= 8 KiB), both one row per cid among the file's last 50, and POST /_allow (a host one page may load from, in or out of .allow.json through isolate.set_allow, <= 8 KiB), each under its file's lock, loopback peer and Host, an Origin, when sent, of http:// and that Host, its own X-Design-Kit-* header, else 403 / 413 / 400; a lone surrogate in a stored text is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings, a path that resolves outside the docroot or to one of these. GET, HEAD and POST answer 403 unless Host is localhost or an IP literal, and 404 to Service-Worker: script; every answer carries isolate.py's headers, an XML type (SVG, XHTML) its sandbox policy. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind/.ver while the pid file names it.
+Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); whoever holds a content URL reads that page and its files with no key until the server stops; a hard link to a never-served file is served; a page at its page URL can still POST /_decision, /_note and /_allow, so a bundled page carrying third-party script can plant a pick, a note or an allowed host; a cid older than its file's last 50 rows is recorded again; a host without fcntl, or a lock file that cannot be opened, leaves a write unlocked; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
@@ -25,7 +25,7 @@ import time
 import unicodedata
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlsplit
+from urllib.parse import parse_qs, parse_qsl, quote, unquote, urlencode, urlsplit
 
 try:
     import fcntl
@@ -62,6 +62,9 @@ def _beside(name):
 isolate = _beside("isolate")
 picks = _beside("picks")
 NOTE_JS = os.path.join(HERE, "note.js")
+with open(os.path.join(HERE, "frame.js"), "rb") as _fh:
+    FRAME_TAG = b"<script data-design-kit-frame>" + _fh.read() + b"</script>"
+CONTENT = "/_c/"
 # route -> (file, loopback only); served from the plugin, never from the docroot
 SCRIPTS = {"/_note.js": (NOTE_JS, False)}
 # preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
@@ -81,6 +84,7 @@ PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 DECISION_MAX = 64 * 1024
 NOTE_MAX = 8 * 1024
+ALLOW_MAX = 8 * 1024
 CID = re.compile("[0-9a-f]{16}")  # made by the sender, kept for a retry of the same send
 RECENT_ROWS = 50
 JSONL_MAX = 2 * 1024 * 1024  # notes.jsonl and decisions.jsonl stop growing here (507): a page looping posts must not fill the disk
@@ -263,8 +267,17 @@ def _parts(path):
     return [p for p in posixpath.normpath(unquote(path)).split("/") if p and p not in (".", "..")]
 
 
+def opened(path):
+    """(segment, mode, page, docroot-relative parts asked for) of a /_c/ path whose segment this server signed, else None."""
+    if not path.startswith(CONTENT):
+        return None
+    seg, _, rest = path[len(CONTENT):].partition("/")
+    signed = isolate.open_segment(seg)
+    return signed and (seg,) + signed + (_parts(rest),)
+
+
 def without_key(path, query):
-    """Where a first keyed visit is sent: the same path (one leading slash, so never another host), every field but key."""
+    """Where a first keyed visit, or a framed page opened as a document, is sent: path with one leading slash (so never another host), every query field but key."""
     rest = urlencode([(k, v) for k, v in parse_qsl(query, keep_blank_values=True) if k != "key"])
     return "/" + path.lstrip("/") + ("?" + rest if rest else "")
 
@@ -302,6 +315,15 @@ def _servable(parts):
         return False
     name = parts[-1].lower()
     return name not in IGNORED and not name.endswith(".versions.json")
+
+
+def _real_parts(root, full):
+    """full's docroot-relative parts, every symlink followed, or None when they leave root or name a never-served file."""
+    if not isolate.inside(root, full):
+        return None
+    rel = os.path.relpath(os.path.realpath(full), os.path.realpath(root))
+    parts = [] if rel == os.curdir else rel.split(os.sep)
+    return parts if _servable(parts) else None
 
 
 def _loopback_host(value):
@@ -350,7 +372,7 @@ def _walk_pages(root):
             if fn.startswith(".") or fn in IGNORED or not fn.lower().endswith(PAGE_EXT):
                 continue
             full = os.path.join(dirpath, fn)
-            if not isolate.inside(root, full):
+            if _real_parts(root, full) is None:
                 continue
             rel = os.path.relpath(full, root).replace(os.sep, "/")
             group = rel.split("/")[0] if "/" in rel else "(root)"
@@ -532,8 +554,9 @@ class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         for name, value in isolate.COMMON:
             self.send_header(name, value)
-        if not self._cors:
-            self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        if self._cors:
+            self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cross-Origin-Resource-Policy", "cross-origin" if self._cors else "same-origin")
         if self._csp:
             self.send_header("Content-Security-Policy", self._csp)
         super().end_headers()
@@ -554,7 +577,10 @@ class Handler(SimpleHTTPRequestHandler):
         if self._refused():
             return False
         path, query = split_target(self.path)
-        verdict = lan_gate(self.key, self.client_address[0], query, self.headers.get("Cookie"))
+        if self.command in ("GET", "HEAD") and opened(path):
+            verdict = "pass"
+        else:
+            verdict = lan_gate(self.key, self.client_address[0], query, self.headers.get("Cookie"))
         self._admitted = verdict != "deny"
         if verdict == "set" and self.command != "POST":
             clean = html.escape(without_key(path, query))
@@ -591,6 +617,8 @@ class Handler(SimpleHTTPRequestHandler):
     def send_head(self):
         """GET and HEAD: 404 unless servable and inside the docroot; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
         path = split_target(self.path)[0]
+        if path.startswith(CONTENT):
+            return self._content()
         loopback = self.client_address[0] in LOOPBACK
         if path in SCRIPTS:
             src, local_only = SCRIPTS[path]
@@ -612,7 +640,7 @@ class Handler(SimpleHTTPRequestHandler):
         # %2f too: http.server takes it for a trailing slash and would open the index itself, unchecked.
         if os.path.isdir(full) and path.endswith(("/", "%2f", "%2F")):
             full = next((os.path.join(full, i) for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))), full)
-        if not isolate.inside(self.root, full):
+        if _real_parts(self.root, full) is None:
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
         if not (os.path.isfile(full) and full.lower().endswith(PAGE_EXT)):
@@ -635,12 +663,70 @@ class Handler(SimpleHTTPRequestHandler):
         self._head(len(body), "text/html; charset=utf-8")
         return io.BytesIO(body)
 
+    def _content(self):
+        """GET and HEAD under /_c/: the page its segment signs, with the client injected, or a file that page may load, under the page's policy."""
+        path, query = split_target(self.path)
+        signed = opened(path)
+        if not signed:
+            return self._empty(HTTPStatus.NOT_FOUND)
+        seg, mode, page, parts = signed
+        if mode == "f" and self.headers.get("Sec-Fetch-Dest") == "document":
+            return self._empty(HTTPStatus.SEE_OTHER, ("Location", without_key("/" + quote(page), query)))
+        full, own = os.path.join(self.root, *parts), "/".join(parts) == page
+        real = _real_parts(self.root, full)
+        if not (real and _servable(parts) and os.path.isfile(full) and (own or isolate.may_load(page, parts) and isolate.may_load(page, real))):
+            return self._empty(HTTPStatus.NOT_FOUND)
+        try:
+            fh = open(full, "rb")
+        except OSError:
+            return self._empty(HTTPStatus.NOT_FOUND)
+        self._cors = True
+        self._csp = isolate.page_policy(mode, page, seg, isolate.read_allow(self.root)[0].get(page, []), self.headers.get("Host"))
+        if not own:
+            self._head(os.fstat(fh.fileno()).st_size, self.guess_type(full))
+            return fh
+        with fh:
+            body = isolate.inject(fh.read(), FRAME_TAG)
+        self._head(len(body), "text/html; charset=utf-8")
+        return io.BytesIO(body)
+
+    def _page_file(self, page):
+        """The file of the page with this docroot-relative name, or None when there is none."""
+        parts = page.split("/")
+        full = os.path.join(self.root, *parts)
+        if not (all(parts) and _servable(parts) and (full.lower().endswith(PAGE_EXT) or self.guess_type(full) == "text/html")):
+            return None
+        return full if os.path.isfile(full) and _real_parts(self.root, full) else None
+
+    def _page(self, page):
+        """GET /_page: what the viewer needs to frame a page; the hosts, and leave to change anything, only where a write route would take the post."""
+        if self.headers.get("Sec-Fetch-Site", "same-origin") != "same-origin":
+            return self._reject(HTTPStatus.FORBIDDEN, "a page's content address is given to this preview's own pages only")
+        full = self._page_file(page)
+        if not full:
+            return self._reject(HTTPStatus.NOT_FOUND, "no such page")
+        local = not self._not_local("approvals")
+        hosts, error = isolate.read_allow(self.root) if local else ({}, None)
+        self._json({
+            "page": page,
+            "title": _title_of(full) or os.path.basename(full),
+            "src": isolate.content_url(page, "f"),
+            "project": hashlib.sha256(os.fsencode(os.path.realpath(self.root))).hexdigest()[:12],
+            "hosts": hosts.get(page, []),
+            "hosts_error": error,
+            "writable": local,
+            "version": SERVER_VERSION,
+            "local": "http://127.0.0.1:%d/%s" % (self.server.server_port, quote(page)),
+        })
+
     def do_GET(self):
         if not self._gate():
             return
         path, query = split_target(self.path)
         if path == "/_events":
             return self._events()
+        if path == "/_page":
+            return self._page((parse_qs(query).get("page") or [""])[0])
         if path == "/_index.json":
             return self._json(_walk_pages(self.root))
         if path == "/_notes":
@@ -679,9 +765,13 @@ class Handler(SimpleHTTPRequestHandler):
             what, header, limit, record = "decisions", "X-Design-Kit-Decision", DECISION_MAX, self._decision
         elif path == "/_note":
             what, header, limit, record = "notes", "X-Design-Kit-Note", NOTE_MAX, self._note
+        elif path == "/_allow":
+            what, header, limit, record = "approvals", "X-Design-Kit-Allow", ALLOW_MAX, self._allow
         else:
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
         why = self._not_local(what)
+        if not why and self.headers.get("Origin") not in (None, "http://" + self.headers["Host"]):
+            why = "%s are recorded from this preview's own address only" % what
         if why:
             return self._reject(HTTPStatus.FORBIDDEN, why)
         if not self.headers.get(header):
@@ -733,6 +823,21 @@ class Handler(SimpleHTTPRequestHandler):
         row = dict({"v": 2, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cid": cid}, **pick)
         row.update(prompt=picks.fixed_prompt(pick["board"], pick["picked"]), consumed=False)
         self._store("decisions.jsonl", decisions_lock, row, "cid", "ts")
+
+    def _allow(self, body, cid):
+        try:
+            hosts, why = isolate.set_allow(self.root, body.get("page"), body.get("host"), body.get("allow"), self._page_file, locked)
+        except OSError as exc:
+            return self._reject(HTTPStatus.INTERNAL_SERVER_ERROR, "could not write %s: %s" % (isolate.ALLOW, exc.strerror or exc))
+        if why:
+            return self._reject(HTTPStatus.BAD_REQUEST, why)
+        self._json({"hosts": hosts})
+
+    def _empty(self, status, *headers):
+        self.send_response(status)
+        for name, value in headers + (("Content-Length", "0"), ("Cache-Control", "no-store")):
+            self.send_header(name, value)
+        self.end_headers()
 
     def _reject(self, status, why):
         body = json.dumps({"recorded": False, "error": why}).encode()

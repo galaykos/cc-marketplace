@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
-# LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer); that half skips without one.
-# Misses: the reconnect bar, the cookie page and the note widget in a browser, and a real second device (each run by hand in Chrome: 2026-11-12, the widget 2026-11-13).
+# Drives serve.py through preview.sh: gallery, the reload client (injected, reconnect bar, size, note hook, headless and ?static=1 opt-outs), /_index.json, SSE, never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, /_note.js, ?_outline= and its origin import, token badges, stop.
+# LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer), /_page, /_c/ and /_allow included; that half skips without one.
+# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh), the reconnect bar, the cookie page and the note widget in a browser, and a real second device (each run by hand in Chrome: 2026-11-12, the widget 2026-11-13).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp" "$tmp.out"' EXIT
@@ -122,7 +122,7 @@ b = {"page": "/decks/a.html?x=1", "text": "y" * 2500, "evil": "dropped", "status
 print(json.dumps(b).replace("\"h\": 7", "\"h\": Infinity"))')"
 c="$(npost -H 'X-Design-Kit-Note: 1' -H 'Content-Type: application/json' --data "$nbody")"
 [ "$c" = 200 ] || { echo "FAIL: note accept http $c: $(cat "$tmp/.resp")"; exit 1; }
-c="$(npost -H 'X-Design-Kit-Note: 1' -H "Origin: http://localhost:$port" --data '{"page":"/decks/a.html","text":"page note","anchor":"no"}')"
+c="$(npost -H 'X-Design-Kit-Note: 1' -H "Origin: http://127.0.0.1:$port" --data '{"page":"/decks/a.html","text":"page note","anchor":"no"}')"
 [ "$c" = 200 ] || { echo "FAIL: a page note from the page's own Origin should be 200, got $c"; exit 1; }
 python3 - "$tmp/notes.jsonl" <<'PY' || { echo "FAIL: notes.jsonl rows: $(cat "$tmp/notes.jsonl" 2>/dev/null)"; exit 1; }
 import json, re, sys
@@ -298,7 +298,7 @@ for p in / /decks/a.html /_note.js; do
   c="$(code -H 'Service-Worker: script' "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: Service-Worker: script is 404: GET $p got $c"; exit 1; }
   c="$(code -I -H 'Service-Worker: script' "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: Service-Worker: script is 404: HEAD $p got $c"; exit 1; }
 done
-# a file or folder that resolves outside the docroot is 404 and unlisted; %2f is a trailing slash to http.server, which would open the index itself
+# a file or folder that resolves outside the docroot, or to a file that is never served, is 404 and unlisted; %2f is a trailing slash to http.server, which would open the index itself
 mkdir -p "$tmp.out" "$tmp/decks/sub"
 printf '<!doctype html><title>OUTSIDE</title><body>OUTSIDE</body>' | tee "$tmp.out/index.html" > "$tmp.out/p.html"; printf 'OUTSIDE' > "$tmp.out/p.png"
 ln -s "$tmp.out/p.html" "$tmp/decks/out.html"; ln -s "$tmp.out/p.png" "$tmp/shots/out.png"; ln -s "$tmp.out" "$tmp/decks/outdir"
@@ -309,7 +309,13 @@ for p in /decks/out.html /shots/out.png /decks/outdir /decks/outdir/ /decks/outd
 done
 case "$(curl -s "$base/_index.json")" in *OUTSIDE*) echo "FAIL: /_index.json gives the title of a page outside the docroot"; exit 1 ;; *'"path": "decks/in.html"'*) ;; *) echo "FAIL: /_index.json lost a link that stays inside the docroot"; exit 1 ;; esac
 c="$(code "$base/decks/in.html")"; [ "$c" = 200 ] && grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: a symlink that stays inside the docroot is still served: got $c"; exit 1; }
-rm -rf "$tmp.out" "$tmp/decks/out.html" "$tmp/decks/outdir" "$tmp/decks/in.html" "$tmp/decks/sub" "$tmp/shots/out.png"
+ln -s ../auth/walk.json "$tmp/decks/in.json"; ln -s ../auth "$tmp/decks/indir"; ln -s ../artifacts/.versions/a/v1.html "$tmp/decks/inver.html"; ln -s ../artifacts/a.versions.json "$tmp/decks/inled.json"; ln -s ../workshop.json "$tmp/shots/in.png"
+for p in /decks/in.json /decks/indir /decks/indir/ /decks/indir/walk.json /decks/inver.html /decks/inled.json /shots/in.png; do
+  c="$(code "$base$p")"; [ "$c" = 404 ] && ! grep -q SECRET "$tmp/.resp" || { echo "FAIL: a link to a never-served file is 404: GET $p got $c"; exit 1; }
+  c="$(code -I "$base$p")"; [ "$c" = 404 ] || { echo "FAIL: a link to a never-served file is 404: HEAD $p got $c"; exit 1; }
+done
+case "$(curl -s "$base/_index.json")" in *inver.html*) echo "FAIL: /_index.json lists a link to a never-served page"; exit 1 ;; esac
+rm -rf "$tmp.out" "$tmp/decks/out.html" "$tmp/decks/outdir" "$tmp/decks/in.html" "$tmp/decks/sub" "$tmp/shots/out.png" "$tmp/decks/in.json" "$tmp/decks/indir" "$tmp/decks/inver.html" "$tmp/decks/inled.json" "$tmp/shots/in.png"
 # an XML type opened directly runs no script: the policy, GET and HEAD; other types carry none
 heads() { curl -s -D - -o /dev/null --max-time 2 "$@" | tr -d '\r' || true; }
 for f in x.svg X.SVG x.xhtml x.xml x.pdf; do printf '<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>' > "$tmp/decks/$f"; done
@@ -332,26 +338,185 @@ has_common "a 403 on Host" "$(heads -H 'Host: evil.example' "$base/")"
 has_common "a refused POST" "$(heads -X POST --data '{}' "$base/_note")"
 has_common "a recorded POST" "$(heads -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1}' "$base/_decision")"
 has_common "an unknown method" "$(heads -X PUT "$base/")"
-# _cors drops CORP same-origin from that answer alone, and nothing else
-python3 - "$here/serve.py" "$tmp" <<'PY' || { echo "FAIL: Handler._cors drops Cross-Origin-Resource-Policy and keeps the common headers"; exit 1; }
-import http.client, importlib.util, sys, threading, time
+rm -f "$tmp/decks/x.svg" "$tmp/decks/X.SVG" "$tmp/decks/x.xhtml" "$tmp/decks/x.xml" "$tmp/decks/x.pdf"
+
+# a page in its own origin: /_page names its signed URL, /_c/ answers that page and the files it may load under the page's policy, /_allow lists the hosts it may load from
+bad=""; say() { echo "FAIL: $1"; bad=1; }
+answer() { head -c 200 "$tmp/.resp" | tr -d ' \n'; }
+same() { [ "$2" = "$3" ] || say "$1: got $2, want $3"; }
+own='motion/a;b, c ü'; mkdir -p "$tmp/$own/sub" "$tmp/$own/.d" "$tmp/motion/y" "$tmp/decks/folder.html" "$tmp.out"
+printf '<!doctype html><html><head><title>Own &amp; only</title></head><body><h1>own</h1></body></html>' | tee "$tmp/$own/two.html" "$tmp/motion/y/index.html" > "$tmp/$own/index.html"
+printf '<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>' > "$tmp/$own/x.svg"
+printf 'export default 1' | tee "$tmp/$own/.m.js" "$tmp/$own/.d/m.js" "$tmp.out/m.js" > "$tmp/$own/sub/m.js"
+ln -s "$tmp.out/m.js" "$tmp/$own/out.js"; ln -s "$tmp.out" "$tmp/$own/outdir"; ln -s ../../workshop.json "$tmp/$own/state.json"; ln -s ../../auth "$tmp/$own/in"
+ln -s ../../decks/a.html "$tmp/$own/a.txt"; ln -s ../../shots/one.png "$tmp/$own/one.png"; ln -s sub/m.js "$tmp/$own/near.js"; ln -s sub/m.js "$tmp/$own/usage.jsonl"; ln -s "../$own/sub/m.js" "$tmp/shots/m.js"; mkfifo "$tmp/$own/pipe"
+printf '<h1>OUTSIDE</h1>' > "$tmp.out/p.html"; ln -s "$tmp.out/p.html" "$tmp/decks/out.html"; ln -s ../artifacts/.versions/a/v1.html "$tmp/decks/linked.html"
+page_of() { curl -s -G --data-urlencode "page=$1" "$base/_page"; }
+field() { python3 -c 'import json,sys; print(json.load(sys.stdin)[sys.argv[1]])' "$1" 2>/dev/null || true; }
+src="$(page_of "$own/index.html" | field src)"; at="${src%/index.html}"; rest="${src#/_c/*/}"; seg="${src#/_c/}"; seg="${seg%%/*}"
+live="$(code "$base${src:-/_c/}")"; same "a page is served at the URL /_page gives it" "$live $(grep -c '<h1>own</h1>' "$tmp/.resp")" "200 1"
+# gone <claim> <path>: 404 to GET and HEAD, while the segment's own page answers (a server without the route fails too). One line it can print: HEAD of a symlinked folder under /_c/ is 404
+gone() {
+  local c; [ "$live" = 200 ] || { say "$1: its own page got $live"; return; }
+  c="$(code --path-as-is "$base$2")"; [ "$c" = 404 ] && ! grep -q 'SECRET\|export\|PNG\|<h1>\|<svg' "$tmp/.resp" || say "$1: GET $2 got $c"
+  c="$(code --path-as-is -I "$base$2")"; [ "$c" = 404 ] || say "HEAD of $1: $2 got $c"
+}
+gone "a wrong token is 404" "/_c/AAAAAAAAAAAAAAAAAAAAAA${seg:22}/$rest"
+for s in x "${seg%%.*}" "$seg.s.s" "${seg%%.*}%2e${seg#*.}" %2e%2e; do gone "a malformed segment is 404" "/_c/$s/$rest"; done
+for p in "/_c/$seg" "/_c/$seg/"; do gone "a segment with no path is 404" "$p"; done
+for p in "/_c/$seg/decks/a.html" "/_c/$seg/motion/y/index.html" "$at/two.html" "$at/sub/../../../decks/a.html" "/_c/$seg/motion/%2e%2e/decks%2Fa.html"; do gone "another page's path under a valid token is 404" "$p"; done
+gone "a framed token used as static is 404" "/_c/$seg.s/$rest"
+gone "a symlinked file under /_c/ is 404" "$at/out.js"
+gone "a symlinked folder under /_c/ is 404" "$at/outdir/m.js"
+for p in "$at/.m.js" "$at/.d/m.js" "/_c/$seg/.preview.key"; do gone "a dot path under /_c/ is 404" "$p"; done
+for p in "$at/state.json" "$at/usage.jsonl" "$at/in/walk.json" "/_c/$seg/auth/walk.json" "/_c/$seg/workshop.json"; do gone "a never-served file under /_c/ is 404" "$p"; done
+for p in "$at/a.txt" "$at/one.png" "/_c/$seg/shots/one.png" "/_c/$seg/shots/m.js"; do gone "a file the page may not load, by its path or through a link, is 404" "$p"; done
+for p in "$at/" "$at/sub" "$at/sub/" "$at/sub%2f" "$at/pipe" "$at/gone.js" "$at/%00"; do gone "what is no file under /_c/ is 404" "$p"; done
+printf '<h1>t</h1>' > "$tmp/decks/turn.html"; turn="$(page_of decks/turn.html | field src)"; same "a page is served until it becomes a link out" "$(code "$base${turn:-/_c/}")" 200
+for p in "$tmp.out/p.html" ../artifacts/.versions/a/v1.html; do ln -sf "$p" "$tmp/decks/turn.html"; gone "a page that became a link out of the docroot or to a never-served file is 404" "$turn"; done
+for p in sub/m.js near.js; do same "a file in the page's own folder is served: $p" "$(code "$base$at/$p") $(answer)" "200 exportdefault1"; done
+for p in "$src" "$at/x.svg" "$at/gone.js"; do
+  hd="$(heads -H 'Sec-Fetch-Dest: document' "$base$p" | sed -n '1s/^[^ ]* \([0-9]*\).*/\1/p;s/^Location: //p' | tr '\n' ' ')"; same "a framed segment opened as a document is 303 to the page URL: GET $p" "$hd" "303 /motion/a%3Bb%2C%20c%20%C3%BC/index.html "
+  c="$(code -I -H 'Sec-Fetch-Dest: document' "$base$p")"; same "a framed segment opened as a document is 303 to the page URL: HEAD $p" "$c" 303
+  for d in "-H Sec-Fetch-Dest:document" -I ""; do hd="$(heads $d "$base$p")"; same "every answer under /_c/ is no-store: ${d:-GET} $p" "$(printf '%s\n' "$hd" | grep -cxF 'Cache-Control: no-store')" 1; done
+done
+hd="$(heads -H 'Sec-Fetch-Dest: document' "$base$src?still=1&key=x" | sed -n 's/^Location: //p')"; same "that 303 keeps the query, the key left out" "$hd" "/motion/a%3Bb%2C%20c%20%C3%BC/index.html?still=1"
+same "a framed segment in a frame is the page" "$(code -H 'Sec-Fetch-Dest: iframe' "$base$src")" 200
+same "a valid segment passes neither the Host check nor the service worker check" "$(code -H 'Host: evil.example' "$base$src") $(code -I -H 'Service-Worker: script' "$base$src")" "403 404"
+same "a POST under /_c/ is no route" "$(code -X POST --data '{}' "$base$src")" 501
+python3 - "$here" "$tmp" "$port" "$own/index.html" "$src" <<'PY' || bad=1
+import hashlib, http.client, importlib.util, json, mimetypes, os, sys
+from urllib.parse import quote
+here, root, port, page, src = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
+spec = importlib.util.spec_from_file_location("dkserve", here + "/serve.py"); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+failed = []
+def eq(claim, got, want):
+    if got != want: failed.append("FAIL: %s: got %.400r, want %.400r" % (claim, got, want))
+def ask(path, method="GET", **headers):
+    con = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    con.request(method, path, headers={k.replace("_", "-"): v for k, v in headers.items()})
+    r = con.getresponse()
+    return r.status, r.headers, r.read()
+def about(page, **headers):
+    status, _, body = ask("/_page?page=" + quote(page), **headers)
+    try: return status, json.loads(body)
+    except ValueError: return status, None
+
+host, seg, encoded = "127.0.0.1:%d" % port, (src.split("/") + ["", "", ""])[2], "/motion/a%3Bb%2C%20c%20%C3%BC/index.html"
+eq("/_page answers the fields of decision 21 on loopback", about(page), (200, {
+    "page": page, "title": "Own & only", "src": "/_c/" + seg + encoded, "project": hashlib.sha256(os.path.realpath(root).encode()).hexdigest()[:12], "hosts": [], "hosts_error": None,
+    "writable": True, "version": m.SERVER_VERSION, "local": "http://" + host + encoded}))
+eq("/_page says not writable at an address no write route takes", (about(page, Host="192.0.2.7:%d" % port)[1] or {}).get("writable"), False)
+eq("a page with no title is named by its file", (about("decks/b.html")[1] or {}).get("title"), "b.html")
+eq("/_page is for a same-origin fetch", [about(page, Sec_Fetch_Site=s)[0] for s in ("same-origin", "cross-site", "same-site", "none", "")], [200, 403, 403, 403, 403])
+for name in ("decks/gone.html", "decks", "motion", page.rsplit("/", 1)[0], "shots/one.png", "", "/", "/decks/a.html", "decks//a.html", "decks/./a.html", "decks/../decks/a.html", "../" + os.path.basename(root) + "/decks/a.html",
+             "artifacts/.versions/a/v1.html", "auth/x.html", "decks/a.html\0", "decks/folder.html", "decks/linked.html", "decks/out.html"):
+    eq("no such page is 404: %r" % name, about(name)[0], 404)
+
+with open(os.path.join(root, page), "rb") as fh: raw = fh.read()
+with open(here + "/frame.js", "rb") as fh: client = b"<script data-design-kit-frame>" + fh.read() + b"</script>"
+policy = m.isolate.page_policy("f", page, seg, [], host)
+status, headers, body = ask(src)
+eq("a framed page is its file with the client right after <head>, and nothing else", (status, body), (200, raw.replace(b"<head>", b"<head>" + client)))
+eq("HEAD of a framed page gives its injected length", (ask(src, "HEAD")[1]["Content-Length"], ask(src, "HEAD")[2]), (str(len(body)), b""))
+at = src.rsplit("/", 1)[0]
+for claim, path, ctype in (("a framed page carries its policy", src, "text/html; charset=utf-8"), ("own-folder SVG carries sandbox", at + "/x.svg", "image/svg+xml"), ("a module carries the page's policy", at + "/sub/m.js", mimetypes.guess_type("m.js")[0])):
+    for method in ("GET", "HEAD"):
+        status, headers, _ = ask(path, method, If_Modified_Since="Fri, 01 Jan 2100 00:00:00 GMT")
+        eq("%s: %s" % (claim, method), [status] + [headers.get_all(h) for h in ("Content-Type", "Content-Security-Policy", "Access-Control-Allow-Origin", "Cross-Origin-Resource-Policy", "X-Content-Type-Options", "Referrer-Policy", "X-DNS-Prefetch-Control")],
+           [200, [ctype], [policy], ["*"], ["cross-origin"], ["nosniff"], ["no-referrer"], ["off"]])
+eq("that policy is the page's: sandboxed, framed here alone", (policy.startswith("sandbox allow-scripts "), policy.endswith("; frame-ancestors http://" + host)), (True, True))
+print("\n".join(failed), end="\n" if failed else "")
+sys.exit(1 if failed else 0)
+PY
+has_common "/_page" "$(heads "$base/_page?page=decks/a.html")"
+has_common "a 404 under /_c/" "$(heads "$base/_c/x/decks/a.html")"
+# a static segment opens top-level; on one connection the next answer is the control origin's again; a page is what ends in .htm or goes out as text/html; a docroot reached by a link is its real path
+python3 - "$here/serve.py" "$tmp" <<'PY' || say "a static segment, the answer after it, a page by its type, a linked docroot"
+import hashlib, http.client, importlib.util, json, mimetypes, os, sys, threading, time
+mimetypes.add_type("text/html", ".dkpage"); mimetypes.add_type("text/plain", ".htm")
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 class H(m.Handler):
-    root, state, protocol_version = sys.argv[2], {"version": 0, "last": time.monotonic(), "streams": 0}, "HTTP/1.1"
-    def do_GET(self):
-        self._cors = self.path == "/decks/x.svg"
-        super().do_GET()
+    root, state, protocol_version = sys.argv[2] + "/.lnk", {"version": 0, "last": time.monotonic(), "streams": 0}, "HTTP/1.1"
+os.symlink(sys.argv[2], H.root)
 srv = m.ThreadingHTTPServer(("127.0.0.1", 0), H); srv.daemon_threads = True
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 con = http.client.HTTPConnection("127.0.0.1", srv.server_port, timeout=5)
-got = []
-for method, path in (("GET", "/decks/x.svg"), ("HEAD", "/shots/one.png")):
-    con.request(method, path); r = con.getresponse(); r.read()
-    got.append((r.status, r.getheader("Cross-Origin-Resource-Policy"), r.getheader("X-Content-Type-Options"), r.getheader("Content-Security-Policy")))
+def ask(method, path, **headers):
+    con.request(method, path, headers=headers); r = con.getresponse(); body = r.read()
+    return r, body
+src, got = m.isolate.content_url("decks/a.html", "s"), []
+for method, path, headers in (("GET", src, {"Sec-Fetch-Dest": "document"}), ("HEAD", "/shots/one.png", {})):
+    r, _ = ask(method, path, **headers)
+    got.append((r.status, r.getheader("Cross-Origin-Resource-Policy"), r.getheader("Access-Control-Allow-Origin"), r.getheader("Content-Security-Policy")))
+for name in ("decks/x.dkpage", "decks/x.htm"):
+    with open(os.path.join(H.root, name), "w") as fh: fh.write("<h1>x</h1>")
+    found, body = ask("GET", "/_page?page=" + name)
+    page = json.loads(body) if found.status == 200 else {}
+    framed, _ = ask("GET", page.get("src", "/_c/"))
+    got.append((found.status, page.get("project"), framed.status, framed.getheader("Content-Type")))
 srv.shutdown()
-assert got == [(200, None, "nosniff", m.isolate.XML_POLICY), (200, "same-origin", "nosniff", None)], got
+policy = m.isolate.page_policy("s", "decks/a.html", src.split("/")[2], [], "127.0.0.1:%d" % srv.server_port)
+page = (200, hashlib.sha256(os.path.realpath(sys.argv[2]).encode()).hexdigest()[:12], 200, "text/html; charset=utf-8")
+assert got == [(200, "cross-origin", "*", policy), (200, "same-origin", None, None), page, page], got
 PY
-rm -f "$tmp/decks/x.svg" "$tmp/decks/X.SVG" "$tmp/decks/x.xhtml" "$tmp/decks/x.xml" "$tmp/decks/x.pdf"
+rm -f "$tmp/decks/x.dkpage" "$tmp/decks/x.htm" "$tmp/.lnk"
+# /_allow: the host in, on that page alone; what is refused writes nothing
+allow() { code -X POST -H 'Content-Type: application/json' "$@" "$base/_allow"; }
+csp() { heads "$base$(page_of "$1" | field src)" | sed -n 's/^Content-Security-Policy: //p'; }
+A='X-Design-Kit-Allow: 1'; yes='{"page":"decks/a.html","host":"CDN.example.org","allow":true}'
+same "/_allow without its header is 403" "$(allow -H 'X-Design-Kit-Note: 1' --data "$yes")" 403
+same "/_allow with a foreign Origin is 403" "$(allow -H "$A" -H 'Origin: http://attacker.example' --data "$yes")" 403
+same "/_allow with a foreign Host is 403" "$(allow -H "$A" -H 'Host: attacker.example' --data "$yes")" 403
+for h in '"127.0.0.1"' '"localhost"' '"https://cdn.example.org"' '"cdn.example.org:443"' 7 null; do
+  same "/_allow with a bad host is 400: $h" "$(allow -H "$A" --data '{"page":"decks/a.html","host":'"$h"',"allow":true}') $(field error < "$tmp/.resp" | cut -c1-12)" "400 host must be"
+done
+same "/_allow for no such page is 400" "$(allow -H "$A" --data '{"page":"shots/one.png","host":"cdn.example.org","allow":true}') $(field error < "$tmp/.resp")" "400 no such page"
+same "/_allow takes allow as true or false" "$(allow -H "$A" --data '{"page":"decks/a.html","host":"cdn.example.org","allow":"no"}') $(field error < "$tmp/.resp")" "400 allow must be true or false"
+same "/_allow past 8 KiB is 413" "$(allow -H "$A" --data "$(python3 -c 'print("{\"page\":\"" + "x" * 9000 + "\"}")')")" 413
+[ ! -e "$tmp/.allow.json" ] || say "a refused /_allow writes nothing: $(cat "$tmp/.allow.json")"
+same "/_allow lists the host" "$(allow -H "$A" -H "Origin: $base" --data "$yes") $(answer)" '200 {"hosts":["cdn.example.org"]}'
+same "/_page lists the page's hosts" "$(page_of decks/a.html | field hosts) $(page_of "$own/index.html" | field hosts)" "['cdn.example.org'] []"
+case "$(csp decks/a.html)" in *"; img-src data: blob: https://cdn.example.org; "*"; connect-src data: blob:; "*) ;; *) say "an allowed host is in its page's policy: $(csp decks/a.html)" ;; esac
+case "$(csp "$own/index.html")" in *cdn.example.org*|"") say "an allowed host is in no other page's policy: $(csp "$own/index.html")" ;; esac
+never_served /.allow.json cdn.example.org
+same "/_allow removes the host" "$(allow -H "$A" --data '{"page":"decks/a.html","host":"cdn.example.org","allow":false}') $(answer)" '200 {"hosts":[]}'
+printf '{"decks/a.html":["127.0.0.1","evil.local","cdn.example.org"]}' > "$tmp/.allow.json"
+case "$(csp decks/a.html)" in *"; img-src data: blob: https://cdn.example.org; "*) ;; *) say "a host written in by hand is checked at read: $(csp decks/a.html)" ;; esac
+printf '{"decks/a.html":' > "$tmp/.allow.json"
+same "an unreadable approvals file allows nothing and says so" "$(page_of decks/a.html | field hosts) $(page_of decks/a.html | field hosts_error) $(csp decks/a.html | grep -c https:)" "[] approvals file unreadable; all hosts blocked 0"
+mkdir "$tmp/.allow.json.bad"
+same "an approval that cannot be written is a JSON 500" "$(allow -H "$A" --data "$yes") $(field error < "$tmp/.resp" | cut -c1-28)" "500 could not write .allow.json:"
+rmdir "$tmp/.allow.json.bad"; rm -f "$tmp/.allow.json"
+python3 - "$here/serve.py" "$tmp" "$port" <<'PY' || say "/_allow writes only with .allow.lock held"
+import http.client, importlib.util, os, sys, threading, time
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+got = []
+def send():
+    con = http.client.HTTPConnection("127.0.0.1", int(sys.argv[3]), timeout=10)
+    con.request("POST", "/_allow", '{"page":"decks/a.html","host":"a.io","allow":true}', {"X-Design-Kit-Allow": "1"})
+    got.append(con.getresponse().status)
+one = threading.Thread(target=send)
+with m.locked(os.path.join(sys.argv[2], ".allow.lock")):
+    one.start(); time.sleep(0.4)
+    assert (got, os.path.exists(os.path.join(sys.argv[2], ".allow.json"))) == ([], False), got
+one.join()
+assert got == [200] and os.path.exists(os.path.join(sys.argv[2], ".allow.json")), got
+PY
+rm -f "$tmp/.allow.json"
+# a sent Origin is http:// and the Host, letter for letter, on every write route: a page of another local port is another site
+for r in decision note allow; do
+  case "$r" in decision) h='X-Design-Kit-Decision: 1' b='{"board":"a.html","picked":7}' ;; note) h='X-Design-Kit-Note: 1' b='{"page":"decks/a.html","text":"origin"}' ;; allow) h="$A" b="$yes" ;; esac
+  n="$(cat "$tmp/decisions.jsonl" "$tmp/notes.jsonl" | wc -l)"
+  for o in "http://127.0.0.1:1" "http://localhost:$port" "https://127.0.0.1:$port" "$base/" "http://127.0.0.1" null; do
+    same "a sent Origin must equal http:// and the Host: /_$r from $o" "$(code -X POST -H "$h" -H "Origin: $o" --data "$b" "$base/_$r")" 403
+  done
+  same "an empty Origin was sent: /_$r" "$(code -X POST -H "$h" -H 'Origin;' --data "$b" "$base/_$r")" 403
+  [ "$(cat "$tmp/decisions.jsonl" "$tmp/notes.jsonl" | wc -l)" = "$n" ] && [ ! -e "$tmp/.allow.json" ] || say "a refused Origin writes nothing: /_$r"
+  same "the server's own Origin passes: /_$r" "$(code -X POST -H "$h" -H "Origin: http://localhost:$port" --data "$b" "http://localhost:$port/_$r")" 200
+done
+[ -z "$bad" ] || exit 1
+rm -rf "$tmp.out" "$tmp/motion" "$tmp/decks/folder.html" "$tmp/decks/out.html" "$tmp/decks/linked.html" "$tmp/decks/turn.html" "$tmp/shots/m.js"
 
 # token badge: a stamped page vs <docroot>/design-system/tokens.json; the design-system/ folder is not a gallery group
 dr="$tmp.ds/.cc-artifacts/design-kit"
@@ -459,6 +624,29 @@ else
   c="$(hc -b "design_kit_key=$key" -A "Mozilla/5.0 HeadlessChrome/130" "$L/decks/a.html?_outline=h1")"
   [ "$c" = 200 ] && ! grep -q 'data-design-kit-outline' "$tmp/.resp" || { echo "FAIL: ?_outline= from a LAN peer injected the outline helper ($c)"; exit 1; }
   c="$(hc "$L/_note.js")"; [ "$c" = 403 ] || { echo "FAIL: /_note.js from a LAN peer without the key should be 403, got $c"; exit 1; }
+  # a signed content URL needs no key; what names one and what allows a host do, and a LAN peer may change nothing
+  c="$(hc "$L/_page?page=decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: /_page from a LAN peer without the key should be 403, got $c"; exit 1; }
+  hc -b "design_kit_key=$key" "$L/_page?page=decks/a.html" > /dev/null
+  python3 - "$tmp/.resp" "$port" <<'PY' || { echo "FAIL: /_page for a LAN peer is not writable and lists no hosts: $(head -c 400 "$tmp/.resp")"; exit 1; }
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as fh: d = json.load(fh)
+assert (d["page"], d["writable"], d["hosts"], d["hosts_error"], d["local"]) == ("decks/a.html", False, [], None, "http://127.0.0.1:%s/decks/a.html" % sys.argv[2]), d
+PY
+  [ "$(curl -s "http://127.0.0.1:$port/_page?page=decks/a.html" | field hosts)" = "['cdn.example.org']" ] || { echo "FAIL: /_page lost the host /_allow listed, so a LAN peer's empty list proves nothing"; exit 1; }
+  lsrc="$(field src < "$tmp/.resp")"; lseg="${lsrc#/_c/}"; lseg="${lseg%%/*}"
+  for o in "" -I; do c="$(hc $o "$L$lsrc")"; [ "$c" = 200 ] || { echo "FAIL: a valid segment is served to a LAN peer with no cookie (${o:-GET}): got $c"; exit 1; }; done
+  hc "$L$lsrc" > /dev/null; grep -q '<h1>a</h1>' "$tmp/.resp" || { echo "FAIL: a valid segment gave a LAN peer something else: $(head -c 200 "$tmp/.resp")"; exit 1; }
+  for p in "/_c/AAAAAAAAAAAAAAAAAAAAAA${lseg:22}/decks/a.html" "/_c/$lseg.s/decks/a.html" "/_c/" "/_c/../decks/a.html" "/x/../_c/$lseg/decks/a.html" "/$lseg/_c/decks/a.html"; do
+    c="$(hc --path-as-is "$L$p")"; [ "$c" = 403 ] || { echo "FAIL: a segment that does not open should meet the key gate: $p got $c"; exit 1; }
+  done
+  c="$(hc -X POST --data '{}' "$L$lsrc")"; [ "$c" = 403 ] || { echo "FAIL: a POST under a valid segment should meet the key gate, got $c"; exit 1; }
+  c="$(hc -b "design_kit_key=$key" "$L/_c/$lseg/decks/b.html")"; [ "$c" = 404 ] || { echo "FAIL: another page under a LAN peer's valid segment should be 404, got $c"; exit 1; }
+  cp "$tmp/.allow.json" "$tmp/.keep"
+  for o in "$L" "http://127.0.0.1:$port"; do
+    c="$(hc -b "design_kit_key=$key" -X POST -H "$A" -H "Origin: $o" --data '{"page":"decks/a.html","host":"cdn.example.org","allow":false}' "$L/_allow?key=$key")"
+    [ "$c" = 403 ] && cmp -s "$tmp/.allow.json" "$tmp/.keep" || { echo "FAIL: /_allow from the LAN is 403 and writes nothing, got $c"; exit 1; }
+  done
+  rm -f "$tmp/.keep"
   c="$(hc "http://127.0.0.1:$port/decks/a.html")"; [ "$c" = 200 ] || { echo "FAIL: a loopback peer should need no key, got $c"; exit 1; }
   c="$(hc "http://127.0.0.1:$port/.preview.key")"; [ "$c" = 404 ] || { echo "FAIL: /.preview.key should be 404, got $c"; exit 1; }
   kill "$(cat "$tmp/.preview.pid")"; sleep 0.3
