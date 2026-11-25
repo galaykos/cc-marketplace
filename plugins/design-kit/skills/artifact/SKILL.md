@@ -96,8 +96,10 @@ especially images — so leave out interactivity nobody asked for.
 - **One page, in-page anchors.** A relative link to another file is dead once bundled;
   the bundler reports each one. Sections link with `#ids`.
 - **No external requests unless declared.** The bundler leaves `https://` references
-  in place and lists them as `network:`. Say in the reply which hosts the page needs;
-  a page with none works offline and on the LAN without surprises.
+  in place and lists them as `network:`. Say in the reply which hosts the page needs, and
+  that the page shows without their files until the user presses Allow for this page in
+  the viewer (never for a host with a port); a page with none works offline and on the
+  LAN without surprises.
 - **Design system first.** If `.cc-artifacts/design-kit/design-system/DESIGN-SYSTEM.md` (older
   projects: `design-system/`) exists, its colours,
   type and radius replace the shell's `:root` values before any content. The shell's

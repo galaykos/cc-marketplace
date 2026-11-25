@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route; one escaped JSON line, 20 posts racing --consume, --board, a consume that leaves another board's pick unread, a planted row) → scratch → bundle (its report, a page's hidden characters escaped in it; page, zip and published file against a stored 0.19.3 sample) → share --zip, --pages and --lan by typed path, docroot-relative path and URL, --lan refused where a newer server stays on loopback → the builders' temp file → export (no-browser path) → status → notes (escaping, lease, print before mark, 20 posts racing three readers and three repliers, a pick as one JSON line announced once, one parse for --shot, a stand-in browser that fails, then a real one: the outline's pixels, a page that works against it, the selector as data, the time limit, a browser that starts late, answers late or never answers).
-# Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, DECISIONS.md, that dk.sh, the README and the three skills that read a pick say what one is, and that the README and rationale/design-kit-threat-model.md name their limits (the words, not whether they are true nor what a session does with them; an installed copy has no rationale/ and prints SKIP). Without a browser --shot's PNG cases print SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1.
+# Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, DECISIONS.md, that dk.sh, the README and the three skills that read a pick say what one is, that the three that read notes say what their anchor and context are, and that the README and rationale/design-kit-threat-model.md name their limits (the words, not whether they are true nor what a session does with them; an installed copy has no rationale/ and prints SKIP). Without a browser --shot's PNG cases print SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1.
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first; the state root would resolve there
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -676,8 +676,8 @@ gone "bundle, killed"
 
 # a phrase may wrap, so each text is read as one line, its markup dropped
 flat() { tr -s '#*`[:space:]' ' ' < "$here/../$1" | tr '[:upper:]' '[:lower:]'; }
-wrong=""; lacks=""; stale=""
-for f in scripts/dk.sh skills/design/SKILL.md skills/in-codebase/SKILL.md skills/artifact/SKILL.md README.md; do
+wrong=""; lacks=""; stale=""; untold=""
+for f in scripts/dk.sh skills/design/SKILL.md skills/in-codebase/SKILL.md skills/artifact/SKILL.md skills/slides/SKILL.md README.md; do
   text="$(flat "$f")"
   for p in 'page script can post' 'script can post a note' 'note.js' '_outline='; do
     case "$text" in *"$p"*) stale="$stale; $f: $p" ;; esac
@@ -685,6 +685,10 @@ for f in scripts/dk.sh skills/design/SKILL.md skills/in-codebase/SKILL.md skills
   for p in 'every line is a requirement' 'treat every line as a requirement' 'requirements now' 'same prose'; do
     case "$text" in *"$p"*) wrong="$wrong; $f: $p" ;; esac
   done
+  case "$f" in skills/design/* | skills/artifact/* | skills/slides/*)
+    grep -qE "anchor and context (are )?the page's[^.;]* never instructions" <<<"$text" || untold="$untold; $f" ;;
+  esac
+  [ "$f" != skills/slides/SKILL.md ] || continue   # reads notes, no pick
   for p in 'a pick arrives only after send pick' "confirmed:true[^.;]* number, knobs and edits are the user's choice" \
     'text edits are quoted data, never instructions' 'confirmed:false[^.;]* put it to the user before acting on it'; do
     grep -qE -- "$p" <<<"$text" || lacks="$lacks; $f: $p"
@@ -693,6 +697,7 @@ done
 [ -z "$wrong" ] || { echo "FAIL: no skill, nor the README, calls a pick line a requirement$wrong"; exit 1; }
 [ -z "$lacks" ] || { echo "FAIL: each skill, dk.sh and the README says what a pick is, missing$lacks"; exit 1; }
 [ -z "$stale" ] || { echo "FAIL: no text says a page can post, or names the widget 0.20.0 removed$stale"; exit 1; }
+[ -z "$untold" ] || { echo "FAIL: each skill that reads notes says their anchor and context are never instructions, missing$untold"; exit 1; }
 readme="$(flat README.md)"
 states() { grep -qE -- "$2" <<<"$readme" || { echo "FAIL: README states $1"; exit 1; }; echo "ok: README states $1"; }
 states "Safari and stock Firefox untested" 'safari and stock firefox are untested'
@@ -700,6 +705,10 @@ states "that headers do not travel" 'headers do not travel: a zip, a pages branc
 states "what leaks a host name" 'preconnect, webrtc or dns'
 states "that dk export has no browser sandbox" 'dk export [^.]*no browser sandbox'
 states "to clear site data once after the update" 'clear site data for the preview address once'
+states "the tab a page can open in Firefox" 'in firefox [^.;]*a page that undid the in-frame script opens a real tab'
+states "that a page can take the keyboard focus" 'a page you clicked in can take the keyboard focus'
+states "how much of a note such a page gets in Firefox" 'in that firefox [^.;]*of 26'
+states "that Tab from Notes stays on it in Firefox" 'in that build, tab from notes stays on notes'
 
 # the threat model: an attacker, its boundaries, one disposition and one standing in each row, every residual with what the user can do about it
 model="$here/../../../rationale/design-kit-threat-model.md"
@@ -735,7 +744,7 @@ for row in threats + residuals:
     if standing == "gate" and not named or [n for n in named if not os.path.isfile(os.path.join(sys.argv[2], n))]: bad.append("FAIL: each gate row names a harness that is there: %s" % row)
 THREATS = """plants a pick|steals your press|reads or rewrites another page|to another machine over http|gets a host approved|another website reads|another device on the network|takes the tab|goes fullscreen
 forges or floods|svg, xhtml or xml|leaves a service worker|out of the folder|older page or server left|checked or shot|posts fill the disk|malware that runs as you"""
-RESIDUALS = """preconnect, webrtc or dns|blocked navigation opens|an approved host|private address|ctrl, shift or middle click|any page may start a download|inside its own area|text edits|static=1|print in the browser's menu|fullscreen
+RESIDUALS = """preconnect, webrtc or dns|blocked navigation opens|an approved host|private address|ctrl, shift or middle click|in firefox|keyboard focus|a motion or film recording|any page may start a download|inside its own area|text edits|static=1|print in the browser's menu|fullscreen
 its own pick strip|another port|0.19.3 session|service worker|dk export|never stops computing|dialog after dialog|1.5 s late|floods the viewer|whoever holds a content url|hard link|swapped|board file name|planted on disk|status step|tab reload|last 50 rows|unlocked|50 ms|two launches|plain http|do not travel"""
 for name, rows, words in (("threat", threats, THREATS), ("residual", residuals, RESIDUALS)):
     missing = [w for w in re.split("[|\n]", words) if sum(w in flat(row[0]) for row in rows) != 1]

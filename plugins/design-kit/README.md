@@ -50,13 +50,16 @@ last port, then 8124, then 8125 to 8139, the first that is free; none free is ex
 this project that already runs is reused, on whatever port, and the launcher says which. Port 8123
 is the taskmaster/ui-ux mockup server's and is never used here. A start on another port than the
 last one prints `preview: moved from port <old>; saved knobs and page data stay on the old
-address`. A running server older than the installed plugin is restarted on its own port and bind;
-a newer one is kept.
+address`. A running server whose own version number (`SERVER_VERSION` in `serve.py`, not the
+plugin's version) is lower than the installed one's is restarted on its own port and bind; one
+whose number is higher is kept. The launcher prints a URL once the server has said that it is
+bound, and ends one that has not within 10 s (exit 4).
 
 **When the server goes away** under an open page, the viewer shows "Preview server stopped;
 retrying", retries after 1, 2, 4 … 30 seconds and frames the page again once the server answers; a
 half-typed note stays. The gallery shows the same words in a small bar (`role="status"`, no
-animation) and reloads. A headless browser and a `?static=1` URL get no reload client.
+animation) and reloads. A headless browser and a `?static=1` URL get a gallery with no such client,
+and on this machine a page with no viewer, so nothing that retries.
 
 `--lan` binds every interface so a phone on your network can open it — that is the only way a page
 leaves the machine through the server, and every skill says so before using it. A LAN server asks
@@ -71,7 +74,9 @@ A phone sees the gallery, and each page under Gallery, the title and a line nami
 open on this computer. Picks, notes and host approvals stay loopback-only: the three write routes
 refuse a phone even with the key. A LAN server ends itself after 60 minutes
 (`DESIGN_KIT_LAN_MINUTES`; `0` means no limit), and while one runs every later command says LAN
-mode is still on and prints its URLs with the key.
+mode is still on and prints its URLs with the key. `dk serve --lan` and `dk share <page> --lan` fail
+with exit 4 when nothing was opened to the network, as when a server with a higher version number
+keeps running on this machine's address alone.
 
 Every server, LAN or not, exits after 4 hours with no request and no open page
 (`DESIGN_KIT_IDLE_MINUTES`, default 240; `0` turns it off). An open tab counts, since its viewer,
@@ -104,10 +109,11 @@ non-loopback peer (that half skips on a machine without one). The idle limit is 
 never-served list is a **gate** for GET and HEAD, with origin- and absolute-form request targets.
 The retry of an open viewer is a **gate** where a browser is found (`viewer.test.sh`); the
 gallery's bar is one for its text only, and it, and a keyed link followed from another site, were
-run once in Chrome on 2026-11-12 — **recorded**. Two starts at once are not locked, so both may
-run, the first unrecorded. A page is rendered in a real browser and checked only when `dk check
-<page>` runs (below; **gate** for its own fixtures); nothing checks a page on its own, so a page
-nobody ran it on is unchecked.
+run once in Chrome on 2026-11-12 — **recorded**. Two starts at once are not locked: one that meets
+the other's record waits for that server, one that comes before it may run beside it, the first
+unrecorded. A page is rendered in a real browser and checked only when `dk check <page>` runs
+(below; **gate** for its own fixtures); nothing checks a page on its own, so a page nobody ran it
+on is unchecked.
 
 ### What a page can and cannot do
 
@@ -127,17 +133,24 @@ From inside its frame a page cannot:
   exception;
 - leave: a frame that tries is replaced with "Page stopped: it tried to open another site." and
   Reload page;
-- open a tab on a plain click, or go fullscreen;
+- open a tab on your plain click (in Firefox it can, see below), or go fullscreen;
 - load a server file that is not its own: a page with a folder of its own, such as
   `motion/<slug>/` or `film/<slug>/`, loads the other files there (never another page), a review
   its images in `reviews/diff/` and `shots/`, any other page none.
 
-**Hosts.** Each refused host draws a strip with its name and what was asked for: Allow for this
-page, or Keep blocked (for this tab). An approval covers `https` scripts, styles, images, fonts
-and media from that host, for that one page, never fetch, WebSocket or forms. It is kept in
-`.allow.json` across restarts, listed under Network with Remove, and granted on this machine only.
-An IP address, a port, a wildcard, `localhost`, `.local`, `.internal` and `.home.arpa` are
-refused.
+**Own files in a canvas.** To a page with an origin of its own its files come from another one:
+reading back a canvas an image or a video of its folder was drawn into, or loading one as a WebGL
+texture, throws `SecurityError` unless the file was loaded through CORS. An image whose `src` a
+script sets is; write `crossorigin="anonymous"` on an `<img>` in the markup, on one filled by
+`srcset` or `setAttribute`, and on a `<video>`.
+
+**Hosts.** Each of the first 10 `https` hosts a load is refused a file from draws a strip with its
+name and what was asked for: Allow for this page, or Keep blocked (for this tab). An `http` address,
+or one with a port, is refused with no strip; `dk check` names it. An approval covers `https`
+scripts, styles, images, fonts and media from that host, for that one page, never fetch, WebSocket
+or forms. It is kept in `.allow.json` across restarts, listed under Network with Remove, and granted
+on this machine only. An IP address, a port, a wildcard, `localhost`, `.local`, `.internal` and
+`.home.arpa` are refused.
 
 **Storage.** A page's `localStorage` is a stand-in the viewer keeps in this browser, per project
 and page, up to 256 KB of keys plus values; board state that 0.19.3 saved at the same address is
@@ -152,7 +165,8 @@ drawer and a half-typed note stay.
 
 **Raw.** `?static=1` typed on this machine, or a headless browser, is sent to the page itself at
 its signed address, for captures: the same policy, no viewer, no reload. Nothing then stops the
-page from navigating itself to another site.
+page from navigating itself to another site. `dk check` and `dk notes --shot` open it with no
+network but this machine; a motion or film recording has the network open.
 
 What can still get out, or mislead you:
 
@@ -163,6 +177,16 @@ What can still get out, or mislead you:
 - In a page that undid the in-frame script, your Ctrl, Shift or middle click on a link opens a
   real tab and Alt+click starts a download, one request each. Click plainly, or use the link
   strip.
+- In Firefox (Playwright's build) a page that undid the in-frame script opens a real tab, its text
+  in the address, on your plain click or a key you press in it (one request; Chrome opens none).
+  Open a page you do not trust in Chrome.
+- A page you clicked in can take the keyboard focus from the viewer, and with it what you type in
+  a note. The viewer gives it back at once: of 26 characters, in Chrome, a page that tries every
+  100 ms got 0 or 1, one that tries every 5 ms 0 to 3, one that never pauses 24 to 26; in that
+  Firefox the first got 1 or 2, the second 21 or 22 of 26. Where the note is on the page itself,
+  the pointer rests on the page or the viewer was last touched by a finger, and nothing was typed
+  for 500 ms, a page gets all 26. Type a note with the pointer off the page, and none on a page you
+  do not trust.
 - A page can draw anything inside its own frame, a second bar included. The real bar and its
   strips are above it.
 - `dk export` opens the file in a headless browser with no browser sandbox and an open network:
@@ -175,8 +199,9 @@ What can still get out, or mislead you:
 
 The harnesses drive headless Chrome. In Playwright's Firefox build only hand runs were made; what
 was run and what failed is dated in `rationale/derivations/plugin-design-kit.md` of the
-marketplace repository. Safari and stock Firefox are untested, and so are screen readers, WebRTC,
-a link's context menu and a real second device on the LAN.
+marketplace repository. In that build, Tab from Notes stays on Notes: click in the page to reach
+it. Safari and stock Firefox are untested, and so are screen readers, WebRTC, a link's context menu
+and a real second device on the LAN.
 
 Every threat, its disposition, its standing and what you can do about each thing left open:
 `rationale/design-kit-threat-model.md` in the same repository. Standing: `isolate.test.sh`
@@ -253,17 +278,19 @@ page". While it is open the page outlines the element under the pointer; click o
 and press Enter, and the composer opens in the drawer. Only Send note posts. Escape closes the
 composer and drops the draft, then closes the drawer; closing the drawer keeps the draft, and so
 do a save of the page, a server restart, a link in the page and an Escape pressed there. Reloading
-or closing the tab loses it. On a board, picking works as before. The page itself says only which
-element was chosen and its context, and only while the notes are open. A headless browser,
-`?static=1`, a gallery thumbnail, a file, another server and a phone on the LAN have no notes.
+or closing the tab loses it. On a board, while the notes are open a click picks the element it is
+on for a note, never an artboard. The page itself says only which element was chosen and its
+context, and only while the notes are open. A headless browser, `?static=1`, a gallery thumbnail, a
+file, another server and a phone on the LAN have no notes.
 
 A note posts to `POST /_note` (the same guards as `/_decision`, with an `X-Design-Kit-Note`
 header, at most 8 KiB) and lands as one line of `.cc-artifacts/design-kit/notes.jsonl`: `{id, ts,
 cid, page, kind: "note", anchor: {selector, tag, text, rect} | null, text, context: {viewport,
 theme, console}, status: "open", reply: ""}`, every field clamped (text 2000 characters, selector
 512, the last five console errors, 300 characters each, numbers to ±10,000,000) and every other
-key dropped. A note with no text is refused (400), a lone surrogate is stored as `?`, and once
-`notes.jsonl` or `decisions.jsonl` would pass 2 MiB a post gets 507 until you move the file aside.
+key dropped. A note with no text is refused (400), and so is a note or a pick whose `cid` is not 16
+hex digits; a lone surrogate is stored as `?`, and once `notes.jsonl` or `decisions.jsonl` would
+pass 2 MiB a post gets 507 until you move the file aside.
 A send repeated after a lost answer carries the same `cid` and writes no second row while the
 first is among the file's last 50. `GET /_notes?page=` returns one page's rows to the viewer,
 loopback only, those filed under the folder of an index page too. `dk notes` prints unread open
@@ -339,7 +366,7 @@ a second for three widths.
 | E2 layout | `E2.overflow` `.wide` `.clipped` `.overlap` `.target` `.viewport` | the page scrolls sideways, or content past the viewport, slide or artboard is cut off (a box wholly past the right edge, such as an off-canvas drawer, is not); text an `overflow: hidden/clip` box cuts through (an ellipsis passes only with a `title` or `aria-label`); two text blocks whose lines cover each other (not inside a fixed or sticky box, nor where something else is drawn on top); targets under 24×24 px (axe's `target-size`, WCAG 2.5.8, its spacing and inline exceptions included); no `<meta name="viewport">` below 600 px | 1 px past an edge, vertically the line's 0.8 em band; overlap of 35% of the smaller line's 0.8 em band, 4 px each way |
 | E3 accessibility | `E3.<axe rule>` | axe-core violations of impact serious or critical, up to 3 elements each, with axe's message | serious |
 | E4 placeholder | `E4.lorem` `.todo` `.placeholder` `.generic` `.repeat` `.empty` `.identical` | lorem ipsum; `TODO`/`FIXME`; "placeholder", "your (company) name here", "insert text here" and the other template nouns (name, title, text, content, copy, heading, message, logo, image, label …), "sample text"; two or more "Item 1"-style labels; three or more same-tag siblings with the same text (8+ characters); a table with no filled data cell, an empty list; two artboards that render the same; never text inside `pre`, `code`, `kbd` or `samp` | as listed |
-| E6 change | the `change` note | the widest width (each artboard on a board) against the last `dk check` of the page when the file changed since, else, for an artifact never checked, its previous version from its own `.versions/<slug>/` (a slug that leaves that folder is ignored): the share of pixels that moved and the box around them | a channel moving more than 10, `dk review`'s rule; Pillow for share and box, else changed or same |
+| E6 change | the `change` note | the widest width (each artboard on a board) against the last `dk check` of the page when the file changed since, else, for an artifact never checked, its previous version from its own `.versions/<slug>/` (a slug that leaves that folder is ignored), drawn under the page's policy with no service of this machine in reach: the share of pixels that moved and the box around them | a channel moving more than 10, `dk review`'s rule; Pillow for share and box, else changed or same |
 
 The viewer's bar shows the last check, "Checked, 2 problems" (with "; page changed since" after an
 edit) or "Not checked", in the notes drawer on a narrow window and not at all on the LAN, from
@@ -353,10 +380,11 @@ reads it from disk, and no route serves it.
 Standing: each check against its own fixture (a clean page with no finding, one page per id
 tripping that id alone at the widths it should), the page's own policy (a null origin, its
 storage, its own folder's files, what is refused, no content URL printed), the result in the
-viewer's bar, a deck, a board, a hung page, E6 in both diff branches, JSON-only escaped
-output, a preset answer, a forged post, a replaced `Math.max`, hostile board and version
-metas, dialogs, downloads, WebRTC, a console flood, the caps, pruning, an older server, the
-removed routes, never-served results and the vendored file's sha256 —
+viewer's bar, a deck, a board, a hung page, E6 in both diff branches, a previous version that
+reaches no service of this machine, JSON-only escaped output, a preset answer, a forged post,
+a replaced `Math.max`, hostile board and version metas, dialogs, downloads, WebRTC, a console
+flood, the caps, pruning, an older server, the removed routes, never-served results and the
+vendored file's sha256 —
 `scripts/__tests__/check.test.sh`, **gate** (the browser half skips, saying so, without a
 browser); the 60 s bound was timed by hand (69.9 s before, 60.1 s after, 2026-11-13). That a
 skill runs `dk check` before presenting and fixes what it shows is **agent-graded**. Missed:
@@ -370,10 +398,11 @@ that needs a CDN font or image, from a host you allowed too, is checked without 
 so as `E1.external`); the page is not in the viewer's frame. What a hostile page can still
 do: its script runs while it is measured, so it can change the DOM it is measured on (hide a
 defect, show different content to a headless browser), keep the browser busy so a width
-reads not checked, log errors or open dialogs, and navigate itself to a service on 127.0.0.1
-(a GET). Its policy refuses every other request to one, this server's write routes included,
-and it cannot read, replace or answer for the check, nor write a result. A clean check is
-not proof the page is fine.
+reads not checked, log errors or open dialogs, and reach a service on 127.0.0.1 by navigating
+itself there (a GET), by preconnect (an empty connection) and by TURN over TCP. Its policy
+refuses every other request to one, this server's write routes included, and it cannot read,
+replace or answer for the check, nor write a result. A clean check is not proof the page is
+fine.
 
 ## Skills
 
@@ -412,7 +441,8 @@ through a headless Chromium-family browser (exit 3 with the install hint when no
 browser sandbox, see "What a page can and cannot do").
 
 What has teeth: `board-build.py` exits 2 on fewer than 2 or more than 6 artboards, an empty body,
-lorem ipsum, or any external asset — a board renders offline — **gate**. That the directions
+lorem ipsum, or any external asset — a board renders offline — **gate**. A board written outside
+`boards/` (`--out`) gets a warning: the viewer takes no pick from it. That the directions
 diverge structurally, that content is real, and the accessibility floor of a hand-written body
 are **agent-graded**. Text contrast is measured only where `dk check <board>` runs (axe's
 `E3.color-contrast`; standing under "Render checks"), not over a background image.
@@ -659,10 +689,11 @@ dk review --base .cc-artifacts/design-kit/shots/<the first set>   # or a git ref
 shoot at the same commit writes `<sha>-2` rather than over the set you are about to
 compare against. `review` pairs the newest set (or `--current`) against `--base`, writes
 `.cc-artifacts/design-kit/reviews/<pair>.html` with **before | after | a pixel-diff heatmap** per
-route, serves it on the same preview URL as everything else, and prints one table row per
-route with the changed-pixel percentage. The heatmap and the percentage need `python3`
-with Pillow; without it the page shows the pair alone and every row reads
-`no diff engine: install Pillow`.
+route (a shot that lies outside `shots/` as a copy under `reviews/diff/<pair>/`, since a review
+page loads images from those two folders only), serves it on the same preview URL as everything
+else, and prints one table row per route with the changed-pixel percentage. The heatmap and the
+percentage need `python3` with Pillow; without it the page shows the pair alone and every row
+reads `no diff engine: install Pillow`.
 
 **Exit codes are the contract** — **gate**, `scripts/__tests__/snapshot.test.sh` drives
 each: `0` shot or rendered, `1` bad arguments, `2` the browser or the server was

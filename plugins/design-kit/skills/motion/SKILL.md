@@ -79,6 +79,10 @@ the choreography kinds, the story table, accents and the cycle. Never invent ad 
   (masks, tracks, typed text, helpers) by hand. The last frame must equal the first.
 - **One JS clock** drives everything time-based, from loop time, never wall clock, so
   capture is deterministic. CSS transitions only for the intro.
+- **A canvas needs CORS.** The preview gives the page an origin of its own: reading back a canvas an
+  own-folder image or clip was drawn into, or loading one as a WebGL texture, throws `SecurityError`.
+  An image whose `src` a script sets is exempt; write `crossorigin="anonymous"` on an `<img>` in the
+  markup, on one filled by `srcset` or `setAttribute`, and on a `<video>`.
 - **Cheap properties only:** `transform`, `opacity`, `filter`, `clip-path`; animated blur
   ≤ 14 px. No zoom or pan unless asked, and then the background still never moves.
   `prefers-reduced-motion: reduce` renders the still frame.
@@ -92,8 +96,8 @@ Recorder, page-side contract, checks and `ffmpeg` lines: `references/capture-exp
   --ms <intro + cycle + 200> --frames .cc-artifacts/design-kit/motion/<slug>/.frames`: it steps Playwright's fake
   clock, drives `__start`/`__tick`, writes the PNGs (and `loop-time.json` when the page defines both), and exits 1 on an animated
   layout property, a CSS duration outside 500–1100 ms, blur above 14 px, or motion left under reduced
-  motion; exit 3 names a missing Playwright or Chromium (it installs nothing). `static=1` keeps the
-  preview server's live-reload stream out, which would keep a capture from settling.
+  motion; exit 3 names a missing Playwright or Chromium (it installs nothing). `static=1` asks the
+  preview server for the page itself, with no viewer around it and no reload.
 - **Run the checks on the recorded frames before encoding:** overflow (nothing outside the
   containers changes), seam (first frame equals the frame one cycle later), empty beat, rest
   (the frame before the dissolve equals `?still`), and a contact sheet read by eye.

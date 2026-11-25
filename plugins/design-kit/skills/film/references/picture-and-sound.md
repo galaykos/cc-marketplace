@@ -30,6 +30,10 @@
   Range requests, so `<video>` cannot seek. Load the clip as a blob URL, re-encode it all-intra
   (`ffmpeg -i in.mp4 -c:v libx264 -g 1 -an clip.mp4`) so every frame is a seek target, and wait
   for `seeked` before each capture.
+- design-kit's preview server gives the page an origin of its own: reading back a canvas an own-folder
+  image or clip was drawn into, or loading one as a WebGL texture, throws `SecurityError`. An image
+  whose `src` a script sets is exempt; write `crossorigin="anonymous"` on an `<img>` in the markup, on
+  one filled by `srcset` or `setAttribute`, and on a `<video>`.
 - WebGL in headless Chromium with no GPU: Chrome no longer falls back to SwiftShader on its own, so
   WebGL context creation fails unless you launch with `--use-gl=angle --use-angle=swiftshader-webgl
   --enable-unsafe-swiftshader` (Chromium's `docs/gpu/swiftshader.md`; the switch exists because the
@@ -66,8 +70,9 @@ for (let n = 0; n < Math.round(duration * fps) * N; n++) {  // [0, duration): no
 ```
 
 Launch at the format's size with `deviceScaleFactor` 2 for UI text, and load the page with
-`?static=1` so design-kit's preview server injects no live-reload stream. design-kit:motion's
-recorder steps a fake clock instead; it suits a designed stage, not a film with random access.
+`?static=1` so design-kit's preview server sends the page itself, with no viewer around it.
+design-kit:motion's recorder steps a fake clock instead; it suits a designed stage, not a film with
+random access.
 
 ## Encode and mux
 
