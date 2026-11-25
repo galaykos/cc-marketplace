@@ -19,10 +19,11 @@ snippet below is what it does per frame, kept so the page side reads against it.
 
 ## Deterministic capture
 
-Load the page as `?capture&static=1` — `capture` hands the clock to the recorder, `static=1` keeps
-design-kit's preview server from injecting its live-reload stream, which would keep the page from
-settling. Write frames into `.cc-artifacts/design-kit/motion/<slug>/.frames/`, a dot directory the server neither
-lists nor watches.
+Load the page as `?capture&static=1` — `capture` hands the clock to the recorder, `static=1` asks
+design-kit's preview server for the page itself: without it a browser that does not call itself
+headless gets the viewer around the page. Write frames into
+`.cc-artifacts/design-kit/motion/<slug>/.frames/`, a dot directory the server neither lists nor
+watches.
 
 Three details decide whether the loop is smooth and the seam clean; all three are in the snippet.
 

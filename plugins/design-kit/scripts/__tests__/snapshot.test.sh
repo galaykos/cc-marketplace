@@ -1,28 +1,7 @@
 #!/usr/bin/env bash
-# Drives snapshot.sh: the argument errors (exit 1), the unreachable exit (exit 2,
-# NOT MEASURED — never a green), the pairing of two fixture shot sets through
-# `review` in BOTH diff-engine branches (Pillow present → a heatmap and a
-# percentage; Pillow absent → `no diff engine: install Pillow` and the pair alone,
-# forced with a PYTHONPATH stub so the branch runs on a machine that has Pillow),
-# the --storage-state checks (a missing, malformed or empty file, one inside a repo
-# that git does not ignore, a TRACKED one → exit 1; an ignored one reaches the browser
-# layer → exit 2 at a dead URL), a review run from a SUBDIRECTORY landing in the root's
-# .cc-artifacts/design-kit/ with a git-ref base read from the toplevel (and one whose shots sit under
-# the pre-2026-11-14 .design-kit/), and — only when a
-# Chromium-family browser is installed — one real shoot of two routes at two device
-# sizes off a throwaway python3 -m http.server, plus a cookie-guarded route shot
-# through a state file, where the SERVER logs the cookie and a localStorage beacon,
-# and an expired session that must shoot with a WARN naming the login URL.
-#
-# WHAT THIS DOES NOT PROVE. That a shot LOOKS right: nothing here opens a browser
-# at a pixel and judges it, which is the agent-graded half snapshot.sh's header
-# claims. The fixture PNGs are flat 4x4 colour fields, so the percentage they
-# produce is 0 or 100 and never exercises a partial-page change. That a state file
-# SAVED by Playwright replays here — the fixture is hand-written in its shape; the
-# save was run by hand once (CHANGELOG 0.5.1). With no browser installed both shoots
-# are skipped and this file says so on stdout. Every server start retries on a fresh
-# port, but the two dead-URL picks ($port_dead, $port_free) still trust bind-then-close:
-# they misfire only if another process binds that exact port AND answers HTTP in the run.
+# Drives snapshot.sh: the argument errors (1), the unreachable exits (2, NOT MEASURED), the --storage-state refusals, review over fixture sets in both diff-engine branches (no Pillow: forced by a stub), from a subdirectory, against a git ref (its shots in the new folder or the old one) and over sets outside shots/ (copies the page's own policy lets it load, no symlink's, none left of a route that is gone); with a Chromium-family browser, two routes at two sizes, a cookie-guarded one through a state file (the server logs the cookie and the localStorage beacon), an expired session's WARN, and the review page's images drawn.
+# Misses: that a shot looks right; a change of part of a page (the fixtures are 4x4 colour fields, 0 or 100%); a state file Playwright saved (hand-written here); without a browser the shoots, and it says so; the two dead-URL picks ($port_dead, $port_free) trust bind-then-close.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/__tests__/snapshot.test.sh
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -173,6 +152,48 @@ $out"
 else
   grep -q 'no diff engine: install Pillow' <<<"$out" || fail "without Pillow the table must say so: $out"
 fi
+
+# --- sets outside shots/ (a walk's, an --out elsewhere): a review page may load images from shots/ and reviews/diff/ alone, so it shows copies
+dkd="$proj/.cc-artifacts/design-kit"; copies="$dkd/reviews/diff/walk-vs-walk-before"
+mkfix "$dkd/walk-before" "255,255,255" desktop:index desktop:gone mobile:index
+mkfix "$dkd/walk" "255,0,0" desktop:index mobile:index
+printf 'SECRET' > "$tmp/secret"; ln -s "$tmp/secret" "$dkd/walk/desktop/link.png"
+# loaded <url>: the number of images its page shows, each one answered at the page's own content URL; a refused one is an error
+loaded() { python3 - "$1" <<'PY'
+import re, sys, urllib.request
+from urllib.parse import urljoin
+page = urllib.request.urlopen(urllib.request.Request(sys.argv[1] + "?static=1", headers={"User-Agent": "HeadlessChrome"}))
+shown = [s for s in re.findall(r'<img src="([^"]+)"', page.read().decode()) if "link.png" not in s]
+for s in shown: assert urllib.request.urlopen(urljoin(page.url, s)).read(4) == b"\x89PNG", s
+print(len(shown))
+PY
+}
+review_fresh run review --base "$dkd/walk-before" --current "$dkd/walk"
+[ "$rc" = 0 ] || fail "a review of sets outside shots/ should exit 0, got $rc: $out"
+walk_url="$(sed -n 's/^url=//p' <<<"$out")"; heats=0; [ "$has_pillow" = 0 ] || heats=2
+got="$(loaded "$walk_url" 2>&1)" || true
+[ "$got" = "$((5 + heats))" ] || fail "a review page of sets outside shots/ should load every image it shows: $got"
+grep -q "base <code>$dkd/walk-before</code> → current <code>$dkd/walk</code>" "$dkd/reviews/walk-vs-walk-before.html" || fail "the review page should still name the sets it compares"
+! grep -rq SECRET "$dkd/reviews" || fail "what a symlink in a set points to was copied into the served folder"
+if [ "$have_browser" = 1 ]; then
+  set +e; seen="$(python3 - "$here/__tests__" "$walk_url?static=1" <<'PY'
+import sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, sys.argv[1])
+import browser_lib
+with browser_lib.browser(40) as b:
+    tab = b.page(sys.argv[2])
+    print(tab.evaluate("self.origin"), *tab.evaluate("[...document.images].filter((i) => !/link\\.png$/.test(i.src)).map((i) => i.naturalWidth)"))
+PY
+)"; brc=$?; set -e
+  if [ "$brc" = 4 ] && [ "${DESIGN_KIT_REQUIRE_BROWSER:-}" != 1 ]; then echo "$seen"
+  else [ "$brc" = 0 ] && [ "$seen" = "null$(printf ' 4%.0s' $(seq $((5 + heats))))" ] || fail "a browser should draw every image of that page under its policy (exit $brc): $seen"; fi
+fi
+# written again: the copies of a route that is gone go too
+rm "$dkd/walk-before/desktop/gone.png" "$dkd/walk/desktop/link.png"
+review_fresh run review --base "$dkd/walk-before" --current "$dkd/walk"
+[ "$(cd "$copies" && ls | tr '\n' ' ')" = "after__desktop__index.png after__mobile__index.png before__desktop__index.png before__mobile__index.png " ] \
+  || fail "a review written again should hold its own copies alone: $(ls "$copies" 2>&1)"
 
 # The no-engine branch, forced: a PIL that raises on import is what a machine
 # without Pillow looks like to this script.

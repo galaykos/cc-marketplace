@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""render-check.py — `dk check <page> [--widths 375,768,1280]`: the served page in a headless Chromium at each width (a board: each artboard at its own size); every line printed is one escaped JSON object: a finding, a note (change, not checked, skipped, dropped, capped), then the summary; exit 0 none, 1 findings, 2 bad arguments, 4 not checked.
-Drives the browser board-export.sh finds over the DevTools pipe (python3 stdlib), since the CLI screenshot never lays out below 500 px; axe-core and check.js run in an isolated world page script cannot reach (E1-E4 come back over DevTools), the browser's console, exception and network events add E1, E6 compares the widest shot with the last check's (Pillow for how much and where).
-Misses: what check.js misses; page script still runs and can change what is measured, so a clean check is not proof; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page that needs the network is checked without it; loopback stays reachable; E6 sees the widest width only.
+"""render-check.py — `dk check <page> [--widths 375,768,1280]`: the raw page, at its static content URL and under its own policy, in a headless Chromium at each width (a board: each artboard at its own size); every line printed is one escaped JSON object: a finding, a note (change, not checked, skipped, dropped, capped), then the summary; exit 0 none, 1 findings, 2 bad arguments, 4 not checked.
+Drives the browser board-export.sh finds over the DevTools pipe (python3 stdlib), since the CLI screenshot never lays out below 500 px; axe-core and check.js run in an isolated world page script cannot reach (E1-E4 come back over DevTools), the browser's console, exception and network events and the loads the policy refused add E1 (a refused load reads as the failed one it is, a place as the file on disk, and no content URL is printed), E6 compares the widest shot with the last check's, or an artifact's first with its previous version, drawn under the same policy where nothing of this machine can be reached (Pillow for how much and where).
+Misses: what check.js misses; page script still runs and can change what is measured, so a clean check is not proof; nothing leaves the machine (no proxy, DNS, download or WebRTC UDP), so a page that needs the network, or a host the user allowed it, is checked without it; loopback stays reachable by navigation, preconnect and TURN, but not for a previous version; the page is not in the viewer's frame; a refused frame is named by its origin alone; a form sent while the page loads reads E1.no-report; E6 sees the widest width only.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/render-check.py
 """
 import argparse
@@ -10,7 +10,6 @@ import hashlib
 import importlib.util
 import json
 import os
-import pathlib
 import re
 import select
 import shutil
@@ -32,10 +31,14 @@ CHECK_S = 15  # check.js, from the load event to its answer
 START_S = 30  # the first answer, a cold browser starting: CI runners took over 10 s (2 of 3 runs, 2026-11-16)
 SHOT_MAX_H = 6000
 PIXEL = 10  # a pixel counts as changed when a channel moves by more than this (dk review's threshold)
+DEAD_PROXY = "http://127.0.0.1:9"
 # A dead proxy for everything but loopback (it wins over any proxy in the environment), no name resolution, no WebRTC UDP that skips the proxy.
-NO_NETWORK = ["--proxy-server=http://127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+NO_NETWORK = ["--proxy-server=" + DEAD_PROXY, "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
               "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"]
 OURS = ("/favicon.ico",)
+CONTENT = re.compile(re.escape(m.CONTENT) + m.isolate.SEGMENT.pattern + "(?=/)")  # never printed: it opens the page without the LAN key
+CLIENT_LINES = m.FRAME_TAG.count(b"\n")  # serve.py adds them before the page's own
+REFUSED = re.compile(r"'((?:http|ws)s?://[^\s'#]+)(?:#[^\s']*)?' [^'\"]{0,40}Content Security Policy directive: \"([a-z-]+)")  # the browser's log line; linear, since the page picks the URL
 ORDER = {"E1": 0, "E2": 1, "E3": 2, "E4": 3}
 CHECK_ID = re.compile(r"E[1-4](\.[a-z][a-z0-9-]{0,40})?")
 WORLD = "design-kit-check"  # the isolated world check.js and axe-core run in
@@ -44,6 +47,7 @@ PER_ID = 10  # browser-event findings kept per id
 with open(os.path.join(HERE, "check.js"), encoding="utf-8") as _fh:
     CHECK_JS = _fh.read()
 AXE_PATH = os.path.join(os.path.dirname(HERE), "vendor", "axe-core", "axe.min.js")
+NO_BROWSER = "no Chromium-family browser found (Chrome, Chromium, Edge, Playwright's, or DESIGN_KIT_BROWSER)"
 SETTLE_JS = """(async () => { if (document.fonts) await document.fonts.ready;
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); return true; })()"""
 HEIGHT_JS = "Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0)"
@@ -58,8 +62,38 @@ def note(kind, at, text):
     return {"note": kind, "at": at, "text": str(text)[:400]}
 
 
+def find_browser():
+    """(the browser board-export.sh finds or None, its words when it finds none)."""
+    which = subprocess.run(["bash", os.path.join(HERE, "board-export.sh"), "--which"], capture_output=True, text=True)
+    found = which.stdout.strip().splitlines()
+    return found[-1] if which.returncode == 0 and found else None, which.stderr
+
+
+def start_server(docroot):
+    """The loopback origin of docroot's preview server, started when it is not running, or None; preview.sh's other lines go to stderr."""
+    up = subprocess.run(["bash", os.path.join(HERE, "preview.sh"), "--docroot", docroot], capture_output=True, text=True)
+    for line in (up.stdout + up.stderr).splitlines():
+        if not line.startswith("preview: http"):
+            print(line, file=sys.stderr)
+    try:
+        with open(os.path.join(docroot, ".preview.url"), encoding="ascii") as fh:
+            port = urlsplit(fh.read().strip()).port
+    except (OSError, ValueError):
+        port = None
+    # 127.0.0.1, not the URL file's host: a LAN server's printed address is not loopback, and only loopback is given a raw page
+    return "http://127.0.0.1:%d" % port if up.returncode == 0 and port else None
+
+
+def exit_on_signals():
+    """Makes SIGTERM, SIGHUP and SIGINT an exit 4 that still closes the browser and removes its profile."""
+    def stop(signum, _frame):
+        raise SystemExit(4)
+    for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(s, stop)
+
+
 def resolve(docroot, page):
-    """(real path, docroot-relative path) of a servable page under the docroot, from a path as typed, a docroot-relative one or a preview URL."""
+    """(real path, docroot-relative path) of a servable page under the docroot, from a path as typed, a docroot-relative one or a preview URL; ValueError, with why, when it is none."""
     root = os.path.realpath(docroot)
     tries = []
     if re.match(r"https?://", page):
@@ -71,11 +105,11 @@ def resolve(docroot, page):
         if os.path.isfile(real) and (real + os.sep).startswith(root + os.sep):
             rel = os.path.relpath(real, root).replace(os.sep, "/")
             if not real.lower().endswith(m.PAGE_EXT):
-                die("%s is not an .html page" % page, 2)
+                raise ValueError("%s is not an .html page" % page)
             if not m._servable(rel.split("/")):
-                die("%s is never served (a dot path, auth/ or a state file), so it cannot be checked" % page, 2)
+                raise ValueError("%s is never served (a dot path, auth/ or a state file)" % page)
             return real, rel
-    die("no page %s under %s" % (page, docroot), 2)
+    raise ValueError("no page %s under %s" % (page, docroot))
 
 
 def widths_of(text):
@@ -95,8 +129,10 @@ def height_for(w):
 class Chrome:
     """One headless browser on a DevTools pipe: Chrome reads commands on fd 3 and writes replies on fd 4, each JSON ending in NUL."""
 
-    def __init__(self, exe, deadline):
+    def __init__(self, exe, deadline, call_s=10.0):
         self.deadline = deadline  # absolute: no read waits past it
+        self.call_s = call_s  # what a call that names no timeout waits
+        self.stand_in = None  # the answer open_bytes gives each request it pauses
         self.answered = False  # the browser answered a command: a later failure is not a sandbox that never started
         self.profile = tempfile.mkdtemp(prefix="dk-check-")
         try:
@@ -140,6 +176,8 @@ class Chrome:
         if msg.get("method") == "Page.javascriptDialogOpening":
             # alert(), confirm() and prompt() block the page until answered: accept, as a user clicking OK would
             self.send("Page.handleJavaScriptDialog", {"accept": True}, msg.get("sessionId"))
+        elif msg.get("method") == "Fetch.requestPaused" and self.stand_in:
+            self.send("Fetch.fulfillRequest", dict(self.stand_in, requestId=msg["params"]["requestId"]), msg.get("sessionId"))
         return msg
 
     def send(self, method, params=None, session=None):
@@ -173,9 +211,10 @@ class Chrome:
             self.kept[sid] = self.kept.get(sid, 0) + 1
         self.events.append(e)
 
-    def call(self, method, params=None, session=None, timeout=10.0, last=False):
+    def call(self, method, params=None, session=None, timeout=None, last=False):
         want = self.send(method, params, session)
-        deadline = time.monotonic() + (timeout if self.answered else max(timeout, START_S))
+        timeout = self.call_s if timeout is None else timeout
+        deadline = time.monotonic() + (timeout if self.answered or last else max(timeout, START_S))
         if not last:
             deadline = min(deadline, self.deadline)
         while True:
@@ -212,8 +251,26 @@ class Chrome:
             raise RuntimeError(r["exceptionDetails"].get("text", "exception"))
         return r.get("result", {}).get("value")
 
-    def open(self, w, h):
-        tid = self.call("Target.createTarget", {"url": "about:blank"})["targetId"]
+    def sealed(self):
+        """A browser context in which every request, a navigation's and this machine's own services' too, goes to the dead proxy."""
+        context = self.call("Target.createBrowserContext", {"proxyServer": DEAD_PROXY, "proxyBypassList": "<-loopback>"})["browserContextId"]
+        self.call("Browser.setDownloadBehavior", {"behavior": "deny", "browserContextId": context})
+        return context
+
+    def open_bytes(self, sid, page, data, origin, fragment):
+        """Opens data in a tab as the server would send it for page: at a static content URL of origin, under its policy, the client first."""
+        url, host = origin + m.isolate.content_url(page, "s"), urlsplit(origin).netloc
+        policy = m.isolate.page_policy("s", page, m.isolate.segment(page, "s"), [], host)
+        headers = m.isolate.COMMON + (("Content-Type", "text/html; charset=utf-8"), ("Content-Security-Policy", policy))
+        self.stand_in = {"responseCode": 200, "responseHeaders": [{"name": k, "value": v} for k, v in headers],
+                         "body": base64.b64encode(m.isolate.inject(data, m.FRAME_TAG)).decode("ascii")}
+        self.call("Fetch.enable", {"patterns": [{"urlPattern": origin + m.CONTENT + "*", "resourceType": "Document"}]}, sid)
+        failed = self.call("Page.navigate", {"url": url + fragment}, sid).get("errorText")
+        if failed:
+            raise RuntimeError(failed)
+
+    def open(self, w, h, context=None):
+        tid = self.call("Target.createTarget", dict({"browserContextId": context} if context else {}, url="about:blank"))["targetId"]
         sid = self.call("Target.attachToTarget", {"targetId": tid, "flatten": True})["sessionId"]
         for domain in ("Page", "Runtime", "Network", "Log"):
             self.call(domain + ".enable", session=sid)
@@ -259,13 +316,35 @@ def short(u, origin):
     return u[len(origin):] if u.startswith(origin + "/") else u
 
 
+def place(d, origin):
+    """Where an uncaught exception was thrown, as path:line of the file on disk: the client serve.py puts before a page's own lines is passed over."""
+    spots = [(str(f.get("url", "")), int(f.get("lineNumber") or 0) + 1) for f in [d] + ((d.get("stackTrace") or {}).get("callFrames") or [])]
+    at, line = spots[0]
+    for url, n in spots:
+        page = CONTENT.search(url) and re.split("[?#]", url)[0].lower().endswith(m.PAGE_EXT)
+        if not page or n > CLIENT_LINES:
+            at, line = url, n - CLIENT_LINES if page else n
+            break
+    return "%s:%d" % (short(at, origin) or "inline", line)
+
+
 def browser_findings(events, urls, sid, origin, own):
     """E1 from what the browser saw on one page: console errors, uncaught exceptions, failed and refused loads; own is the isolated world's context id."""
     out = []
-    for e in events:
-        if e.get("sessionId") != sid:
-            continue
-        name, p = e["method"], e.get("params", {})
+    mine = [(e["method"], e.get("params", {})) for e in events if e.get("sessionId") == sid]
+    failed = {urls.get(p.get("requestId")) for name, p in mine if name == "Network.loadingFailed" and not p.get("canceled")}
+
+    def unloaded(u, why):
+        ours = u.startswith(origin + "/")
+        if ours and CONTENT.sub("", urlsplit(u).path) in OURS:
+            return
+        if u.startswith(("http://", "https://", "ws://", "wss://")) and not ours:
+            out.append({"check": "E1.external", "selector": None, "text": u,
+                        "detail": "not loaded: a check sends nothing off this machine, and a shared page should not need it either"})
+        else:
+            out.append({"check": "E1.resource", "selector": None, "text": short(u, origin), "detail": "failed to load: %s" % why})
+
+    for name, p in mine:
         if own and (p.get("executionContextId") == own or (p.get("exceptionDetails") or {}).get("executionContextId") == own):
             continue
         if name == "Network.responseReceived":
@@ -275,32 +354,29 @@ def browser_findings(events, urls, sid, origin, own):
                 out.append({"check": "E1.resource", "selector": None, "text": "HTTP %d %s" % (status, short(u, origin)),
                             "detail": "the page's %s request answered %d" % (str(p.get("type", "resource")).lower(), status)})
         elif name == "Network.loadingFailed" and not p.get("canceled"):
-            u = urls.get(p.get("requestId"), "")
-            if not u or urlsplit(u).path in OURS and u.startswith(origin):
-                continue
-            if u.startswith(("http://", "https://", "ws://", "wss://")) and not u.startswith(origin + "/"):
-                out.append({"check": "E1.external", "selector": None, "text": u,
-                            "detail": "not loaded: a check sends nothing off this machine, and a shared page should not need it either"})
-            else:
-                out.append({"check": "E1.resource", "selector": None, "text": short(u, origin),
-                            "detail": "failed to load: %s" % p.get("errorText", "")})
+            u = urls.get(p.get("requestId"))
+            if u:
+                unloaded(u, p.get("errorText") or "blocked (%s)" % p.get("blockedReason"))
         elif name == "Runtime.exceptionThrown":
             d = p.get("exceptionDetails", {})
             desc = (d.get("exception") or {}).get("description") or d.get("text") or "exception"
-            out.append({"check": "E1.exception", "selector": None, "text": str(desc).split("\n")[0],
-                        "detail": "uncaught, at %s:%d" % (short(str(d.get("url", "")), origin) or "inline", int(d.get("lineNumber") or 0) + 1)})
+            out.append({"check": "E1.exception", "selector": None, "text": str(desc).split("\n")[0], "detail": "uncaught, at " + place(d, origin)})
         elif name == "Runtime.consoleAPICalled" and p.get("type") in ("error", "assert"):
             words = [str(a.get("value") if "value" in a else (a.get("description") or a.get("type", ""))).split("\n")[0] for a in p.get("args", [])]
             out.append({"check": "E1.console", "selector": None, "text": " ".join(words) or "console.error()", "detail": "console.%s" % p["type"]})
         elif name == "Log.entryAdded":
             en = p.get("entry", {})
             if en.get("level") == "error" and en.get("source") not in ("network", "javascript", "console-api"):
-                out.append({"check": "E1.console", "selector": None, "text": en.get("text", ""), "detail": "browser %s error" % en.get("source", "")})
+                refused = REFUSED.search(en.get("text", ""))
+                if not refused:
+                    out.append({"check": "E1.console", "selector": None, "text": en.get("text", ""), "detail": "browser %s error" % en.get("source", "")})
+                elif refused.group(1) not in failed:  # a fetch, media, a frame or a form: the network says nothing of these
+                    unloaded(refused.group(1), "blocked (%s)" % refused.group(2))
     kept, seen = [], {}
     for f in out:
         seen[f["check"]] = seen.get(f["check"], 0) + 1
         if seen[f["check"]] <= PER_ID:
-            kept.append(dict(f, text=str(f["text"])[:200], detail=str(f["detail"])[:300]))
+            kept.append(dict(f, text=CONTENT.sub("", str(f["text"]))[:200], detail=CONTENT.sub("", str(f["detail"]))[:300]))
     return kept, len(out) - len(kept)
 
 
@@ -384,7 +460,10 @@ def main(argv=None):
     ap.add_argument("page")
     a = ap.parse_args(argv)
     widths = widths_of(a.widths) if a.widths else [375, 768, 1280]
-    real, rel = resolve(a.docroot, a.page)
+    try:
+        real, rel = resolve(a.docroot, a.page)
+    except ValueError as exc:
+        die(str(exc), 2)
     with open(real, "rb") as fh:
         data = fh.read()
         mtime_ns = os.fstat(fh.fileno()).st_mtime_ns  # with the bytes, so an edit during the run reads as changed since
@@ -403,29 +482,18 @@ def main(argv=None):
     for j in jobs:
         j["at"] = ("artboard %d" % j["artboard"]) if boards else "%d px" % j["w"]
 
-    which = subprocess.run(["bash", os.path.join(HERE, "board-export.sh"), "--which"], capture_output=True, text=True)
-    if which.returncode != 0 or not which.stdout.strip():
-        sys.stderr.write(which.stderr)
-        die("no Chromium-family browser found (Chrome, Chromium, Edge, Playwright's, or DESIGN_KIT_BROWSER); not checked", 4)
-    exe = which.stdout.strip().splitlines()[-1]
+    exe, hint = find_browser()
+    if not exe:
+        sys.stderr.write(hint)
+        die(NO_BROWSER + "; not checked", 4)
     try:
         with open(AXE_PATH, encoding="utf-8") as fh:
             axe = fh.read()
     except OSError as exc:
         die("cannot read %s (%s); not checked" % (AXE_PATH, exc.strerror or exc), 4)
-    up = subprocess.run(["bash", os.path.join(HERE, "preview.sh"), "--docroot", a.docroot], capture_output=True, text=True)
-    for line in (up.stdout + up.stderr).splitlines():
-        if not line.startswith("preview: http"):
-            print(line, file=sys.stderr)
-    try:
-        with open(os.path.join(a.docroot, ".preview.url"), encoding="ascii") as fh:
-            port = urlsplit(fh.read().strip()).port
-    except (OSError, ValueError):
-        port = None
-    if up.returncode != 0 or not port:
+    origin = start_server(a.docroot)
+    if not origin:
         die("the preview server did not start; not checked", 4)
-    # 127.0.0.1, not the URL file's host: a LAN server's address is not loopback
-    origin = "http://127.0.0.1:%d" % port
 
     root = os.path.realpath(a.docroot)
     try:
@@ -452,11 +520,7 @@ def main(argv=None):
     e6 = jobs if boards else [max(jobs, key=lambda j: j["w"])]
     changes, prior = [], previous_version(real, head) if not last else None
 
-    def stop(signum, _frame):
-        raise SystemExit(4)
-    for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
-        signal.signal(s, stop)
-
+    exit_on_signals()
     try:
         ch = Chrome(exe, started + TOTAL_S)
     except OSError as exc:
@@ -525,8 +589,10 @@ def main(argv=None):
             elif prior and started + TOTAL_S - time.monotonic() > 5:
                 tid = sid = None
                 try:
-                    tid, sid = ch.open(j["w"], j["h"])
-                    ch.call("Page.navigate", {"url": pathlib.Path(prior[0]).as_uri() + j["hash"]}, sid)
+                    with open(prior[0], "rb") as fh:
+                        was = fh.read()
+                    tid, sid = ch.open(j["w"], j["h"], ch.sealed())
+                    ch.open_bytes(sid, rel, was, origin, j["hash"])
                     if not ch.wait_for(sid, "Page.loadEventFired", LOAD_S):
                         raise TimeoutError("it did not finish loading in %d s" % LOAD_S)
                     ch.evaluate(sid, SETTLE_JS, 5)
@@ -623,10 +689,7 @@ def main(argv=None):
         if checked:
             results[rel] = {"ts": stamp, "findings": len(findings), "widths": [j["w"] for j in checked], "mtime_ns": mtime_ns}
         prune(root, checks, results)
-        fd, tmp = tempfile.mkstemp(dir=checks, prefix=".results-", suffix=".tmp")
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
-            json.dump(results, fh, indent=1)
-        os.replace(tmp, results_path)
+        m.isolate.replace_file(results_path, json.dumps(results, indent=1).encode("ascii"))
     if not checked:
         return 4
     if findings:

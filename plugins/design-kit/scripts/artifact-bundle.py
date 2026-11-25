@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """artifact-bundle.py — make ONE self-contained HTML artifact, versioned.
 
-Usage: artifact-bundle.py <page.html | page.md | dir> [--name slug] [--out-dir .cc-artifacts/design-kit/artifacts] [--shell page-shell.html] [--zip] [--json]. Inlines every local stylesheet, script, image, media and CSS url() target as text or a data URI; reports http(s) refs as `network:` and relative links as `unresolved-link:`; refuses non-UTF-8 input; stamps a design-kit-artifact meta; writes <slug>.html, keeps every prior version under .versions/<slug>/; warns over 16 MiB. A .md input goes through a small stdlib converter (no nested lists, reference links, footnotes, setext headings or task lists; raw HTML passes through).
-Misses: assets a script loads at runtime (scripts never run, so they are not reported); srcset (reported, not rewritten); a local ref outside the input's tree is left as-is with a warning, never inlined.
+Usage: artifact-bundle.py <page.html | page.md | dir> [--name slug] [--out-dir .cc-artifacts/design-kit/artifacts] [--shell page-shell.html] [--zip] [--json]. Inlines every local stylesheet, script, image, media and CSS url() target as text or a data URI; reports http(s) refs as `network:` and relative links as `unresolved-link:`; refuses non-UTF-8 input; stamps a design-kit-artifact meta; writes <slug>.html (an index.html or index.htm is named after its folder unless --name says otherwise), keeps every prior version under .versions/<slug>/; warns over 16 MiB, and when the slug's ledger names another source. A .md input goes through a small stdlib converter (no nested lists, reference links, footnotes, setext headings or task lists; raw HTML passes through).
+Misses: assets a script loads at runtime (scripts never run, so they are not reported); srcset (reported, not rewritten); a local ref outside the input's tree is left as-is with a warning, never inlined. A source whose path changed (a moved project) reads as another source: a warning, nothing refused.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/artifact-bundle.py
 """
 import argparse
@@ -366,8 +366,12 @@ def main(argv=None):
         src = os.path.join(src, "index.html")
     if not os.path.isfile(src):
         fail(f"no such file: {a.input}")
-    slug = slugify(a.name or os.path.splitext(os.path.basename(src))[0])
     base_dir = os.path.dirname(os.path.abspath(src))
+    stem = os.path.splitext(os.path.basename(src))[0]
+    folder = ""
+    if not a.name and os.path.basename(src).lower() in ("index.html", "index.htm"):
+        folder = os.path.basename(base_dir)
+    slug = slugify(a.name or folder or stem)
     global INPUT_ROOT
     INPUT_ROOT = base_dir
     report = Report()
@@ -389,11 +393,18 @@ def main(argv=None):
             ledger = json.load(open(ledger_path, encoding="utf-8"))
         except (ValueError, OSError):
             report.warnings.append(f"{ledger_path} unreadable; starting a fresh ledger")
+    source, earlier = os.path.realpath(src), ledger.get("source")
+    if earlier and earlier != source:
+        report.warnings.append(f'slug "{slug}" already holds versions of {earlier}; pass --name to keep them apart')
+    ledger["source"] = source
     version = len(ledger["versions"]) + 1
     date = _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat()
     doc = stamp(doc, slug, version, date)
     data = doc.encode("utf-8")
     out = os.path.join(a.out_dir, f"{slug}.html")
+    shared = os.path.join(a.out_dir, "index.html")
+    if folder and shared != out and os.path.exists(shared):
+        report.warnings.append("artifacts/index.html from an earlier bundle is left in place")
     with open(out, "wb") as fh:
         fh.write(data)
     with open(os.path.join(vdir, f"v{version}.html"), "wb") as fh:

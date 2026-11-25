@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot (default ./.cc-artifacts/design-kit) on 127.0.0.1:8124: / a gallery (flow strip, token badges; a design-system/ folder in it is not listed), /_events SSE reload (0.75 s mtime poll), /_index.json, /<path> static with a reload client injected (never for a headless browser or ?static=1) that shows a "server stopped" bar, reloads when the server is back and imports the note widget from /_note.js (scripts/note.js; a loopback ?_outline=<selector> gets only its outline, for dk notes --shot); two write routes, POST /_decision (a pick into decisions.jsonl) and POST /_note (a note row with text into notes.jsonl), every field clamped, numbers to +-1e7, each loopback peer, Host and Origin, its own X-Design-Kit-* header, <= 8 KiB of JSON, else 403 / 413 / 400; a lone surrogate is stored as ?, a file that would pass 2 MiB answers 507, a failed write a JSON 500, and no file is followed through a symlink; GET /_notes?page= and /_checks?page= (loopback) list a page's notes and its last dk check (.checks/results.json, which render-check.py alone writes: no route takes findings). Never served (404 to GET and HEAD, origin- or absolute-form target): dot paths, auth/, the IGNORED state files, *.versions.json, directory listings. --lan binds 0.0.0.0, asks every non-loopback peer for the key in <docroot>/.preview.key (?key= once, then an HttpOnly SameSite=Strict cookie; else 403) and exits after DESIGN_KIT_LAN_MINUTES (60); every mode exits after DESIGN_KIT_IDLE_MINUTES (240; 0 = off) with no request that passed the key gate and no open stream, and on a self-exit (idle limit, LAN limit, Ctrl-C; not a kill) removes .preview.pid/.url/.bind while the pid file names it.
-Misses: whoever holds the keyed URL reads every non-state file under the docroot, signed-in screenshots included, and the key crosses the network in clear (plain HTTP); a page served from this origin can still POST /_decision and /_note, so a bundled page carrying third-party script can plant a pick or a note; export and publish are scripts, not routes, and nothing restores an old version; port 8123 is never the default (the taskmaster/ui-ux mockup server); a page is rendered and checked only when dk check runs (render-check.py), never on its own.
+Serves a docroot's pages in the viewer, each framed at a signed, sandboxed content URL (isolate.py), the gallery, live streams and three loopback write routes. Refuses a foreign Host, a path or link out of the docroot or to a state file, a post from a page or another site, a LAN peer without the key, a service worker's script.
+Misses: whoever holds the keyed URL, or a page's content URL, reads what it opens, over plain HTTP; a hard link to a never-served file; a raw page opened by hand (?static=1) has no viewer around it; a host without fcntl writes unlocked. The rest: rationale/design-kit-threat-model.md.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse
+import base64
 import contextlib
 import hashlib
 import hmac
 import html
+import importlib.util
 import io
 import json
 import math
@@ -24,14 +26,14 @@ import time
 import unicodedata
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, parse_qsl, unquote, urlencode, urlsplit
+from urllib.parse import parse_qs, parse_qsl, quote, unquote, unquote_plus, urlsplit
 
 try:
     import fcntl
 except ImportError:
     fcntl = None
 
-# Stream lost: a role=status bar (no animation, so nothing to reduce), retries at 1, 2, 4 ... 30 s; back: reload.
+# The gallery's. Stream lost: a role=status bar (no animation, so nothing to reduce), retries at 1, 2, 4 ... 30 s; back: reload.
 RELOAD_JS = (
     '(function(){var b,d=0;function go(){var s;try{s=new EventSource("/_events")}catch(e){return}'
     's.onopen=function(){if(b){b.remove();location.reload()}};'
@@ -42,28 +44,52 @@ RELOAD_JS = (
     '(document.body||document.documentElement).appendChild(b);b.textContent="Preview server stopped; retrying"}'
     'd=Math.min(d?d*2:1000,30000);setTimeout(go,d)}}go()})();'
 )
-# location.origin, not a bare path: a page's <base href> must not send the import to another host.
-NOTE_HOOK = 'import(location.origin+"/_note.js").catch(function(){});'
-RELOAD_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + NOTE_HOOK + '</script>'
 GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
-OUTLINE_TAG = '<script data-design-kit-outline>' + NOTE_HOOK + '</script>'
+RELOAD_SHA = base64.b64encode(hashlib.sha256(RELOAD_JS.encode()).digest()).decode()
 HERE = os.path.dirname(os.path.abspath(__file__))
-NOTE_JS = os.path.join(HERE, "note.js")
-# route -> (file, loopback only); served from the plugin, never from the docroot
-SCRIPTS = {"/_note.js": (NOTE_JS, False)}
-PAGE_EXT = (".html", ".htm")
+
+
+def _beside(name):
+    """The module in name.py beside this file, by path: render-check.py and dk.sh load this file by path too, so its folder is not on sys.path."""
+    spec = importlib.util.spec_from_file_location("dk" + name, os.path.join(HERE, name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+isolate = _beside("isolate")
+picks = _beside("picks")
+with open(os.path.join(HERE, "frame.js"), "rb") as _fh:
+    FRAME_TAG = b"<script data-design-kit-frame>" + _fh.read() + b"</script>"
+CONTENT, PAGE_EXT = isolate.CONTENT, isolate.PAGE_EXT  # render-check.py reads both from here
+FRAME_WAIT_S = 0.05
+GALLERY = "/_gallery"
+# route -> (file, type); served from the plugin, never from the docroot
+SCRIPTS = {isolate.VIEWER_JS: ("viewer.js", "text/javascript; charset=utf-8"), isolate.VIEWER_CSS: ("viewer.css", "text/css; charset=utf-8")}
+# preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
+SERVER_VERSION = 2
+INDEX = ("index.html", "index.htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
 NOTES = "notes.jsonl"
 NOTES_LOCK = ".notes.lock"  # dk.sh takes the same lock before it rewrites notes.jsonl
+DECISIONS_LOCK = ".decisions.lock"
 CHECKS = ".checks"  # dk check's results and shots: a dot folder, so never served and never a reload
 CHECK_RESULTS = "results.json"
+HIDDEN = ("C", "Zl", "Zp")  # Unicode categories, "C" all five
 # Variation selectors and the letters that render blank (Hangul fillers, the empty Braille cell): not C*, yet they hide text.
-BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
+BLANKS = ((0x115F, 0x1160), (0x180B, 0x180F), (0x2800, 0x2800), (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFFA0, 0xFFA0), (0xE0100, 0xE01EF))
+BLANK = {c for first, last in BLANKS for c in range(first, last + 1)}
+# What viewer.js goes by, in its document's data-rules; hidden: the inside of a JavaScript character class.
+RULES = json.dumps(dict(picks.LIMITS, hidden="".join([r"\p{%s}" % c for c in HIDDEN] + [r"\u{%X}-\u{%X}" % r for r in BLANKS]), sandbox=isolate.SANDBOX, gallery=GALLERY))
 IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
-DECISION_MAX = 8 * 1024
+DECISION_MAX = 64 * 1024
+NOTE_MAX = 8 * 1024
+ALLOW_MAX = 8 * 1024
+CID = re.compile("[0-9a-f]{16}")  # made by the sender, kept for a retry of the same send
+RECENT_ROWS = 50
 JSONL_MAX = 2 * 1024 * 1024  # notes.jsonl and decisions.jsonl stop growing here (507): a page looping posts must not fill the disk
 PIXELS = 10 ** 7  # every posted number is clamped to +-PIXELS
 LOOPBACK = ("127.0.0.1", "::1", "::ffff:127.0.0.1")
@@ -89,6 +115,10 @@ def notes_lock(root):
     return locked(os.path.join(root, NOTES_LOCK))
 
 
+def decisions_lock(root):
+    return locked(os.path.join(root, DECISIONS_LOCK))
+
+
 def checks_dir(root):
     """<root>/.checks, made 0700 when missing; OSError when it is a symlink or not a folder."""
     d = os.path.join(root, CHECKS)
@@ -102,13 +132,17 @@ def checks_dir(root):
 
 
 def _hidden(c):
-    cat = unicodedata.category(c)
-    return cat[0] == "C" or cat in ("Zl", "Zp") or ord(c) in BLANK
+    return unicodedata.category(c).startswith(HIDDEN) or ord(c) in BLANK
+
+
+def escape(text):
+    """text with control, format, separator and blank-rendering characters as JSON escapes, for page-originated text (taskmaster's preview-feedback.sh does the same)."""
+    return "".join(json.dumps(c)[1:-1] if _hidden(c) else c for c in text)
 
 
 def show(row):
-    """One JSON line with control, format, separator and blank-rendering characters escaped, for page-originated text (taskmaster's preview-feedback.sh does the same)."""
-    return "".join(json.dumps(c)[1:-1] if _hidden(c) else c for c in json.dumps(row, ensure_ascii=False))
+    """row as one line of escaped JSON."""
+    return escape(json.dumps(row, ensure_ascii=False))
 
 
 def _clean(value):
@@ -138,7 +172,7 @@ def _num(value):
     return round(value)
 
 
-def note_row(body):
+def note_row(body, cid):
     """One notes.jsonl row from a posted object: every field clamped, any other key dropped; None without text."""
     text = _clip(body.get("text"), 2000)
     if not text.strip():
@@ -154,6 +188,7 @@ def note_row(body):
     return {
         "id": secrets.token_hex(4),
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "cid": cid,
         "page": page_of(body.get("page")),
         "kind": "note",
         "anchor": anchor,
@@ -168,8 +203,7 @@ def note_row(body):
 def check_status(root, page):
     """What GET /_checks?page= answers: the last dk check of that page, and whether the file changed since."""
     try:
-        fd = os.open(os.path.join(root, CHECKS, CHECK_RESULTS), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        with os.fdopen(fd, "rb") as fh:
+        with open(os.path.join(root, CHECKS, CHECK_RESULTS), "rb", opener=isolate.nofollow) as fh:
             results = json.loads(fh.read().decode("utf-8", "replace"))
     except (OSError, ValueError, RecursionError):
         results = {}
@@ -195,6 +229,14 @@ def append_row(path, row):
     finally:
         os.close(fd)
     return True
+
+
+def append_once(path, row):
+    """The row path holds for this send: the one of its last RECENT_ROWS with row's cid, else row, appended; None when append_row refuses it. Call it under path's lock."""
+    for kept in _jsonl(path)[-RECENT_ROWS:]:
+        if kept.get("cid") == row["cid"]:
+            return kept
+    return row if append_row(path, row) else None
 
 
 def lan_gate(key, peer, query, cookie):
@@ -230,9 +272,18 @@ def _parts(path):
     return [p for p in posixpath.normpath(unquote(path)).split("/") if p and p not in (".", "..")]
 
 
-def without_key(path, query):
-    """Where a first keyed visit is sent: the same path (one leading slash, so never another host), every field but key."""
-    rest = urlencode([(k, v) for k, v in parse_qsl(query, keep_blank_values=True) if k != "key"])
+def opened(path):
+    """(segment, mode, page, docroot-relative parts asked for) of a /_c/ path whose segment this server signed, else None."""
+    if not path.startswith(CONTENT):
+        return None
+    seg, _, rest = path[len(CONTENT):].partition("/")
+    signed = isolate.open_segment(seg)
+    return signed and (seg,) + signed + (_parts(rest),)
+
+
+def without_key(path, query, drop=("key",)):
+    """Where a first keyed visit, a framed page opened as a document or a raw page is sent: path with one leading slash (so never another host), every query field but those to drop, as it was typed (a page may read ?capture by its text)."""
+    rest = "&".join(field for field in query.split("&") if unquote_plus(field.partition("=")[0]) not in drop)
     return "/" + path.lstrip("/") + ("?" + rest if rest else "")
 
 
@@ -269,6 +320,15 @@ def _servable(parts):
         return False
     name = parts[-1].lower()
     return name not in IGNORED and not name.endswith(".versions.json")
+
+
+def _real_parts(root, full):
+    """full's docroot-relative parts, every symlink followed, or None when they leave root or name a never-served file."""
+    if not isolate.inside(root, full):
+        return None
+    rel = os.path.relpath(os.path.realpath(full), os.path.realpath(root))
+    parts = [] if rel == os.curdir else rel.split(os.sep)
+    return parts if _servable(parts) else None
 
 
 def _loopback_host(value):
@@ -317,6 +377,8 @@ def _walk_pages(root):
             if fn.startswith(".") or fn in IGNORED or not fn.lower().endswith(PAGE_EXT):
                 continue
             full = os.path.join(dirpath, fn)
+            if _real_parts(root, full) is None:
+                continue
             rel = os.path.relpath(full, root).replace(os.sep, "/")
             group = rel.split("/")[0] if "/" in rel else "(root)"
             stamp = _stamp_of(full)
@@ -345,12 +407,13 @@ def _title_of(path):
     return html.unescape(head[i + 7:j].strip()) if j > i else None
 
 
-def _newest_mtime(root):
+def _newest_mtime(root, but=()):
+    """The newest mtime of the non-dot files under root, state files and those ending in one of but left out."""
     newest = 0.0
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if not d.startswith(".")]
         for fn in filenames:
-            if fn in IGNORED or fn.startswith("."):
+            if fn in IGNORED or fn.startswith(".") or fn.lower().endswith(but):
                 continue
             try:
                 m = os.stat(os.path.join(dirpath, fn)).st_mtime
@@ -358,6 +421,18 @@ def _newest_mtime(root):
                 continue
             newest = max(newest, m)
     return newest
+
+
+def page_state(root, page):
+    """What a page's stream compares: its file's inode, size and mtime, and the newest mtime in its own folder, other pages left out; None with no file."""
+    folder, _, name = page.rpartition("/")
+    folder = folder.split("/")
+    try:
+        st = os.stat(os.path.join(root, *folder, name))
+    except OSError:
+        return None
+    own = isolate.may_load(page, folder + ["any file"])
+    return st.st_ino, st.st_size, st.st_mtime_ns, own and _newest_mtime(os.path.join(root, *folder), PAGE_EXT)
 
 
 def _read_json(path, default):
@@ -372,10 +447,10 @@ def _jsonl(path):
     """The JSON objects in a .jsonl file; other lines, a missing file and a symlink (never followed) give nothing."""
     rows = []
     try:
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fh = open(path, "rb", opener=isolate.nofollow)
     except OSError:
         return rows
-    with os.fdopen(fd, "rb") as fh:
+    with fh:
         for line in fh:
             try:
                 row = json.loads(line.decode("utf-8", "replace"))
@@ -392,22 +467,21 @@ def _decisions(root):
 
 def flow_steps(root):
     """The workshop's flow as (label, detail, state) triples — state is done|open|todo.
-    Read from workshop.json (dk.sh) and decisions.jsonl (the board)."""
+    Read from workshop.json (dk.sh) and decisions.jsonl (the board); an unconfirmed pick's number is never in the detail."""
     ws = _read_json(os.path.join(root, "workshop.json"), {})
-    dec = _decisions(root)
-    unread = [d for d in dec if not d.get("consumed")]
+    unread = [d for d in _decisions(root) if not d.get("consumed")]
     steps = []
     sysd = ws.get("system") or {}
     steps.append(("system", ("tokens " + sysd["stamp"]) if sysd.get("stamp") else "not extracted", "done" if sysd.get("stamp") else "todo"))
     b = ws.get("board") or {}
     if b.get("file"):
-        picked = b.get("picked")
-        if not picked and dec:
-            last = dec[-1]
-            picked = last.get("picked")
-        detail = os.path.basename(b["file"]) + (" · picked %s" % picked if picked else " · no pick yet")
+        name = picks.clean_board(os.path.basename(b["file"]), _clean, _hidden) if isinstance(b["file"], str) else None
+        kept = picks.clean_picked(b.get("picked")) if b.get("confirmed") is True else None
+        latest = picks.pick_line(unread[-1], _clean, _hidden) if unread else {}
+        picked = kept or latest.get("confirmed") and latest["picked"]
+        detail = (name or "(no usable name)") + (" · picked %d" % picked if picked else " · unconfirmed pick" if b.get("picked") else " · no pick yet")
         if unread:
-            detail += " · %d unread" % len(unread)
+            detail += " · %d unread" % len(unread) + ("" if latest["confirmed"] else ", unconfirmed")
         steps.append(("board", detail, "open" if unread or not picked else "done"))
     else:
         steps.append(("board", "no board", "todo"))
@@ -469,7 +543,7 @@ def _gallery_html(pages, live=True, root=None):
     for group, items in groups.items():
         parts.append(f"<h2>{html.escape(group)}</h2><div class=\"grid\">")
         for p in items:
-            href = "/" + "/".join(html.escape(seg) for seg in p["path"].split("/"))
+            href = "/" + quote(p["path"])
             when = time.strftime("%Y-%m-%d %H:%M", time.localtime(p["mtime"]))
             tok = p.get("tokens") or {}
             badge = ""
@@ -478,12 +552,24 @@ def _gallery_html(pages, live=True, root=None):
             elif tok.get("current") is False:
                 badge = "<span class=\"badge stale\" title=\"design-system/tokens.json changed after this page was built — rebuild it\">tokens moved since build</span>"
             parts.append(
-                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" src=\"{href}?static=1\" title=\"{html.escape(p['title'])}\"></iframe>"
+                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" sandbox=\"allow-scripts\" src=\"{isolate.content_url(p['path'], 'f')}\" title=\"{html.escape(p['title'])}\"></iframe>"
                 f"<div class=\"t\">{html.escape(p['title'])}{badge}</div><div class=\"p\">{html.escape(p['path'])} · {when}</div></a>"
             )
         parts.append("</div>")
     parts.append((GALLERY_SNIPPET if live else "") + "</body></html>")
     return "".join(parts)
+
+
+def _viewer_html(page, title, local):
+    """The viewer's document for a page; a peer that may not write (local false) is shown Gallery and the title alone."""
+    page, title = html.escape(page), html.escape(title)
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>{title}</title><link rel="stylesheet" href="{isolate.VIEWER_CSS}"></head><body data-page="{page}" data-version="{SERVER_VERSION}" data-rules="{html.escape(RULES)}">'
+        f'<header id="bar"><a href="{GALLERY}">Gallery</a><h1 id="title">{title}</h1><span id="chip"></span>'
+        f'<button type="button" id="network" hidden>Network</button><button type="button" id="notes"{"" if local else " hidden"}>Notes</button></header>'
+        f'<div id="strips" aria-live="polite"></div><div id="drawer" hidden></div><main id="frame"></main><script src="{isolate.VIEWER_JS}"></script></body></html>'
+    )
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -495,11 +581,36 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, *_):
         pass
 
+    def end_headers(self):
+        for name, value in isolate.COMMON:
+            self.send_header(name, value)
+        if self._cors:
+            self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Cross-Origin-Resource-Policy", "cross-origin" if self._cors else "same-origin")
+        if self._csp:
+            self.send_header("Content-Security-Policy", self._csp)
+        super().end_headers()
+
+    def _refused(self):
+        """True once answered: 403 for a Host that is not localhost or an IP literal, 404 for a service worker's script."""
+        if not isolate.host_ok(self.headers.get("Host")):
+            self.send_error(HTTPStatus.FORBIDDEN, "open this preview at localhost or an IP address")
+        elif self.headers.get("Service-Worker") == "script":
+            self.send_error(HTTPStatus.NOT_FOUND)
+        else:
+            return False
+        return True
+
     def _gate(self):
-        """True to go on; else the cookie page of a first keyed visit, or the 403, has been sent.
+        """True to go on; else the refusal, the cookie page of a first keyed visit, or the 403, has been sent.
         That page redirects by meta refresh, not 303: a 303 ends a link followed from another site, where Chrome withholds a SameSite=Strict cookie."""
+        if self._refused():
+            return False
         path, query = split_target(self.path)
-        verdict = lan_gate(self.key, self.client_address[0], query, self.headers.get("Cookie"))
+        if self.command in ("GET", "HEAD") and opened(path):
+            verdict = "pass"
+        else:
+            verdict = lan_gate(self.key, self.client_address[0], query, self.headers.get("Cookie"))
         self._admitted = verdict != "deny"
         if verdict == "set" and self.command != "POST":
             clean = html.escape(without_key(path, query))
@@ -522,7 +633,8 @@ class Handler(SimpleHTTPRequestHandler):
             super().do_HEAD()
 
     def handle_one_request(self):
-        self._admitted = False
+        self._admitted = self._cors = False
+        self._csp = None
         try:
             super().handle_one_request()
         finally:
@@ -533,52 +645,117 @@ class Handler(SimpleHTTPRequestHandler):
         return os.path.join(self.root, *_parts(split_target(path)[0]))
 
     def send_head(self):
-        """GET and HEAD: 404 unless servable; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
+        """GET and HEAD: 404 unless servable and inside the docroot; the stdlib branch opens translate_path(self.path), the same pure mapping checked here."""
         path = split_target(self.path)[0]
-        loopback = self.client_address[0] in LOOPBACK
+        if path.startswith(CONTENT):
+            return self._content()
         if path in SCRIPTS:
-            src, local_only = SCRIPTS[path]
+            name, ctype = SCRIPTS[path]
             try:
-                if local_only and not loopback:
-                    raise OSError("loopback only")
-                with open(src, "rb") as fh:
+                with open(os.path.join(HERE, name), "rb") as fh:
                     script = fh.read()
             except OSError:
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return None
-            self._head(len(script), "text/javascript; charset=utf-8")
+            self._head(len(script), ctype)
             return io.BytesIO(script)
+        query = split_target(self.path)[1]
+        if path == GALLERY or path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
+            text = _gallery_html(_walk_pages(self.root), live=not self._wants_raw(query), root=self.root)
+            return self._control_document(text, isolate.gallery_policy(self.headers["Host"], RELOAD_SHA))
         parts = _parts(path)
         if not _servable(parts):
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
         full = os.path.join(self.root, *parts)
-        if os.path.isdir(full) and path.endswith("/"):
-            full = next((os.path.join(full, i) for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))), full)
-        if not (os.path.isfile(full) and full.lower().endswith(PAGE_EXT)):
-            return super().send_head()
-        try:
-            with open(full, "rb") as fh:
-                body = fh.read()
-        except OSError:
+        # %2f too: http.server takes it for a trailing slash and would open the index itself, unchecked.
+        if os.path.isdir(full) and path.endswith(("/", "%2f", "%2F")):
+            parts = parts + [i for i in INDEX if os.path.isfile(os.path.join(full, i))][:1]
+            full = os.path.join(self.root, *parts)
+        if _real_parts(self.root, full) is None:
             self.send_error(HTTPStatus.NOT_FOUND)
             return None
-        i = body.lower().rfind(b"</body>")
-        query = parse_qs(split_target(self.path)[1])
-        if i >= 0 and b"data-design-kit-reload" not in body:
-            if "_outline" in query and loopback:
-                body = body[:i] + OUTLINE_TAG.encode() + body[i:]
-            elif self._wants_live():
-                body = body[:i] + RELOAD_SNIPPET.encode() + body[i:]
+        page = "/".join(parts)
+        if self._page_file(page):
+            if self.client_address[0] in LOOPBACK and self.headers.get("Sec-Fetch-Site") in (None, "none") and self._wants_raw(query):
+                return self._empty(HTTPStatus.SEE_OTHER, ("Location", without_key(isolate.content_url(page, "s"), query, ("key", "static"))))
+            text = _viewer_html(page, _title_of(full) or parts[-1], not self._not_local("approvals"))
+            return self._control_document(text, isolate.viewer_policy(self.headers["Host"]))
+        if isolate.scriptable(self.guess_type(full)):
+            self._csp = isolate.XML_POLICY
+        return super().send_head()
+
+    def _content(self):
+        """GET and HEAD under /_c/: the page its segment signs, with the client injected, or a file that page may load, under the page's policy."""
+        path, query = split_target(self.path)
+        signed = opened(path)
+        if not signed:
+            return self._empty(HTTPStatus.NOT_FOUND)
+        seg, mode, page, parts = signed
+        if mode == "f" and self.headers.get("Sec-Fetch-Dest") == "document":
+            return self._empty(HTTPStatus.SEE_OTHER, ("Location", without_key("/" + quote(page), query)))
+        full, own = os.path.join(self.root, *parts), "/".join(parts) == page
+        real = _real_parts(self.root, full)
+        if not (real and _servable(parts) and os.path.isfile(full) and (own or isolate.may_load(page, parts) and isolate.may_load(page, real))):
+            self._cors = isolate.may_load(page, parts)  # so a page looking for a file it may load reads the 404
+            return self._empty(HTTPStatus.NOT_FOUND)
+        try:
+            fh = open(full, "rb")
+        except OSError:
+            return self._empty(HTTPStatus.NOT_FOUND)
+        self._cors = True
+        self._csp = isolate.page_policy(mode, page, seg, isolate.read_allow(self.root)[0].get(page, []), self.headers.get("Host"))
+        if not own:
+            self._head(os.fstat(fh.fileno()).st_size, self.guess_type(full))
+            return fh
+        with fh:
+            body = isolate.inject(fh.read(), FRAME_TAG)
         self._head(len(body), "text/html; charset=utf-8")
+        if mode == "f" and self.command == "GET":
+            # Chrome sizes a frame in a process of its own only after its document began: the page's own script waits for that size.
+            at = body.find(FRAME_TAG) + len(FRAME_TAG)
+            self.wfile.write(body[:at])
+            time.sleep(FRAME_WAIT_S)
+            body = body[at:]
         return io.BytesIO(body)
+
+    def _page_file(self, page):
+        """The file of the page with this docroot-relative name, or None when there is none."""
+        parts = page.split("/")
+        full = os.path.join(self.root, *parts)
+        if not (all(parts) and _servable(parts) and isolate.is_page(page)):
+            return None
+        return full if os.path.isfile(full) and _real_parts(self.root, full) else None
+
+    def _page(self, page):
+        """GET /_page: what the viewer needs to frame a page; the hosts, and leave to change anything, only where a write route would take the post."""
+        if self.headers.get("Sec-Fetch-Site", "same-origin") != "same-origin":
+            return self._reject(HTTPStatus.FORBIDDEN, "a page's content address is given to this preview's own pages only")
+        full = self._page_file(page)
+        if not full:
+            return self._reject(HTTPStatus.NOT_FOUND, "no such page")
+        local = not self._not_local("approvals")
+        hosts, error = isolate.read_allow(self.root) if local else ({}, None)
+        self._json({
+            "page": page,
+            "title": _title_of(full) or os.path.basename(full),
+            "src": isolate.content_url(page, "f"),
+            "project": hashlib.sha256(os.fsencode(os.path.realpath(self.root))).hexdigest()[:12],
+            "hosts": hosts.get(page, []),
+            "hosts_error": error,
+            "writable": local,
+            "version": SERVER_VERSION,
+            "local": "http://127.0.0.1:%d/%s" % (self.server.server_port, quote(page)),
+        })
 
     def do_GET(self):
         if not self._gate():
             return
         path, query = split_target(self.path)
         if path == "/_events":
-            return self._events()
+            return self._events((parse_qs(query, keep_blank_values=True).get("page") or [None])[0])
+        if path == "/_page":
+            return self._page((parse_qs(query).get("page") or [""])[0])
         if path == "/_index.json":
             return self._json(_walk_pages(self.root))
         if path == "/_notes":
@@ -586,14 +763,14 @@ class Handler(SimpleHTTPRequestHandler):
             if why:
                 return self._reject(HTTPStatus.FORBIDDEN, why)
             page = page_of((parse_qs(query).get("page") or [""])[0])
-            return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") == page])
+            folder, _, name = page.rpartition("/")
+            filed = (page, folder) if name in INDEX else (page,)
+            return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") in filed])
         if path == "/_checks":
             why = self._not_local("check results", "read")
             if why:
                 return self._reject(HTTPStatus.FORBIDDEN, why)
             return self._json(check_status(self.root, page_of((parse_qs(query).get("page") or [""])[0])))
-        if path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
-            return self._html(_gallery_html(_walk_pages(self.root), live=self._wants_live(), root=self.root))
         return super().do_GET()
 
     def list_directory(self, path):
@@ -614,12 +791,16 @@ class Handler(SimpleHTTPRequestHandler):
             return
         path = split_target(self.path)[0]
         if path == "/_decision":
-            what, header, record = "decisions", "X-Design-Kit-Decision", self._decision
+            what, header, limit, record = "decisions", "X-Design-Kit-Decision", DECISION_MAX, self._decision
         elif path == "/_note":
-            what, header, record = "notes", "X-Design-Kit-Note", self._note
+            what, header, limit, record = "notes", "X-Design-Kit-Note", NOTE_MAX, self._note
+        elif path == "/_allow":
+            what, header, limit, record = "approvals", "X-Design-Kit-Allow", ALLOW_MAX, self._allow
         else:
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
         why = self._not_local(what)
+        if not why and self.headers.get("Origin") not in (None, "http://" + self.headers["Host"]):
+            why = "%s are recorded from this preview's own address only" % what
         if why:
             return self._reject(HTTPStatus.FORBIDDEN, why)
         if not self.headers.get(header):
@@ -628,8 +809,8 @@ class Handler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length") or "0")
         except ValueError:
             return self._reject(HTTPStatus.BAD_REQUEST, "bad Content-Length")
-        if length <= 0 or length > DECISION_MAX:
-            return self._reject(HTTPStatus.REQUEST_ENTITY_TOO_LARGE if length > DECISION_MAX else HTTPStatus.BAD_REQUEST, "body must be 1..%d bytes" % DECISION_MAX)
+        if length <= 0 or length > limit:
+            return self._reject(HTTPStatus.REQUEST_ENTITY_TOO_LARGE if length > limit else HTTPStatus.BAD_REQUEST, "body must be 1..%d bytes" % limit)
         raw = self.rfile.read(length)
         try:
             body = json.loads(raw.decode("utf-8"))
@@ -639,38 +820,52 @@ class Handler(SimpleHTTPRequestHandler):
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: %s" % exc)
         except RecursionError:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
+        cid = body.get("cid")
+        # an approval sent twice is one approval
+        if (cid is not None or path != "/_allow") and not (isinstance(cid, str) and CID.fullmatch(cid)):
+            return self._reject(HTTPStatus.BAD_REQUEST, "cid must be 16 of 0-9 a-f")
         try:
-            record(body)
+            record(body, cid)
         except RecursionError:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
 
-    def _store(self, name, row, answer):
-        """Append row to <root>/name and answer: 507 at JSONL_MAX, a JSON 500 when the write fails."""
+    def _store(self, name, lock, row, *fields):
+        """Append row to <root>/name under its lock, once per cid, and answer fields of the row there: 507 at JSONL_MAX, a JSON 500 when the write fails."""
         try:
-            if not append_row(os.path.join(self.root, name), row):
-                return self._reject(HTTPStatus.INSUFFICIENT_STORAGE, "%s has reached its %d MiB cap; move it aside to record more" % (name, JSONL_MAX // (1024 * 1024)))
+            with lock(self.root):
+                kept = append_once(os.path.join(self.root, name), row)
         except OSError as exc:
             return self._reject(HTTPStatus.INTERNAL_SERVER_ERROR, "could not write %s: %s" % (name, exc.strerror or exc))
-        self._json(answer)
+        if kept is None:
+            return self._reject(HTTPStatus.INSUFFICIENT_STORAGE, "%s has reached its %d MiB cap; move it aside to record more" % (name, JSONL_MAX // (1024 * 1024)))
+        self._json(dict({"recorded": True}, **{f: kept.get(f) for f in fields}))
 
-    def _note(self, body):
-        row = note_row(body)
+    def _note(self, body, cid):
+        row = note_row(body, cid)
         if row is None:
             return self._reject(HTTPStatus.BAD_REQUEST, "a note needs text")
-        with notes_lock(self.root):
-            self._store(NOTES, row, {"recorded": True, "id": row["id"], "ts": row["ts"]})
+        self._store(NOTES, notes_lock, row, "id", "cid", "ts")
 
-    def _decision(self, body):
-        row = {
-            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            "board": _clean(str(body.get("board") or "")[:256]),
-            "picked": body.get("picked") if isinstance(body.get("picked"), int) else None,
-            "knobs": _clean(body.get("knobs")) if isinstance(body.get("knobs"), dict) else {},
-            "text": _clean(body.get("text")) if isinstance(body.get("text"), dict) else {},
-            "prompt": _clean(str(body.get("prompt") or "")[:4096]),
-            "consumed": False,
-        }
-        self._store("decisions.jsonl", row, {"recorded": True, "ts": row["ts"]})
+    def _decision(self, body, cid):
+        pick, why = picks.clean_pick(body, _clean, _hidden)
+        if pick is None:
+            return self._reject(HTTPStatus.BAD_REQUEST, why)
+        self._store("decisions.jsonl", decisions_lock, picks.new_row(pick, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), cid), "cid", "ts")
+
+    def _allow(self, body, cid):
+        try:
+            hosts, why = isolate.set_allow(self.root, body.get("page"), body.get("host"), body.get("allow"), self._page_file, locked)
+        except OSError as exc:
+            return self._reject(HTTPStatus.INTERNAL_SERVER_ERROR, "could not write %s: %s" % (isolate.ALLOW, exc.strerror or exc))
+        if why:
+            return self._reject(HTTPStatus.BAD_REQUEST, why)
+        self._json({"hosts": hosts})
+
+    def _empty(self, status, *headers):
+        self.send_response(status)
+        for name, value in headers + (("Content-Length", "0"), ("Cache-Control", "no-store")):
+            self.send_header(name, value)
+        self.end_headers()
 
     def _reject(self, status, why):
         body = json.dumps({"recorded": False, "error": why}).encode()
@@ -680,30 +875,28 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _wants_live(self):
-        """Headless browsers taking a screenshot or a print must not get the
-        reload snippet: its open EventSource never goes idle, so a virtual-time
-        budget never expires and the capture hangs. `?static=1` opts any client out."""
-        if "static=1" in split_target(self.path)[1]:
-            return False
-        return "headless" not in (self.headers.get("User-Agent") or "").lower()
+    def _wants_raw(self, query):
+        """True for a headless browser, or ?static=1: an open /_events stream keeps a capture's virtual time from ever running out."""
+        return ("static", "1") in parse_qsl(query) or "headless" in (self.headers.get("User-Agent") or "").lower()
 
-    def _events(self):
+    def _events(self, page):
+        """The stream of a page, or the gallery's when page is None."""
+        if page is not None and not self._page_file(page):
+            return self.send_error(HTTPStatus.NOT_FOUND)
+        look = (lambda: self.state["version"]) if page is None else (lambda: page_state(self.root, page))
+        seen = look()  # before the headers: a client that reads the page once the stream opened misses no save
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Connection", "keep-alive")
         self.end_headers()
-        seen = self.state["version"]
         with self.streams_lock:
             self.state["streams"] += 1
         try:
             while True:
-                if self.state["version"] != seen:
-                    seen = self.state["version"]
-                    self.wfile.write(b"data: reload\n\n")
-                else:
-                    self.wfile.write(b": ping\n\n")
+                now = look()
+                self.wfile.write(b": ping\n\n" if now == seen else b"data: gone\n\n" if now is None else b"data: reload\n\n")
+                seen = now
                 self.wfile.flush()
                 time.sleep(0.75)
         except (BrokenPipeError, ConnectionResetError, OSError):
@@ -715,14 +908,16 @@ class Handler(SimpleHTTPRequestHandler):
     def _json(self, obj):
         self._bytes(json.dumps(obj, indent=1).encode(), "application/json")
 
-    def _html(self, text):
-        self._bytes(text.encode(), "text/html; charset=utf-8")
+    def _control_document(self, text, policy):
+        """The head of the gallery or of a viewer, and its body to copy."""
+        body, self._csp = text.encode(), policy
+        self._head(len(body), "text/html; charset=utf-8", ("Cross-Origin-Opener-Policy", "same-origin"))
+        return io.BytesIO(body)
 
-    def _head(self, length, ctype):
+    def _head(self, length, ctype, *headers):
         self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(length))
-        self.send_header("Cache-Control", "no-store")
+        for name, value in headers + (("Content-Type", ctype), ("Content-Length", str(length)), ("Cache-Control", "no-store")):
+            self.send_header(name, value)
         self.end_headers()
 
     def _bytes(self, body, ctype):
@@ -749,14 +944,14 @@ def _idle_exit(srv, state, limit_s, stop):
 
 
 def _drop_state(root):
-    """On the way out: remove .preview.pid, .url and .bind while the pid file still names this process (not a successor's)."""
+    """On the way out: remove .preview.pid, .url, .bind and .ver while the pid file still names this process (not a successor's)."""
     try:
         with open(os.path.join(root, ".preview.pid"), encoding="ascii") as fh:
             if fh.read().strip() != str(os.getpid()):
                 return
     except (OSError, ValueError):
         return
-    for name in (".preview.url", ".preview.bind", ".preview.pid"):
+    for name in (".preview.url", ".preview.bind", ".preview.ver", ".preview.pid"):
         try:
             os.unlink(os.path.join(root, name))
         except OSError:
