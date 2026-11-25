@@ -61,14 +61,14 @@ isolate = _beside("isolate")
 picks = _beside("picks")
 with open(os.path.join(HERE, "frame.js"), "rb") as _fh:
     FRAME_TAG = b"<script data-design-kit-frame>" + _fh.read() + b"</script>"
-CONTENT = "/_c/"
+CONTENT, PAGE_EXT = isolate.CONTENT, isolate.PAGE_EXT  # render-check.py reads both from here
 FRAME_WAIT_S = 0.05
 GALLERY = "/_gallery"
 # route -> (file, type); served from the plugin, never from the docroot
-SCRIPTS = {"/_viewer.js": ("viewer.js", "text/javascript; charset=utf-8"), "/_viewer.css": ("viewer.css", "text/css; charset=utf-8")}
+SCRIPTS = {isolate.VIEWER_JS: ("viewer.js", "text/javascript; charset=utf-8"), isolate.VIEWER_CSS: ("viewer.css", "text/css; charset=utf-8")}
 # preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
 SERVER_VERSION = 1
-PAGE_EXT = (".html", ".htm")
+INDEX = ("index.html", "index.htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
 NOTES = "notes.jsonl"
@@ -76,8 +76,12 @@ NOTES_LOCK = ".notes.lock"  # dk.sh takes the same lock before it rewrites notes
 DECISIONS_LOCK = ".decisions.lock"
 CHECKS = ".checks"  # dk check's results and shots: a dot folder, so never served and never a reload
 CHECK_RESULTS = "results.json"
+HIDDEN = ("C", "Zl", "Zp")  # Unicode categories, "C" all five
 # Variation selectors and the letters that render blank (Hangul fillers, the empty Braille cell): not C*, yet they hide text.
-BLANK = set(range(0xFE00, 0xFE10)) | set(range(0xE0100, 0xE01F0)) | set(range(0x180B, 0x1810)) | {0x115F, 0x1160, 0x3164, 0xFFA0, 0x2800}
+BLANKS = ((0x115F, 0x1160), (0x180B, 0x180F), (0x2800, 0x2800), (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFFA0, 0xFFA0), (0xE0100, 0xE01EF))
+BLANK = {c for first, last in BLANKS for c in range(first, last + 1)}
+# What viewer.js goes by, in its document's data-rules; hidden: the inside of a JavaScript character class.
+RULES = json.dumps(dict(picks.LIMITS, hidden="".join([r"\p{%s}" % c for c in HIDDEN] + [r"\u{%X}-\u{%X}" % r for r in BLANKS]), sandbox=isolate.SANDBOX, gallery=GALLERY))
 IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
@@ -128,13 +132,17 @@ def checks_dir(root):
 
 
 def _hidden(c):
-    cat = unicodedata.category(c)
-    return cat[0] == "C" or cat in ("Zl", "Zp") or ord(c) in BLANK
+    return unicodedata.category(c).startswith(HIDDEN) or ord(c) in BLANK
+
+
+def escape(text):
+    """text with control, format, separator and blank-rendering characters as JSON escapes, for page-originated text (taskmaster's preview-feedback.sh does the same)."""
+    return "".join(json.dumps(c)[1:-1] if _hidden(c) else c for c in text)
 
 
 def show(row):
-    """One JSON line with control, format, separator and blank-rendering characters escaped, for page-originated text (taskmaster's preview-feedback.sh does the same)."""
-    return "".join(json.dumps(c)[1:-1] if _hidden(c) else c for c in json.dumps(row, ensure_ascii=False))
+    """row as one line of escaped JSON."""
+    return escape(json.dumps(row, ensure_ascii=False))
 
 
 def _clean(value):
@@ -195,8 +203,7 @@ def note_row(body, cid):
 def check_status(root, page):
     """What GET /_checks?page= answers: the last dk check of that page, and whether the file changed since."""
     try:
-        fd = os.open(os.path.join(root, CHECKS, CHECK_RESULTS), os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        with os.fdopen(fd, "rb") as fh:
+        with open(os.path.join(root, CHECKS, CHECK_RESULTS), "rb", opener=isolate.nofollow) as fh:
             results = json.loads(fh.read().decode("utf-8", "replace"))
     except (OSError, ValueError, RecursionError):
         results = {}
@@ -226,10 +233,9 @@ def append_row(path, row):
 
 def append_once(path, row):
     """The row path holds for this send: the one of its last RECENT_ROWS with row's cid, else row, appended; None when append_row refuses it. Call it under path's lock."""
-    if row["cid"]:
-        for kept in _jsonl(path)[-RECENT_ROWS:]:
-            if kept.get("cid") == row["cid"]:
-                return kept
+    for kept in _jsonl(path)[-RECENT_ROWS:]:
+        if kept.get("cid") == row["cid"]:
+            return kept
     return row if append_row(path, row) else None
 
 
@@ -441,7 +447,7 @@ def _jsonl(path):
     """The JSON objects in a .jsonl file; other lines, a missing file and a symlink (never followed) give nothing."""
     rows = []
     try:
-        fh = open(path, "rb", opener=lambda p, flags: os.open(p, flags | getattr(os, "O_NOFOLLOW", 0)))
+        fh = open(path, "rb", opener=isolate.nofollow)
     except OSError:
         return rows
     with fh:
@@ -470,9 +476,9 @@ def flow_steps(root):
     b = ws.get("board") or {}
     if b.get("file"):
         name = picks.clean_board(os.path.basename(b["file"]), _clean, _hidden) if isinstance(b["file"], str) else None
-        kept = picks.pick_line(dict(b, v=2 if b.get("confirmed") is True else None), _clean, _hidden)
-        latest = picks.pick_line(unread[-1], _clean, _hidden) if unread else kept
-        picked = next((p["picked"] for p in (kept, latest) if p["confirmed"] and p["picked"]), None)
+        kept = picks.clean_picked(b.get("picked")) if b.get("confirmed") is True else None
+        latest = picks.pick_line(unread[-1], _clean, _hidden) if unread else {}
+        picked = kept or latest.get("confirmed") and latest["picked"]
         detail = (name or "(no usable name)") + (" · picked %d" % picked if picked else " · unconfirmed pick" if b.get("picked") else " · no pick yet")
         if unread:
             detail += " · %d unread" % len(unread) + ("" if latest["confirmed"] else ", unconfirmed")
@@ -559,10 +565,10 @@ def _viewer_html(page, title, local):
     page, title = html.escape(page), html.escape(title)
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{title}</title><link rel="stylesheet" href="/_viewer.css"></head><body data-page="{page}" data-version="{SERVER_VERSION}">'
+        f'<title>{title}</title><link rel="stylesheet" href="{isolate.VIEWER_CSS}"></head><body data-page="{page}" data-version="{SERVER_VERSION}" data-rules="{html.escape(RULES)}">'
         f'<header id="bar"><a href="{GALLERY}">Gallery</a><h1 id="title">{title}</h1><span id="chip"></span>'
         f'<button type="button" id="network" hidden>Network</button><button type="button" id="notes"{"" if local else " hidden"}>Notes</button></header>'
-        '<div id="strips" aria-live="polite"></div><div id="drawer" hidden></div><main id="frame"></main><script src="/_viewer.js"></script></body></html>'
+        f'<div id="strips" aria-live="polite"></div><div id="drawer" hidden></div><main id="frame"></main><script src="{isolate.VIEWER_JS}"></script></body></html>'
     )
 
 
@@ -664,7 +670,7 @@ class Handler(SimpleHTTPRequestHandler):
         full = os.path.join(self.root, *parts)
         # %2f too: http.server takes it for a trailing slash and would open the index itself, unchecked.
         if os.path.isdir(full) and path.endswith(("/", "%2f", "%2F")):
-            parts = parts + [i for i in ("index.html", "index.htm") if os.path.isfile(os.path.join(full, i))][:1]
+            parts = parts + [i for i in INDEX if os.path.isfile(os.path.join(full, i))][:1]
             full = os.path.join(self.root, *parts)
         if _real_parts(self.root, full) is None:
             self.send_error(HTTPStatus.NOT_FOUND)
@@ -717,7 +723,7 @@ class Handler(SimpleHTTPRequestHandler):
         """The file of the page with this docroot-relative name, or None when there is none."""
         parts = page.split("/")
         full = os.path.join(self.root, *parts)
-        if not (all(parts) and _servable(parts) and (full.lower().endswith(PAGE_EXT) or self.guess_type(full) == "text/html")):
+        if not (all(parts) and _servable(parts) and isolate.is_page(page)):
             return None
         return full if os.path.isfile(full) and _real_parts(self.root, full) else None
 
@@ -758,7 +764,7 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._reject(HTTPStatus.FORBIDDEN, why)
             page = page_of((parse_qs(query).get("page") or [""])[0])
             folder, _, name = page.rpartition("/")
-            filed = (page, folder) if name in ("index.html", "index.htm") else (page,)
+            filed = (page, folder) if name in INDEX else (page,)
             return self._json([r for r in _jsonl(os.path.join(self.root, NOTES)) if r.get("page") in filed])
         if path == "/_checks":
             why = self._not_local("check results", "read")
@@ -815,7 +821,8 @@ class Handler(SimpleHTTPRequestHandler):
         except RecursionError:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
         cid = body.get("cid")
-        if cid is not None and not (isinstance(cid, str) and CID.fullmatch(cid)):
+        # an approval sent twice is one approval
+        if (cid is not None or path != "/_allow") and not (isinstance(cid, str) and CID.fullmatch(cid)):
             return self._reject(HTTPStatus.BAD_REQUEST, "cid must be 16 of 0-9 a-f")
         try:
             record(body, cid)
@@ -843,9 +850,7 @@ class Handler(SimpleHTTPRequestHandler):
         pick, why = picks.clean_pick(body, _clean, _hidden)
         if pick is None:
             return self._reject(HTTPStatus.BAD_REQUEST, why)
-        row = dict({"v": 2, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "cid": cid}, **pick)
-        row.update(prompt=picks.fixed_prompt(pick["board"], pick["picked"]), consumed=False)
-        self._store("decisions.jsonl", decisions_lock, row, "cid", "ts")
+        self._store("decisions.jsonl", decisions_lock, picks.new_row(pick, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), cid), "cid", "ts")
 
     def _allow(self, body, cid):
         try:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # preview.sh [--lan|--stop] [--port N] [--docroot DIR] — starts serve.py on DIR (default ./.cc-artifacts/design-kit) once, prints its URL and writes DIR/.preview.{pid,url,bind,port,ver}; a second start reuses it, or restarts an older version on its own port and bind. Port: --port or DESIGN_KIT_PORT, or exit 4; else DIR's last, 8124, then 8125 to 8139 (DESIGN_KIT_PORT_LAST), the first free, or exit 4. --stop ends it, only when the recorded pid is serve.py on DIR, and deletes those files but .port, and the LAN key.
 # --lan binds 0.0.0.0 and prints the URL with the ?key= another device needs; serve.py ends itself (DESIGN_KIT_LAN_MINUTES 60, DESIGN_KIT_IDLE_MINUTES 240, 0 = off). Exit 6: the recorded pid is alive and neither ps nor /proc names it; nothing signalled or removed.
-# Misses: serve.py's output is discarded, so any failed start reads as a busy port, and one slower than 0.3 s to its bind as started; the LAN host is a guess; two starts at once are not locked. Harness: scripts/__tests__/preview.test.sh.
+# Misses: serve.py's errors are discarded, so any start that ends before its bind reads as a busy port, and one that takes over 10 s is ended, exit 4; the LAN host is a guess; two starts at once are not locked: one that meets the other's record waits for that server, one that comes before it starts its own. Harness: scripts/__tests__/preview.test.sh.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/preview.sh
 set -euo pipefail
 
@@ -60,6 +60,12 @@ keyq() { if [ -s "$keyfile" ]; then printf '?key=%s' "$(cat "$keyfile")"; fi; }
 
 command -v python3 >/dev/null || { echo "preview.sh: python3 3.8+ is required (or open the .html files directly)" >&2; exit 3; }
 mkdir -p "$docroot"
+# "<pid> <version> starting <launcher's pid>" until the server is bound: no version record yet, and another launch waits while that launcher runs
+for ((i = 0; i < 150; i++)); do
+  word=""; { read -r _ _ word launcher < "$verfile"; } 2>/dev/null || true
+  [ "$word" = starting ] && kill -0 "$launcher" 2>/dev/null || break
+  sleep 0.1
+done
 abs="$(cd "$docroot" && pwd -P)"; pid="$(cat "$pidfile" 2>/dev/null || true)"
 here="$(cd "$(dirname "$0")" && pwd)"; version="$(sed -n 's/^SERVER_VERSION = \([0-9][0-9]*\).*/\1/p' "$here/serve.py")"; unused=""
 rc=0; ours "$pid" || rc=$?
@@ -99,17 +105,27 @@ if [ -n "$exact" ]; then candidates=("$port"); else
   if [ -n "$old" ] && [ "$old" -ge 1024 ] && [ "$old" -le 65535 ] && [ "$old" != 8123 ]; then candidates=("$old"); fi
   for ((p = 8124; p == 8124 || p <= last; p++)); do [ "$p" = "$old" ] || candidates+=("$p"); done
 fi
-started=""
+# moved into place: a reader never meets an empty record
+record() { echo "$*" > "$verfile.$$"; mv -f "$verfile.$$" "$verfile"; }
+# serve.py's line, which holds the LAN key, is read from a file with no name
+said="$(mktemp)"; exec 3> "$said" 4< "$said"; rm -f "$said"
+started=""; slow=""; heard=""
 for port in "${candidates[@]}"; do
   # serve.py turns DESIGN_KIT_PORT into a number even when --port is given, and dies on an empty one
-  ( unset DESIGN_KIT_PORT; exec python3 "$here/serve.py" --docroot "$abs" --port "$port" $lan_flag >/dev/null 2>&1 ) &
-  pid=$!; echo "$pid" > "$pidfile"
-  sleep 0.3
-  if kill -0 "$pid" 2>/dev/null; then started=1; break; fi
+  ( unset DESIGN_KIT_PORT; exec python3 "$here/serve.py" --docroot "$abs" --port "$port" $lan_flag >&3 2>/dev/null 3>&- 4<&- ) &
+  pid=$!; record "$pid $version starting $$"; echo "$pid" > "$pidfile"
+  for ((i = 0; i < 200; i++)); do
+    IFS= read -r line <&4 || true; heard="$heard$line"
+    case "$heard" in *" on http://$bind:$port/"*) started=1; break 2 ;; esac
+    kill -0 "$pid" 2>/dev/null || continue 2
+    sleep 0.05
+  done
+  kill "$pid" 2>/dev/null || true; slow=1; break
 done
 if [ -z "$started" ]; then
-  rm -f "$pidfile"
-  if [ -n "$exact" ]; then echo "preview.sh: server did not start (port $port busy?)" >&2; else echo "preview.sh: no free port from 8124 to $last" >&2; fi
+  rm -f "$pidfile" "$verfile"
+  if [ -n "$slow" ]; then echo "preview.sh: the server did not bind port $port in 10 s; ended it" >&2
+  elif [ -n "$exact" ]; then echo "preview.sh: server did not start (port $port busy?)" >&2; else echo "preview.sh: no free port from 8124 to $last" >&2; fi
   exit 4
 fi
 host="127.0.0.1"; [ "$bind" = "0.0.0.0" ] && host="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 127.0.0.1)"
@@ -118,7 +134,7 @@ if [ "$bind" = "0.0.0.0" ]; then
   for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$keyfile" ] && break; sleep 0.1; done
   q="$(keyq)"; [ -n "$q" ] || echo "preview.sh: the LAN server wrote no $keyfile; other devices will get 403" >&2
 fi
-echo "http://$host:$port/" > "$urlfile"; echo "$bind" > "$bindfile"; echo "$port" > "$portfile"; echo "$pid $version" > "$verfile"
+echo "http://$host:$port/" > "$urlfile"; echo "$bind" > "$bindfile"; echo "$port" > "$portfile"; record "$pid $version"
 echo "preview: http://$host:$port/$q"
 [ -z "$old" ] || [ "$old" = "$port" ] || echo "preview: moved from port $old; saved knobs and page data stay on the old address"
 [ -z "$unused" ] || echo "$unused"

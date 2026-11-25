@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives isolate.py as units, no server: host_ok, inside, scriptable; content tokens forged, moved and cut; the policies as whole text; may_load by folder; inject against decoy heads and markup two parsers read differently; hosts and .allow.json (bad files, symlinks, caps, a failed write).
+# Drives isolate.py as units, no server: host_ok, inside, scriptable; content tokens forged, moved and cut; the policies as whole text; is_page and may_load by folder; inject against decoy heads and markup two parsers read differently; hosts and .allow.json (bad files, symlinks, caps, a failed write); replace_file.
 # Misses: what the server and a browser do with the answers (serve.test.sh, viewer.test.sh, attack.test.sh); that open_segment compares in constant time; set_allow with two writers at once under serve.py's own lock; a symlink swapped between inside() and the open.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -117,6 +117,8 @@ eq("gallery policy", lambda: m.gallery_policy(AT, "c2hh"), CONTROL % ("'sha256-c
 
 # same-server files
 mimetypes.add_type("text/html", ".dkpage"); mimetypes.add_type("text/plain", ".htm")
+check("is_page", [[v] for v in ("a.html", "A.HTM", "decks/a.html", ".html", "a.dkpage", "a.DKPAGE", "data:,a.dkpage", "a.html.br")], True)
+check("is_page", [[v] for v in ("report.html.gz", "motion/x/report.html.gz", "a.png", "a.html.txt", "a.xhtml", "html", "a.html/x", "noext", "")], False)
 def loads(page, paths, want):
     for path in paths:
         parts = path.split("/") if isinstance(path, str) else path
@@ -125,7 +127,7 @@ ELSEWHERE = ["boards/a.png", "boards/x/a.png", "decks/a.png", "artifacts/a.js", 
 for page in ("boards/a.html", "decks/a.html", "artifacts/a.html", "previews/kit.html", "a.html", "index.html", "motion/a.html", "film/a.htm"):
     loads(page, ELSEWHERE + [page], False)
 for page, own in (("motion/x/index.html", "motion/x"), ("film/x/index.html", "film/x"), ("film/x/comp/a.htm", "film/x/comp"), ("previews/x/a.html", "previews/x")):
-    loads(page, [own + "/" + f for f in ("a.js", "data.json", "a.svg", "a.xhtml", "noext", "fonts/deep/a.woff2", "a.html.txt", "a b;c.png")], True)
+    loads(page, [own + "/" + f for f in ("a.js", "data.json", "a.svg", "a.xhtml", "noext", "fonts/deep/a.woff2", "a.html.txt", "report.html.gz", "a b;c.png")], True)
     loads(page, [own + "/" + f for f in ("index.html", "other.html", "sub/index.htm", "OTHER.HTML", "a.Htm", "a.html.br", "data:,a.dkpage", "a.DKPAGE", ".frames/1.png", ".env", "sub/.git/config", "sub/..", "sub/../a.js", "./a.js", "sub//a.js", "")]
           + [own, own + "y/a.js", own.rsplit("/", 1)[0] + "/a.js", own.rsplit("/", 1)[0] + "/y/a.js", own.upper() + "/a.js", ".checks/results.json", "../" + own + "/a.js", own + "/../y/a.js"], False)
     loads(page, [own.split("/") + [p] for p in ("../y/a.js", "s/../../../decks/a.png", "s\\..\\..\\..\\..\\decks\\a.png", "a.js\0.png", "/a.js")] + [[own, "a.js"], [], [""]], False)
@@ -297,6 +299,32 @@ os.replace = full
 eq("a failed write is an OSError", lambda: allow(A, CDN, False), repr(OSError(28, "No space left on device")))
 os.replace = replace
 eq("a failed write changes no file and leaves none", lambda: (text() == was, sorted(os.listdir(root)) == names), (True, True))
+# one step onto a file: no link followed, no name beside it that a server lists or serves, nothing left of a write that failed
+path, seen = os.path.join(root, "rows.jsonl"), []
+os.symlink(out, path); was = text(out)
+def watch(src, dst):
+    seen.append((os.path.basename(src)[:1], os.path.dirname(src) == root, text(src), stat.S_IMODE(os.lstat(src).st_mode), dst == path))
+    replace(src, dst)
+os.replace = watch
+eq("replace_file puts the bytes there at 0600", lambda: (m.replace_file(path, b"new\xff"), text(path), os.path.islink(path), stat.S_IMODE(os.lstat(path).st_mode)), (None, b"new\xff", False, 0o600))
+eq("from a dot name in the same folder, whole before it moves", lambda: seen, [(".", True, b"new\xff", 0o600, True)])
+eq("and leaves a link's target as it was", lambda: text(out) == was, True)
+os.replace = full
+def fails(data):
+    was, names = text(path), sorted(os.listdir(root))
+    try:
+        return m.replace_file(path, data)
+    except (OSError, TypeError) as exc:
+        return type(exc).__name__, text(path) == was, sorted(os.listdir(root)) == names
+eq("a write that fails is raised, changes nothing and leaves nothing", lambda: [fails(data) for data in (b"more", "no bytes")], [("OSError", True, True), ("TypeError", True, True)])
+os.replace = replace
+link = os.path.join(root, "link"); os.symlink(FILE, link)
+def opened(p):
+    try:
+        with open(p, "rb", opener=m.nofollow) as fh: return fh.read() == text()
+    except OSError:
+        return "OSError"
+eq("nofollow opens a file, never through a link", lambda: [opened(FILE), opened(link)], [True, "OSError"])
 print("\n".join(bad), end="\n" if bad else "")
 sys.exit(1 if bad else 0)
 PY

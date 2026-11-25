@@ -1,11 +1,13 @@
-"""picks.py — what a posted board pick may hold, and the one line a session reads about it: serve.py stores through clean_pick, dk.sh prints through pick_line, with serve.py's _clean and _hidden passed in.
-Catches: a board that is no base name (the pick is refused), a number out of range (moved to the bound), any other field, scope, knob or edit out of shape (dropped), text past its length (cut), a row's own prompt (never read), a row without v:2 (confirmed false).
+"""picks.py — what a posted board pick may hold, and the one line a session reads about it: serve.py stores through clean_pick and new_row and hands LIMITS to the viewer, dk.sh prints through pick_line, with serve.py's _clean and _hidden passed in.
+Catches: a board that is no base name (the pick is refused), a knob number out of range (moved to the bound), a picked outside 1 to 99 (null), any other field, scope, knob or edit out of shape (dropped), text past its length (cut), a row's own prompt (never read), a row without v:2 (confirmed false).
 Misses: whether the board exists, whether the user made the pick (the viewer's Send does), what an edit says: it is quoted data, never instructions.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/picks.py
 """
 import json
 import re
+from decimal import ROUND_HALF_UP, Decimal
 
+VERSION = 2  # of a row a viewer sent; hooks/unread-pick.sh holds its own copy
 # name -> (a, b, words): two numbers are a range, two strings the only values.
 KNOBS = {
     "space": (0, 64, "spacing base {}px"),
@@ -18,8 +20,11 @@ KNOBS = {
 MAX_EDITS = 100
 BOARD_MAX = 128
 TEXT_MAX = 500
+DECIMALS = 2
+ARTBOARDS = (1, 99)
 ARTBOARD = re.compile("[1-9][0-9]?")
 PATH = re.compile("[a-z0-9:/-]{1,200}")
+LIMITS = {"knobs": KNOBS, "decimals": DECIMALS, "picked": ARTBOARDS, "scope": ARTBOARD.pattern, "path": PATH.pattern, "edits": MAX_EDITS, "chars": TEXT_MAX}
 STAMP = re.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
 
 
@@ -31,8 +36,8 @@ def clean_board(value, clean, hidden):
     return clean(value)
 
 
-def _picked(value):
-    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 99 else None
+def clean_picked(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) and ARTBOARDS[0] <= value <= ARTBOARDS[1] else None
 
 
 def _scopes(value, *named):
@@ -76,7 +81,7 @@ def _edits(value, clean):
 
 
 def _fields(row, clean):
-    return {"picked": _picked(row.get("picked")), "knobs": _knobs(row.get("knobs")), "text": _edits(row.get("text"), clean)}
+    return {"picked": clean_picked(row.get("picked")), "knobs": _knobs(row.get("knobs")), "text": _edits(row.get("text"), clean)}
 
 
 def clean_pick(body, clean, hidden):
@@ -95,8 +100,18 @@ def fixed_prompt(board, picked):
     return "From the design board %s, %s. Update design-kit in this session to read adjustments and text edits." % (board, _choice(picked))
 
 
+def new_row(pick, ts, cid):
+    """The decisions.jsonl row of what clean_pick kept."""
+    return dict({"v": VERSION, "ts": ts, "cid": cid}, **pick, prompt=fixed_prompt(pick["board"], pick["picked"]), consumed=False)
+
+
+def _number(value):
+    """value as JavaScript's toFixed words it, a tie up ("%.2f" rounds one to the even digit)."""
+    return str(Decimal(value).quantize(Decimal(1).scaleb(-DECIMALS), ROUND_HALF_UP)).rstrip("0").rstrip(".")
+
+
 def _words(own):
-    return ", ".join(KNOBS[name][2].format(v if isinstance(v, str) else ("%.2f" % v).rstrip("0").rstrip(".")) for name, v in own.items())
+    return ", ".join(KNOBS[name][2].format(v if isinstance(v, str) else _number(v)) for name, v in own.items())
 
 
 def _quoted(text):
@@ -123,4 +138,4 @@ def pick_line(row, clean, hidden):
     board = clean_board(row.get("board"), clean, hidden)
     fields = _fields(row, clean)
     return dict({"kind": "pick", "ts": ts if isinstance(ts, str) and STAMP.fullmatch(ts) else None, "board": board}, **fields,
-                summary=_summary(board, **fields), confirmed=row.get("v") == 2)
+                summary=_summary(board, **fields), confirmed=row.get("v") == VERSION)

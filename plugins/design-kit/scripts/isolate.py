@@ -1,4 +1,4 @@
-"""isolate.py - what keeps a page from acting as the user, for serve.py: what the control origin must not answer (host_ok, inside, scriptable, COMMON), a page's signed content URL (segment, open_segment), the files it may load (may_load), its policy and the viewer's and gallery's, where the in-frame client goes (inject), and .allow.json, the hosts the user approved, each checked again at read. Imported by path, imports nothing from serve.py.
+"""isolate.py - what keeps a page from acting as the user, for serve.py: what the control origin must not answer (host_ok, inside, scriptable, COMMON), what a page is (is_page), its signed content URL (segment, open_segment), the files it may load (may_load), its policy and the viewer's and gallery's, where the in-frame client goes (inject), and .allow.json, the hosts the user approved, each checked again at read. Imported by path, imports nothing from serve.py.
 Misses: a symlink swapped between inside() and the open; text/html that is not .html or .htm (.shtml) is not scriptable() here; may_load sees path parts only, so state files, auth/ and symlinks stay with _servable and inside; a public name that resolves to a private address is an allowed host; a policy at a bracketed IPv6 Host matches nothing, since a CSP source cannot hold one; a UTF-16 page gets the client first and reads as garbage.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/isolate.py
 """
@@ -7,12 +7,12 @@ import hashlib
 import hmac
 import ipaddress
 import json
-import mimetypes
 import os
 import re
 import secrets
 import tempfile
 from html.parser import HTMLParser
+from http.server import SimpleHTTPRequestHandler
 from urllib.parse import quote, urlsplit
 
 COMMON = (("X-Content-Type-Options", "nosniff"), ("Referrer-Policy", "no-referrer"), ("X-DNS-Prefetch-Control", "off"))
@@ -20,6 +20,9 @@ XML_POLICY = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sand
 # Checked before urlsplit, which drops tabs and newlines and skips userinfo.
 HOST_FORM = re.compile(r"(localhost|[0-9.]+|\[[0-9a-f:.]+\])(:[0-9]{1,5})?", re.I | re.A)
 SECRET = secrets.token_bytes(32)
+CONTENT = "/_c/"
+VIEWER_JS, VIEWER_CSS = "/_viewer.js", "/_viewer.css"
+SANDBOX = "allow-scripts allow-forms allow-modals allow-downloads"
 SUFFIX = {"f": "", "s": ".s"}  # framed, static
 SEGMENT = re.compile(r"[A-Za-z0-9_-]{22}\.([A-Za-z0-9_-]+)(\.s)?")
 PAGE_EXT = (".html", ".htm")
@@ -64,6 +67,30 @@ def scriptable(ctype):
     return ctype.split(";")[0].strip().lower().endswith(("/xml", "+xml"))
 
 
+def is_page(name):
+    """True for a name serve.py sends as text/html, or ending .html or .htm."""
+    # "/" before the name: guess_type reads "data:,x.html" as a URL.
+    return name.lower().endswith(PAGE_EXT) or SimpleHTTPRequestHandler.guess_type(SimpleHTTPRequestHandler, "/" + name) == "text/html"
+
+
+def nofollow(path, flags):
+    """An opener for open(): a symlink at path is an OSError."""
+    return os.open(path, flags | getattr(os, "O_NOFOLLOW", 0))
+
+
+def replace_file(path, data):
+    """Puts data, bytes, at path in one step and 0600, a symlink there replaced; when that fails path is as it was and nothing is left beside it."""
+    # a dot name: never served, never listed, never a reload
+    fd, tmp = tempfile.mkstemp(prefix="." + os.path.basename(path).lstrip(".") + ".", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp, path)
+    except BaseException:
+        os.unlink(tmp)
+        raise
+
+
 def _b64url(raw):
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
 
@@ -76,7 +103,7 @@ def segment(page, mode):
 
 
 def content_url(page, mode):
-    return "/_c/%s/%s" % (segment(page, mode), quote(page))
+    return "%s%s/%s" % (CONTENT, segment(page, mode), quote(page))
 
 
 def open_segment(seg):
@@ -106,15 +133,14 @@ def may_load(page, parts):
     if not parts or any(not p or p[0] == "." or re.search(r"[/\\\0]", p) for p in parts):
         return False
     path = "/".join(parts)
-    # "/" before the name: guess_type reads "data:,x.html" as a URL.
-    if path.lower().endswith(PAGE_EXT) or mimetypes.guess_type("/" + parts[-1])[0] == "text/html":
+    if is_page(path):
         return False
     return any(path.startswith(folder + "/") and path.lower().endswith(endings) for folder, endings in _folders(page))
 
 
 def own_urls(page, seg, host):
     """The absolute URL of each folder page may load from, safe to place in a policy."""
-    return ["http://%s/_c/%s/%s/" % (host, seg, quote(folder)) for folder, _ in _folders(page)]
+    return ["http://%s%s%s/%s/" % (host, CONTENT, seg, quote(folder)) for folder, _ in _folders(page)]
 
 
 def page_policy(mode, page, seg, hosts, host):
@@ -123,7 +149,7 @@ def page_policy(mode, page, seg, hosts, host):
     connect = " ".join(["data: blob:"] + own)
     load = " ".join([connect] + ["https://" + h for h in hosts])
     policy = [
-        "sandbox allow-scripts allow-forms allow-modals allow-downloads",
+        "sandbox " + SANDBOX,
         "default-src 'none'",
         "script-src 'unsafe-inline' 'unsafe-eval' " + load,
         "style-src 'unsafe-inline' " + load,
@@ -143,12 +169,12 @@ def page_policy(mode, page, seg, hosts, host):
 
 
 def _control_policy(host, script, style):
-    return ("default-src 'none'; script-src %s; style-src %s; connect-src 'self'; img-src data:; frame-src http://%s/_c/; base-uri 'none'; form-action 'none'; "
-            "frame-ancestors 'none'; require-trusted-types-for 'script'; worker-src 'none'" % (script, style, host))
+    return ("default-src 'none'; script-src %s; style-src %s; connect-src 'self'; img-src data:; frame-src http://%s%s; base-uri 'none'; form-action 'none'; "
+            "frame-ancestors 'none'; require-trusted-types-for 'script'; worker-src 'none'" % (script, style, host, CONTENT))
 
 
 def viewer_policy(host):
-    return _control_policy(host, "http://%s/_viewer.js" % host, "http://%s/_viewer.css" % host)
+    return _control_policy(host, "http://" + host + VIEWER_JS, "http://" + host + VIEWER_CSS)
 
 
 def gallery_policy(host, sha):
@@ -218,7 +244,7 @@ def allowed_host(value):
 def read_allow(root):
     """({page: [host, ...]}, None), or ({}, why) when the approvals file is not one."""
     try:
-        with open(os.path.join(root, ALLOW), "rb", opener=lambda p, flags: os.open(p, flags | getattr(os, "O_NOFOLLOW", 0))) as fh:
+        with open(os.path.join(root, ALLOW), "rb", opener=nofollow) as fh:
             kept = json.loads(fh.read().decode("utf-8"))
         if not isinstance(kept, dict) or not all(isinstance(hosts, list) for hosts in kept.values()):
             raise ValueError("not a list of hosts for each page")
@@ -227,17 +253,6 @@ def read_allow(root):
     except (OSError, ValueError, RecursionError):
         return {}, "approvals file unreadable; all hosts blocked"
     return {page: [h for h in map(allowed_host, hosts) if h] for page, hosts in kept.items()}, None
-
-
-def _write_allow(path, entries):
-    fd, tmp = tempfile.mkstemp(prefix=ALLOW + ".", dir=os.path.dirname(path))
-    try:
-        with os.fdopen(fd, "w", encoding="ascii") as fh:
-            json.dump(entries, fh, indent=1)
-        os.replace(tmp, path)
-    except BaseException:
-        os.unlink(tmp)
-        raise
 
 
 def set_allow(root, page, host, allow, exists, lock):
@@ -266,5 +281,5 @@ def set_allow(root, page, host, allow, exists, lock):
             entries[page] = hosts
         if broken:
             os.replace(path, path + ".bad")
-        _write_allow(path, entries)
+        replace_file(path, json.dumps(entries, indent=1).encode("ascii"))
     return hosts, None

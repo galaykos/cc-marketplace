@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Drives preview.sh and serve.py's lifecycle: idempotent start, the port choice (8124 busy, the recorded port, an explicit port, a full range, the moved-port line), the version record (an older server replaced on its port and bind, a newer one kept), --stop, --lan restarting a loopback server, a recorded pid that is not serve.py or cannot be named (exit 6),
-# state files gone after a self-exit, dk status on a dead server, the LAN and idle limits (DESIGN_KIT_LAN_MINUTES, DESIGN_KIT_IDLE_MINUTES in both modes, 0 = off; 403s do not count).
-# Misses: whether a browser tab's stream really holds the server open; the LAN half skips with no network address; two launches racing for a port; a serve.py slower than 0.3 s to its bind.
+# Drives preview.sh and serve.py's lifecycle: idempotent start, the port choice (8124 busy, the recorded port, an explicit port, a full range, the moved-port line), a python3 that is late (its port another project's, a second launch meanwhile, a launcher killed, a bind that never comes), the version record (an older server replaced on its port and bind, a newer one kept), --stop, --lan restarting a loopback server, a recorded pid that is not serve.py or cannot be named (exit 6),
+# state files gone after a self-exit, kept when they name another server, dk status on a dead server, the LAN and idle limits (DESIGN_KIT_LAN_MINUTES, DESIGN_KIT_IDLE_MINUTES in both modes, 0 = off; 403s do not count, an open stream of the gallery or of a page does).
+# Misses: whether a browser tab's stream really holds the server open; the LAN half skips with no network address; two launches that both find nothing recorded.
 set -euo pipefail
 unset DESIGN_KIT_PORT DESIGN_KIT_PORT_LAST
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -87,23 +87,30 @@ fi
 
 # Idle shutdown, every mode: no completed request and no open /_events stream for
 # DESIGN_KIT_IDLE_MINUTES ends the server. Two servers that get no request run alongside.
-mkdir -p "$tmp/i1" "$tmp/i2" "$tmp/i3"; for d in i1 i2 i3; do echo '<h1>idle</h1>' > "$tmp/$d/index.html"; done
-p1=$(( 20000 + RANDOM % 10000 )); p2=$(( p1 + 1 )); p3=$(( p1 + 2 )); p4=$(( p1 + 3 ))
+mkdir -p "$tmp/i1" "$tmp/i2" "$tmp/i3" "$tmp/i5"; for d in i1 i2 i3 i5; do echo '<h1>idle</h1>' > "$tmp/$d/index.html"; done
+p1=$(( 20000 + RANDOM % 10000 )); p2=$(( p1 + 1 )); p3=$(( p1 + 2 )); p4=$(( p1 + 3 )); pages=$(( p1 + 6 ))
 DESIGN_KIT_IDLE_MINUTES=0.05 bash "$here/preview.sh" --docroot "$tmp/i2" --port "$p2" >/dev/null
 DESIGN_KIT_IDLE_MINUTES=0.05 DESIGN_KIT_LAN_MINUTES=0 python3 "$here/serve.py" --docroot "$tmp/i3" --port "$p3" --lan >/dev/null 2>&1 & lanpid=$!
 DESIGN_KIT_IDLE_MINUTES=0 python3 "$here/serve.py" --docroot "$tmp/i3" --port "$p4" >/dev/null 2>"$tmp/off.err" & offpid=$!
 DESIGN_KIT_IDLE_MINUTES=0.05 python3 "$here/serve.py" --docroot "$tmp/i1" --port "$p1" >/dev/null 2>"$tmp/idle.err" & ipid=$!
+DESIGN_KIT_IDLE_MINUTES=0.05 python3 "$here/serve.py" --docroot "$tmp/i5" --port "$pages" >/dev/null 2>&1 & viewed=$!; extra="$extra $viewed"
+# the LAN server of i3, which ends itself below, is not the one its state files name
+i3_state() { (cd "$tmp/i3" && grep -H . .preview.pid .preview.url .preview.bind .preview.ver 2>/dev/null) || true; }
+echo "$offpid" > "$tmp/i3/.preview.pid"; for f in url bind ver; do echo "of $offpid" > "$tmp/i3/.preview.$f"; done; named="$(i3_state)"
 trap 'kill $ipid $lanpid $offpid $extra 2>/dev/null || true; bash "$here/preview.sh" --docroot "$tmp/i2" --stop >/dev/null 2>&1 || true; bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
 sleep 0.5
 grep -q "idle shutdown after 0.05 min" "$tmp/idle.err" || { echo "FAIL: no idle-shutdown notice on stderr at start: $(cat "$tmp/idle.err")"; exit 1; }
 grep -q "idle shutdown off" "$tmp/off.err" || { echo "FAIL: DESIGN_KIT_IDLE_MINUTES=0 does not say idle shutdown is off: $(cat "$tmp/off.err")"; exit 1; }
+curl -s -N --max-time 7 "http://127.0.0.1:$pages/_events?page=index.html" >/dev/null 2>&1 & extra="$extra $!"
 for _ in 1 2 3 4 5; do curl -s "http://127.0.0.1:$p1/index.html" >/dev/null; sleep 1; done
 kill -0 "$ipid" 2>/dev/null || { echo "FAIL: idle shutdown fired while requests kept arriving"; exit 1; }
+kill -0 "$viewed" 2>/dev/null || { echo "FAIL: idle shutdown fired while a page's own event stream was open"; exit 1; }
 curl -s -N --max-time 5 "http://127.0.0.1:$p1/_events" >/dev/null 2>&1 || true
 kill -0 "$ipid" 2>/dev/null || { echo "FAIL: idle shutdown fired while an event stream was open"; exit 1; }
 for _ in $(seq 60); do kill -0 "$ipid" 2>/dev/null || break; sleep 0.1; done
 curl -s --max-time 1 "http://127.0.0.1:$p1/" >/dev/null 2>&1 && { echo "FAIL: server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
 curl -s --max-time 1 "http://127.0.0.1:$p3/" >/dev/null 2>&1 && { echo "FAIL: a LAN server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
+[ "$(i3_state)" = "$named" ] || { echo "FAIL: a server that ended itself changed the state of the server recorded beside it: $(i3_state), was $named"; exit 1; }
 curl -s --max-time 1 "http://127.0.0.1:$p2/" >/dev/null 2>&1 && { echo "FAIL: a preview.sh server outlived DESIGN_KIT_IDLE_MINUTES"; exit 1; }
 curl -s --max-time 1 "http://127.0.0.1:$p4/" >/dev/null 2>&1 || { echo "FAIL: DESIGN_KIT_IDLE_MINUTES=0 still shut the server down"; exit 1; }
 kill "$offpid"
@@ -283,6 +290,45 @@ c="a server of another docroot with the same relative name is left running"; mkd
 for _ in $(seq 50); do curl -s -o /dev/null --max-time 1 "http://127.0.0.1:$own/" && break; sleep 0.1; done
 echo "$theirs" > "$tmp/p7/.dk/.preview.pid"; cd "$tmp/p7"; launch .dk --port "$other"; cd "$OLDPWD"
 started="$out"; launch "$tmp/p7/.dk" --stop; kill -0 "$theirs" 2>/dev/null || fail "$c: $started"
+
+# A start counts once its own server has said it is bound. late <seconds> <docroot> [args]: a launch whose python3 begins that much later; during: one left running, its pid file written
+mkdir -p "$tmp/late" "$tmp/p8" "$tmp/p9" "$tmp/pa"; echo '<h1>p8</h1>' | tee "$tmp/p9/index.html" "$tmp/pa/index.html" > "$tmp/p8/index.html"
+printf '#!/bin/sh\n"%s" "$LATE"\nexec "%s" "$@"\n' "$(command -v sleep)" "$(command -v python3)" > "$tmp/late/python3"; chmod +x "$tmp/late/python3"
+late() { local s="$1"; shift; LATE="$s" PATH="$tmp/late:$PATH" launch "$@"; }
+during() { local d="$1"; shift; LATE=0.8 PATH="$tmp/late:$PATH" bash "$here/preview.sh" --docroot "$d" "$@" > "$tmp/first" 2>&1 & first=$!
+  for _ in $(seq 100); do [ -s "$d/.preview.pid" ] && { extra="$extra $(cat "$d/.preview.pid")"; return; }; sleep 0.02; done; fail "$c: no pid file: $(cat "$tmp/first")"; }
+servers() { ps -ww -eo args= > "$tmp/ps"; grep -cF "serve.py --docroot $(cd "$1" && pwd -P) --port " "$tmp/ps" || true; }
+none() { [ ! -e "$1/.preview.pid" ] && [ ! -e "$1/.preview.ver" ] && [ ! -e "$1/.preview.url" ]; }
+
+c="a late server on a port another project answers is not this docroot's"
+late 0.6 "$tmp/p8" --port "$own"
+[ "$rc $out" = "4 preview.sh: server did not start (port $own busy?)" ] && none "$tmp/p8" || fail "$c: exit $rc, url $(url_of "$tmp/p8"): $out"
+echo "$own" > "$tmp/p8/.preview.port"; want="$(first_free 8124)"; late 0.6 "$tmp/p8"
+[ "$rc" = 0 ] && [ "$(url_of "$tmp/p8")" = "http://127.0.0.1:$want/" ] && kill -0 "$(pid_of "$tmp/p8")" || fail "$c: wanted the next free port $want, got exit $rc, url $(url_of "$tmp/p8"): $out"
+case "$(curl -sL "http://127.0.0.1:$want/index.html?static=1")" in *"</script><h1>p8</h1>") ;; *) fail "$c: port $want does not serve this docroot" ;; esac
+launch "$tmp/p8" --stop
+
+for args in "--port $other" ""; do
+  c="a second launch takes the server the first one waits for (${args:-its recorded port busy})"
+  [ -n "$args" ] || echo "$own" > "$tmp/p9/.preview.port"
+  during "$tmp/p9" $args; launch "$tmp/p9"; second="$rc $out"; rc=0; wait "$first" || rc=$?; pid="$(pid_of "$tmp/p9")"
+  [ "$rc" = 0 ] && [ "$second" = "0 preview: already running — $(url_of "$tmp/p9")" ] && kill -0 "$pid" && [ "$(ver_of "$tmp/p9")" = "$pid $version" ] && [ "$(servers "$tmp/p9")" = 1 ] \
+    || fail "$c: $(servers "$tmp/p9") servers, pid file $pid, record $(ver_of "$tmp/p9"); the first: exit $rc, $(cat "$tmp/first"); the second: exit $second"
+  case "$(curl -sL "$(url_of "$tmp/p9")index.html?static=1")" in *"</script><h1>p8</h1>") ;; *) fail "$c: $(url_of "$tmp/p9") does not serve this docroot" ;; esac
+  launch "$tmp/p9" --stop; rm -f "$tmp/p9/.preview.port"
+done
+
+c="a start whose launcher was killed is replaced, at once"; during "$tmp/pa" --port "$other"
+kill -9 "$first"; wait "$first" 2>/dev/null || true; pid="$(pid_of "$tmp/pa")"; s=$SECONDS; launch "$tmp/pa"; s=$(( SECONDS - s ))
+[ "$rc" = 0 ] && ! kill -0 "$pid" 2>/dev/null && [ "$(url_of "$tmp/pa")" = "http://127.0.0.1:$other/" ] && [ "$(ver_of "$tmp/pa")" = "$(pid_of "$tmp/pa") $version" ] && [ "$(servers "$tmp/pa")" = 1 ] && [ "$s" -le 4 ] \
+  || fail "$c: after $s s exit $rc, $(servers "$tmp/pa") servers, pid file $(pid_of "$tmp/pa") (was $pid), record $(ver_of "$tmp/pa"): $out"
+launch "$tmp/pa" --stop
+
+c="a server that does not bind in time is ended"; mkdir -p "$tmp/quick" "$tmp/never"; printf '#!/bin/sh\n' > "$tmp/quick/sleep"
+printf '#!/bin/sh\necho $$ > "%s"\nexec "%s" 30\n' "$tmp/hung" "$(command -v sleep)" > "$tmp/never/python3"; chmod +x "$tmp/quick/sleep" "$tmp/never/python3"
+PATH="$tmp/quick:$tmp/never:$PATH" launch "$tmp/pa"; pid="$(cat "$tmp/hung")"; extra="$extra $pid"
+[ "$rc $out" = "4 preview.sh: the server did not bind port $other in 10 s; ended it" ] && none "$tmp/pa" || fail "$c: exit $rc, pid file $(pid_of "$tmp/pa"): $out"
+for _ in $(seq 30); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done; ! kill -0 "$pid" 2>/dev/null || fail "$c: it still runs"
 
 # The order, with a python3 that only records the port it was given and dies: nothing is bound, 8123 and the whole default range included.
 mkdir -p "$tmp/fake"; printf '#!/bin/sh\necho "$5" >> "%s"\nexit 1\n' "$tmp/tried" > "$tmp/fake/python3"

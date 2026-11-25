@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed thumbnails, policy), /_index.json, SSE (the gallery's, a page's own), never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
+# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed thumbnails, markup in what it lists, policy), /_index.json, SSE (the gallery's, a page's own), never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, a cid, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer), /_page, /_c/ and /_allow included; that half skips without one.
 # Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh), the reconnect bar and the cookie page in a browser, and a real second device (each run by hand in Chrome: 2026-11-12).
 set -euo pipefail
@@ -23,7 +23,7 @@ case "$(curl -s -A "Mozilla/5.0 HeadlessChrome/130" "http://127.0.0.1:$port/")$(
 mkdir -p "$tmp/motion/y" "$tmp/motion/z"
 printf '<!doctype html><html><head><title>&lt;b&gt; &amp; "two"</title></head><body><h1>own</h1></body></html>' | tee "$tmp/motion/y/index.html" "$tmp/motion/z/index.htm" > "$tmp/decks/q\"<b>.html"
 python3 - "$here" "$tmp" "$port" <<'PY' || exit 1
-import base64, hashlib, html.parser, http.client, importlib.util, os, re, sys
+import base64, hashlib, html.parser, http.client, importlib.util, json, os, re, sys
 from urllib.parse import quote
 here, root, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
 spec = importlib.util.spec_from_file_location("dkserve", here + "/serve.py"); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
@@ -44,7 +44,7 @@ def parsed(body):
     return tags, texts
 def document(page, *notes):
     return [("html", {"lang": "en"}), ("head", {}), ("meta", {"charset": "utf-8"}), ("meta", {"name": "viewport", "content": "width=device-width,initial-scale=1"}), ("title", {}), ("link", {"rel": "stylesheet", "href": "/_viewer.css"}),
-            ("body", {"data-page": page, "data-version": str(m.SERVER_VERSION)}), ("header", {"id": "bar"}), ("a", {"href": "/_gallery"}), ("h1", {"id": "title"}), ("span", {"id": "chip"}),
+            ("body", {"data-page": page, "data-version": str(m.SERVER_VERSION), "data-rules": m.RULES}), ("header", {"id": "bar"}), ("a", {"href": "/_gallery"}), ("h1", {"id": "title"}), ("span", {"id": "chip"}),
             ("button", {"type": "button", "id": "network", "hidden": None}), ("button", dict({"type": "button", "id": "notes"}, **{n: None for n in notes})),
             ("div", {"id": "strips", "aria-live": "polite"}), ("div", {"id": "drawer", "hidden": None}), ("main", {"id": "frame"}), ("script", {"src": "/_viewer.js"})]
 def viewed(path, **headers):
@@ -58,6 +58,11 @@ status, headers, body = ask("/" + page)
 tags, texts = parsed(body)
 eq("a page URL answers the viewer's document", (status, tags), (200, document(page)))
 eq("with the page's title and the bar's words, and nothing of the page", (texts, b"<h1>a</h1>" in body), ({"title": "Deck A", "a": "Gallery", "h1": "Deck A", "button": "Network"}, False))
+eq("the viewer is handed the rules a pick, a frame and a drawn character go by", json.loads(dict(tags)["body"].get("data-rules", "null")), {
+    "knobs": {"space": [0, 64, "spacing base {}px"], "radius": [0, 64, "corner radius {}px"], "hue": [0, 360, "accent hue {}°"], "type": [0.5, 3, "type scale ×{}"], "density": [0.5, 3, "density ×{}"], "scheme": ["light", "dark", "{} scheme"]},
+    "decimals": 2, "picked": [1, 99], "scope": "[1-9][0-9]?", "path": "[a-z0-9:/-]{1,200}", "edits": 100, "chars": 500,
+    "hidden": r"\p{C}\p{Zl}\p{Zp}\u{115F}-\u{1160}\u{180B}-\u{180F}\u{2800}-\u{2800}\u{3164}-\u{3164}\u{FE00}-\u{FE0F}\u{FFA0}-\u{FFA0}\u{E0100}-\u{E01EF}",
+    "sandbox": "allow-scripts allow-forms allow-modals allow-downloads", "gallery": "/_gallery"})
 eq("the viewer's headers", [headers.get_all(h) for h in ("Content-Type", "Content-Security-Policy", "Cross-Origin-Opener-Policy", "Cache-Control")], [["text/html; charset=utf-8"], [m.isolate.viewer_policy(host)], ["same-origin"], ["no-store"]])
 again = ask("/" + page, "HEAD")
 eq("HEAD of a page URL answers the viewer's headers", (again[0], again[1]["Content-Length"], again[1]["Content-Security-Policy"], again[2]), (200, str(len(body)), m.isolate.viewer_policy(host), b""))
@@ -109,6 +114,13 @@ def gallery(path):
     eq("%s: a card's link opens a page of any name" % path, [viewed(a["href"]) for t, a in tags if t == "a" and a.get("class") == "card" and "q%22" in a["href"]], [odd.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")])
 for path in ("/", "/index.html", "/_gallery"):
     gallery(path)
+os.makedirs(os.path.join(root, "<u>dir"))
+with open(os.path.join(root, "<u>dir", "<u>file.html"), "w") as fh: fh.write("<title>&lt;u&gt;title</title>")
+with open(os.path.join(root, "workshop.json"), "w") as fh: json.dump({"scratch": {"slug": "<u>slug", "kept": True}}, fh)
+body = ask("/_gallery")[2].decode()
+eq("a folder, a file, a title and a flow step holding markup are text in the gallery", ("<u>" in body, [html.escape(w) in body for w in ("<u>dir", "<u>dir/<u>file.html", "<u>title", "<u>slug")]), (False, [True] * 4))
+for name in ("<u>dir/<u>file.html", "workshop.json"): os.unlink(os.path.join(root, name))
+os.rmdir(os.path.join(root, "<u>dir"))
 eq("HEAD of the gallery answers its headers", [(ask(p, "HEAD")[0], ask(p, "HEAD")[1]["Content-Length"]) for p in ("/", "/_gallery")], [(200, str(len(ask("/")[2])))] * 2)
 with open(os.path.join(root, "index.html"), "w") as fh: fh.write("<h1>mine</h1>")
 eq("with an index.html in the docroot / is that page", [viewed(p) for p in ("/", "/index.html")], ["index.html"] * 2)
@@ -227,13 +239,15 @@ done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }
 # /_decision: loopback + header + size + JSON, append-only; a row holds what picks.py keeps (its bounds: picks.test.sh) and the server's own prompt
 post() { curl -s -o "$tmp/.resp" -w '%{http_code}' -X POST "$@" "http://127.0.0.1:$port/_decision"; }
-c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' --data '{"board":"a.html","picked":1,"knobs":{"all":{"hue":400,"evil":"x"}},"text":{"1":{"h1":{"was":"Old","now":"New","evil":"x"}}},"prompt":"POSTED","evil":"x","v":9,"ts":"x","consumed":true}')"
+# with_cid <object>: it with a cid no other send holds
+with_cid() { printf '{"cid":"%04x%04x%04x%04x",%s' $RANDOM $RANDOM $RANDOM $RANDOM "${1#\{}"; }
+c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' --data '{"cid":"00000000000000f1","board":"a.html","picked":1,"knobs":{"all":{"hue":400,"evil":"x"}},"text":{"1":{"h1":{"was":"Old","now":"New","evil":"x"}}},"prompt":"POSTED","evil":"x","v":9,"ts":"x","consumed":true}')"
 [ "$c" = 200 ] || { echo "FAIL: decision accept http $c: $(cat "$tmp/.resp")"; exit 1; }
 python3 - "$tmp/decisions.jsonl" <<'PY' || { echo "FAIL: posted prompt never stored, every other field as picks.py keeps it: $(cat "$tmp/decisions.jsonl" 2>/dev/null)"; exit 1; }
 import json, re, sys
 row = json.loads(open(sys.argv[1], encoding="utf-8").read())
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", row.pop("ts")), row
-assert row == {"v": 2, "cid": None, "board": "a.html", "picked": 1, "knobs": {"all": {"hue": 360}}, "text": {"1": {"h1": {"was": "Old", "now": "New"}}},
+assert row == {"v": 2, "cid": "00000000000000f1", "board": "a.html", "picked": 1, "knobs": {"all": {"hue": 360}}, "text": {"1": {"h1": {"was": "Old", "now": "New"}}},
                "prompt": "From the design board a.html, implement artboard 1. Update design-kit in this session to read adjustments and text edits.", "consumed": False}, row
 PY
 c="$(post -H 'Content-Type: application/json' --data '{"board":"a.html"}')"; [ "$c" = 403 ] || { echo "FAIL: missing header should be 403, got $c"; exit 1; }
@@ -244,13 +258,13 @@ c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1
 ok_body='{"board":"a.html","picked":2,"prompt":"planted"}'
 c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Host: attacker.example' --data "$ok_body")"; [ "$c" = 403 ] || { echo "FAIL: a foreign Host should be 403, got $c"; exit 1; }
 c="$(post -H 'X-Design-Kit-Decision: 1' -H 'Origin: http://attacker.example' --data "$ok_body")"; [ "$c" = 403 ] || { echo "FAIL: a foreign Origin should be 403, got $c"; exit 1; }
-c="$(post -H 'X-Design-Kit-Decision: 1' -H "Origin: http://127.0.0.1:$port" --data '{"board":"a.html","picked":3}')"; [ "$c" = 200 ] || { echo "FAIL: the page's own Origin should be 200, got $c"; exit 1; }
-c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":4}' "http://localhost:$port/_decision")"; [ "$c" = 200 ] || { echo "FAIL: localhost should be 200, got $c"; exit 1; }
-c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a\ud83d.html","picked":5}')"
+c="$(post -H 'X-Design-Kit-Decision: 1' -H "Origin: http://127.0.0.1:$port" --data "$(with_cid '{"board":"a.html","picked":3}')")"; [ "$c" = 200 ] || { echo "FAIL: the page's own Origin should be 200, got $c"; exit 1; }
+c="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' --data "$(with_cid '{"board":"a.html","picked":4}')" "http://localhost:$port/_decision")"; [ "$c" = 200 ] || { echo "FAIL: localhost should be 200, got $c"; exit 1; }
+c="$(post -H 'X-Design-Kit-Decision: 1' --data "$(with_cid '{"board":"a\ud83d.html","picked":5}')")"
 [ "$c" = 400 ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False and d["error"].startswith("board must be"), d' "$tmp/.resp" \
   || { echo "FAIL: a board picks.py refuses should be 400 with its reason, got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
 [ "$(wc -l < "$tmp/decisions.jsonl" | tr -d ' ')" = 3 ] || { echo "FAIL: rejected posts must not append"; exit 1; }
-fits="$(python3 -c 'import json; print(json.dumps({"board": "a.html", "picked": 2, "text": {"1": {"h1:%d" % i: {"was": "w" * 295, "now": "n" * 295} for i in range(100)}}}))')"
+fits="$(python3 -c 'import json; print(json.dumps({"cid": "00000000000000f2", "board": "a.html", "picked": 2, "text": {"1": {"h1:%d" % i: {"was": "w" * 295, "now": "n" * 295} for i in range(100)}}}))')"
 [ "${#fits}" -ge 61440 ] || { echo "FAIL: the big pick is under 60 KiB: ${#fits}"; exit 1; }
 c="$(post -H 'X-Design-Kit-Decision: 1' --data "$fits")"
 [ "$c" = 200 ] && tail -n 1 "$tmp/decisions.jsonl" | python3 -c 'import json,sys; t=json.load(sys.stdin)["text"]["1"]; assert len(t) == 100 and all(e == {"was": "w" * 295, "now": "n" * 295} for e in t.values())' \
@@ -267,13 +281,13 @@ b = {"page": "/decks/a.html?x=1", "text": "y" * 2500, "evil": "dropped", "status
 print(json.dumps(b).replace("\"h\": 7", "\"h\": Infinity"))')"
 c="$(npost -H 'X-Design-Kit-Note: 1' -H 'Content-Type: application/json' --data "$nbody")"
 [ "$c" = 200 ] || { echo "FAIL: note accept http $c: $(cat "$tmp/.resp")"; exit 1; }
-c="$(npost -H 'X-Design-Kit-Note: 1' -H "Origin: http://127.0.0.1:$port" --data '{"page":"/decks/a.html","text":"page note","anchor":"no"}')"
+c="$(npost -H 'X-Design-Kit-Note: 1' -H "Origin: http://127.0.0.1:$port" --data '{"cid":"00000000000000f3","page":"/decks/a.html","text":"page note","anchor":"no"}')"
 [ "$c" = 200 ] || { echo "FAIL: a page note from the page's own Origin should be 200, got $c"; exit 1; }
 python3 - "$tmp/notes.jsonl" <<'PY' || { echo "FAIL: notes.jsonl rows: $(cat "$tmp/notes.jsonl" 2>/dev/null)"; exit 1; }
 import json, re, sys
 a, b = [json.loads(l) for l in open(sys.argv[1], encoding="utf-8")]
 assert set(a) == set(b) == {"id", "ts", "cid", "page", "kind", "anchor", "text", "context", "status", "reply"}, (sorted(a), sorted(b))
-assert (a["cid"], b["cid"]) == ("0123456789abcdef", None), (a["cid"], b["cid"])
+assert (a["cid"], b["cid"]) == ("0123456789abcdef", "00000000000000f3"), (a["cid"], b["cid"])
 assert re.fullmatch(r"[0-9a-f]{8}", a["id"]) and a["id"] != b["id"], (a["id"], b["id"])
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", a["ts"]), a["ts"]
 assert (a["page"], a["kind"], a["status"], a["reply"]) == ("decks/a.html", "note", "open", ""), a
@@ -303,30 +317,30 @@ c="$(curl -s -o "$tmp/.resp" -w '%{http_code}' "http://127.0.0.1:$port/_notes?pa
 [ "$(curl -s "http://127.0.0.1:$port/_notes?page=decks/b.html" | tr -d ' \n')" = "[]" ] || { echo "FAIL: /_notes leaked another page's rows"; exit 1; }
 c="$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: attacker.example' "http://127.0.0.1:$port/_notes?page=decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: /_notes with a foreign Host should be 403, got $c"; exit 1; }
 # a note needs text, as taskmaster's /_feedback does
-for b in '{}' '{"text":"   "}' '{"page":"/decks/a.html","anchor":{"selector":"h1"}}'; do
-  c="$(npost -H 'X-Design-Kit-Note: 1' --data "$b")"; [ "$c" = 400 ] || { echo "FAIL: a note without text ($b) should be 400, got $c"; exit 1; }
+for b in '{"context":{}}' '{"text":"   "}' '{"page":"/decks/a.html","anchor":{"selector":"h1"}}'; do
+  c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid "$b")")"; [ "$c" = 400 ] && grep -q 'a note needs text' "$tmp/.resp" || { echo "FAIL: a note without text ($b) should be 400, got $c: $(cat "$tmp/.resp")"; exit 1; }
 done
 [ "$(wc -l < "$tmp/notes.jsonl" | tr -d ' ')" = 2 ] || { echo "FAIL: a note without text was recorded"; exit 1; }
 # numbers clamp to +-1e7; NaN and Infinity read as 0
-c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/decks/n.html","text":"big","anchor":{"selector":"p","rect":{"x":1e308,"y":-1e308,"w":3,"h":1e999}},"context":{"viewport":{"w":3e9,"h":NaN}}}')"
+c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/decks/n.html","text":"big","anchor":{"selector":"p","rect":{"x":1e308,"y":-1e308,"w":3,"h":1e999}},"context":{"viewport":{"w":3e9,"h":NaN}}}')")"
 [ "$c" = 200 ] && tail -n 1 "$tmp/notes.jsonl" | python3 -c 'import json,sys; r=json.load(sys.stdin); assert r["anchor"]["rect"]=={"x":10000000,"y":-10000000,"w":3,"h":0} and r["context"]["viewport"]=={"w":10000000,"h":0}, (r["anchor"]["rect"], r["context"]["viewport"])' \
   || { echo "FAIL: note numbers are not clamped to +-1e7 ($c): $(tail -n 1 "$tmp/notes.jsonl" | cut -c1-300)"; exit 1; }
 # a folder's index page lists what was filed under the folder's own name too, and nothing else does
 for p in motion/w motion/w/index.html motion/w/other.html motion/ww; do
-  c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/'"$p"'","text":"at '"$p"'"}')"; [ "$c" = 200 ] || { echo "FAIL: a note on $p should be 200, got $c"; exit 1; }
+  c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/'"$p"'","text":"at '"$p"'"}')")"; [ "$c" = 200 ] || { echo "FAIL: a note on $p should be 200, got $c"; exit 1; }
 done
 for q in "motion/w/index.html=at motion/w,at motion/w/index.html" "motion/w/index.htm=at motion/w" "motion/w=at motion/w" "motion/w/other.html=at motion/w/other.html"; do
   got="$(curl -s "http://127.0.0.1:$port/_notes?page=/${q%%=*}" | python3 -c 'import json,sys; print(",".join(r["text"] for r in json.load(sys.stdin)))')"
   [ "$got" = "${q#*=}" ] || { echo "FAIL: /_notes for ${q%%=*}: got $got, want ${q#*=}"; exit 1; }
 done
 # a lone surrogate (a page slicing through an emoji) is stored as ?, and the post gets its answer
-c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/decks/s\ud83d.html","text":"cut \ud83d","anchor":{"selector":"p\udc00","tag":"p\ud83d","text":"\ud83d","rect":{}},"context":{"theme":"\ud83d","console":["e\ud83d"]}}')"
+c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/decks/s\ud83d.html","text":"cut \ud83d","anchor":{"selector":"p\udc00","tag":"p\ud83d","text":"\ud83d","rect":{}},"context":{"theme":"\ud83d","console":["e\ud83d"]}}')")"
 [ "$c" = 200 ] && tail -n 1 "$tmp/notes.jsonl" | python3 -c '
 import json,sys
 r=json.loads(sys.stdin.buffer.read().decode("utf-8")); a=r["anchor"]
 assert (r["page"], r["text"], a["selector"], a["tag"], a["text"], r["context"]["theme"], r["context"]["console"]) == ("decks/s?.html", "cut ?", "p?", "p?", "?", "?", ["e?"]), r' \
   || { echo "FAIL: a note with a lone surrogate should be 200 and stored with ? ($c): $(tail -n 1 "$tmp/notes.jsonl" | cut -c1-200)"; exit 1; }
-c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1,"text":{"1":{"h1":{"was":"w\ud83d","now":"\udc00"}}}}')"
+c="$(post -H 'X-Design-Kit-Decision: 1' --data "$(with_cid '{"board":"a.html","picked":1,"text":{"1":{"h1":{"was":"w\ud83d","now":"\udc00"}}}}')")"
 [ "$c" = 200 ] && tail -n 1 "$tmp/decisions.jsonl" | python3 -c '
 import json,sys
 r=json.loads(sys.stdin.buffer.read().decode("utf-8"))
@@ -341,7 +355,7 @@ python3 - "$here/serve.py" "$tmp" "$port" <<'PY' || { echo "FAIL: one row per ci
 import http.client, importlib.util, json, os, sys, threading, time
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 root, port = sys.argv[2], int(sys.argv[3])
-A, B, C = "00000000000000aa", "00000000000000bb", "00000000000000cc"
+A, B, C, NONE = "00000000000000aa", "00000000000000bb", "00000000000000cc", object()
 bad = []
 for route, header, name, lock, body, keys in (
         ("/_decision", "X-Design-Kit-Decision", "decisions.jsonl", ".decisions.lock", {"board": "a.html", "picked": 1}, {"recorded", "cid", "ts"}),
@@ -351,7 +365,7 @@ for route, header, name, lock, body, keys in (
         if got != want: bad.append("  %s %s: got %r, want %r" % (route, case, got, want))
     def send(cid):
         con = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
-        con.request("POST", route, json.dumps(dict(body, cid=cid)), {header: "1"})
+        con.request("POST", route, json.dumps(body if cid is NONE else dict(body, cid=cid)), {header: "1"})
         r = con.getresponse()
         return r.status, json.loads(r.read())
     def rows():
@@ -363,8 +377,9 @@ for route, header, name, lock, body, keys in (
     check("the cid is stored", (row.get("cid"), len(rows())), (A, n + 1))
     check("one row per cid", (send(A), len(rows())), (first, n + 1))
     check("a new cid writes a second row", (send(B)[0], len(rows())), (200, n + 2))
-    for cid in ("a" * 15, "a" * 17, "A" * 16, "g" * 16, "a" * 16 + "\n", "", 1234567890123456, False, [A]):
-        check("cid %r is refused" % (cid,), (send(cid)[0], len(rows())), (400, n + 2))
+    for cid in ("a" * 15, "a" * 17, "A" * 16, "g" * 16, "a" * 16 + "\n", "", 1234567890123456, False, [A], None, NONE):
+        got = send(cid)
+        check("cid %s is refused" % ("left out" if cid is NONE else repr(cid)), (got[0], got[1].get("error"), len(rows())), (400, "cid must be 16 of 0-9 a-f", n + 2))
     old = {"cid": C, "ts": "2001-01-01T00:00:00Z", "id": "0badc0de"}
     with open(path, "w", encoding="utf-8") as fh:
         for r in [old] + [{"cid": None}] * 49: fh.write(json.dumps(r) + "\n")
@@ -401,23 +416,21 @@ with open(sys.argv[1],"a") as h:
 done
 # a pick that cannot be written answers 500 and leaves nothing behind
 mv "$tmp/decisions.jsonl" "$tmp/.keep"; mkdir "$tmp/decisions.jsonl"
-for b in '{"board":"a.html","picked":1}' '{"board":"a.html","picked":1,"cid":"00000000000000aa"}'; do
-  c="$(post -H 'X-Design-Kit-Decision: 1' --data "$b" || true)"
-  [ "$c" = 500 ] && [ -z "$(ls -A "$tmp/decisions.jsonl")" ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False and d["error"], d' "$tmp/.resp" \
-    || { echo "FAIL: a pick while decisions.jsonl is a folder should be a JSON 500 ($b), got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
-done
+c="$(post -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1,"cid":"00000000000000aa"}' || true)"
+[ "$c" = 500 ] && [ -z "$(ls -A "$tmp/decisions.jsonl")" ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False and d["error"], d' "$tmp/.resp" \
+  || { echo "FAIL: a pick while decisions.jsonl is a folder should be a JSON 500, got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
 rmdir "$tmp/decisions.jsonl"; mv "$tmp/.keep" "$tmp/decisions.jsonl"
 # notes.jsonl is never followed through a symlink (a tracked one would let a post append to its target), and a failed append answers 500
 mv "$tmp/notes.jsonl" "$tmp/.keep"
 printf '{"id":"out1","page":"decks/a.html","kind":"note","text":"FROM-OUTSIDE","status":"open"}\n' > "$tmp.target.jsonl"
 ln -s "$tmp.target.jsonl" "$tmp/notes.jsonl"
-c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/decks/a.html","text":"through the link"}')"
+c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/decks/a.html","text":"through the link"}')")"
 [ "$c" = 500 ] && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["recorded"] is False, d' "$tmp/.resp" \
   || { echo "FAIL: a note to a symlinked notes.jsonl should be a JSON 500, got $c: $(head -c 200 "$tmp/.resp")"; exit 1; }
 [ "$(wc -l < "$tmp.target.jsonl" | tr -d ' ')" = 1 ] || { echo "FAIL: a note was appended through the notes.jsonl symlink"; exit 1; }
 case "$(curl -s "http://127.0.0.1:$port/_notes?page=decks/a.html")" in *FROM-OUTSIDE*) echo "FAIL: /_notes read through the notes.jsonl symlink"; exit 1 ;; esac
 rm -f "$tmp/notes.jsonl" "$tmp.target.jsonl"; mkdir "$tmp/notes.jsonl"
-c="$(npost -H 'X-Design-Kit-Note: 1' --data '{"page":"/decks/a.html","text":"into a folder"}')"
+c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/decks/a.html","text":"into a folder"}')")"
 [ "$c" = 500 ] || { echo "FAIL: an append that fails (notes.jsonl is a folder) should answer 500, got $c"; exit 1; }
 rmdir "$tmp/notes.jsonl"; mv "$tmp/.keep" "$tmp/notes.jsonl"
 # a note or its lock must not reload every open page (a half-typed note on another tab would be lost)
@@ -489,7 +502,7 @@ has_common "HEAD a page" "$(heads -I "$base/decks/a.html")"
 has_common "a 304" "$(heads -H 'If-Modified-Since: Fri, 01 Jan 2100 00:00:00 GMT' "$base/shots/one.png")"
 has_common "a 403 on Host" "$(heads -H 'Host: evil.example' "$base/")"
 has_common "a refused POST" "$(heads -X POST --data '{}' "$base/_note")"
-has_common "a recorded POST" "$(heads -X POST -H 'X-Design-Kit-Decision: 1' --data '{"board":"a.html","picked":1}' "$base/_decision")"
+has_common "a recorded POST" "$(heads -X POST -H 'X-Design-Kit-Decision: 1' --data "$(with_cid '{"board":"a.html","picked":1}')" "$base/_decision")"
 has_common "an unknown method" "$(heads -X PUT "$base/")"
 rm -f "$tmp/decks/x.svg" "$tmp/decks/X.SVG" "$tmp/decks/x.xhtml" "$tmp/decks/x.xml" "$tmp/decks/x.pdf"
 
@@ -610,10 +623,15 @@ for name in ("decks/x.dkpage", "decks/x.htm"):
     framed, _ = ask("GET", page.get("src", "/_c/"))
     _, viewer = ask("GET", "/" + name)
     got.append((found.status, page.get("project"), framed.status, framed.getheader("Content-Type"), ('data-page="%s"' % name).encode() in viewer))
+apart, beside = {}, m.isolate.content_url("motion/y/index.html", "f").rsplit("/", 1)[0]
+for name in ("report.html.gz", "x.dkpage", "x.htm", "x.txt"):
+    with open(os.path.join(H.root, "motion/y", name), "w") as fh: fh.write("x")
+    apart[name] = [ask("GET", at + name)[0].status for at in ("/_page?page=motion/y/", beside + "/")]
 srv.shutdown()
 policy = m.isolate.page_policy("s", "decks/a.html", src.split("/")[2], [], "127.0.0.1:%d" % srv.server_port)
 page = (200, hashlib.sha256(os.path.realpath(sys.argv[2]).encode()).hexdigest()[:12], 200, "text/html; charset=utf-8", True)
 assert got == [(200, "cross-origin", "*", policy), (200, "same-origin", None, None), page, page], got
+assert apart == {"report.html.gz": [404, 200], "x.dkpage": [200, 404], "x.htm": [200, 404], "x.txt": [404, 200]}, ("a file is a page or a file its folder's pages may load, never neither", apart)
 PY
 rm -f "$tmp/decks/x.dkpage" "$tmp/decks/x.htm" "$tmp/.lnk"
 # /_allow: the host in, on that page alone; what is refused writes nothing
@@ -661,7 +679,7 @@ PY
 rm -f "$tmp/.allow.json"
 # a sent Origin is http:// and the Host, letter for letter, on every write route: a page of another local port is another site
 for r in decision note allow; do
-  case "$r" in decision) h='X-Design-Kit-Decision: 1' b='{"board":"a.html","picked":7}' ;; note) h='X-Design-Kit-Note: 1' b='{"page":"decks/a.html","text":"origin"}' ;; allow) h="$A" b="$yes" ;; esac
+  case "$r" in decision) h='X-Design-Kit-Decision: 1' b="$(with_cid '{"board":"a.html","picked":7}')" ;; note) h='X-Design-Kit-Note: 1' b="$(with_cid '{"page":"decks/a.html","text":"origin"}')" ;; allow) h="$A" b="$yes" ;; esac
   n="$(cat "$tmp/decisions.jsonl" "$tmp/notes.jsonl" | wc -l)"
   for o in "http://127.0.0.1:1" "http://localhost:$port" "https://127.0.0.1:$port" "$base/" "http://127.0.0.1" null; do
     same "a sent Origin must equal http:// and the Host: /_$r from $o" "$(code -X POST -H "$h" -H "Origin: $o" --data "$b" "$base/_$r")" 403
@@ -753,7 +771,7 @@ else
   L="http://$lanip:$port"
   hc() { curl -s -o "$tmp/.resp" -w '%{http_code}' "$@" || true; }
   for probe in / /_gallery /decks/a.html /_index.json /_viewer.js "/decks/a.html?static=1" "/decks/a.html?key=wrong" "/decks/a.html?key="; do
-    c="$(hc "$L$probe")"; [ "$c" = 403 ] || { echo "FAIL: $probe from a LAN peer without the key should be 403, got $c"; exit 1; }
+    for o in "" -I; do c="$(hc $o "$L$probe")"; [ "$c" = 403 ] || { echo "FAIL: $probe from a LAN peer without the key should be 403 (${o:-GET}), got $c"; exit 1; }; done
   done
   c="$(hc --max-time 2 "$L/_events")"; [ "$c" = 403 ] || { echo "FAIL: /_events from a LAN peer without the key should be 403, got $c"; exit 1; }
   c="$(hc -b "design_kit_key=wrong" "$L/decks/a.html")"; [ "$c" = 403 ] || { echo "FAIL: a wrong cookie should be 403, got $c"; exit 1; }
