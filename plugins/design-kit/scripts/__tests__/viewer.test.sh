@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, a page that takes it from the viewer (a pointer moved by the system's way, for DevTools' own says nothing of a frame it is over; how much of what is typed such a page got is printed as a NOTE), query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the contract's seven states at 1280 and 375 px (what is where, nothing sideways, axe-core, Tab order, nothing draggable, a strip said once and never focused, a screenshot of each in the temp dir), the strips' order, 40 notes and 12 blocked hosts at 375 px, Tab into a page with nothing to focus, the LAN viewer at this machine's own address (a SKIP line without one: at a faked peer's then), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the bounce of a top-level framed page and what the LAN viewer asks for; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium, the dark scheme's contrast; a window that really loses and gets the focus (document.hasFocus is faked, and the viewer kept from hearing of a lost one).
+# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus (document.hasFocus is faked, and the viewer kept from hearing of a lost one).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -164,7 +164,7 @@ def bar(b):
     eq("the frame is sandboxed as its policy says, seeded by name, and named for a screen reader", lambda: tab.evaluate("(() => { const f = document.querySelector('iframe'); return [f.getAttribute('sandbox'), f.getAttribute('allow'), f.name, f.title, f.allowFullscreen, /^\\/_c\\/[\\w-]{22}\\.[\\w-]+\\/boards\\/fixture\\.html$/.test(f.getAttribute('src'))]; })()"),
        ["allow-scripts allow-forms allow-modals allow-downloads", "clipboard-write", '{"dk":1,"store":{}}', "fixture", False, True])
     eq("the viewer logs no error and no refused load", lambda: logged(b, tab), [])
-    for findings, changed, want, ink in ((0, 0, "Checked, 0 problems", "rgb(22, 101, 52)"), (1, 0, "Checked, 1 problem", "rgb(133, 77, 14)"), (2, 1, "Checked, 2 problems; page changed since", "rgb(82, 82, 91)")):
+    for findings, changed, want, ink in ((0, 0, "Checked, 0 problems", "rgb(22, 101, 52)"), (1, 0, "Checked, 1 problem", "rgb(133, 77, 14)"), (2, 1, "Checked, 2 problems; page changed since", "rgb(85, 83, 77)")):
         put(".checks/results.json", json.dumps({BOARD: {"ts": "2026-11-24T10:00:00Z", "findings": findings, "widths": [375], "mtime_ns": os.stat(os.path.join(ROOT, BOARD)).st_mtime_ns - changed}}))
         tab = visit(b, server.url + "/" + BOARD)
         eq("the chip says what the last check found: " + want, lambda: (tab.wait("document.querySelector('#chip').textContent"), tab.evaluate("[document.querySelector('#chip').textContent, getComputedStyle(document.querySelector('#chip')).color]"))[1], [want, ink])
@@ -757,6 +757,9 @@ def values(b):
 BOXES = """(() => { const at = (s) => document.querySelector(s).getBoundingClientRect(), bg = (s) => getComputedStyle(document.querySelector(s)).backgroundColor, send = at('SEND'), discard = at('DISCARD');
   return { primary: [bg('SEND'), bg('DISCARD') !== bg('SEND')], under: send.top >= at('PICK ul').bottom, stacked: send.bottom <= discard.top, tall: send.height >= 24, frame: [at('iframe').top - at('#strips').bottom, at('iframe').bottom], wide: [document.documentElement.scrollWidth, document.querySelector('#strips').scrollWidth <= innerWidth] }; })()""".replace("SEND", SEND).replace("DISCARD", DISCARD).replace("PICK", PICK)
 
+LOOK = """(() => { const of = (s) => getComputedStyle(document.querySelector(s)), bar = of('#bar'), send = of('SEND'), discard = of('DISCARD');
+  return [matchMedia('(prefers-color-scheme: dark)').matches, [of('html'), of('iframe')].map((s) => s.colorScheme), bar.backgroundColor, bar.borderBottomColor, of('body').color, send.color, discard.backgroundColor, discard.borderTopColor, send.borderRadius]; })()""".replace("SEND", SEND).replace("DISCARD", DISCARD)
+
 def looks(b):
     edits = {"1": {"p:%d" % i: {"was": "was %d" % i, "now": "now %d" % i} for i in range(60)}}
     for w in (1280, 375):
@@ -767,12 +770,15 @@ def looks(b):
         tab.key("End")
         eq("with the keyboard too, at %d px" % w, lambda: tab.wait("document.querySelector('%s ul').scrollTop > 100" % PICK), True)
         eq("Send pick is the primary button, both under the list, stacked when narrow, the frame under them, nothing sideways, at %d px" % w, lambda: tab.evaluate(BOXES),
-           {"primary": ["rgb(37, 99, 235)", True], "under": True, "stacked": w == 375, "tall": True, "frame": [0, 800], "wide": [w, True]})
+           {"primary": ["rgb(26, 86, 219)", True], "under": True, "stacked": w == 375, "tall": True, "frame": [0, 800], "wide": [w, True]})
     tab = visit(b, server.url + "/" + BOARD, 1280, 160)
     f = tab.frame()
     offered(tab, f, 2, {}, edits)
     f.evaluate("document.body.append(Object.assign(document.createElement('p'), { id: 'low', style: 'margin-top: 3000px' })); document.querySelector('#low').scrollIntoView(); 1")
     eq("a page cannot scroll the strips away, however low the window", lambda: [time.sleep(0.3), tab.evaluate("[scrollY, document.documentElement.scrollHeight]"), f.evaluate("scrollY > 1000")][1:], [[0, 160], True])
+    b.chrome.call("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-color-scheme", "value": "dark"}]}, tab.sid)
+    eq("the palette picked, light for a reader whose scheme is dark too, and the frame keeps that scheme for its page", lambda: tab.evaluate(LOOK),
+       [True, ["light", "light dark"], "rgb(241, 240, 235)", "rgb(201, 200, 194)", "rgb(27, 27, 26)", "rgb(255, 255, 255)", "rgb(255, 255, 255)", "rgb(140, 138, 130)", "6px"])
 
 @contextlib.contextmanager
 def catching(b):
@@ -1123,7 +1129,7 @@ def notes(b):
     f.evaluate("parent." + POST % ANCHOR.replace("#one", "#two").replace("'b'", "'i'") + "1")
     on = tab.evaluate(ON)
     press(tab, SEND_NOTE)
-    eq("a note sent before its composer names a newer element is on the one it names", lambda: [on, tab.wait("!" + WRITING), [r["anchor"]["selector"] for r in noted() if r["text"] == "on the first"]], ["On <b> “forged”", True, ["#one"]])
+    eq("a note sent before its composer names a newer element is on the one it names", lambda: [on, tab.wait(COUNT + " === 'Notes (3)'"), [r["anchor"]["selector"] for r in noted() if r["text"] == "on the first"]], ["On <b> “forged”", True, ["#one"]])
     time.sleep(PACE)
     if tab.evaluate(WRITING):
         press(tab, CANCEL)

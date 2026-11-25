@@ -806,7 +806,11 @@ Characters of 26 the page still got, typed at 60 ms a key, 3 runs each on 2026-1
 
 ### 0.20.0, 2026-11-24 — the contract's look
 
-The palette is the project's, chosen with the top bar in the mockup the user picked on 2026-11-24, in the reader's light or dark scheme. `viewer.test.sh` places seven states (empty, pick, blocked, network, notes, stopped, LAN) at 1280 and 375 px, with 0 axe-core violations in the viewer's document, and takes a screenshot of each into a temp directory; a frame row keeps at least a fifth of the window. Its dark scheme's contrast is in no harness. No rules for print or forced colours.
+The palette is Project, the colours of the notes panel 0.19.3 drew, light only and with 6 px corners, chosen with the top bar in the mockup the user picked on 2026-11-24. `viewer.test.sh` places seven states (empty, pick, blocked, network, notes, stopped, LAN) at 1280 and 375 px, with 0 axe-core violations in the viewer's document, and takes a screenshot of each into a temp directory; a frame row keeps at least a fifth of the window. No rules for print or forced colours.
+
+### 0.20.0 review, 2026-11-25 — the palette that was picked
+
+The first build had the mockup's Neutral colours, 8 px and a dark scheme, because the brief of its card asked for one; the pick says neither. Two values are in no pick. The edge of a control is the notes panel's (3.03:1 on the strips). The error colour is darker than Neutral's `#dc2626`, which has 4.23:1 on the picked surface; `#b91c1c` has 5.67:1. The frame keeps `color-scheme: light dark`: in Chrome 158 with a dark scheme, a page in a frame of a light-only viewer was told that the reader's scheme is light, and one in a frame with that rule was told dark (a probe, one run). `viewer.test.sh` pins the colours, the radius and both schemes under a dark reader's scheme.
 
 ## plugins/design-kit/scripts/note-shot.py
 

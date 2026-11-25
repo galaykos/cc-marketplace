@@ -383,8 +383,8 @@ storage, its own folder's files, what is refused, no content URL printed), the r
 viewer's bar, a deck, a board, a hung page, E6 in both diff branches, a previous version that
 reaches no service of this machine, JSON-only escaped output, a preset answer, a forged post,
 a replaced `Math.max`, hostile board and version metas, dialogs, downloads, WebRTC, a console
-flood, the caps, pruning, an older server, the removed routes, never-served results and the
-vendored file's sha256 —
+flood, the caps, pruning, a server with no check route, recorded as newer, the removed routes,
+never-served results and the vendored file's sha256 —
 `scripts/__tests__/check.test.sh`, **gate** (the browser half skips, saying so, without a
 browser); the 60 s bound was timed by hand (69.9 s before, 60.1 s after, 2026-11-13). That a
 skill runs `dk check` before presenting and fixes what it shows is **agent-graded**. Missed:
