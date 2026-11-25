@@ -164,8 +164,7 @@ own='a;b, c ü/index'; mkdir -p "$DK/fx/${own%/*}/sub" "$DK/fx/gone"
 page "$own" '<style>@font-face { font-family: F; src: url(f.ttf) }</style><p id="p">TODO</p><script type="module" src="sub/m.js"></script>'
 printf 'export const two = 2;\n' > "$DK/fx/${own%/*}/sub/n.js"
 printf 'import { two } from "./n.js";\nconst [face] = await document.fonts.load("12px F");\nif (two === 2 && face.status === "loaded") document.querySelector("#p").textContent = "Berlin led the quarter.";\n' > "$DK/fx/${own%/*}/sub/m.js"
-# a TrueType font of one glyph, viewer.test.sh's
-python3 -c 'import base64, sys, zlib; sys.stdout.buffer.write(zlib.decompress(base64.b64decode(sys.argv[1])))' eNqNj71KA0EUhc/MbDTKYiSg9RYphYBFsLBwEYNYJKBoJegQY1LsmqArxM5HsPAJUltaWARJaeFDWKawjK3rmZk1ERXxLnvnfvdvzkAAmMc1FIL6Xnn14GV/iZk7/seNWHfhIwGET15pRVen6jF3T14jl9pNfaJnN/vkQ3KlzURuWZTJt7YeJz01YgTxQJePOg1t8uQhTz/WvS48fhDP5OBMx025XSyQX8k73c5FQl00ae4LoMRY3CCH/5j4CrV6bQsbCBGqIOUuFeDps0eM5cBud1PKZn2qMhmjznCYps6nw2zzdJYKBc0Q8O5bvYNJT6bjqLD+xntHv0p1CvKQ091Op9lovfg2Ik3FVSdWsl0yewF+zMC+p2Lq3hyrkuxiiQU3x9hjtJjFM4yLqGIXTbRwiQga5+SqnfzTPgDQQD77 > "$DK/fx/${own%/*}/f.ttf"
+python3 -c 'import sys; sys.dont_write_bytecode = True; sys.path.insert(0, sys.argv[1]); import browser_lib; sys.stdout.buffer.write(browser_lib.FONT)' "$here/__tests__" > "$DK/fx/${own%/*}/f.ttf"
 expect "$own" 0 ""
 echo "ok: own-folder page loads its font and module"
 page gone/index '<p>Revenue by office.</p><img src="missing-chart.png" alt="Revenue chart" width="200" height="100">'
@@ -207,10 +206,8 @@ sys.path.insert(0, os.path.join(here, "__tests__"))
 import browser_lib
 bad = False
 with browser_lib.browser(60) as b:
-    tab = b.page("about:blank")
-    b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"}, tab.sid)
     for page, want in ((clean, "Checked, 0 problems"), (one, "Checked, 1 problem")):
-        b.chrome.call("Page.navigate", {"url": base + "/" + quote(page)}, tab.sid)
+        tab = browser_lib.visit(b, base + "/" + quote(page))
         got = tab.wait("document.body.dataset.page === %s && document.querySelector('#chip').textContent" % json.dumps(page), 10)
         if got != want:
             print("FAIL: the bar of %s says %r, not %r" % (page, got, want))

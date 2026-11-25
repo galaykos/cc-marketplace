@@ -9,24 +9,15 @@ unset DESIGN_KIT_PORT
 
 rc=0
 python3 - "$here" "$tmp" <<'PY' || rc=$?
-import hashlib, http.client, http.server, io, json, os, re, socket, ssl, struct, subprocess, sys, textwrap, threading, time, zlib
+import hashlib, http.client, http.server, io, json, os, re, socket, ssl, struct, sys, textwrap, threading, time, zlib
 from urllib.parse import quote, unquote, urlsplit
 
 here, tmp = sys.argv[1:3]
 sys.path.insert(0, os.path.join(here, "__tests__"))
 import browser_lib
+from browser_lib import Server, bad, close, eq, tabs
 
 m = browser_lib.check.m  # serve.py
-bad = []
-
-def eq(name, fn, want):
-    try:
-        got = fn() if callable(fn) else fn
-    except Exception as exc:
-        got = repr(exc)
-    print("ok: " + name if got == want else "FAIL: %s: got %.900s, want %.400s" % (name, json.dumps(got, default=sorted), json.dumps(want, default=sorted)))
-    if got != want:
-        bad.append(name)
 
 # A throwaway pair: this browser takes any certificate, and every name is this machine.
 KEY = "MHcCAQEEIOX9S8aD/HcOdJjq89CdmlG9TfZh3yNVdfVPuesnrkXHoAoGCCqGSM49AwEHoUQDQgAE7JdJejuw4NWiAOEsk291/P0EVv8C6KYg8Zh1tHZk6D4AXj5ekHsf87pYRmLOxu7Rc7S5K22JeS9WOWi9cKNj4Q=="
@@ -99,7 +90,7 @@ const blob = (text, type) => URL.createObjectURL(new Blob([text], { type }));
 const xhr = (u, method = 'GET', header, body) => new Promise((done) => { const x = new XMLHttpRequest(); x.open(method, u); if (header) x.setRequestHeader(header, '1'); x.onloadend = () => done(x.status + ' ' + x.responseText); x.send(body); });
 const text = (u) => fetch(u).then(async (r) => r.status + ' ' + await r.text());
 const work = (source) => new Promise((done) => { new Worker(blob('(async () => { ' + source + ' postMessage("done"); })()', 'text/javascript')).onmessage = (e) => done(e.data); });
-const forged = JSON.stringify({ board: 'nested.html', picked: 7 });
+const forged = JSON.stringify({ cid: 'f'.repeat(16), board: 'nested.html', picked: 7 });
 const nested = (u) => '<script>const u = "' + u + '"; fetch(u + "/fetch").catch(() => 0); new Image().src = u + "/image"; fetch("' + HOME + '/_decision", { method: "POST", headers: { "X-Design-Kit-Decision": "1" }, body: ' + JSON.stringify(forged) + ' }).catch(() => 0);'
   + 'top.postMessage({ dk: 1, t: "pick", picked: 77, knobs: {}, text: {} }, "*"); setTimeout(() => { location = u + "/self"; }, 200);' + END;
 const LOADS = {
@@ -158,7 +149,7 @@ for (const [name, at] of Object.entries({
   'the notes above': own + '%2e%2e%2f%2e%2e%2fnotes.jsonl', 'the checks above': own + '..%2f..%2f.checks%2fresults.json', 'a route above': own + '..%2f..%2f..%2f..%2f_index.json', 'its own file': own + 'own.txt',
 })) TOKENS[name] = () => text(HOME + at);
 const POSTS = {};
-for (const [route, header, body] of [['/_decision', 'X-Design-Kit-Decision', { board: 'forged.html', picked: 1, knobs: {}, text: {}, prompt: 'forged' }], ['/_note', 'X-Design-Kit-Note', { page: '/boards/attack.html', text: 'forged' }], ['/_allow', 'X-Design-Kit-Allow', { page: 'boards/attack.html', host: 'forged.example', allow: true }]]) {
+for (const [route, header, body] of [['/_decision', 'X-Design-Kit-Decision', { cid: 'a'.repeat(16), board: 'forged.html', picked: 1, knobs: {}, text: {}, prompt: 'forged' }], ['/_note', 'X-Design-Kit-Note', { cid: 'b'.repeat(16), page: '/boards/attack.html', text: 'forged' }], ['/_allow', 'X-Design-Kit-Allow', { page: 'boards/attack.html', host: 'forged.example', allow: true }]]) {
   const json = JSON.stringify(body), u = HOME + route;
   Object.assign(POSTS, {
     [route + ' fetch']: () => fetch(u, { method: 'POST', headers: { [header]: '1' }, body: json }).then((r) => r.status), [route + ' plain']: () => fetch(u, { method: 'POST', mode: 'no-cors', body: json }).then((r) => r.type),
@@ -269,37 +260,17 @@ def rows(name, field):
     except FileNotFoundError:
         return []
 
-# serve.py itself; it writes down each request it gets
-SERVE = """import importlib.util, json, sys
-spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1])
-m = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(m)
+LOG = os.path.join(tmp, "asked")
+# serve.py writes down each request it gets
+KEPT = """import json
 class Kept(m.Handler):
     def parse_request(self):
         parsed = super().parse_request()
         if parsed:
-            with open(sys.argv[2], "a") as fh:
+            with open(%r, "a") as fh:
                 fh.write(json.dumps([self.command, self.path]) + chr(10))
         return parsed
-m.Handler = Kept
-sys.exit(m.main(sys.argv[3:]))
-"""
-LOG = os.path.join(tmp, "asked")
-
-def served():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        port = s.getsockname()[1]
-    proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(here, "serve.py"), LOG, "--docroot", ROOTS["guarded"], "--port", str(port)],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=dict(os.environ, DESIGN_KIT_IDLE_MINUTES="0"))
-    for _ in range(100):
-        try:
-            socket.create_connection(("127.0.0.1", port), 1).close()
-            return proc, port
-        except OSError:
-            time.sleep(0.05)
-    proc.kill()
-    raise OSError("serve.py did not start on port %d" % port)
+m.Handler = Kept""" % LOG
 
 def posted():
     """Where the guarded server was posted to, but for what a page posts under its own address, which no route takes."""
@@ -338,7 +309,6 @@ def unguarded():
 # In place of NO_NETWORK, whose dead proxy stops what the policy must: a name is this machine or nothing.
 browser_lib.check.NO_NETWORK[:] = ["--no-proxy-server", "--ignore-certificate-errors", "--webrtc-ip-handling-policy=disable_non_proxied_udp", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp", "--host-resolver-rules=" + ", ".join(
     ["MAP *.%s.example 127.0.0.1:%d" % (side, secure[side].port) for side in SIDES] + ["MAP looked.example 127.0.0.1", "MAP * ~NOTFOUND", "EXCLUDE 127.0.0.1"])]
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 # in the viewer, and in the control's own page: a secret, and what the pages inside report
 RECORD = "window.secret = 'SECRET global'; window.heard = []; addEventListener('message', (e) => { if (e.data && e.data.attack) heard.push([e.data.attack, e.data.got]); }); document.addEventListener('DOMContentLoaded', () => { document.documentElement.dataset.secret = 'SECRET document'; });"
 SECRETS = """(async () => {
@@ -347,26 +317,8 @@ SECRETS = """(async () => {
   await new Promise((done) => { const r = indexedDB.open('secret'); r.onupgradeneeded = () => r.result.createObjectStore('s').put('SECRET row', 1); r.onsuccess = () => { r.result.close(); done(); }; });
 })()"""
 
-def tabs(b):
-    return {t["targetId"] for t in b.chrome.call("Target.getTargets")["targetInfos"] if t["type"] == "page"}
-
-def close(b, ids):
-    for one in ids:
-        try:
-            b.chrome.call("Target.closeTarget", {"targetId": one})
-        except RuntimeError:  # on its way out already
-            pass
-
 def visit(b, url, h=800):
-    """The one open tab, at url, with a person's user agent: a headless one is sent to the raw page."""
-    old = tabs(b)
-    tab = b.page("about:blank", h=h)
-    close(b, old)
-    b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": UA}, tab.sid)
-    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": RECORD}, tab.sid)
-    b.chrome.call("Page.navigate", {"url": url}, tab.sid)
-    tab.wait("location.href !== 'about:blank' && document.readyState === 'complete'", 10)
-    return tab
+    return browser_lib.visit(b, url, h=h, source=RECORD)
 
 def framed(side, at):
     return URL[side] + (at if side == "guarded" else "/_frame?" + quote(at))
@@ -417,7 +369,7 @@ def ran(b, tab):
     return ' ran="1"' in b.chrome.call("DOM.getOuterHTML", {"nodeId": node}, tab.sid)["outerHTML"].split("<script")[0]
 
 def approve(host):
-    con = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    con = http.client.HTTPConnection("127.0.0.1", server.port, timeout=5)
     con.request("POST", "/_allow", json.dumps({"page": HOSTILE, "host": host, "allow": True}), {"X-Design-Kit-Allow": "1"})
     return con.getresponse().status
 
@@ -533,9 +485,10 @@ def control(b):
 URL = {}
 for side in SIDES:
     docroot(side)
-proc, port = served()
+server = Server(ROOTS["guarded"])
+server.start(first=KEPT)
 try:
-    URL.update(guarded="http://127.0.0.1:%d" % port, control=unguarded())
+    URL.update(guarded=server.url, control=unguarded())
     LATER = unguarded()
     with browser_lib.browser(200) as b:
         for part in (guarded, residuals, control):
@@ -545,8 +498,7 @@ try:
                 print("%s: %s stopped: %r" % ("NOTE" if part is residuals else "FAIL", part.__name__, exc))
                 bad.extend([] if part is residuals else [part.__name__])
 finally:
-    proc.kill()
-    proc.wait()
+    server.stop()
 selves = [name for name in NAMES["self/"] if "self/" + name in second["control"].paths()]
 eq("control: every self navigation reaches the second server", selves, NAMES["self/"])
 print("control self navigations: %d of 6" % len(selves))

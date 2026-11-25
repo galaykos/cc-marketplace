@@ -1,11 +1,13 @@
-// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted and no note is half typed; on another device has no pick, approval or note to send and says where they are; shows the last dk check, focuses the frame on load and by Tab, forgets what deleted pages stored, and unregisters service workers.
-// Misses: a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a kind of file a host is refused 300 ms or more after its first, said with the host again; the ring of a frame reached by Tab, there until the focus is back in the viewer; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
+// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted and no note is half typed; on another device has no pick, approval or note to send and says where they are; shows the last dk check, focuses the frame on load and by Tab, gives back the focus the page takes from a control of the viewer, forgets what deleted pages stored, and unregisters service workers.
+// Misses: a page that takes the focus over and over gets some of what is typed before it is given back, most of it when it never pauses, and all of it where nothing was typed for 500 ms and the pointer rests on the page or was last a finger; the focus a screen reader, the browser's find or a finger after a mouse moves into the page from a control of the viewer, given back too; a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a kind of file a host is refused 300 ms or more after its first, said with the host again; the ring of a frame reached by Tab, there until the focus is back in the viewer; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.js
 (() => {
   const $ = (id) => document.getElementById(id);
   const { page, version } = document.body.dataset;
+  const RULES = JSON.parse(document.body.dataset.rules); // serve.py's
   const about = (route, of) => route + '?page=' + encodeURIComponent(of);
   const ask = (route, of = page) => fetch(about(route, of), { cache: 'no-store' });
+  const json = (asked) => asked.then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const make = (tag, text, more) => Object.assign(document.createElement(tag), { textContent: text }, more);
   const button = (label, act, more) => make('button', label, { type: 'button', onclick: () => act(), ...more });
   const isObject = (o) => Object.prototype.toString.call(o) === '[object Object]';
@@ -38,12 +40,13 @@
       el.firstChild.append(...[spec.text].flat());
       if (old?.isEqualNode(el)) return;
     }
-    const held = old?.contains(document.activeElement) && document.activeElement;
+    const at = focused(), held = old?.contains(at) && at;
     if (!spec) old?.remove();
     else if (old) old.replaceWith(el);
     else $('strips').insertBefore(el, all.find((s) => STRIPS.indexOf(s.dataset.kind) > STRIPS.indexOf(kind)) || null);
     const is = (s) => s.localName === held.localName && (s.localName === 'ul' || s.textContent === held.textContent);
-    if (held) ([...el.querySelectorAll('button, ul')].find(is) || el.querySelector('button') || frame)?.focus();
+    const to = held && ([...el.querySelectorAll('button, ul')].find(is) || el.querySelector('button'));
+    if (to) take(to); else if (held) enter();
   }
   let changed = -Infinity; // when the strips or the drawer last did
   const due = new Map();
@@ -68,6 +71,48 @@
     away = !here;
     settle();
   }, 100);
+
+  // the viewer's element the focus is on, or was on when the page took it: a page's focus() takes it out of the viewer, whatever its sandbox says; null while it is the page's by right
+  let holder = null, typed = -Infinity, tabbed = false, touched = false, gave = 0, ticking = 0;
+  function setHolder(el) {
+    holder = el;
+    if (el) ticking ||= setTimeout(tick, 16);
+  }
+  /** While the viewer has the focus: Firefox does not tell it of one the page takes, and no browser does of one taken while the window has none. */
+  function tick() {
+    ticking = gave = 0;
+    watchFocus();
+    setHolder(holder);
+  }
+  /** What has the focus, or had it when the page took it. */
+  function focused() {
+    watchFocus();
+    return holder || document.activeElement;
+  }
+  /** The focus to the page, by the viewer. */
+  function enter() {
+    setHolder(null);
+    frame?.focus();
+  }
+  /** The focus to one of the viewer's own. Firefox leaves it in the page otherwise: on an element focused there, or where it takes the viewer's own for focused still. */
+  function take(el, options) {
+    if (document.activeElement === frame) { frame.focus(); frame.blur(); }
+    el.focus(options);
+  }
+  /** Gives back the focus the page took from the viewer, at most 8 times in 16 ms: that is, where the user did not move it there, by Tab or by a press (the pointer is over the page, or was last a finger, with nothing typed here for 500 ms). While an element picked in the page has a note, a press there picks another, and moves no focus. */
+  function watchFocus() {
+    const at = document.activeElement;
+    if (!frame || at !== frame) setHolder(at === document.body ? null : at);
+    if (!holder || at !== frame) return;
+    const aimed = (touched || frame.matches(':hover')) && performance.now() > typed + 500 && !(noting && note?.picked);
+    if (tabbed || aimed || !holder.checkVisibility()) return setHolder(null);
+    if (gave === 8) return;
+    gave++;
+    take(holder, { preventScroll: true }); // a scroll would hold() what can be sent
+  }
+  addEventListener('blur', () => setTimeout(watchFocus)); // a focus() made while this event is told moves the focus in name alone
+  for (const type of ['keydown', 'input']) addEventListener(type, (e) => { typed = performance.now(); tabbed = e.key === 'Tab'; }, true);
+  addEventListener('pointerover', (e) => { touched = e.pointerType === 'touch'; }, true);
 
   let gone = false, hung = false;
   function say(now) {
@@ -96,6 +141,11 @@
     count(k, cost);
     return true;
   }
+  /** The keys a board of 0.19.3 may have at this page's address: typed, with what a URL would read otherwise encoded, and encoded as Python's quote() does. */
+  function oldKeys() {
+    const typed = new URL('/' + page.replace(/[%#?\\\t\n\r]/g, encodeURIComponent), location).pathname;
+    return [typed, path.replace(/[!'()*]/g, (c) => '%' + c.charCodeAt().toString(16).toUpperCase())].map((at) => 'design-kit:' + at);
+  }
   /** What the page stored, as a Map; 0.19.3's board state is moved in, under the key the page in the frame asks for, when there is none. */
   function stored(at) {
     const kept = new Map();
@@ -106,9 +156,9 @@
         const k = name.slice(prefix.length), v = localStorage.getItem(name);
         kept.set(k, v); count(k, k.length + v.length);
       }
-      const board = 'design-kit:/' + at.src.split('/').slice(3).join('/'), old = 'design-kit:' + new URL('/' + page, location).pathname;
-      const v = kept.has(board) ? null : localStorage.getItem(old);
-      if (v !== null && put(board, v)) { kept.set(board, v); localStorage.removeItem(old); }
+      const board = 'design-kit:/' + at.src.split('/').slice(3).join('/');
+      const olds = kept.has(board) ? [] : oldKeys(), v = olds.map((old) => localStorage.getItem(old)).find((one) => one !== null);
+      if (v !== undefined && put(board, v)) { kept.set(board, v); olds.forEach((old) => localStorage.removeItem(old)); }
     } catch (e) { /* this browser keeps no site data: the page starts empty */ }
     return kept;
   }
@@ -126,7 +176,7 @@
   async function prune(project) {
     const mine = `dk-store:${project}:`, left = new Set(entries(mine).map((name) => decoded(name.split(':')[2])));
     left.delete(page);
-    const list = left.size && await fetch('/_index.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const list = left.size && await json(fetch('/_index.json', { cache: 'no-store' }));
     if (!list) return;
     for (const one of list) left.delete(one.path);
     for (const one of left) { // the list has only .html and .htm, and nothing of design-system/
@@ -139,8 +189,8 @@
   const query = location.search.slice(1).split('&').filter((field) => !['static', 'key'].includes([...new URLSearchParams(field).keys()][0])).join('&');
   let frame;
   function build(at) {
-    const mine = frame = document.createElement('iframe');
-    frame.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-downloads');
+    const left = frame, was = focused(), mine = frame = document.createElement('iframe');
+    frame.setAttribute('sandbox', RULES.sandbox);
     frame.setAttribute('allow', 'clipboard-write');
     frame.title = at.title;
     frame.name = JSON.stringify({ dk: 1, store: Object.fromEntries(stored(at)) });
@@ -148,6 +198,7 @@
     frame.onload = () => setTimeout(() => { if (mine === frame) unlist(); }, 1000);
     strip('storage', null);
     $('frame').replaceChildren(frame);
+    if (was !== left && was.checkVisibility()) take(was);
     watch();
   }
   function tell(t, data) { frame?.contentWindow.postMessage({ dk: 1, t, ...data }, '*'); } // a null origin takes no other target
@@ -178,28 +229,25 @@
 
   document.addEventListener('securitypolicyviolation', (e) => {
     if (!frame || e.effectiveDirective !== 'frame-src') return;
-    const left = frame, text = make('p', 'Page stopped: it tried to open another site.', { tabIndex: -1 }), acts = make('div'), area = make('div');
+    const left = frame, was = focused(), text = make('p', 'Page stopped: it tried to open another site.', { tabIndex: -1 }), acts = make('div'), area = make('div');
     frame = null;
     watch(); say({ hung: false });
-    const held = [left, document.body].includes(document.activeElement);
+    const held = !was.isConnected || [left, document.body].includes(was);
     if (!held) area.setAttribute('role', 'alert');
-    acts.append(button('Reload page', show, { className: 'primary' }), make('a', 'Back to gallery', { href: '/_gallery', draggable: false }));
+    acts.append(button('Reload page', show, { className: 'primary' }), make('a', 'Back to gallery', { href: RULES.gallery, draggable: false }));
     area.className = 'stopped';
     area.append(text, acts);
     $('frame').replaceChildren(area);
-    if (held) text.focus();
+    (held ? text : was).focus();
   });
 
-  // name -> its range, or its two values, and its words, as in picks.py
-  const KNOBS = {
-    space: [0, 64, (v) => `spacing base ${v}px`], radius: [0, 64, (v) => `corner radius ${v}px`], hue: [0, 360, (v) => `accent hue ${v}°`],
-    type: [0.5, 3, (v) => `type scale ×${v}`], density: [0.5, 3, (v) => `density ×${v}`], scheme: ['light', 'dark', (v) => `${v} scheme`],
-  };
+  const { knobs: KNOBS, picked: [FIRST, LAST] } = RULES; // a knob: its range, or its two values, and its words
+  const whole = (pattern) => new RegExp(`^(?:${pattern})$`), SCOPE = whole(RULES.scope), PATH = whole(RULES.path);
   // what serve.py's _hidden escapes: it draws nothing, or reorders the text around it
-  const HIDDEN = /([\p{C}\p{Zl}\p{Zp}\u{FE00}-\u{FE0F}\u{E0100}-\u{E01EF}\u{180B}-\u{180F}\u{115F}\u{1160}\u{3164}\u{FFA0}\u{2800}])/u;
+  const HIDDEN = new RegExp(`([${RULES.hidden}])`, 'u');
   const isPick = (m) => (m.picked === null || Number.isInteger(m.picked)) && isObject(m.knobs) && isObject(m.text);
   /** [scope, its object] for the scopes named, then for the artboards 1 to 99 in order. */
-  const scopes = (of, ...named) => [...named.map((k) => [k, of[k]]), ...Object.entries(of).filter(([k]) => /^[1-9]\d?$/.test(k))].filter(([, v]) => isObject(v));
+  const scopes = (of, ...named) => [...named.map((k) => [k, of[k]]), ...Object.entries(of).filter(([k]) => SCOPE.test(k))].filter(([, v]) => isObject(v));
   function knob([low, high], v) {
     if (typeof low === 'string') return v === low || v === high ? v : undefined;
     return typeof v === 'number' && !Number.isNaN(v) ? Math.min(high, Math.max(low, v)) : undefined;
@@ -208,16 +256,16 @@
   const cut = (s, n) => Array.from(s.slice(0, 2 * n)).slice(0, n).join('').replace(/\p{Cs}/gu, '?');
   /** The picked, knobs and text of a report as picks.py would store them: what is shown is what is sent. */
   function clamp({ picked, knobs, text }) {
-    const shot = { picked: picked >= 1 && picked <= 99 ? picked : null, knobs: {}, text: {} };
+    const shot = { picked: picked >= FIRST && picked <= LAST ? picked : null, knobs: {}, text: {} };
     for (const [scope, given] of scopes(knobs, 'all')) {
       const own = Object.entries(KNOBS).map(([name, rule]) => [name, knob(rule, given[name])]).filter(([, v]) => v !== undefined);
       if (own.length) shot.knobs[scope] = Object.fromEntries(own);
     }
-    let left = 100;
+    let left = RULES.edits;
     for (const [scope, given] of scopes(text)) {
       for (const [path, edit] of Object.entries(given)) {
-        if (!left || !/^[a-z0-9:/-]{1,200}$/.test(path) || !isObject(edit) || typeof edit.was !== 'string' || typeof edit.now !== 'string') continue;
-        (shot.text[scope] ||= {})[path] = { was: cut(edit.was, 500), now: cut(edit.now, 500) };
+        if (!left || !PATH.test(path) || !isObject(edit) || typeof edit.was !== 'string' || typeof edit.now !== 'string') continue;
+        (shot.text[scope] ||= {})[path] = { was: cut(edit.was, RULES.chars), now: cut(edit.now, RULES.chars) };
         left--;
       }
     }
@@ -229,11 +277,12 @@
     bdi.append(...s.split(HIDDEN).map((part, i) => (i % 2 ? make('code', 'U+' + part.codePointAt(0).toString(16).toUpperCase()) : part)));
     return bdi;
   }
+  const worded = (name, v) => KNOBS[name][2].replace('{}', () => (typeof v === 'string' ? v : String(+v.toFixed(RULES.decimals))));
   /** A line for each knob value and each text edit, as the parts of a list item. */
   function lines({ knobs, text }) {
     const named = (scope) => (scope === 'all' ? 'All artboards' : 'Artboard ' + scope);
     return [
-      ...scopes(knobs, 'all').flatMap(([scope, own]) => Object.entries(own).map(([name, v]) => [`${named(scope)}: ${KNOBS[name][2](v)}`])),
+      ...scopes(knobs, 'all').flatMap(([scope, own]) => Object.entries(own).map(([name, v]) => [`${named(scope)}: ${worded(name, v)}`])),
       ...scopes(text).flatMap(([scope, own]) => Object.entries(own).map(([path, { was, now }]) => [`${named(scope)} text, ${path}: “`, drawn(was), '” → “', drawn(now), '”'])),
     ];
   }
@@ -261,13 +310,19 @@
       return { why: 'The preview server did not answer', refused: false };
     }
   }
+  function keepInTab(name, value) {
+    try {
+      if (value === undefined) sessionStorage.removeItem(name); else sessionStorage.setItem(name, JSON.stringify(value));
+    } catch (e) { /* this browser keeps no site data: as long as this viewer */ }
+  }
+  function keptInTab(name, otherwise) {
+    try { return JSON.parse(sessionStorage.getItem(name)); } catch (e) { return otherwise; }
+  }
   // sessionStorage's name for this page's pick, '' where none can be sent; the pick on screen, { shot, cid, updated, sending, why, refused }; the one reported since, { shot, updated }
   let place = '', pick = null, newer = null;
   function stash() {
     const { shot, cid } = newer && !same(newer.shot, pick?.shot) ? newer : pick || {};
-    try {
-      if (shot) sessionStorage.setItem(place, JSON.stringify({ cid, ...shot })); else sessionStorage.removeItem(place);
-    } catch (e) { /* this browser keeps no site data: the strip lasts as long as this viewer */ }
+    keepInTab(place, shot && { cid, ...shot });
   }
   /** Brings back the pick this tab has not sent, the first time, and once another project is served here. */
   function unstash(at) {
@@ -275,10 +330,8 @@
     if (now === place) return;
     place = now;
     pick = newer = null;
-    try {
-      const { cid, ...shot } = JSON.parse(sessionStorage.getItem(place));
-      if (isPick(shot)) pick = { shot: clamp(shot), cid: /^[0-9a-f]{16}$/.test(cid) ? cid : newCid() };
-    } catch (e) { /* none */ }
+    const { cid, ...shot } = keptInTab(place) || {};
+    if (isPick(shot)) pick = { shot: clamp(shot), cid: /^[0-9a-f]{16}$/.test(cid) ? cid : newCid() };
     drawPick();
   }
   function report(m) {
@@ -358,14 +411,12 @@
     broken = at.hosts_error ? at.hosts_error[0].toUpperCase() + at.hosts_error.slice(1) : '';
     for (const host of hosts) refused.delete(host);
     keptAt = `dk-blocked:${at.project}:${page}`;
-    try {
-      kept = new Set(JSON.parse(sessionStorage.getItem(keptAt)) || []);
-    } catch (e) { /* this browser keeps no site data: as long as this viewer */ }
+    kept = new Set(keptInTab(keptAt, kept) || []);
     drawHosts();
   }
   function keepBlocked(host, on) {
     if (on) kept.add(host); else kept.delete(host);
-    try { sessionStorage.setItem(keptAt, JSON.stringify([...kept])); } catch (e) { /* as above */ }
+    keepInTab(keptAt, [...kept]);
   }
   /** Has the server let this page load from host, or no longer, and the page framed anew once it does. */
   async function permit(host, allow) {
@@ -402,11 +453,11 @@
       }, host);
     }
     strip('more', more ? { text: `${more} more ${more === 1 ? 'host' : 'hosts'} blocked; Network lists ${more === 1 ? 'it' : 'them'}` } : null);
-    const n = hosts.length + refused.size, at = document.activeElement, held = at === $('network') || listing.contains(at);
+    const n = hosts.length + refused.size, at = focused(), held = at === $('network') || listing.contains(at);
     $('network').hidden = !n;
     $('network').textContent = `Network (${n})`;
     if (!n && open === 'network') toggle('network');
-    if (!n && held) frame?.focus();
+    if (!n && held) enter();
     drawListing();
   }
   /** Lists the hosts while their panel is open; the focus stays at its host, else goes to the first. */
@@ -421,10 +472,11 @@
     }
     refusal.textContent = failed.why ? `${drawn(failed.host).textContent}: ${failed.why}` : '';
     if (listing.isEqualNode(now)) return;
-    const held = listing.contains(document.activeElement) && document.activeElement.dataset.host;
+    const at = focused(), held = listing.contains(at) && at.dataset.host;
     listing.replaceWith(now);
     listing = now;
-    if (held) ([...now.querySelectorAll('button')].find((one) => one.dataset.host === held) || now.querySelector('button'))?.focus();
+    const to = held && ([...now.querySelectorAll('button')].find((one) => one.dataset.host === held) || now.querySelector('button'));
+    if (to) take(to);
   }
 
   const path = '/' + page.split('/').map(encodeURIComponent).join('/'); // as page_of reads it
@@ -437,7 +489,8 @@
     note.asked = true;
     tell('ask');
   });
-  let listed = list('Notes left on this page', []);
+  const notesList = (items) => list('Notes left on this page', items);
+  let listed = notesList([]);
   // the id of the button whose panel is open in the drawer, '' when none is; whether that is the notes; the note being written, or null: its elements, the button that opened it, what the page said, the body last sent with its cid
   let open = '', noting = false, note = null;
   const panels = new Map();
@@ -478,14 +531,14 @@
     if (noting && note) return drop();
     const was = $(open);
     toggle(open);
-    was.focus();
+    take(was);
   }
   async function refresh() {
     check();
-    const rows = await ask('/_notes', path).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const rows = await json(ask('/_notes', path));
     if (!rows) return;
     $('notes').textContent = rows.length ? `Notes (${rows.length})` : 'Notes';
-    const now = list('Notes left on this page', rows.length ? rows.slice(-20).reverse().map(({ status, anchor, text, reply }) => [
+    const now = notesList(rows.length ? rows.slice(-20).reverse().map(({ status, anchor, text, reply }) => [
       make('span', status, { className: 'st ' + status }), ' ', make('b', anchor?.tag ? `<${anchor.tag}>` : 'Page'), make('div', text), ...(reply ? [make('div', 'Reply: ' + reply, { className: 'reply' })] : []),
     ]) : [['No notes on this page yet.']]);
     if (listed.isEqualNode(now)) return;
@@ -495,18 +548,18 @@
   /** The note being written is now on anchor, or on the page when that is null; a composer is opened for it, by opener, when there is none. */
   function compose(anchor, context, opener) {
     note ||= blank(opener);
-    Object.assign(note, { anchor, context, asked: false });
+    Object.assign(note, { anchor, context, asked: false, picked: opener !== onPage });
     const words = anchor ? cut(anchor.text, 60) : '';
     note.on.replaceChildren(...(anchor ? ['On <', drawn(anchor.tag), '>', ...(words ? [' “', drawn(words), '”'] : [])] : ['On this page']));
     explain('');
     // a page must not take the focus from Send pick
-    if (![note.box, $('strips')].some((at) => at.contains(document.activeElement))) note.text.focus();
+    if (![note.box, $('strips')].some((at) => at.contains(focused()))) take(note.text);
   }
   function blank(opener) {
     const box = make('div', null, { role: 'group', ariaLabel: 'Write a note' }), label = make('label', 'Note'), acts = make('div');
     const on = make('p', null, { id: 'on' }), why = make('p', null, { id: 'why', className: 'why', role: 'status' });
     const text = make('textarea', null, { maxLength: 2000, required: true, oninput: () => { if (why.textContent) explain(''); } });
-    const send = guard(button('Send note', null, { className: 'primary' }), sendNote), cancel = button('Cancel', drop);
+    const send = guard(button('', null, { className: 'primary' }), sendNote), cancel = button('Cancel', drop);
     text.setAttribute('aria-describedby', 'on why');
     label.append(text);
     acts.append(send, cancel);
@@ -515,7 +568,7 @@
     return { box, on, why, text, send, cancel, opener };
   }
   function explain(why, label = 'Send note') {
-    if (!label && document.activeElement === note.send) note.text.focus();
+    if (!label && focused() === note.send) take(note.text);
     note.why.textContent = why;
     note.send.textContent = label;
     note.send.hidden = !label;
@@ -523,7 +576,7 @@
   function leave(focus) {
     const { box, opener } = note;
     note = null;
-    if (focus) opener.focus();
+    if (focus) take(opener);
     box.remove();
   }
   function drop() {
@@ -549,7 +602,7 @@
     const { why, refused } = await post('/_note', 'X-Design-Kit-Note', { cid: mine.cid, ...body });
     pending(false);
     said.textContent = why ? '' : 'Sent. The session reads it with dk notes.';
-    if (why) explain(why, refused ? '' : 'Send again'); else leave(mine.box.contains(document.activeElement));
+    if (why) explain(why, refused ? '' : 'Send again'); else leave(mine.box.contains(focused()));
     if (!why) refresh();
   }
 
@@ -572,9 +625,9 @@
     bring('link', () => offer(to));
   }
 
-  /** A key of the page: pressed there only while the page has the focus, and done while it still has. */
+  /** A key of the page: pressed there only while the page has the focus, by right, and done while it still has. */
   function pressed(act) {
-    const there = () => document.activeElement === frame;
+    const there = () => { watchFocus(); return document.activeElement === frame && !holder; };
     if (there()) bring('drawer', () => { if (there()) act(); });
   }
   const KEYS = new Map([
@@ -585,7 +638,7 @@
   const isHash = (h) => typeof h === 'string' && /^#[\w/=&.%-]{0,128}$/.test(h);
   // message type -> [whether its fields have their shape, what it does]
   const HANDLERS = new Map([
-    ['ready', [(m) => isHash(m.hash), () => { if (noting) tell('notes', { on: true }); if (document.activeElement === document.body) frame.focus(); }]],
+    ['ready', [(m) => isHash(m.hash), () => { if (noting) tell('notes', { on: true }); if (document.activeElement === document.body) enter(); }]],
     ['hash', [(m) => isHash(m.hash), (m) => history.replaceState(null, '', m.hash)]],
     ['pong', [(m) => Number.isInteger(m.n) && m.n > 0 && m.n <= pings, (m) => { expect(); say({ hung: false }); answered(m); }]],
     ['store', [isStore, keep]],
@@ -626,14 +679,18 @@
     if (!frame || e.key !== 'Tab' || e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.target !== [...document.querySelectorAll('a, button, textarea, [tabindex="0"]')].filter((one) => one.checkVisibility()).pop()) return;
     e.preventDefault();
-    frame.focus();
+    enter();
     frame.dataset.reached = '';
   });
-  document.addEventListener('focusin', () => frame?.removeAttribute('data-reached'));
+  document.addEventListener('focusin', ({ target }) => {
+    setHolder(target === frame ? null : target);
+    tabbed = false;
+    frame?.removeAttribute('data-reached');
+  });
   addEventListener('hashchange', () => show()); // typed into the address: the frame's own hash comes by replaceState, which tells no one
 
   async function check() {
-    const c = await ask('/_checks').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const c = await json(ask('/_checks'));
     if (!c) return;
     const textContent = !c.checked ? 'Not checked' : `Checked, ${c.findings} ${c.findings === 1 ? 'problem' : 'problems'}${c.changed_since ? '; page changed since' : ''}`;
     const className = !c.checked || c.changed_since ? '' : c.findings ? 'warn' : 'ok';

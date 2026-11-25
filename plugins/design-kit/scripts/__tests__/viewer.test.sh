@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the contract's seven states at 1280 and 375 px (what is where, nothing sideways, axe-core, Tab order, nothing draggable, a strip said once and never focused, a screenshot of each in the temp dir), the strips' order, 40 notes and 12 blocked hosts at 375 px, Tab into a page with nothing to focus, the LAN viewer at this machine's own address (a SKIP line without one: at a faked peer's then), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the bounce of a top-level framed page and what the LAN viewer asks for; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium, the dark scheme's contrast; a window that really loses and gets the focus (document.hasFocus is faked).
+# Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, a page that takes it from the viewer (a pointer moved by the system's way, for DevTools' own says nothing of a frame it is over; how much of what is typed such a page got is printed as a NOTE), query, hash and Back, reload (at a save of its own page, its last messages in first), the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the contract's seven states at 1280 and 375 px (what is where, nothing sideways, axe-core, Tab order, nothing draggable, a strip said once and never focused, a screenshot of each in the temp dir), the strips' order, 40 notes and 12 blocked hosts at 375 px, Tab into a page with nothing to focus, the LAN viewer at this machine's own address (a SKIP line without one: at a faked peer's then), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the bounce of a top-level framed page and what the LAN viewer asks for; browser_lib.py's exit 4 where no browser starts.
+# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium, the dark scheme's contrast; a window that really loses and gets the focus (document.hasFocus is faked, and the viewer kept from hearing of a lost one).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -15,18 +15,9 @@ from urllib.parse import quote, unquote
 here, ROOT = sys.argv[1:3]
 sys.path.insert(0, os.path.join(here, "__tests__"))
 import browser_lib
+from browser_lib import FONT, TRY, WRITES, Server, bad, eq, visit
 
 m = browser_lib.check.m  # serve.py
-bad = []
-
-def eq(name, fn, want):
-    try:
-        got = fn() if callable(fn) else fn
-    except Exception as exc:
-        got = repr(exc)
-    print("ok: " + name if got == want else "FAIL: %s: got %.600s, want %.400s" % (name, json.dumps(got), json.dumps(want)))
-    if got != want:
-        bad.append(name)
 
 def put(name, body):
     path = os.path.join(ROOT, name)
@@ -48,8 +39,6 @@ def wav():
         w.setnchannels(1); w.setsampwidth(1); w.setframerate(8000); w.writeframes(b"\x80" * 800)
     return out.getvalue()
 
-# a TrueType font of one glyph
-FONT = zlib.decompress(base64.b64decode("eNqNj71KA0EUhc/MbDTKYiSg9RYphYBFsLBwEYNYJKBoJegQY1LsmqArxM5HsPAJUltaWARJaeFDWKawjK3rmZk1ERXxLnvnfvdvzkAAmMc1FIL6Xnn14GV/iZk7/seNWHfhIwGET15pRVen6jF3T14jl9pNfaJnN/vkQ3KlzURuWZTJt7YeJz01YgTxQJePOg1t8uQhTz/WvS48fhDP5OBMx025XSyQX8k73c5FQl00ae4LoMRY3CCH/5j4CrV6bQsbCBGqIOUuFeDps0eM5cBud1PKZn2qMhmjznCYps6nw2zzdJYKBc0Q8O5bvYNJT6bjqLD+xntHv0p1CvKQ091Op9lovfg2Ik3FVSdWsl0yewF+zMC+p2Lq3hyrkuxiiQU3x9hjtJjFM4yLqGIXTbRwiQga5+SqnfzTPgDQQD77"))
 OWN, BOARD, KIT_TEXT = "motion/a;b, c ü/", "boards/fixture.html", "data-design-kit-frame"
 KINDS = (
     ("boards", BOARD, None), ("decks", "decks/fixture.html", None), ("artifacts", "artifacts/fixture.html", None), ("previews", "previews/fixture.html", None),
@@ -94,34 +83,6 @@ built("deck-build.py", DECK, "# Review\n\n## One\n\n- a\n\n## Two\n\n- b\n\n## T
 for board in (PICKS, OLD):
     built("board-build.py", board, json.dumps({"title": "Checkout", "brief": "errors", "device": "phone", "boards": [{"title": t, "tradeoff": "wide", "body": "<h1>%s</h1>" % t} for t in ("One", "Two")]}))
 
-SERVE = "import importlib.util, sys; s = importlib.util.spec_from_file_location('dkserve', sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); m.SERVER_VERSION += int(sys.argv[2]); sys.exit(m.main(sys.argv[3:]))"
-
-def free_port():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-class Server:
-    """serve.py on ROOT, in a process of its own: what it signed dies with it."""
-
-    def __init__(self, port):
-        self.port, self.url, self.proc = port, "http://127.0.0.1:%d" % port, None
-
-    def start(self, newer=0, root=ROOT, *more):
-        self.proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(here, "serve.py"), str(newer), "--docroot", root, "--port", str(self.port), *more],
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=dict(os.environ, DESIGN_KIT_IDLE_MINUTES="0"))
-        for _ in range(100):
-            try:
-                return socket.create_connection(("127.0.0.1", self.port), 1).close()
-            except OSError:
-                time.sleep(0.05)
-        raise OSError("serve.py did not start on port %d" % self.port)
-
-    def stop(self):
-        if self.proc:
-            self.proc.kill()
-            self.proc.wait()
-
 asked = []
 
 class Far(m.Handler):
@@ -139,22 +100,6 @@ class Far(m.Handler):
             for name in [n for n in self.headers if n.lower().startswith("sec-fetch-")]:
                 del self.headers[name]
         return parsed
-
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-
-visited = []
-
-def visit(b, url, w=1280, h=800, source=""):
-    """The one open tab, at url, with a person's user agent: a headless one is sent to the raw page, and each viewer left open keeps one of the six connections Chrome gives a host; source before any script of a document."""
-    while visited:
-        b.chrome.call("Page.close", {}, visited.pop().sid)
-    tab = b.page("about:blank", w, h)
-    visited.append(tab)
-    b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": UA}, tab.sid)
-    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": source}, tab.sid)
-    b.chrome.call("Page.navigate", {"url": url}, tab.sid)
-    tab.wait("location.href !== 'about:blank' && document.readyState === 'complete'", 10)
-    return tab
 
 def got(path):
     """The policy and the body the server answers this path with."""
@@ -336,7 +281,7 @@ def bridge(b):
     f.evaluate("".join("document.querySelector('iframe').contentWindow." + POST % one for one in KINDLY + ("{ dk: 1, t: 'store', clear: true }",)) + "1")
     eq("a message from a frame inside the page changes nothing", lambda: (time.sleep(0.2), tab.evaluate(WHOLE), f.evaluate("printed"))[1:], (before, 0))
     f.evaluate("".join("parent." + POST % one for one in WRONG) + "1")
-    eq("a wrong shape, an unknown type and an anchor with notes off change nothing", lambda: (time.sleep(0.2), tab.evaluate(WHOLE), f.evaluate("printed"))[1:], (before, 0))
+    eq("a wrong shape, an unknown type and an anchor with notes off change nothing", lambda: (time.sleep(0.6), tab.evaluate(WHOLE), f.evaluate("printed"))[1:], (before, 0))
     f.evaluate("".join("parent." + POST % one for one in KINDLY) + "1")
     eq("the page's own of the same four types are acted on", lambda: (f.wait("printed"), tab.wait(FOCUS + " === 'iframe'"), tab.evaluate("location.hash"), sorted(k.split(":")[-1] for k in entries(tab, "bridge.html")))[1:], (True, "#/9", ["forged", "mine"]))
     tab.evaluate("window.moves = []; history.replaceState = function (...args) { moves.push(performance.now()); History.prototype.replaceState.apply(this, args); }; 1")
@@ -447,9 +392,6 @@ def hangs(b):
     eq("its answer clears the strip, and nothing was reloaded", lambda: (tab.wait("!%s.length" % STRIPS, 5), tab.evaluate(NEW), tab.frame().evaluate(H1)), (True, False, "busy"))
     os.unlink(os.path.join(ROOT, "artifacts/busy.html"))  # before the gallery frames it
 
-TRY = "const t = (f) => { try { f(); return 'ok'; } catch (e) { return e.name; } };"
-WRITES = "localStorage.clear(); new Promise((done) => { let n = 0; const tick = () => { localStorage.setItem('count', String(++n)); if (n < 120) setTimeout(tick, 8); else { %s; done(1); } }; tick(); })"
-
 def keeps(b):
     name, other = "boards/keeps.html", "boards/keeps.html:k.html"
     for one in (name, other, "boards/going.html", "boards/kept.shtml"):
@@ -515,7 +457,7 @@ def keeps(b):
     for one in ("boards/going.html", "boards/kept.shtml", "design-system/kit.html"):
         tab = visit(b, at(one))
         tab.frame().evaluate("localStorage.setItem('k', 'here'); 1")
-        tab.wait("Object.keys(localStorage).some((k) => k.includes(':%s:'))" % one)
+        tab.wait("Object.entries(localStorage).some(([k, v]) => k.includes(':%s:') && v === 'here')" % one)
     os.unlink(os.path.join(ROOT, "boards/going.html"))
     before = entries(tab)
     tab = visit(b, at(BOARD))
@@ -536,6 +478,22 @@ def keeps(b):
     tab.frame().evaluate("localStorage.clear(); 1")
     tab.wait("!Object.keys(localStorage).some((k) => k.includes(':%s:'))" % PICKS)
     eq("and once", lambda: visit(b, at(PICKS)).frame().evaluate(board + ".knobs"), {})
+    encoded = json.dumps("design-kit:/" + quote(PICKS))
+    tab = visit(b, at(BOARD))
+    tab.evaluate("localStorage.setItem(%s, %s); 1" % (encoded, json.dumps(json.dumps(state))))
+    tab = visit(b, at(PICKS))
+    eq("a 0.19.3 key percent-encoded whole is read too, and goes", lambda: [tab.frame().evaluate(board), tab.evaluate("localStorage.getItem(%s)" % encoded)], [state, None])
+    whose = "localStorage.getItem('design-kit:' + location.pathname)"
+    for odd, plain in (("boards/a.html#x.html", "boards/a.html"), ("boards/a.html?x.html", "boards/a.html"), ("boards/q\\a.html", "boards/q/a.html"), ("boards/%2e%2e/a.html", "a.html"), ("boards/a\tb.html", "boards/ab.html")):
+        for one in (odd, plain):
+            page(one)
+        tab.evaluate("localStorage.setItem('design-kit:/%s', 'of %s'); 1" % (plain, plain))
+        tab = visit(b, at(odd))
+        first = tab.frame().evaluate(whose)
+        tab = visit(b, at(plain))
+        eq("the state of %s is not taken by %s, which a URL reads as it" % (plain, json.dumps(odd)), lambda: [first, tab.frame().evaluate(whose)], [None, "of " + plain])
+        for one in (odd, plain):
+            os.unlink(os.path.join(ROOT, one))
 
 def full(b):
     tab = visit(b, server.url + "/" + BOARD)
@@ -593,7 +551,7 @@ def lost(b):
     writes(tab, tab.frame(), "half a note")
     def newer():
         server.stop()
-        server.start(newer=1)
+        server.start(first="m.SERVER_VERSION += 1")
     eq("a viewer older than the server that came back keeps a draft: the frame alone is new", lambda: (reframed(tab, newer).evaluate(H1), tab.evaluate("[!!window.was, document.querySelector('textarea').value]")), ("fixture", [True, "half a note"]))
     press(tab, CANCEL)
     newer()
@@ -769,12 +727,25 @@ def values(b):
     tab.wait(GONE)
     eq("the viewer clamps a pick as picks.py does", chosen, [[stored[k] for k in ("board", "picked", "knobs", "text")]])
     eq("and posts what it clamped", lambda: [{k: v for k, v in one.items() if k != "cid"} for one in tab.evaluate("posted")], [stored])
-    knobs = [m.picks._words({name: v}) for own in stored["knobs"].values() for name, v in own.items() if name != "density"]
+    knobs = [m.picks._words({name: v}) for own in stored["knobs"].values() for name, v in own.items()]
     texts = [t.replace(rlo, "U+202E") for edits in stored["text"].values() for path, e in edits.items() for t in (path, e["was"], e["now"])]
     eq("every value sent is in the strip's text, a character that draws nothing as its number", lambda: [t for t in knobs + texts if t not in "\n".join(shown)], [])
     eq("each knob is under its scope, by picks.py's words, each edit as was → now", lambda: [one for one in shown if len(one) < 60],
-       ["All artboards: " + w for w in ("spacing base 64px", "corner radius 0px", "accent hue 360°", "type scale ×0.5", "density ×1.2345", "dark scheme")]
+       ["All artboards: " + w for w in ("spacing base 64px", "corner radius 0px", "accent hue 360°", "type scale ×0.5", "density ×1.23", "dark scheme")]
        + ["Artboard 1: accent hue 7°", "Artboard 1: type scale ×1.05", "Artboard 1 text, constructor: “q” → “r”", "Artboard 2 text, h1:0: “One” → “”"])
+    past = {"1": {name: low - 1 for name, (low, _, _) in m.picks.KNOBS.items() if name != "scheme"}, "2": {name: high + 1 for name, (_, high, _) in m.picks.KNOBS.items() if name != "scheme"}, "3": {"scheme": "light"}}
+    bounds = m.picks.clean_pick({"board": "fixture.html", "picked": 1, "knobs": past, "text": {}}, m._clean, m._hidden)[0]["knobs"]
+    says(f, 1, past)
+    eq("each knob past a bound reads as picks.py words the bound", lambda: [tab.wait(HEAD), tab.evaluate(ROWS)][1], ["Artboard %s: %s" % (scope, m.picks._words({name: v})) for scope, own in bounds.items() for name, v in own.items()])
+    time.sleep(ACTS)
+    press(tab, DISCARD)
+    tab.wait(GONE)
+    hides = sorted(m.BLANK) + [0x1, 0x200b, 0xe000, 0x378, 0x2028, 0x2029]  # one of Cc, Cf, Co, Cn, Zl and Zp
+    says(f, 1, {}, {"1": {"p:0": {"was": "".join(map(chr, hides)), "now": "x"}}})
+    eq("every character serve.py counts as blank, and one of each hidden category, is drawn as its number", lambda: [tab.wait(HEAD), tab.evaluate(ROWS)][1], ["Artboard 1 text, p:0: “%s” → “x”" % "".join("U+%X" % c for c in hides)])
+    time.sleep(ACTS)
+    press(tab, DISCARD)
+    tab.wait(GONE)
     offered(tab, f, 1, {}, {str(n): {"p:%d" % i: {"was": "w", "now": "n"} for i in range(40)} for n in (3, 2, 1)})
     eq("of 120 edits the first 100 are sent, lowest artboard first", lambda: [len(tab.evaluate(ROWS))] + [sum("Artboard %d" % n in one for one in tab.evaluate(ROWS)) for n in (1, 2, 3)], [100, 40, 40, 20])
     press(tab, DISCARD)
@@ -877,6 +848,26 @@ def once(b):
         press(tab, SEND)
         eq("and the same pick sent anew as one more", lambda: [tab.wait(GONE), numbers()][1], [1, 2, 3, 4, 5, 6, 7, 7])
         forget()
+        offered(tab, f, 8)
+        lost()
+        time.sleep(PACE)
+        says(f, 8)
+        tab.wait("(document.querySelector('%s') || {}).textContent === 'Send pick'" % SEND, 4)
+        time.sleep(ACTS)
+        press(tab, SEND)
+        eq("a report of the same pick after a lost answer makes no second row of it", lambda: [tab.wait(GONE), numbers()], [True, [8]])
+        offered(tab, f, 1)
+        says(f, 2)
+        press(tab, SEND)
+        eq("Send posts the pick on screen, not a newer report that waits to be drawn", lambda: [tab.wait(HEAD + ".startsWith('Artboard 2')", 4), numbers()], [True, [8, 1]])
+        time.sleep(ACTS)
+        says(f, 3)
+        f = again(b, tab).frame()
+        eq("a report that waited to be drawn is there after a tab reload", lambda: [tab.wait(HEAD, 4), tab.evaluate(HEAD)][1], "Artboard 3 picked")
+        time.sleep(ACTS)
+        press(tab, DISCARD)
+        tab.wait(GONE)
+        forget()
         offered(tab, f, 1)
         server.stop()
         tab.wait(STRIPS + ".length === 2", 8)
@@ -959,6 +950,22 @@ def consent(b):
             press(tab, control, how)
             eq("%s acts after it: %s" % (name, said.split(" ")[0]), lambda: [tab.wait(GONE), time.sleep(0.1), len(recorded())][2], int(control == SEND))
             forget()
+
+    for _ in range(5):  # until a press falls where it should
+        says(f, 1)
+        tab.wait(THERE, 4)
+        tab.evaluate("document.querySelector('%s').focus(); pressed.length = 0; new Promise((r) => setTimeout(r, drawn + 490 - performance.now()))" % SEND)
+        tab.key("Enter")
+        time.sleep(0.1)
+        near = [tab.evaluate("pressed[0] > 450 && pressed[0] < 590"), tab.evaluate(THERE), recorded()]
+        time.sleep(0.8)
+        if tab.evaluate(THERE):
+            press(tab, DISCARD)
+            tab.wait(GONE)
+        if near[0]:
+            break
+    eq("nor does a press about 500 ms after it", near, [True, True, []])
+    forget()
 
     said = lambda n, word: (f, 1, {"all": {"space": n}}, {"1": {"h1:0": {"was": "One", "now": word}}})
     says(*said(8, "Uno"))
@@ -1111,7 +1118,15 @@ def notes(b):
     eq("an anchor of another shape opens no composer, notes on", lambda: [time.sleep(0.3), tab.evaluate("[%s, %s]" % (DRAWN, WRITING))][1], [True, False])
     f.evaluate("parent." + POST % ANCHOR + "1")
     eq("one of its shape does", lambda: [tab.wait(WRITING), tab.evaluate(ON)][1], "On <b> “forged”")
-    press(tab, CANCEL)
+    types(tab, "on the first")
+    time.sleep(ACTS)
+    f.evaluate("parent." + POST % ANCHOR.replace("#one", "#two").replace("'b'", "'i'") + "1")
+    on = tab.evaluate(ON)
+    press(tab, SEND_NOTE)
+    eq("a note sent before its composer names a newer element is on the one it names", lambda: [on, tab.wait("!" + WRITING), [r["anchor"]["selector"] for r in noted() if r["text"] == "on the first"]], ["On <b> “forged”", True, ["#one"]])
+    time.sleep(PACE)
+    if tab.evaluate(WRITING):
+        press(tab, CANCEL)
     press(tab, "#notes")
     f.evaluate("parent." + POST % ANCHOR + "1")
     eq("notes off, none does", lambda: [time.sleep(0.3), tab.evaluate("[%s, %s]" % (DRAWN, WRITING))][1], [False, False])
@@ -1148,11 +1163,11 @@ def notes(b):
     press(tab, TEXT)
     types(tab, "sent")
     until = time.monotonic() + 6
-    while len(noted()) < 3 and time.monotonic() < until:
+    while len(noted()) < 4 and time.monotonic() < until:
         press(tab, SEND_NOTE)
         time.sleep(0.2)
     f.evaluate("clearInterval(flood); 1")
-    eq("nor Send note", lambda: said("text")[2:], ["sent"])
+    eq("nor Send note", lambda: said("text")[3:], ["sent"])
     forget()
 
 def drafts(b):
@@ -1607,6 +1622,16 @@ def links(b):
     eq("an https link shows its full address", lambda: [becomes(tab, offers, [at, "Open", "Dismiss"]), time.sleep(ACTS), tab.evaluate(here)], [[at, "Open", "Dismiss"], None, stays])
     press(tab, LINK + " button")
     eq("and opens only on Open", lambda: [tab.evaluate("opened"), becomes(tab, offers, [])], [[[at, "_blank", "noopener,noreferrer"]], []])
+    tab.evaluate("opened.length = 0")
+    goes("https://one.example/")
+    becomes(tab, offers, ["https://one.example/", "Open", "Dismiss"])
+    time.sleep(ACTS)
+    goes("https://two.example/")
+    press(tab, LINK + " button")
+    eq("Open opens the address shown, not a newer one that waits to be", lambda: tab.evaluate("opened.map(([href]) => href)"), ["https://one.example/"])
+    becomes(tab, offers, ["https://two.example/", "Open", "Dismiss"])
+    press(tab, LINK + " button:last-child")
+    becomes(tab, offers, [])
     for one, at in (("mail", "mailto:a@b.example?subject=x"), ("image", server.url + "/shots/one.png#y")):
         fitted(tab, f)
         tab.click(*f.at("#" + one))
@@ -1766,8 +1791,8 @@ def away():
         finally:
             srv.shutdown()
         return
-    there = Server(free_port())
-    there.start(0, ROOT, "--lan")
+    there = Server(ROOT)
+    there.start("--lan")
     try:
         with open(os.path.join(ROOT, ".preview.key")) as fh:
             yield "http://%s:%d" % (LAN, there.port), "?key=" + fh.read().strip(), there.port
@@ -1950,6 +1975,157 @@ def lan(b):
             tab.key("Alt+n")
         eq("LAN viewer has no composer, Send pick or Allow", lambda: [time.sleep(PACE), tab.evaluate("[%s, document.querySelectorAll('textarea, section, ul, [role=group], [data-consent], [data-host]').length, %s]" % (words, STOPS + ".map(%s)" % STOP))][1], [want, 0, ["a: Gallery", "iframe: "]])
 
+SECRET = "secret typed into the note"
+LEAKS = {}  # how many characters of it a looping page got, by the case
+
+def point(tab, at, press=True, source="mouse"):
+    """The pointer at (x, y) as the system moves it there, and pressed: the viewer is told of it entering and leaving its frame, as it is not of DevTools' own mouse."""
+    x, y = at
+    moves = [{"name": "pointerMove", "x": x, "y": y}] if source == "mouse" else []
+    presses = [{"name": "pointerDown", "x": x, "y": y}, {"name": "pause", "duration": 60}, {"name": "pointerUp"}] if press else []
+    tab.evaluate("new Promise((done) => chrome.gpuBenchmarking.pointerActionSequence(%s, done))" % json.dumps([{"source": source, "actions": moves + presses}]), 10)
+
+def steals(b):
+    forget()
+    forget("notes.jsonl")
+    field, thief = '<input id="i">', '<input id="i"><script>setInterval(() => document.querySelector("#i").focus(), %d)</script>'
+    page("artifacts/thief.html", body=thief % 100)
+    page("artifacts/fast.html", body=thief % 5)
+    page("boards/thief.html", body=thief % 100)
+    page("artifacts/field.html", body=field)
+    def composing(name, of_page=True):
+        """A note begun on this page, or on an element of it, by a pointer that then rests over the composer, or over the element."""
+        tab = visit(b, server.url + "/" + name)
+        f = tab.frame()
+        point(tab, f.at("h1"))
+        point(tab, tab.at("#notes"))
+        fitted(tab, f)
+        point(tab, tab.at(ON_PAGE) if of_page else f.at("h1"))
+        tab.wait(WRITING, 4)
+        if of_page:
+            point(tab, tab.at(TEXT))
+        time.sleep(0.3)
+        return tab, f
+    def kept(name, of_page=True):
+        """How many characters typed at 60 ms a key stay in the composer."""
+        tab, f = composing(name, of_page)
+        for c in SECRET:
+            tab.key(c)
+            time.sleep(0.06)
+        LEAKS["%s, a note on %s" % (name, "the page" if of_page else "an element")] = len(f.evaluate("document.querySelector('#i').value"))
+        return len(tab.evaluate(VALUE))
+    eq("of 26 characters typed in the composer at least 23 stay there, with a page that takes the focus every 100 ms", lambda: kept("artifacts/thief.html") >= 23, True)
+    eq("also where the pointer rests over the element the note is on", lambda: kept("artifacts/thief.html", False) >= 23, True)
+    eq("and at least 13 with one that does every 5 ms", lambda: kept("artifacts/fast.html") >= 13, True)
+    print("NOTE: characters of 26 that a looping page got: %s" % json.dumps(LEAKS))
+
+    tab = visit(b, server.url + "/boards/thief.html")
+    f = tab.frame()
+    point(tab, f.at("h1"))  # a page in which nothing was pressed takes no focus
+    offered(tab, f, 1)
+    point(tab, tab.at("#notes"), press=False)
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    tab.key("Tab")
+    tab.evaluate("window.on = []; setInterval(() => on.push(document.activeElement.textContent === 'Send pick'), 10); 1")
+    eq("with a keyboard Send pick keeps the focus from it", lambda: [time.sleep(1), tab.evaluate("on.filter(Boolean).length > 0.8 * on.length")][1], True)
+    for _ in range(5):  # one may fall in the moment the page has it
+        tab.key("Enter")
+        if tab.wait(GONE, 0.5):
+            break
+    eq("and acts once nothing changed for 600 ms", chosen, [["thief.html", 1, {}, {}]])
+    forget()
+
+    take, deaf = "document.querySelector('#i').focus(); 1", "addEventListener('blur', (e) => e.stopImmediatePropagation(), true)"  # in a deaf viewer
+    page("boards/field.html", body=field)
+    tab = visit(b, server.url + "/boards/field.html", source=deaf)
+    f = tab.frame()
+    def taken():
+        f.evaluate(take)
+        return tab.evaluate(FOCUS)
+    point(tab, f.at("h1"))
+    point(tab, tab.at("#notes"))
+    offered(tab, f, 1)
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    tab.key("Tab")
+    time.sleep(PACE)
+    tab.evaluate("{ const real = setTimeout; window.setTimeout = (fn, ms) => (ms === 16 ? 0 : real(fn, ms)); } new Promise((r) => setTimeout(r, 100))")  # and one that gives nothing back by itself
+    was = taken()
+    says(f, 2)
+    eq("Send pick has the focus back where its strip is drawn anew meanwhile", lambda: [was, tab.wait(HEAD + ".includes('Updated')", 4), tab.evaluate("document.activeElement.textContent")], ["iframe", True, "Send pick"])
+    time.sleep(PACE)
+    was = taken()
+    f.evaluate("parent." + POST % ANCHOR + "1")
+    eq("and where a composer is opened", lambda: [was, tab.wait(WRITING, 4), tab.evaluate("document.activeElement.textContent")], ["iframe", True, "Send pick"])
+    point(tab, tab.at(TEXT))
+    types(tab, "half")
+    for _ in range(8):  # all it gives back in 16 ms
+        taken()
+        f.evaluate("parent." + POST % "{ dk: 1, t: 'key', name: 'escape' }" + "1")
+        tab.wait(FOCUS + " === 'textarea'", 1)
+    was = taken()
+    f = reframed(tab, lambda: page("boards/field.html", title="saved", body=field))
+    eq("the composer has it back where the page is framed anew", lambda: [was, time.sleep(0.3), tab.evaluate("[%s, %s]" % (FOCUS, VALUE))][::2], ["iframe", ["textarea", "half"]])
+    point(tab, f.at("h1"))
+    point(tab, tab.at(TEXT))
+    was = taken()
+    f.evaluate("location.href = 'https://out.example/'; 1")
+    eq("and where the page leaves", lambda: [was, tab.wait("!document.querySelector('iframe')"), time.sleep(0.3), tab.evaluate("[%s, %s]" % (FOCUS, VALUE))][::3], ["iframe", ["textarea", "half"]])
+    forget()
+
+    tab = visit(b, server.url + "/artifacts/field.html")
+    f = tab.frame()
+    def at_notes():
+        tab.evaluate("document.querySelector('#notes').focus(); 1")
+        time.sleep(0.6)  # past what counts as typing
+    point(tab, f.at("h1"))
+    point(tab, tab.at("#title"), press=False)
+    at_notes()
+    f.evaluate(take)
+    eq("a page's focus() that takes it from a viewer control is undone", lambda: [time.sleep(0.3), tab.evaluate(FOCUS)][1], "notes")
+    at_notes()
+    point(tab, f.at("#i"))
+    eq("a click in the page moves the focus there, and it stays", lambda: [time.sleep(0.3), tab.evaluate(FOCUS), f.evaluate(FOCUS)][1:], ["iframe", "i"])
+    at_notes()
+    tab.evaluate("document.querySelector('iframe').focus(); 1")
+    eq("nor is a focus the viewer gives its frame undone", lambda: [time.sleep(0.3), tab.evaluate(FOCUS)][1], "iframe")
+    tab.evaluate("document.querySelector('#bar a').focus(); 1")
+    for _ in range(2):
+        tab.key("Shift+Tab")
+    eq("nor one Shift+Tab takes there, around the first control", lambda: [time.sleep(0.3), tab.evaluate(FOCUS), f.evaluate(FOCUS)][1:], ["iframe", "i"])
+    tab.evaluate("document.querySelector('#notes').focus(); 1")
+    tab.key("Escape")
+    f.evaluate(take)
+    eq("with the pointer over the page, and a key pressed in the viewer less than 500 ms ago, a page's focus() is undone", lambda: [time.sleep(0.2), tab.evaluate(FOCUS)][1], "notes")
+    for _ in range(2):
+        point(tab, tab.at("#notes"), source="touch")
+        time.sleep(0.2)
+    time.sleep(0.6)
+    point(tab, f.at("#i"), source="touch")
+    eq("a finger's tap in the page after one in the viewer moves the focus there", lambda: [time.sleep(0.3), tab.evaluate(FOCUS)][1], "iframe")
+
+    point(tab, tab.at("#notes"))
+    time.sleep(0.6)
+    f.evaluate("{ const c = new MessageChannel(), from = performance.now(); let said = 0; c.port1.onmessage = () => { %s; if (performance.now() > from + 20 * said && ++said) parent.%s if (said < 30) c.port2.postMessage(0); }; c.port2.postMessage(0); } 1" % (take[:-3], POST % "{ dk: 1, t: 'key', name: 'escape' }"))
+    eq("a key that a page taking the focus without a pause says was pressed there does nothing", lambda: [time.sleep(1), tab.evaluate("[%s, %s]" % (DRAWN, FOCUS))][1], [True, "notes"])
+
+    f.evaluate("document.open(); document.write('<!doctype html><h1>undone</h1><input id=\"i\">'); document.close(); 1")
+    point(tab, tab.at(ON_PAGE))
+    tab.wait(WRITING)
+    types(tab, "half")
+    time.sleep(0.6)
+    point(tab, f.at("#i"))
+    tab.key("x")
+    eq("a click in a page that takes its clicks for itself moves the focus there with the composer open, and what is typed next", lambda: [time.sleep(0.3), tab.evaluate("[%s, %s]" % (FOCUS, VALUE)), f.evaluate("document.querySelector('#i').value")][1:], [["iframe", "half"], "x"])
+
+    tab = visit(b, server.url + "/artifacts/field.html", source=deaf)
+    f = tab.frame()
+    point(tab, f.at("h1"))
+    point(tab, tab.at("#title"), press=False)
+    time.sleep(1.2)  # past the last strips drawn for this load
+    at_notes()
+    f.evaluate(take)
+    eq("one the viewer is not told of, as while its window has no focus, is given back too", lambda: [time.sleep(0.3), tab.evaluate(FOCUS)][1], "notes")
+
 class Older(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
@@ -1974,7 +2150,7 @@ def worker(b):
     tab = b.page("http://127.0.0.1:%d/old.html" % older.server_port)
     was = tab.evaluate("navigator.serviceWorker.register('/sw.js').then(() => navigator.serviceWorker.ready).then(() => %s)" % count)
     older.shutdown(); older.server_close()
-    again = Server(older.server_port)
+    again = Server(ROOT, older.server_port)
     again.start()
     try:
         tab = visit(b, again.url + "/" + BOARD)
@@ -2020,16 +2196,22 @@ def far(b):
 LAN = own_address()
 if LAN:
     browser_lib.check.NO_NETWORK[:] = [flag + ", EXCLUDE " + LAN if "resolver" in flag else flag for flag in browser_lib.check.NO_NETWORK] + ["--proxy-bypass-list=" + LAN]  # the browser's only way to it
-server = Server(free_port())
+def run(b, *parts):
+    for part in parts:
+        try:
+            part(b)
+        except Exception as exc:
+            print("FAIL: %s stopped: %r" % (part.__name__, exc))
+            bad.append(part.__name__)
+
+server = Server(ROOT)
 server.start()
 try:
-    with browser_lib.browser(600) as b:
-        for part in (kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, notes, drafts, sends, lists, approves, refuses, panels, links, guards, walk, ordered, tabs, crowds, lan, gallery, worker, far):
-            try:
-                part(b)
-            except Exception as exc:
-                print("FAIL: %s stopped: %r" % (part.__name__, exc))
-                bad.append(part.__name__)
+    with browser_lib.browser(1500) as b:
+        run(b, kinds, files, bar, reload, bridge, place, copies, prints, stops, hangs, keeps, full, drops, gone, lost, picks, values, looks, once, consent, notes, drafts, sends, lists, approves, refuses, panels, links, guards, walk, ordered, tabs, crowds, lan, gallery, worker, far)
+    browser_lib.check.NO_NETWORK.append("--enable-gpu-benchmarking")  # point()'s
+    with browser_lib.browser(300) as b:
+        run(b, steals)
 finally:
     server.stop()
 sys.exit(1 if bad else 0)

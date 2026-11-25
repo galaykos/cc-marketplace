@@ -1,11 +1,15 @@
-"""browser_lib.py - a headless Chrome for this folder's harnesses, started and read by render-check.py's Chrome (DevTools pipe, sandbox on, NO_NETWORK flags), with real mouse and keys.
-Misses: browsers outside Chromium; a child frame Chrome keeps in its parent's process (frame() finds only one with a process of its own, which a sandboxed frame gets).
+"""browser_lib.py - what this folder's browser harnesses share: a headless Chrome, started and read by render-check.py's Chrome (DevTools pipe, sandbox on, NO_NETWORK flags), with real mouse and keys; a person's visit; serve.py in a process of its own; eq(), and the names of what failed in bad.
+Misses: browsers outside Chromium; a child frame Chrome keeps in its parent's process (frame() finds only one with a process of its own, which a sandboxed frame gets); DevTools' mouse tells a page nothing of the pointer over its frame.
 """
+import base64
 import contextlib
 import importlib.util
 import os
+import socket
+import subprocess
 import sys
 import time
+import zlib
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _spec = importlib.util.spec_from_file_location("dkcheck", os.path.join(SCRIPTS, "render-check.py"))
@@ -14,11 +18,57 @@ _spec.loader.exec_module(check)
 
 MODS = {"Alt": 1, "Control": 2, "Meta": 4, "Shift": 8}
 KEYS = {"Tab": 9, "Enter": 13, "Escape": 27, "PageUp": 33, "PageDown": 34, "End": 35, "Home": 36, "ArrowLeft": 37, "ArrowUp": 38, "ArrowRight": 39, "ArrowDown": 40}
+UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+# a TrueType font of one glyph
+FONT = zlib.decompress(base64.b64decode("eNqNj71KA0EUhc/MbDTKYiSg9RYphYBFsLBwEYNYJKBoJegQY1LsmqArxM5HsPAJUltaWARJaeFDWKawjK3rmZk1ERXxLnvnfvdvzkAAmMc1FIL6Xnn14GV/iZk7/seNWHfhIwGET15pRVen6jF3T14jl9pNfaJnN/vkQ3KlzURuWZTJt7YeJz01YgTxQJePOg1t8uQhTz/WvS48fhDP5OBMx025XSyQX8k73c5FQl00ae4LoMRY3CCH/5j4CrV6bQsbCBGqIOUuFeDps0eM5cBud1PKZn2qMhmjznCYps6nw2zzdJYKBc0Q8O5bvYNJT6bjqLD+xntHv0p1CvKQ091Op9lovfg2Ik3FVSdWsl0yewF+zMC+p2Lq3hyrkuxiiQU3x9hjtJjFM4yLqGIXTbRwiQga5+SqnfzTPgDQQD77"))
+TRY = "const t = (f) => { try { f(); return 'ok'; } catch (e) { return e instanceof DOMException ? e.name : String(e); } };"
+# 120 writes a second to one key, then what is put in
+WRITES = "localStorage.clear(); new Promise((done) => { let n = 0; const from = performance.now(), tick = () => { localStorage.took = performance.now() - from; localStorage.setItem('count', String(++n)); if (n < 120) setTimeout(tick, 8); else { %s; done(1); } }; tick(); })"
+SERVE = "import importlib.util, sys; s = importlib.util.spec_from_file_location('dkserve', sys.argv[1]); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); exec(sys.argv[2]); sys.exit(m.main(sys.argv[3:]))"
+bad = []
 CENTRE = "(() => { const e = document.querySelector(%s); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.left, r.top]; })()"
 
 
 def _bits(mods):
     return sum(MODS[m] for m in mods.split("+") if m)
+
+
+def eq(name, fn, want):
+    """Prints ok, or FAIL and what came instead, for what fn is or returns; a FAIL's name goes to bad."""
+    try:
+        got = fn() if callable(fn) else fn
+    except Exception as exc:
+        got = repr(exc)
+    print("ok: " + name if got == want else "FAIL: %s: got %.900s, want %.400s" % (name, check.json.dumps(got, default=sorted), check.json.dumps(want, default=sorted)))
+    if got != want:
+        bad.append(name)
+
+
+class Server:
+    """serve.py on root, at its own port, in a process of its own: what it signed dies with it."""
+
+    def __init__(self, root, port=0):
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            self.port = port or s.getsockname()[1]
+        self.root, self.url, self.proc = root, "http://127.0.0.1:%d" % self.port, None
+
+    def start(self, *more, root=None, first=""):
+        """Until it answers; first is Python to run before it serves, where serve.py is m."""
+        self.proc = subprocess.Popen([sys.executable, "-c", SERVE, os.path.join(SCRIPTS, "serve.py"), first, "--docroot", root or self.root, "--port", str(self.port), *more],
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=dict(os.environ, DESIGN_KIT_IDLE_MINUTES="0"))
+        for _ in range(100):
+            try:
+                return socket.create_connection(("127.0.0.1", self.port), 1).close()
+            except OSError:
+                time.sleep(0.05)
+        self.stop()
+        raise OSError("serve.py did not start on port %d" % self.port)
+
+    def stop(self):
+        if self.proc:
+            self.proc.kill()
+            self.proc.wait()
 
 
 class _Driver(check.Chrome):
@@ -140,6 +190,31 @@ class Browser:
         if not self.chrome.wait_for(sid, "Page.loadEventFired", 10):
             raise TimeoutError("%s did not finish loading" % url)
         return Tab(self.chrome, sid)
+
+
+def tabs(b):
+    """The target ids of the open tabs."""
+    return {t["targetId"] for t in b.chrome.call("Target.getTargets")["targetInfos"] if t["type"] == "page"}
+
+
+def close(b, ids):
+    for one in ids:
+        try:
+            b.chrome.call("Target.closeTarget", {"targetId": one})
+        except RuntimeError:  # on its way out already
+            pass
+
+
+def visit(b, url, w=1280, h=800, source=""):
+    """The one open tab, at url, with a person's user agent: a headless one is sent to the raw page, and each viewer left open keeps one of the six connections Chrome gives a host; source before any script of a document."""
+    old = tabs(b)
+    tab = b.page("about:blank", w, h)
+    close(b, old)
+    b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": UA}, tab.sid)
+    b.chrome.call("Page.addScriptToEvaluateOnNewDocument", {"source": source}, tab.sid)
+    b.chrome.call("Page.navigate", {"url": url}, tab.sid)
+    tab.wait("location.href !== 'about:blank' && document.readyState === 'complete'", 10)
+    return tab
 
 
 def _no_browser(why):

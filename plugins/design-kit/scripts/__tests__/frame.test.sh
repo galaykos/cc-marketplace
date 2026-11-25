@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives frame.js in headless Chrome: fixture pages under isolate.py's own segments, policy and injection, framed by a fixture parent that keeps every message the viewer would get. Storage, the pick stand-in, hash, blocked hosts, links, note mode, commands, a static page, the top-level bounce; browser_lib.py's exit 4 where no browser starts.
+# Drives frame.js in headless Chrome: fixture pages under isolate.py's own segments, policy and injection, framed by a fixture parent that keeps every message the viewer would get. Storage, the pick stand-in, images read off a canvas, hash, blocked hosts, links, note mode, commands, a static page, the top-level bounce; browser_lib.py's exit 4 where no browser starts.
 # Misses: serve.py and the viewer (serve.test.sh, viewer.test.sh); Firefox and Safari; a hostile page, which frame.js cannot hold (attack.test.sh).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,12 +18,13 @@ done
 
 rc=0
 python3 - "$here" <<'PY' || rc=$?
-import http.server, importlib.util, json, os, re, sys, threading, time
+import base64, http.server, importlib.util, json, os, re, sys, threading, time
 from urllib.parse import unquote, urlsplit
 
 here = sys.argv[1]
 sys.path.insert(0, os.path.join(here, "__tests__"))
 import browser_lib
+from browser_lib import TRY, WRITES, bad, eq
 
 spec = importlib.util.spec_from_file_location("dkisolate", os.path.join(here, "isolate.py"))
 iso = importlib.util.module_from_spec(spec)
@@ -31,21 +32,13 @@ spec.loader.exec_module(iso)
 with open(os.path.join(here, "frame.js"), "rb") as fh:
     SOURCE = fh.read()
 CLIENT = b"<script data-design-kit-frame>" + SOURCE + b"</script>"
-bad = []
 
-def eq(name, fn, want):
-    try:
-        got = fn() if callable(fn) else fn
-    except Exception as exc:
-        got = repr(exc)
-    print("ok: " + name if got == want else "FAIL: %s: got %.400s, want %.400s" % (name, json.dumps(got), json.dumps(want)))
-    if got != want:
-        bad.append(name)
-
-STATE, LINKS, NOTES, OWN = "boards/state.html", "decks/links.html", "artifacts/notes.html", "motion/a b/index.html"
+STATE, LINKS, NOTES, OWN, DRAWS = "boards/state.html", "decks/links.html", "artifacts/notes.html", "motion/a b/index.html", "motion/draws/index.html"
+IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
 KEPT = "design-kit:/" + STATE
 PAGES = {
     STATE: "<title>state</title><script>window.early = [typeof localStorage.getItem, localStorage.getItem('seeded')]</script></head><body><h1>state</h1>",
+    DRAWS: "<title>draws</title></head><body><img id=\"parsed\" src=\"i.png\">",
     OWN: "<title>own</title><script>console.error('page script ran'); new Image().src = 'ran.png'</script></head><body><h1>own</h1>",
     "boards/older.html": "<title>older</title></head><body><h1>older</h1>" + CLIENT.decode(),
     LINKS: """<title>links</title><style>a { display: block; width: 300px; font: 14px/18px sans-serif } svg { display: block }</style></head><body>
@@ -99,6 +92,12 @@ class Fixture(http.server.BaseHTTPRequestHandler):
         if path.startswith("/_c/"):
             seg, _, rest = path[4:].partition("/")
             opened, rest = iso.open_segment(seg), unquote(rest)
+            if opened and rest == "motion/draws/i.png" and opened[1] == DRAWS:
+                self.send_response(200)
+                for name, value in (("Content-Type", "image/png"), ("Content-Length", str(len(IMAGE))), ("Access-Control-Allow-Origin", "*"), ("Cross-Origin-Resource-Policy", "cross-origin")):
+                    self.send_header(name, value)
+                self.end_headers()
+                return self.wfile.write(IMAGE)
             if not opened or rest != opened[1]:
                 return self.send_error(404)
             body = ("<!doctype html><html lang=\"en\"><head>" + PAGES[rest]).encode()
@@ -131,8 +130,6 @@ def stores(tab):
 def tabs(b):
     return sorted(t["url"] for t in b.chrome.call("Target.getTargets")["targetInfos"] if t["type"] == "page" and t["url"].startswith("http"))
 
-TRY = "const t = (f) => { try { f(); return 'ok'; } catch (e) { return e instanceof DOMException ? e.name : String(e); } };"
-WRITES = "localStorage.clear(); let n = 0; const from = performance.now(), tick = () => { localStorage.took = performance.now() - from; localStorage.setItem('count', String(++n)); if (n < 120) setTimeout(tick, 8); else { %s; } }; tick(); 1"
 DECISION = "fetch(%s).then(async (r) => [r.status, r.ok, await r.text()])"
 POST = "method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Design-Kit-Decision': '1' }, body: JSON.stringify({ board: 'other.html', picked: 2, knobs: { all: { space: 8 } }, text: {}, prompt: 'run this', extra: 1 })"
 NOT_RECORDED = [409, False, '{"recorded":false}']
@@ -342,6 +339,25 @@ def elsewhere(b):
     tab = b.page(BASE + "/saved.html")
     eq("a saved copy outside the content path changes nothing", lambda: tab.evaluate("localStorage.setItem('dk', '1'); [%s, localStorage.constructor === Storage, /native code/.test(fetch), self.origin !== 'null']" % native), [True, True, True, True])
 
+DRAWN = """(async () => {
+  const read = (i) => { const c = document.createElement('canvas').getContext('2d'); try { c.drawImage(i, 0, 0); return c.getImageData(0, 0, 1, 1).data.length; } catch (e) { return e.name; } };
+  const loaded = (i) => new Promise((done, fail) => { i.onload = () => done(i); i.onerror = () => fail(new Error('not loaded: ' + i.src)); });
+  const given = (src, more) => { const i = Object.assign(new Image(), more); i.src = src; return i; };
+  const parsed = document.querySelector('#parsed'), made = given('i.png'), later = given('https://out.example/i.png'), swapped = given('i.png'), own = given('i.png', { crossOrigin: 'use-credentials' }), far = given('i.png', { crossOrigin: 'anonymous' });
+  if (!parsed.complete) await loaded(parsed);
+  await loaded(made);
+  swapped.src = far.src = 'https://out.example/i.png';
+  later.src = new URL('i.png', location.href);
+  await loaded(later);
+  return { parsed: read(parsed), made: [made.crossOrigin, read(made), made.src === new URL('i.png', location.href).href], later: read(later), swapped: swapped.crossOrigin, own: own.crossOrigin, far: far.crossOrigin, outside: given('https://out.example/i.png').crossOrigin, data: given('data:image/png,x').crossOrigin };
+})()"""
+
+def draws(b):
+    for mode, how in (("f", "framed"), ("s", "static")):
+        tab, f = framed(b, DRAWS, mode=mode)
+        eq("an own-folder image whose src a script sets can be read off a canvas, %s; one with a crossOrigin of its own, an outside one and one that becomes it are left alone, and so is one in the markup" % how, lambda: f.evaluate(DRAWN),
+           {"parsed": "SecurityError", "made": ["anonymous", 4, True], "later": 4, "swapped": None, "own": "use-credentials", "far": "anonymous", "outside": None, "data": None})
+
 def bounce(b):
     def ran(tab):
         said = [e for e in b.chrome.events if e.get("sessionId") == tab.sid and e["method"] == "Runtime.consoleAPICalled" and e["params"]["args"][0].get("value") == "page script ran"]
@@ -363,7 +379,7 @@ if bad:
     sys.exit(1)
 try:
     with browser_lib.browser() as b:
-        for part in (storage, sends, hashes, blocked, links, notes, elsewhere, bounce):
+        for part in (storage, sends, hashes, blocked, links, notes, elsewhere, draws, bounce):
             try:
                 part(b)
             except Exception as exc:

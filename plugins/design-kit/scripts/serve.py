@@ -67,7 +67,7 @@ GALLERY = "/_gallery"
 # route -> (file, type); served from the plugin, never from the docroot
 SCRIPTS = {isolate.VIEWER_JS: ("viewer.js", "text/javascript; charset=utf-8"), isolate.VIEWER_CSS: ("viewer.css", "text/css; charset=utf-8")}
 # preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
-SERVER_VERSION = 1
+SERVER_VERSION = 2
 INDEX = ("index.html", "index.htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host

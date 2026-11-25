@@ -1,5 +1,5 @@
-// frame.js — injected first into every page under /_c/: stands in for localStorage, sessionStorage and a POST to /_decision; framed, sends the viewer what its bridge takes.
-// Misses: a page can undo or imitate all of it (the viewer is the boundary); window.open, navigation by script; iframes, closed shadow roots; a write as the page unloads, or in the last 100 ms before the viewer drops the frame unpinged.
+// frame.js — injected first into every page under /_c/: stands in for localStorage, sessionStorage, an image's src and a POST to /_decision; framed, sends the viewer what its bridge takes.
+// Misses: a page can undo or imitate all of it (the viewer is the boundary); window.open, navigation by script; img in markup, iframes, closed shadow roots; a write as the page unloads, or in the last 100 ms before the viewer drops the frame unpinged.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/frame.js
 (function () {
   if (window.__designKitFrame) return; window.__designKitFrame = true;
@@ -7,7 +7,7 @@
   if (!at) return;
   const own = at[1], framed = !at[2], viewer = parent;
   if (framed && viewer === window) {
-    stop(); // ends the parser: no script of the page runs meanwhile
+    stop(); // ends the parser: no page script runs meanwhile
     return location.replace(location.origin + location.pathname.slice(own.length) + location.search + location.hash);
   }
   const later = setTimeout.bind(window), cancel = clearTimeout.bind(window);
@@ -61,7 +61,7 @@
     if (cleared) send('store', { clear: true });
     if (waiting.size) send('store', { items: [...waiting] });
     cleared = false; waiting.clear();
-    if (leaving) window.name = JSON.stringify({ dk: 1, store: Object.fromEntries(saved) }); // seeds a page that reloads itself
+    if (leaving) window.name = JSON.stringify({ dk: 1, store: Object.fromEntries(saved) }); // seeds the page's own reload
     if (told !== location.hash) {
       told = location.hash;
       if (hash()) send('hash', { hash: hash() });
@@ -84,9 +84,16 @@
       send('pick', { picked, knobs, text });
     }).catch(() => {}).then(() => Response.json({ recorded: false }, { status: 409 }));
   };
+  // a server image would taint this opaque origin's canvas
+  const img = HTMLImageElement.prototype, { set } = Object.getOwnPropertyDescriptor(img, 'src'), lent = new WeakSet();
+  Object.defineProperty(img, 'src', { set(v) {
+    const to = url(v).origin === location.origin ? 'anonymous' : null;
+    if (to ? this.crossOrigin === null && lent.add(this) : lent.delete(this)) this.crossOrigin = to;
+    set.call(this, v);
+  } });
   if (!framed) return;
 
-  // beforeunload too: Chrome's pagehide messages carry no source, so the viewer drops them
+  // beforeunload too: the viewer drops Chrome's pagehide messages, which name no source
   on('beforeunload pagehide', () => { leaving = true; flush(); later(() => { leaving = false; }, 1000); });
   for (const name of ['pushState', 'replaceState']) {
     const H = History.prototype, native = H[name];
@@ -104,13 +111,13 @@
     send('blocked', { host, kind });
   });
 
-  // by code point: half an emoji posts a lone surrogate
+  // by code point: half an emoji is a lone surrogate
   const cut = (s, n) => Array.from(String(s).slice(0, 2 * n)).slice(0, n).join('');
-  // by its tag: an object can be circular, or have no toString
+  // by its tag: it may be circular or lack toString
   const asText = (x) => (x instanceof Error ? String(x.message) : Object(x) === x ? {}.toString.call(x) : String(x));
   const errors = [], logError = console.error, root = document.documentElement;
   function keep(say) {
-    try { errors.push(cut(say(), 300)); } catch (e) { /* not recorded */ }
+    try { errors.push(cut(say(), 300)); } catch (e) { /* lost */ }
     if (errors.length > 5) errors.shift();
   }
   console.error = (...args) => { keep(() => args.map(asText).join(' ')); logError.apply(console, args); };
@@ -189,8 +196,8 @@
     if (!a || !u.href || a.isContentEditable || e.button > 1 || u.protocol === 'javascript:' || u.href.startsWith(location.href.split('#')[0] + '#')) return;
     const href = here ? u.href.replace(own + '/', '/') : u.href;
     const report = () => /^(https?|mailto):/.test(href) && href.length <= 2048 && send('link', { href });
-    if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) { e.preventDefault(); return report(); } // Chrome opens a tab for these, sandbox or not
-    // the page's handlers decide first, wherever they listen; the sandbox refuses the new window
+    if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) { e.preventDefault(); return report(); } // a tab in Chrome, sandbox or not
+    // the page's handlers decide first; the sandbox refuses the new window
     const was = a.getAttribute('target');
     a.setAttribute('target', '_blank');
     later(() => {
