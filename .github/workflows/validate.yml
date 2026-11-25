@@ -200,6 +200,7 @@ jobs:
           # taskmaster's shell-controls, preview-check and preview-feedback harnesses fail here when they find no
           # browser; without this they print SKIP and exit 0. design-kit's browser harnesses do not read the variable.
           export PREVIEW_REQUIRE_BROWSER=1
+          export DESIGN_KIT_REQUIRE_BROWSER=1
           i=0
           for t in plugins/*/scripts/__tests__/*.test.sh; do
             [ -f "$t" ] || continue

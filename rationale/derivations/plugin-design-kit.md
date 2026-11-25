@@ -402,6 +402,27 @@ Milestone 1 of the "own artifacts" work; the scan, the spec and the red-team rec
 
 **Measured on 2026-11-25 for the threat model** (a served temp docroot, one run each): a hard link to `workshop.json` inside the docroot answered 200 while `/workshop.json` answered 404; a page opened at `?static=1` navigated itself to a second server with its data in the address (1 request), the same page framed made 0 and was replaced by the stopped area; a raw page's XMLHttpRequest, beacon, fetch and form to the write routes left no file.
 
+### 0.20.0, 2026-11-25 — the Firefox hand run
+
+Playwright's Firefox build 1555 (157.0, BuildID 20261002045259), headless, Linux, with the prefs Playwright ships in the build. Each run had a network namespace of its own with only the loopback address in it (`unshare -rn`). The spec's criteria 2, 6, 19, 28 and 33, two ways:
+
+- **With no driver**, once: `firefox --headless --profile DIR --no-remote URL` on nine pages of `attack.test.sh` (frame.js there; loads, top and self navigations, posts, the SVG and the XHTML; no click), a second local server counting what arrived: 0 requests, and 56 from the same nine on the control server.
+- **With the build's own WebDriver BiDi server** (`--remote-debugging-port`), three times or more, the same result each time. A page cannot report by POST from inside the sandbox, and none can see the viewer or press a key in it. So the bodies of `viewer.test.sh` (the parts `files`, `picks`, `once`, `place`, `prints`, `keeps`) and `attack.test.sh` (without its approved-host part, which needs Chrome's host map) ran as they are on a scratch stand-in for `browser_lib.py` outside the repository. `notes` stops at the second failure below, so its steps were driven one by one.
+
+**Criterion 2: held for every vector it lists; one more vector failed.** Fetch, beacon, EventSource, WebSocket, image, form, popup, top navigation, the six self navigations, the own-folder SVG and XHTML: 0 requests, frame.js there and undone. The control: 6 of 6 self navigations with the driver and without, 71 of the 73 other paths. 36 of attack.test.sh's 39 assertions there held; the other three are the tab and the request below, and the two control paths that did not arrive. **Failed:** in a page that undid frame.js, a Ctrl- or Shift-click event that the page's script makes itself on a link, while it handles the user's plain click or key press (ArrowRight), opens a real tab or window: 1 request, the page's text in its address. Chrome 158, the same probe: no tab, no request. None with no user action, with frame.js there, or for a Meta or a middle click. The user's own Ctrl, Shift and middle click there open a tab and make 1 request each, Alt+click nothing. Says nothing here: `<a ping>` and `<link rel=prefetch>` did not arrive from the control either; DNS prefetch and WebRTC were switched off. Preconnect opened 0 connections, since the build holds `network.http.speculative-parallel-limit` at 0.
+
+**With stock values.** A copy of the build whose `playwright.cfg` lost seven prefs (the pop-up blocker, the two delays after which input counts, `focusmanager.testmode`, the site isolation strategy, `fission.bfcacheInParent`, the speculative connections) gave the same for attack.test.sh, the script's own click and the focus below, but for preconnect: 2 connections.
+
+**Criterion 6: held**, framed and raw, 9 assertions: the `a;b, c ü` folder's script, module, font, image, audio and JSON, a review's `shots/` image, a deck that loads no server file.
+
+**Criterion 19: held**, 45 assertions: the strip and no row before Send pick, one row a send, a double click, a held and a lost answer, a tab reload after it, a change after it as a second row.
+
+**Criterion 28: held but for the focus.** Arrows right after load; P and Ctrl+P fire `beforeprint` in the frame; Alt+N from page and viewer, not in a field of either; hover outlines; a click picks, and the composer has the focus; Tab then Enter picks; Note on this page with viewport, theme and console; Escape in the composer closes it, then the drawer, then the focus is on Notes. **Failed:** after Tab then Enter the composer opens and the focus stays on the element in the page, so what is typed next goes to the page (3 of 3) until the text box is clicked or Shift+Tab leaves the page. Escape pressed there closes the drawer, and the focus does not go to Notes (3 of 3 with no composer open; after one, the second Escape did put it there). The cause: a `focus()` the viewer calls does not take the focus from an element focused inside the frame (a plain `#notes.focus()` did not either); after `iframe.blur()` it does. Also where a script put the focus on the frame, not where it is there from the load or a click on text.
+
+**Criterion 33: held**, 18 assertions, with one wait added: a write less than 100 ms old when the driver closed the window was lost (frame.js names it), and `keeps` closes it that early, because its wait for the entry of `boards/going.html` is met by the second docroot's entry of the same name. Given 0.4 s, the deleted page's entry was there and went on the next load (4 of 4).
+
+**Not driven:** the print dialog (with it the key press never returned, so `print.always_print_silent` was set); a window that really loses the focus; a tab brought to the front (BiDi's call did not answer, so each page had a window of its own). Not run: stock Firefox, Firefox on the LAN, the dark scheme, the other criteria.
+
 ### Header, moved 2026-11-25 (0.20.0)
 
 Moved verbatim from the module docstring, whose first line and pointer stayed, when it was cut to three lines. `--help` prints the first line only.
@@ -555,7 +576,7 @@ The rules of the isolation in one module that imports nothing from serve.py: a u
 
 **Hosts.** `allowed_host` is a whole-string match, so an IP, a port, `127.1`, `0x7f.0.0.1`, a trailing dot or newline, a wildcard and `http` are refused, and `.local`, `.internal`, `.localhost`, `.home.arpa` with `home.arpa` itself. `.allow.json` is checked again at each read, replaced atomically at 0600, never through a symlink; a file that cannot be read allows nothing and is set aside by the next Allow. The name is not an address: a public name that resolves to a private one is an allowed host.
 
-Misses: the header's line. One of them is older than the code around it: `inside()` does let a symlink to a never-served file through, but serve.py judges the resolved path by the same list since 0.20.0 (`_real_parts`), so the server answers 404.
+Misses: the header's line. `inside()` alone lets a symlink to a never-served file through; serve.py judges the resolved path by the same list (`_real_parts`), so the server answers 404, and the header no longer lists it.
 
 ## plugins/design-kit/scripts/picks.py
 
@@ -575,9 +596,9 @@ A page in an opaque origin has no `localStorage`, cannot post its pick and canno
 
 **What it does, and why it looks so.** `localStorage` is a map seeded from `window.name`, which the viewer sets before `src`; keys lose the page's own `/_c/<segment>`, or a board's key (`design-kit:` and the path) would change at every server start. A key over 256 characters and a write past 256 KB throw `QuotaExceededError`, as a full store does. A POST to `/_decision` becomes a `pick` message and is answered 409, so an old board shows no "Recorded". Writes go out at most every 100 ms, on `beforeunload` as well as `pagehide`, and before each pong: Chrome's `pagehide` messages from a frame that reloads itself carry a null source, and are not delivered at all when the viewer removes the frame, so the viewer pings and waits (at most 300 ms) before it replaces one. `window.name` is written again on leaving, for a page that reloads itself. A link's target becomes `_blank` for one task, so the page's own handlers decide first wherever they listen, and the sandbox refuses the window. An empty hash is sent as `#`. A download link to a file of the page's own folder navigates the frame and is reported as a link. A click on `html` or `body` reports no element. A framed page opened top-level where no `Sec-Fetch-Dest` is sent (plain HTTP on the LAN) is taken to its page URL before its own script runs.
 
-**Probed in Chrome 158, 2026-11-24:** `beforeprint` fires in the frame on `window.print()`, a blob download lands. Firefox was not run for these.
+**Probed in Chrome 158, 2026-11-24:** `beforeprint` fires in the frame on `window.print()`, a blob download lands. Firefox was not run for these that day; `beforeprint` was on 2026-11-25 (serve.py above, the Firefox hand run).
 
-**The modified click.** The sandbox does not stop a trusted Ctrl, Shift or middle click on a link: Chrome opens a real tab, past the viewer's link strip. `frame.js` prevents it and reports the address, but a page can avoid `frame.js`; then each such click opens a tab with 1 request, and Alt+click starts a download with 1 request and no tab (`attack.test.sh` prints the counts as NOTE lines and never fails on them). The user accepted this on 2026-11-24.
+**The modified click.** The sandbox does not stop a trusted Ctrl, Shift or middle click on a link: Chrome opens a real tab, past the viewer's link strip. `frame.js` prevents it and reports the address, but a page can avoid `frame.js`; then each such click opens a tab with 1 request, and Alt+click starts a download with 1 request and no tab (`attack.test.sh` prints the counts as NOTE lines and never fails on them). The user accepted this on 2026-11-24. In Playwright's Firefox a page needs no modifier from the user: its own Ctrl- or Shift-click event, made while it handles a plain click or a key, opens the tab (the Firefox hand run, found on 2026-11-25, after that).
 
 ## plugins/design-kit/scripts/viewer.js
 

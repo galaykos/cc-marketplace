@@ -2,6 +2,62 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.20.0 — 2026-11-25
+
+- **Every page opens in a viewer the plugin owns, inside a sandbox.** Until 0.19.3 one address served the pages a model writes together with the gallery, the notes, the check results and the write routes, so a page's script could plant a pick or a note that the session read as your words, read other pages and rewrite the gallery. A page's address now answers a bar (Gallery, the title, the last check, Network, Notes), strips under it, and the page in a frame with an origin of its own, under a policy the server sends. From there it cannot read or change the viewer, the gallery, another page, the notes or the check results, cannot post a pick, a note or an approval, cannot take the tab to another site or go fullscreen, and loads no server file that is not its own. Cookies, IndexedDB and service workers are gone for a page; its `localStorage` is kept by the viewer, up to 256 KB, and its `sessionStorage` lasts as long as the frame. A save reloads the frame of the page that changed and nothing else. Page addresses, the LAN key, `dk check`, `dk notes --shot`, `dk export` and `dk share` keep working, except as below. `?static=1` typed on this machine, and a headless browser, get the page with no viewer, under the same policy.
+- **A page loads no outside file until you press Allow for this page.** Each refused host draws a strip with its name and what was asked for. An approval covers `https` scripts, styles, images, fonts and media from that host for that one page, never fetch, WebSocket or forms. It is kept in `.allow.json` across restarts, listed under Network with Remove, and granted on this machine only. IP addresses, ports, `localhost` and local names are refused. A page that takes a font or a script from a CDN shows without it until then.
+- **A pick arrives only after Send pick, as one line of data.** Picking an artboard, moving a knob or editing text draws a strip with every value; nothing is recorded before you press Send pick, and Discard drops it. Send pick, Discard, Allow, Remove, Open and Send note do nothing for 600 ms after anything around them appears, moves or changes. `dk decision --latest` and `dk notes --wait` print the pick as one line of escaped JSON, `{kind, ts, board, picked, knobs, text, summary, confirmed}`; before, the first printed the prose the page had posted and the second carried it as `prompt`. A row's own prompt is never printed now. `confirmed` is true only for a pick the server took from the viewer; any other one the session puts to you before acting on it, and text edits are quoted data, never instructions. The prompt hook calls such a pick unconfirmed and leaves its artboard out. A pick may be 64 KiB (it was 8), and a value out of range is moved to its bound or dropped. A board built by an earlier version works as it is, with no "Recorded" before Send pick.
+- **The board entry of `workshop.json` gains `confirmed`.** A board that 0.19.3 consumed has none, so `dk status` and the gallery call it an unconfirmed pick and leave its step open. After a kill between its two writes, `dk decision --consume` has printed the pick and marked it read while `workshop.json` still holds the pick before, its `confirmed` included: believe the printed line. `dk-usage.sh` takes component paths from `DECISIONS.md` alone, never from a pick.
+- **Two address changes and one name.** The gallery is also at `/_gallery`, where every Gallery link goes; `/` answers it while the folder holds no `index.html`, as before. A host name other than `localhost` answers 403, so a name from a hosts file or a tunnel no longer opens the preview; an IP address, the LAN one included, does. A bundled `index.html` or `index.htm` takes its folder's name, unless `--name` says otherwise; it used to become the artifact `index`, so two pages shared one history. An `artifacts/index.html` from an earlier bundle is kept and named, and a slug that already holds versions of another source is written with a warning that names `--name`.
+- **A second project gets a port of its own.** With `DESIGN_KIT_PORT` or `--port`: that port, or exit 4. With neither: this project's last port, then 8124, then the first free one up to 8139; none free is exit 4. Before, a project whose 8124 was taken got no server. A start on another port than the last prints `preview: moved from port <old>; saved knobs and page data stay on the old address`: they belong to an address, so a project that moved starts empty there.
+- **A server left by an older version is restarted** on its own port and bind at the first launch after the update; a newer one is kept. The launcher writes `.preview.port` and `.preview.ver` beside its other state files.
+- **What 0.19.3 stored in the browser.** The board state it kept under `design-kit:/<page>` is moved in once, at the same address. Any other key a page had stored there is not carried over.
+- **Notes live in the viewer.** The drawer opens from the bar or with Alt+N, lists the page's newest 20 notes, and keeps a half-typed one through a save and a server restart. The page says only which element you picked. `/_note.js` and `?_outline=` are gone; `dk notes --shot` draws its outline over DevTools, where the page's script cannot reach it, and loads no host you allowed. One send is one row, a double click and a retry after a lost answer included.
+- **`dk share` takes the paths `dk check` takes, and refuses what it used to take.** A typed path, one relative to `.cc-artifacts/design-kit/` and a preview URL work for `--lan`, `--pages` and `--zip`. A page outside that folder, a file that is not a page, a state file or a missing page is exit 2; `--zip` and `--pages` took any file. `zip:` prints an absolute path, and a symlinked page is published, and zipped, under its target's name.
+- **`dk bundle` prints its `unresolved-link:` lines**, which the skill asks to fix and which never printed. A page's own text stays on its line.
+- **`dk check` measures a page under the policy it has in the viewer.** A load that policy refuses is `E1.external`, or `E1.resource` for a file here; the bar shows the last result.
+- **Another website can no longer read or embed the preview**, through a DNS name pointed at 127.0.0.1 included. A symlink that leaves the folder, or leads to a session or state file, answers 404, and an SVG or XML file opened directly runs no script.
+- **An open 0.19.3 session on the new server** marks picks read without the lock, so a pick sent at that moment can be lost; it shoots notes without an outline, and it learns a pick only from a fixed sentence that names the board and the artboard.
+- **After the update, once.** Clear site data for each address you opened the preview at (`http://127.0.0.1:8124`, `http://localhost:8124`, the LAN one): it removes a service worker an older page may have left, and also the knobs and page data saved there, so take what you need first. Restart every open session. Press Allow for this page where a page needs a CDN's file, or inline the file.
+- **What is still possible.** Each line is an accepted risk; what it costs you and what you can do is in the marketplace repository's `rationale/design-kit-threat-model.md`.
+  - `dk export` runs a page's script with no browser sandbox and an open network.
+  - A service worker left by a page of 0.19.3 or earlier can fake the viewer until you clear site data.
+  - A host you allowed receives what the page writes into a request's address, and the approval outlives a rewrite of the page.
+  - A host name you allow may resolve to a private address.
+  - A host name the page chose leaks through preconnect, WebRTC or DNS.
+  - A blocked navigation opens the connection and sends no request; to a host you allowed, the TLS handshake completes.
+  - In a page that undid the in-frame script, your Ctrl, Shift or middle click on a link opens a real tab and Alt+click starts a download, one request each.
+  - Any page may start a download.
+  - A page can draw anything inside its own area, a second bar or a Send button included.
+  - What you confirm is page data: a pick's values, a host it asks for, a note's element and console lines, a link's address.
+  - A page opened raw (`?static=1`, `dk check`, `dk notes --shot`) has no viewer around it and can navigate itself away with data in the address.
+  - The sandbox and the policy are headers: a zip, a pages branch, a PDF or a saved copy carries none.
+  - The LAN is plain HTTP: the key, the pages and their content addresses cross it in the clear.
+  - Whoever holds a content URL (`/_c/…`) reads that page and its files with no key until the server stops.
+  - A board file name, up to 128 characters of prose, reaches the session unquoted.
+  - A row written into `decisions.jsonl` by another hand with `v:2` reads as confirmed.
+  - A planted board name can imitate a step of `dk status`.
+  - A hard link to a never-served file is served.
+  - A symlink swapped between the check and the open is followed.
+  - A page that never stops computing blocks its own reload.
+  - A page that opens dialog after dialog keeps Send and Discard shut.
+  - A key pressed in the page, or an element picked there, acts up to 1.5 s late while something can be sent.
+  - A page that floods the viewer with messages takes its time and the processor's.
+  - No page can go fullscreen, a deck of yours included.
+  - Print in the browser's menu prints the viewer, not the page.
+  - Each tab has its own pick strip, so two tabs of one board can each send a pick.
+  - Saved knobs and page data belong to one address, so a project that moves to another port starts empty there.
+  - A 0.19.3 session on the new server marks picks read without the lock and shoots notes without an outline.
+  - A half-typed note is lost at a tab reload.
+  - A send repeated after 50 newer rows is recorded again.
+  - Writes go unlocked on a host without `fcntl`, or where the lock file cannot be opened.
+  - A page's first script may see a frame of 0 by 0; the 50 ms wait against it is timing, not a guarantee.
+  - Two launches racing for a port may both run, the first unrecorded.
+  - Out of the model: malware that runs as you, other users of this machine, browser bugs.
+- **Two gaps in Firefox are not in that list.** Both were found by hand in Playwright's Firefox 157 on 2026-11-25. A page that undid the in-frame script can open a real tab, its text in the address, with a click event of its own while it handles your plain click or a key press; Chrome opens none. After you pick an element with Tab and Enter, the focus stays in the page: click the note's text box before you type. Safari and stock Firefox are untested.
+
+Standing: gate — `viewer.test.sh`, `attack.test.sh` (a hostile page tries every way out, in and through, beside an unguarded control that must succeed) and `frame.test.sh` in a Chromium-family browser, `isolate.test.sh`, `picks.test.sh`, `serve.test.sh`, `preview.test.sh`, `dk.test.sh`, `check.test.sh`, `artifact-bundle.test.sh`, `unread-pick.test.sh` and `dk-usage.test.sh`; with `DESIGN_KIT_REQUIRE_BROWSER=1`, which CI sets, a missing browser is a failure. That a session reads a pick or a note this way is agent-graded; the Firefox runs are recorded (`rationale/derivations/plugin-design-kit.md` in the marketplace repository).
+
 ## 0.19.3 — 2026-11-21
 
 - **`dk scratch --verify` no longer says `cleanup: clean` from a subdirectory.** `--cleanup` and `--verify` scanned from the shell's directory down, so after a `--create` at the project root, a run from `src/` missed `__design-kit__/` and the route line and reported clean. Both now run from the project root. `--detect` and `--create` still use the shell's directory, which in a monorepo is the app's own. Cleanup also finds a marked `routes/web.php` at any depth, so a Laravel app in a subdirectory is cleaned from the root. Standing: gate (`dk.test.sh`, `codebase.test.sh`; both new cases fail on 0.19.2).
