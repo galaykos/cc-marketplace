@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives frame.js in headless Chrome: fixture pages under isolate.py's own segments, policy and injection, framed by a fixture parent that keeps every message the viewer would get. Storage, the pick stand-in, images read off a canvas, hash, blocked hosts, links, note mode, commands, a static page, the top-level bounce; browser_lib.py's exit 4 where no browser starts.
+# Drives frame.js in headless Chrome: fixture pages under isolate.py's own segments, policy and injection, framed by a fixture parent that keeps every message the viewer would get. Storage, the pick stand-in, images read off a canvas, hash, blocked hosts, links, note mode, commands, the scroll it says and takes, a static page, the top-level bounce; browser_lib.py's exit 4 where no browser starts.
 # Misses: serve.py and the viewer (serve.test.sh, viewer.test.sh); Firefox and Safari; a hostile page, which frame.js cannot hold (attack.test.sh).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -327,6 +327,28 @@ def notes(b):
         said += [c["theme"] for c in reports(tab, "context", "context")]
     eq("the theme is read from an attribute, a class, the background, then color-scheme", lambda: said, ["light", "dark", "dark", ""])
 
+def scrolls(b):
+    def pong(tab):
+        tab.evaluate("got.length = 0; say({ t: 'ping', n: 1 })")
+        tab.wait("reports('pong').length")
+        return tab.evaluate("reports('pong')")
+    asks = "say({ t: 'scroll', left: 0, top: %d, behavior: 'instant' })"
+    said = lambda moved, top: [{"dk": 1, "t": "pong", "n": 1, "moved": moved, "left": 0, "top": top}]
+    def wheel(tab):
+        tab.chrome.call("Input.dispatchMouseEvent", {"type": "mouseWheel", "x": 400, "y": 300, "deltaX": 0, "deltaY": -10}, tab.sid)
+        time.sleep(0.2)
+    for how, act in (("a wheel", wheel), ("a key", lambda tab: tab.key("a")), ("a press", lambda tab: tab.click(400, 600))):
+        tab, f = framed(b, NOTES)
+        f.evaluate("let scrollX = document.body, scrollY = 'own'; window.scrollTo = null; document.documentElement.style.scrollBehavior = 'smooth'; 1")
+        tab.evaluate("frame.focus(); " + asks % 300)
+        eq("the page scrolls where the viewer asks, at once, whatever its own scrollTo and scrollY are", lambda: [f.wait("pageYOffset"), pong(tab)], [300, said(False, 300)])
+        f.evaluate("window.postMessage({ dk: 1, t: 'scroll', left: 0, top: 900, behavior: 'instant' }, '*'); 1")
+        eq("and where no one else does", lambda: pong(tab), said(False, 300))
+        act(tab)
+        tab.evaluate(asks % 700)
+        was = pong(tab)
+        eq("%s of the user's ends that, and is told" % how, lambda: [was[0]["moved"], was[0]["top"] <= 300], [True, True])
+
 def elsewhere(b):
     tab, f = framed(b, "boards/older.html")
     eq("a page holding an older copy runs one client", lambda: (f.evaluate("document.querySelectorAll('[data-design-kit-frame]').length"), len(reports(tab, "ready", "hash"))), (2, 1))
@@ -379,7 +401,7 @@ if bad:
     sys.exit(1)
 try:
     with browser_lib.browser() as b:
-        for part in (storage, sends, hashes, blocked, links, notes, elsewhere, draws, bounce):
+        for part in (storage, sends, hashes, blocked, links, notes, scrolls, elsewhere, draws, bounce):
             try:
                 part(b)
             except Exception as exc:

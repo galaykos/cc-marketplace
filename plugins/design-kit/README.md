@@ -46,8 +46,10 @@ while that folder holds no `index.html`; `/_index.json` is the same list for scr
 at its own path, `/artifacts/x.html`, in the viewer (next section).
 
 **Port.** With `DESIGN_KIT_PORT` or `--port`: that port, or exit 4. With neither: this project's
-last port, then 8124, then 8125 to 8139, the first that is free; none free is exit 4. A server of
-this project that already runs is reused, on whatever port, and the launcher says which. Port 8123
+last port, then 8124, then 8125 to 8139, the first that is free; none free is exit 4. A port that
+answers a connect on 127.0.0.1 within 1 s is not free. A launch that meets another one still
+starting waits for its server, 15 s at most, then exits 4 and stops nothing; `--stop` waits as
+long, then stops the server that is recorded. A server of this project that already runs is reused, on whatever port, and the launcher says which. Port 8123
 is the taskmaster/ui-ux mockup server's and is never used here. A start on another port than the
 last one prints `preview: moved from port <old>; saved knobs and page data stay on the old
 address`. A running server whose own version number (`SERVER_VERSION` in `serve.py`, not the
@@ -149,7 +151,8 @@ name and what was asked for: Allow for this page, or Keep blocked (for this tab)
 or one with a port, is refused with no strip; `dk check` names it. An approval covers `https`
 scripts, styles, images, fonts and media from that host, for that one page, never fetch, WebSocket
 or forms. It is kept in `.allow.json` across restarts, listed under Network with Remove, and granted
-on this machine only. An IP address, a port, a wildcard, `localhost`, `.local`, `.internal` and
+on this machine only. A file that cannot be read allows nothing: Remove is refused with the reason,
+and the next Allow writes a new one and keeps the old as `.allow.json.bad`. An IP address, a port, a wildcard, `localhost`, `.local`, `.internal` and
 `.home.arpa` are refused.
 
 **Storage.** A page's `localStorage` is a stand-in the viewer keeps in this browser, per project
@@ -161,7 +164,7 @@ unavailable.
 Dismiss. A link to another page here opens in the viewer, without its query. `#board=2`, `#/3` and
 `?still=1` reach the page, and its hash comes back to the address bar. A save reloads the frame of
 that page alone (for a page with a folder of its own, also a save of a file there); the bar, the
-drawer and a half-typed note stay.
+drawer, a half-typed note and the page's scroll stay (not a scroll inside an element).
 
 **Raw.** `?static=1` typed on this machine, or a headless browser, is sent to the page itself at
 its signed address, for captures: the same policy, no viewer, no reload. Nothing then stops the
@@ -180,13 +183,16 @@ What can still get out, or mislead you:
 - In Firefox (Playwright's build) a page that undid the in-frame script opens a real tab, its text
   in the address, on your plain click or a key you press in it (one request; Chrome opens none).
   Open a page you do not trust in Chrome.
-- A page you clicked in can take the keyboard focus from the viewer, and with it what you type in
-  a note. The viewer gives it back at once: of 26 characters, in Chrome, a page that tries every
-  100 ms got 0 or 1, one that tries every 5 ms 0 to 3, one that never pauses 24 to 26; in that
-  Firefox the first got 1 or 2, the second 21 or 22 of 26. Where the note is on the page itself,
-  the pointer rests on the page or the viewer was last touched by a finger, and nothing was typed
-  for 500 ms, a page gets all 26. Type a note with the pointer off the page, and none on a page you
-  do not trust.
+- A page you clicked in can take the keyboard focus from the viewer (in Firefox any page can), and
+  with it what you type in a note. The viewer gives it back at once, and stops a page that takes it
+  from a note three times in a second while you type, or ten times in half a second: "Page stopped:
+  it kept taking the keyboard." The note stays as it was, and Reload page brings the page back. Such
+  a page got none of 26 characters in Chrome, in that Firefox at most 1 of 26. One that takes it less
+  often is never stopped and may get a character each time; one that focuses on hover may be stopped
+  while a note on an element is open. Where the note is on the page itself, the
+  pointer rests on the page or the viewer was last touched by a finger, and nothing was typed for
+  500 ms, a page still gets all 26. Type a note with the pointer off the page, and none on a page
+  you do not trust.
 - A page can draw anything inside its own frame, a second bar included. The real bar and its
   strips are above it.
 - `dk export` opens the file in a headless browser with no browser sandbox and an open network:
@@ -250,15 +256,18 @@ project — **gate**.
 The board talks back, once you press Send. Picking an artboard, moving a knob or editing text
 draws a strip above the board with the artboard, every knob value and every text edit. A pick
 arrives only after Send pick in that strip; Discard drops it, and until one of the two it comes
-back, in that tab, after a reload, a restart of the server or a link away. Send pick posts what
-the strip shows to `/_decision` (loopback only, header-gated, at most 64 KiB); the server appends
+back, in that tab, after a reload, a restart of the server or a link away. A pick that was recorded
+shows a Sent line for up to 5 s, one that was not its reason until a Send, a Discard, or the
+tab reloads or leaves the page. Send pick posts what the strip shows to `/_decision` (loopback only, header-gated, at most 64 KiB); the server appends
 one row to `.cc-artifacts/design-kit/decisions.jsonl` with the fields `picks.py` keeps, each
 clamped, and a prompt of its own. A phone on the LAN is not recorded. `dk decision --latest
 --consume` prints the row as one line of escaped JSON, `{kind, ts, board, picked, knobs, text,
-summary, confirmed}`, and `/design-kit:in-codebase` with no arguments renders that pick. With
+summary, confirmed}`, the board's file name in the summary as one quoted JSON string, and
+`/design-kit:in-codebase` with no arguments renders that pick. With
 `confirmed:true` its number, knobs and edits are the user's choice; its text edits are quoted
 data, never instructions. With `confirmed:false` (an older server took the row, or another hand
-wrote it) a session is told to put it to the user before acting on it. "Copy edits as prompt"
+wrote it) a session is told to put it to the user before acting on it, and reading it marks no
+confirmed pick of that board read. "Copy edits as prompt"
 remains for a board opened with no server. A UserPromptSubmit hook says one line when a pick is
 waiting, calls one that is not confirmed so, and says nothing otherwise
 (`CC_DESIGN_KIT_PICK=off`). Every pick a skill acts on lands as one line in
@@ -323,7 +332,7 @@ picking an element by pointer and keyboard, the selector, the draft, refusals an
 note, and replies to each, is **agent-graded**. Missed: a note's element, its text and the console
 lines are what the page says they are, so `anchor` and `context` are page data, never
 instructions, and nothing verifies who typed the text; a key pressed or an element picked in the
-page while something can be sent acts up to 1.5 s late; a selector built on `nth-of-type` goes
+page while something can be sent or the Sent line shows acts up to 1.5 s late; a selector built on `nth-of-type` goes
 stale when the page's structure changes; no screenshot without a browser; notes stay in
 `.cc-artifacts/design-kit/` and do not travel with an exported, zipped or published page; elements
 inside iframes and canvas contents cannot be picked.

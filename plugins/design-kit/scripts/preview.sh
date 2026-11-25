@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # preview.sh [--lan|--stop] [--port N] [--docroot DIR] — starts serve.py on DIR (default ./.cc-artifacts/design-kit) once, prints its URL and writes DIR/.preview.{pid,url,bind,port,ver}; a second start reuses it, or restarts an older version on its own port and bind. Port: --port or DESIGN_KIT_PORT, or exit 4; else DIR's last, 8124, then 8125 to 8139 (DESIGN_KIT_PORT_LAST), the first free, or exit 4. --stop ends it, only when the recorded pid is serve.py on DIR, and deletes those files but .port, and the LAN key.
 # --lan binds 0.0.0.0 and prints the URL with the ?key= another device needs; serve.py ends itself (DESIGN_KIT_LAN_MINUTES 60, DESIGN_KIT_IDLE_MINUTES 240, 0 = off). Exit 6: the recorded pid is alive and neither ps nor /proc names it; nothing signalled or removed.
-# Misses: serve.py's errors are discarded, so any start that ends before its bind reads as a busy port, and one that takes over 10 s is ended, exit 4; the LAN host is a guess; two starts at once are not locked: one that meets the other's record waits for that server, one that comes before it starts its own. Harness: scripts/__tests__/preview.test.sh.
+# Misses: serve.py's errors are discarded, so any start that ends before its bind reads as a busy port, and one that takes over 10 s is ended, exit 4; the LAN host is a guess; a server this one could bind beside (macOS, BSD) is seen only where it answers on 127.0.0.1 within 1 s, and by a bash with /dev/tcp; two starts, or a start and a --stop, are not locked: one that meets a start's record waits 15 s at most for that server, then a start ends with exit 4 and a --stop goes on; one that comes before that record starts a server of its own, or stops none. Harness: scripts/__tests__/preview.test.sh.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/preview.sh
 set -euo pipefail
 
@@ -41,8 +41,19 @@ ours() {
   return 1
 }
 unnamed() { echo "preview.sh: pid $1 in $pidfile is alive and neither ps nor /proc says what it is; signalled nothing, kept the state files — check it, then delete $pidfile" >&2; exit 6; }
+# "<pid> <version> starting <launcher's pid>" until the server is bound: no version record yet. settled: 0 once no such launcher runs, 1 when one still does after 15 s.
+settled() {
+  local i word
+  for ((i = 0; i < 150; i++)); do
+    word=""; { read -r _ _ word launcher < "$verfile"; } 2>/dev/null || true
+    [ "$word" = starting ] && kill -0 "$launcher" 2>/dev/null || return 0
+    sleep 0.1
+  done
+  return 1
+}
 if [ "$stop" = 1 ]; then
   [ -d "$docroot" ] || { echo "preview: nothing running"; exit 0; }
+  settled || true
   abs="$(cd "$docroot" && pwd -P)"; pid="$(cat "$pidfile" 2>/dev/null || true)"
   rc=0; ours "$pid" || rc=$?
   [ "$rc" = 6 ] && unnamed "$pid"
@@ -60,12 +71,7 @@ keyq() { if [ -s "$keyfile" ]; then printf '?key=%s' "$(cat "$keyfile")"; fi; }
 
 command -v python3 >/dev/null || { echo "preview.sh: python3 3.8+ is required (or open the .html files directly)" >&2; exit 3; }
 mkdir -p "$docroot"
-# "<pid> <version> starting <launcher's pid>" until the server is bound: no version record yet, and another launch waits while that launcher runs
-for ((i = 0; i < 150; i++)); do
-  word=""; { read -r _ _ word launcher < "$verfile"; } 2>/dev/null || true
-  [ "$word" = starting ] && kill -0 "$launcher" 2>/dev/null || break
-  sleep 0.1
-done
+settled || { echo "preview.sh: waited 15 s for another launch (pid $launcher) that is still starting the server; stopped nothing. Try again; if no such launch runs, --stop clears its record" >&2; exit 4; }
 abs="$(cd "$docroot" && pwd -P)"; pid="$(cat "$pidfile" 2>/dev/null || true)"
 here="$(cd "$(dirname "$0")" && pwd)"; version="$(sed -n 's/^SERVER_VERSION = \([0-9][0-9]*\).*/\1/p' "$here/serve.py")"; unused=""
 rc=0; ours "$pid" || rc=$?
@@ -105,12 +111,21 @@ if [ -n "$exact" ]; then candidates=("$port"); else
   if [ -n "$old" ] && [ "$old" -ge 1024 ] && [ "$old" -le 65535 ] && [ "$old" != 8123 ]; then candidates=("$old"); fi
   for ((p = 8124; p == 8124 || p <= last; p++)); do [ "$p" = "$old" ] || candidates+=("$p"); done
 fi
+# answers <port>: 0 when a connect to 127.0.0.1 succeeds within 1 s; macOS and BSD let a bind succeed beside that server
+answers() {
+  local probe i
+  (: <> "/dev/tcp/127.0.0.1/$1") 2>/dev/null & probe=$!
+  for ((i = 0; i < 100; i++)); do kill -0 "$probe" 2>/dev/null || break; sleep 0.01; done
+  { kill "$probe"; wait "$probe"; } 2>/dev/null
+}
 # moved into place: a reader never meets an empty record
 record() { echo "$*" > "$verfile.$$"; mv -f "$verfile.$$" "$verfile"; }
+record "- $version starting $$" # no server yet; the look at each port may take 1 s
 # serve.py's line, which holds the LAN key, is read from a file with no name
 said="$(mktemp)"; exec 3> "$said" 4< "$said"; rm -f "$said"
 started=""; slow=""; heard=""
 for port in "${candidates[@]}"; do
+  answers "$port" && continue
   # serve.py turns DESIGN_KIT_PORT into a number even when --port is given, and dies on an empty one
   ( unset DESIGN_KIT_PORT; exec python3 "$here/serve.py" --docroot "$abs" --port "$port" $lan_flag >&3 2>/dev/null 3>&- 4<&- ) &
   pid=$!; record "$pid $version starting $$"; echo "$pid" > "$pidfile"

@@ -1,6 +1,6 @@
 """picks.py — what a posted board pick may hold, and the one line a session reads about it: serve.py stores through clean_pick and new_row and hands LIMITS to the viewer, dk.sh prints through pick_line, with serve.py's _clean and _hidden passed in.
-Catches: a board that is no base name (the pick is refused), a knob number out of range (moved to the bound), a picked outside 1 to 99 (null), any other field, scope, knob or edit out of shape (dropped), text past its length (cut), a row's own prompt (never read), a row without v:2 (confirmed false).
-Misses: whether the board exists, whether the user made the pick (the viewer's Send does), what an edit says: it is quoted data, never instructions.
+Catches: a board that is no base name (the pick is refused), a knob number out of range (moved to the bound), a picked outside 1 to 99 (null), any other field, scope, knob or edit out of shape (dropped), text past its length (cut), a row's own prompt (never read), a row without v:2 (confirmed false), a board name that would read as more of its line (quoted).
+Misses: whether the board exists, whether the user made the pick (the viewer's Send does), what an edit or a board name says: it is quoted data, never instructions.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/picks.py
 """
 import json
@@ -95,9 +95,14 @@ def _choice(picked):
     return "implement artboard %d" % picked if picked else "no artboard picked"
 
 
+def quoted_name(name):
+    """A name in a line of words: one ASCII JSON string, so none ends its quotes or reads as more of the line."""
+    return json.dumps(name) if name else "(no usable name)"
+
+
 def fixed_prompt(board, picked):
-    """The prompt a 0.19.3 session prints: the board's name and the number, no text from the page."""
-    return "From the design board %s, %s. Update design-kit in this session to read adjustments and text edits." % (board, _choice(picked))
+    """The prompt a 0.19.3 session prints: the board's name, quoted, and the number, no text from the page."""
+    return "From the design board %s, %s. Update design-kit in this session to read adjustments and text edits." % (quoted_name(board), _choice(picked))
 
 
 def new_row(pick, ts, cid):
@@ -119,7 +124,7 @@ def _quoted(text):
 
 
 def _summary(board, picked, knobs, text):
-    said = ["Board %s: %s." % (board or "(no usable name)", _choice(picked))]
+    said = ["Board %s: %s." % (quoted_name(board), _choice(picked))]
     if "all" in knobs:
         said.append("All artboards: %s." % _words(knobs["all"]))
     for n in sorted((set(knobs) | set(text)) - {"all"}, key=int):

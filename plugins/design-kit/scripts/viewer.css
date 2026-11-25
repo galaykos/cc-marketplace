@@ -50,12 +50,16 @@ code { padding: 0 4px; border: 1px solid var(--edge); border-radius: 4px; font-s
 #drawer label { font-weight: 600; }
 #drawer [role="group"] > div { display: flex; flex-wrap: wrap; gap: 8px; }
 textarea { display: block; width: 100%; min-height: 80px; margin-top: 4px; padding: 6px 8px; border: 1px solid var(--edge); border-radius: 6px; font: inherit; font-weight: 400; color: var(--ink); background: var(--paper); resize: vertical; }
-#frame { grid-area: frame; }
+#frame { grid-area: frame; position: relative; }
 /* Canvas, as for a page opened by itself: a frame is see-through where its page paints nothing. light dark, or its page is told that a dark reader's scheme is light. */
 #frame iframe { display: block; width: 100%; height: 100%; border: 0; color-scheme: light dark; background: Canvas; }
 iframe[data-reached] { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The accent alone is too close to a dark page, and an iframe paints no second ring of its own over its page. */
+#frame:has(> iframe[data-reached])::after { content: ""; position: absolute; inset: 2px; border: 2px solid var(--paper); pointer-events: none; }
 @media (max-width: 600px) {
+  #bar { flex-wrap: wrap; }
   #bar #title { flex: 1; }
+  #notes { margin-inline-start: auto; }
   body { grid-template: "bar" auto "strips" auto "drawer" auto "frame" minmax(20vh, 1fr) / minmax(0, 1fr); }
   #chip { display: none; }
   #drawer { width: auto; max-height: 60vh; border-inline-start: 0; border-bottom: 1px solid var(--line); }

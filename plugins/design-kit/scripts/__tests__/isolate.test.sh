@@ -5,7 +5,7 @@ set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 python3 - "$here/isolate.py" "$tmp" <<'PY' || { echo "FAIL: isolate.py units"; exit 1; }
-import _markupbase, base64, contextlib, hashlib, hmac, html.parser, importlib.util, json, mimetypes, os, re, stat, sys
+import _markupbase, base64, contextlib, hashlib, hmac, html.parser, importlib.util, json, mimetypes, os, re, resource, stat, sys
 
 def load():
     spec = importlib.util.spec_from_file_location("dkisolate", sys.argv[1]); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
@@ -260,7 +260,7 @@ for name, content in (("empty", b""), ("cut", b'{"decks/a.html": ["cdn.jsd'), ("
     put(content)
     was = text()
     eq("a malformed .allow.json allows nothing: " + name, lambda: [m.read_allow(root)[0], bool(m.read_allow(root)[1])], [{}, True])
-    eq("Remove leaves a malformed file: " + name, lambda: (allow(A, CDN, False), text() == was, os.path.exists(BAD)), (([], None), True, False))
+    eq("Remove on a malformed file is refused, the file named, and leaves it: " + name, lambda: refused(A, CDN, False, "nothing removed until .allow.json is"), "refused")
     eq("a refused Allow leaves a malformed file: " + name, lambda: refused(A, "localhost"), "refused")
     eq("the next Allow keeps the bad file aside: " + name, lambda: (allow(A, "a.io"), text(BAD) == was, m.read_allow(root)), ((["a.io"], None), True, ({A: ["a.io"]}, None)))
 put(None); os.mkdir(FILE)
@@ -299,6 +299,27 @@ os.replace = full
 eq("a failed write is an OSError", lambda: allow(A, CDN, False), repr(OSError(28, "No space left on device")))
 os.replace = replace
 eq("a failed write changes no file and leaves none", lambda: (text() == was, sorted(os.listdir(root)) == names), (True, True))
+def limit(size):
+    resource.setrlimit(resource.RLIMIT_FSIZE, (size, resource.getrlimit(resource.RLIMIT_FSIZE)[1]))
+def last_move(src, dst):
+    if dst == FILE and src != BAD:
+        full()
+    replace(src, dst)
+unlimited, write = resource.getrlimit(resource.RLIMIT_FSIZE)[0], m.replace_file
+failures = [("a disk that takes no byte", lambda: limit(0), lambda: limit(unlimited)), ("a read-only folder", lambda: os.chmod(root, 0o500), lambda: os.chmod(root, 0o700)),
+            ("replace_file", lambda: setattr(m, "replace_file", full), lambda: setattr(m, "replace_file", write)), ("the last move", lambda: setattr(os, "replace", last_move), lambda: setattr(os, "replace", replace))]
+if not os.geteuid():
+    print("SKIP: root writes in a read-only folder"); del failures[1]
+for name, begin, end in failures:
+    put(b"{"); names = sorted(os.listdir(root))
+    begin()
+    try:
+        got = allow(A, "a.io")
+    except OSError:
+        got = "OSError"
+    end()
+    eq("an Allow that cannot be written leaves the bad file, its warning and nothing more: " + name, lambda: (got, text(), bool(m.read_allow(root)[1]), sorted(os.listdir(root)) == names), ("OSError", b"{", True, True))
+    eq("and the next one keeps that file aside: " + name, lambda: (allow(A, "a.io"), text(BAD), m.read_allow(root)), ((["a.io"], None), b"{", ({A: ["a.io"]}, None)))
 # one step onto a file: no link followed, no name beside it that a server lists or serves, nothing left of a write that failed
 path, seen = os.path.join(root, "rows.jsonl"), []
 os.symlink(out, path); was = text(out)

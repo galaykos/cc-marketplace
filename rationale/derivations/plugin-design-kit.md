@@ -238,6 +238,14 @@ posts`, 4 of 4), from 20 posts racing three readers and three repliers over a pa
 board's rows (`consuming b.html's pick marked a.html's read`); `--board` ignored (`--board FILE should print that board's
 pick`).
 
+### 0.20.1, 2026-11-25 — a confirmed pick read unprinted, and a pick filed under another board
+
+`--consume` marked every unread row of the printed row's board, so an unconfirmed row read last took the confirmed pick under it along, unprinted. A `v:2` row is read only with a `v:2` line now; a confirmed line still reads what is under it, older confirmed picks included. `workshop.json` took `board.file` from the board built last; when its name is not the picked board's it becomes `<DK>/boards/<picked board>`, a path like the others there. A board in a subfolder of `boards/` is recorded without the folder, because a row holds only the name. Red on the old lines: `FAIL: consuming a newer unconfirmed row marked the confirmed pick under it read`, `FAIL: a pick on a.html was filed under the board built last`.
+
+Two checks of `dk.test.sh` held nothing. The time limit of `dk notes --shot` was asserted only beside a real browser: with `note-shot.py` cut to 10 s a call and no browser the old harness passed. Three stand-ins (a first answer 11 s late, a second one, none) run everywhere now and add 17 s; the one that starts the real browser late stays in the browser half. And the threat-model check named 36 of 38 residuals, so deleting either of the two rows that were split off on 2026-11-25 passed; both are named, and a row of either table that no word names fails. Deleting each of the 55 rows in turn: the old check was silent on those two, the new one on none. A row swapped for another that holds the same word still passes. (Runs of 0.20.1's workers, relayed.)
+
+**Second round, after the review of 0.20.1.** `file` moved to another board and `spec` and `at` of the board built last stayed, so a pick read as made from another board's spec; they go when it moves. An unconfirmed row replaced the path of a real board with any name; it needs a regular file in `boards/`, reached through no symlink, or the rule of 0.20.0 holds. `dk status` prints an address not of the launcher's form as one JSON string: a second line planted in `.preview.url` read as a status line. `dk serve` and preview.sh print that file as it stands, open. Left: an unconfirmed row on an unknown board still overwrites `picked` and `confirmed` of the recorded one, as in 0.20.0, and a `deck.file` that is no string ends `dk status` with a TypeError.
+
 ## plugins/design-kit/scripts/dk-usage.sh
 
 ### Header, moved 2026-11-25 (0.20.0)
@@ -416,6 +424,10 @@ Measured on Chrome 157: `--headless=new --window-size=390,844 --screenshot` writ
 ### 0.20.0 review, 2026-11-25 — a review shows copies
 
 From 0.20.0 a review page may load images from `shots/` and `reviews/diff/` alone, so one whose sets lie elsewhere (task-runner's walk writes `<docroot>/<group>-before` and `<docroot>/<group>`; `dk snapshot --out`) showed broken images. The rule stays: a PNG outside `shots/` is copied to `reviews/diff/<review>/<side>__<device>__<route>.png` and the page shows the copy; the folder is removed first, so a review written again holds its own copies alone. A PNG that is a symlink is not copied, since the copy would serve what it points to. Sets under `shots/` are shown where they are, the dot folder of a `--base <ref>` (404, older) included. Red: `FAIL: a review page of sets outside shots/ should load every image it shows` (HTTP 404).
+
+### 0.20.1, 2026-11-25 — the help
+
+The help said that shots outside the docroot open from disk and are 404 through the server; since 0.20.0 `review` copies them. `snapshot.test.sh` takes the folder from `--help` and looks for the copy there.
 
 ## plugins/design-kit/scripts/codebase-scaffold.sh
 
@@ -722,6 +734,12 @@ budget never expires and the capture hangs (measured with Chrome 2026-09-22).
 
 The review showed `POST /_check` let any same-origin script plant findings and a page under check answer for the check (render-check.py § review fixes). The check now runs in an isolated world over DevTools, so `?_check=` injects nothing, `/_check.js`, `/_check-axe.js` and `POST /_check` are gone (404, 404, 501), and `check_row`, `CHECK_TAG` and the inbox with them. `GET /_checks` stays: it reads `results.json`, which only render-check.py writes. Red: `FAIL: ?_check= should inject nothing (200)`, `FAIL: /_check.js should no longer be served, got 200`, `FAIL: POST /_check should be gone (501, nothing written), got 200`. The reload snippet is unchanged (758 bytes, ceiling 800).
 
+### 0.20.1, 2026-11-25 — one version of every script, and three repairs
+
+- **`viewer.js` and `viewer.css` are read at start**, as `frame.js` and the rules were: an update on disk was served mixed with the running server's own half. A missing one stops serve.py from loading. `SERVER_VERSION` is 3, so a server of 0.20.0 is restarted and the fixes below reach it.
+- **The check line.** `check_status` decoded a page name that `page_of` had decoded, so a page named `100%25 …` read "page changed since" with nothing changed. The viewer sends `/_checks` the encoded path, as it sent `/_notes`.
+- **Thumbnails** are `inert` with `tabindex="-1"`. Walked by hand in headless Chrome 158 with three pages of 9 controls: 36 of 41 presses of Shift+Tab were on a frame before, none after (relayed).
+
 ## plugins/design-kit/scripts/isolate.py
 
 ### 0.20.0, 2026-11-24 — tokens, policies, files, hosts
@@ -744,6 +762,10 @@ Misses: the header's line. `inside()` alone lets a symlink to a never-served fil
 
 serve.py and this module each said what a page is, from two MIME sources, and disagreed on `report.html.gz` (`text/html` to this one, `application/gzip` to the server). `is_page` asks what the server sends by, for both, so that file is one a page of its folder may load. `CONTENT`, the viewer's two asset names, `SANDBOX` (the policy's and the iframe's tokens), `nofollow` and `replace_file` are written here once: the last writes beside the file under a dot name, 0600, and puts it in place in one step or leaves nothing. `.allow.json`, dk.sh's two rewrites and render-check.py's `results.json` go through it.
 
+### 0.20.1, 2026-11-25 — an approvals file that cannot be read
+
+Remove on it answered 200 with nothing written, so the host was allowed again once the file parsed; it is refused with the reason, which the viewer already showed. Allow moved the bad file aside before the new one existed, so a failed write lost every approval and the warning: `replace_file` takes the name to move the old file to, does it once the new one is written, and moves it back when the last step fails. A process killed between the two moves leaves only `.bad`; when the last step fails an earlier `.bad` is gone. Red: `FAIL: an Allow that cannot be written leaves the bad file, its warning and nothing more` (a disk that takes no byte, a failing `replace_file`, a failing last move; a read-only folder fails the same way before and after).
+
 ## plugins/design-kit/scripts/picks.py
 
 ### 0.20.0, 2026-11-24 — what a pick may hold, and the one line a session reads
@@ -757,6 +779,10 @@ Before, `decisions.jsonl` kept the board's own `prompt` (up to 4096 characters o
 ### 0.20.0 review, 2026-11-25 — the viewer reads this table
 
 `LIMITS` holds the knobs with their bounds and words, the decimals, the artboards, the patterns of a scope and a path, and the caps on edits and characters; serve.py hands it to the viewer, which kept a copy before. `VERSION` and `new_row` are the one home of a row's version and shape; the hook keeps its own 2, because it must not load modules. Numbers read the same in the strip and in the summary: two decimals, a tie up, as JavaScript's `toFixed` words them (density 1.125 is ×1.13 in both; Python's `%.2f` says 1.12, and the strip used to show 1.2345 whole).
+
+### 0.20.1, 2026-11-25 — names are quoted
+
+What 0.20.0 left open by choice (a board's name quoted nowhere) is closed by the owner's decision of 2026-11-25: `quoted_name` makes one ASCII JSON string of a name, and the summary, the fixed prompt, `dk decision`'s no-pick line and every step of `flow_steps` (stamp, board, scratch, artifact with its version, deck) go through it. The fields `board` and `file` keep the raw name; nothing reads a name back from the words (grep over plugins, scripts, templates, .github and .claude, relayed). The words still reach the session, in the quotes. Rows stored before keep their unquoted prompt, which `dk decision` never prints. Each site has a mutant that fails. The hook keeps its own rule (plain ASCII of at most 64).
 
 ## plugins/design-kit/scripts/frame.js
 
@@ -773,6 +799,10 @@ A page in an opaque origin has no `localStorage`, cannot post its pick and canno
 ### 0.20.0 review, 2026-11-25 — an image whose src a script sets
 
 A page of an opaque origin reads its own folder's files across origins, so an image drawn into a canvas taints it and a WebGL texture refuses it (`SecurityError`), which broke pages that worked under 0.19.3. The client gives `crossOrigin = 'anonymous'` to an image whose `src` a script sets to a file of this server, where the page set none, and takes it back when that image goes to another address; the server sends `Access-Control-Allow-Origin: *` under `/_c/`. Run in Chrome 158 on 2026-11-25, framed and static: such an image reads back and loads as a texture; one in the markup, one by `srcset`, `setAttribute` or `innerHTML`, and a video do not unless they carry `crossorigin="anonymous"`, which the markup's, the `srcset` and the video then do. Not covered by choice: patching those too costs bytes, and the file is 12,287 of the 12,288 it may have.
+
+### 0.20.1, 2026-11-25 — the scroll
+
+A pong says where the page is scrolled to and whether the user moved it by wheel, key or press (`moved`); `scroll` from the viewer is taken until then. The natives are bound first, so a page's own `scrollTo` does not matter; a page can report any numbers, which go back to itself alone. The file is 12,287 of 12,288 bytes: room came from `home`, catch with no binding, template strings and shorter comments; the note outline's fill is `#1a56db14` (.078, was .08).
 
 ## plugins/design-kit/scripts/viewer.js
 
@@ -802,6 +832,22 @@ Characters of 26 the page still got, typed at 60 ms a key, 3 runs each on 2026-1
 
 **One home each:** the rules come from `data-rules`; the note list's label, "Send note", the JSON-or-null fetch and the tab's storage are one helper each.
 
+### 0.20.1, 2026-11-25 — what the review of 0.20.0 left open
+
+- **The scroll over a save.** One pair of finite numbers, clamped to ±10,000,000, in memory, handed to the same page's next frame at `ready` and at load after 0, 150, 400, 700 and 1000 ms, because a page may grow. None after a hash typed in the address or where the docroot changed. Not covered: a scroll inside an element, a tab reload; until a second after the load a page's own scroll is put back, and a user's made with no wheel, key or press; a page that reaches its height later loses its place.
+- **The Sent line and the reason.** A recorded pick draws a strip of its own in the live region for 5 s, at most until the next pick strip, which comes no sooner than 1.5 s. A failed one's reason is kept as "Last Send: …" in the strips after it: it could be replaced before it was read.
+- **A note while it is sent.** A context that came then changed what Send again posts, under a new `cid`. Refusing it while the POST is pending was not enough (a mutant: one that came after the lost answer made a second row); the ask ends when the note is sent.
+- **256 KB across tabs.** A `storage` event marks the count stale and the next write counts again: 397 ms against 395 for 2,000 writes over 20,000 keys with one tab, 2,488 against 2,650 with a second tab writing. Writes at one instant may still pass it.
+- **The stream** is connected at once when a lost page is there again; `show()` before the retry timer left a gap where a save went unseen.
+- **The focus.** While a page is stopped, Discard left it on `body`; it goes to the stopped text. One finding was not fixed: dropping the holder when the window comes back with the frame active, so that Shift+Tab from the browser's toolbar is not bounced. The toolbar cannot be reached through DevTools; run in a copy, that change let a page that calls `focus()` as its tab comes back get 26 of 26 typed characters, where it gets none. A case holds it.
+- **0.19.3's state:** only the key that was moved is removed.
+
+**The stop (the owner's decision of 2026-11-25, second round).** A take is each time the viewer gives the focus back to a text box of its own. Three in 1 s, each within 500 ms of a key in the viewer, or ten in 500 ms, with or without a key, replace the frame by the stopped area with "Page stopped: it kept taking the keyboard."; the count starts anew at each `build()`, and a take from a button never counts. The second clause exists because a loop with no pause leaves the viewer no key to see: with the first alone 0, 13 and 19 of 26 characters were kept. While the pointer is over the page, or was last a finger, a take of the first kind counts only after another key, because a click within 500 ms of a key is given back and a triple click would have counted three. Characters of 26 the page got, three runs each, at 60 ms a key: Chrome 158 none at 100 ms, 5 ms and no pause (24, 23, 24 before with no pause), also when the loop began in the note or the pointer moved onto the page while typing; Playwright's Firefox 157 none from load, 25 of 26 kept at 100 ms begun in the note, 1 at 100 ms with nothing pressed in the page; 26 in both with the pointer resting on the page and nothing typed for 500 ms. Chrome lets a page take the focus within 5 s of the last press in it and never with none; Firefox has neither limit. In about 1 run of 40 Chrome has the page believe the focus is its own: it gets nothing and is not stopped, so a scenario is repeated up to five times where nothing was taken. A press by a driver that moves no pointer (DevTools' mouse) can count as a take.
+
+**Also in that round:** with the notes open a press in the page did not end the scroll asks (an earlier listener stopped the event), `frame.test.sh` and `viewer.test.sh` had two assertions that could hardly fail or could fail by timing, and all 14 colours of viewer.css are pinned.
+
+Chrome 158; 25 mutants, 3 survived, two got cases and one redundant check went. Playwright's Firefox 157: the scroll and the ring, one run. (Runs of 0.20.1's worker, relayed.)
+
 ## plugins/design-kit/scripts/viewer.css
 
 ### 0.20.0, 2026-11-24 — the contract's look
@@ -811,6 +857,10 @@ The palette is Project, the colours of the notes panel 0.19.3 drew, light only a
 ### 0.20.0 review, 2026-11-25 — the palette that was picked
 
 The first build had the mockup's Neutral colours, 8 px and a dark scheme, because the brief of its card asked for one; the pick says neither. Two values are in no pick. The edge of a control is the notes panel's (3.03:1 on the strips). The error colour is darker than Neutral's `#dc2626`, which has 4.23:1 on the picked surface; `#b91c1c` has 5.67:1. The frame keeps `color-scheme: light dark`: in Chrome 158 with a dark scheme, a page in a frame of a light-only viewer was told that the reader's scheme is light, and one in a frame with that rule was told dark (a probe, one run). `viewer.test.sh` pins the colours, the radius and both schemes under a dark reader's scheme.
+
+### 0.20.1, 2026-11-25 — after the second reader
+
+With the dark accent gone, the ring of a frame reached by Tab was `#1a56db` alone over a page the frame keeps dark: 2.96:1 on `#151514`. It has a second ring in `--paper` inside it (18.27:1 there, and 6.18:1 between the two); an iframe paints none of its own over its page, hence `#frame::after`. The bar wraps at 600 px and below: at 320 px the document was 329 px wide, now 320; 375, 768 and 1280 are as they were. `viewer.test.sh` reads the eight colours of the picked palette under a dark reader's scheme, `--err` included, which 0.20.0 pinned nowhere (and the six `--ok` and `--warn` ones since the second round), and asks the page in the frame for its scheme beside reading the rule.
 
 ## plugins/design-kit/scripts/note-shot.py
 
@@ -982,6 +1032,13 @@ proves a browser rendered.
 ### 2026-11-12, review of 0.14.0 — the recorded pid must be this server
 
 `--stop` and the `--lan` restart signalled the recorded pid after `kill -0` only, and since the idle exit a stale pid file is routine. `ours()` now follows taskmaster's launcher: `ps -ww -p <pid> -o args=`, else `/proc/<pid>/cmdline`, must show `serve.py --docroot <dir> --port`, where `<dir>` is the absolute docroot this launcher now passes or the docroot as given, which a server started by the previous launcher shows. Not ours: left running, its state removed, a fresh server started. Alive and named by neither: exit 6, nothing signalled, state kept. Red: `FAIL: --stop killed a recorded pid that is not serve.py`; then, with a `ps`-only `ours()`, `FAIL: with no usable ps a live server was not recognised: preview.sh: server did not start (port 21450 busy?)`. That run left its server running with its pid file deleted, the defect itself; it was killed by pid. The unnamed case uses a zombie (alive to `kill -0`, empty `/proc/<pid>/cmdline`) under a `ps` that exits 1. Not done: no lock, unlike taskmaster's launcher, so two starts at once can both launch and one fail on the port.
+
+### 0.20.1, 2026-11-25 — a port that answers, and a wait that ends
+
+- **A free port** was one that could be bound. macOS and BSD let 0.0.0.0 be bound beside another 127.0.0.1 server, so a port that answers a connect there within 1 s is skipped, the recorded one included. Linux cannot show the double bind; a stand-in that says it serves and binds nothing shows the skip. The bound is needed: a plain connect to a listener with a full queue was still waiting after 6 s. Not seen: a server bound elsewhere, one that takes no connect in 1 s, a bash without `/dev/tcp`. From reading: a port in the ephemeral range may connect to itself.
+- **The 15 s wait** for another launcher's server went on when it ran out, and could end that server; exit 4 now, nothing stopped, `--stop` named for a record whose pid is another process by now.
+- **The record comes first.** The look at the ports would have widened the time before `.preview.ver` says "starting", 1 s a port that hangs; it is written before the look, with `-` for a pid. Red without it: 2 servers for one docroot.
+- **`--stop` waits too.** In that second it read the pid file alone, said "nothing running" and deleted the record, and the launch then started its server. It waits as a launch does, 15 s at most, then goes on as before; a record whose pid is another process by now takes those 15 s to clear. Before the first record it still stops nothing.
 
 ## plugins/design-kit/scripts/artifact-bundle.py
 

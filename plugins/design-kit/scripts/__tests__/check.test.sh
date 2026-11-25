@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives `dk check` (render-check.py, check.js in an isolated world, serve.py's /_checks) on fixture pages in a temp docroot: a clean page with no finding, the raw page under its own policy (an opaque origin, its storage, an own folder's font and module, what the policy refuses, no content URL printed), the stored result in the viewer's bar, one page per check tripping that check alone, a deck and a board whose stage is not overflow, E6 in both diff branches, an artifact's previous version that runs under the page's policy and reaches no listener of this machine, escaped JSON-only output, forged answers and posts, hostile metas, dialogs, downloads, WebRTC, a flood, caps, pruning, an older server, no browser left running.
+# Drives `dk check` (render-check.py, check.js in an isolated world, serve.py's /_checks) on fixture pages in a temp docroot: a clean page with no finding, the raw page under its own policy (an opaque origin, its storage, an own folder's font and module, what the policy refuses, no content URL printed), the stored result in the viewer's bar, one page per check tripping that check alone, a deck and a board whose stage is not overflow, E6 in both diff branches, an artifact's previous version that runs under the page's policy and reaches no listener of this machine, escaped JSON-only output, forged answers and posts, hostile metas, dialogs, downloads, WebRTC, a flood, caps, pruning, a server recorded as newer that has no check route, no browser left running.
 # Without a browser: the removed routes, /_checks, never-served findings and the vendored axe-core hash still run; the rest prints SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1. Misses: the LAN 404s without a network address; browsers other than Chromium; the page as its frame shows it (viewer.test.sh); an approved host's files; the 60 s bound (timed by hand).
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR
@@ -478,7 +478,7 @@ s="$(date +%s)"; expect hang 1 "E1.no-report 375"
 case "$(notes "$last" "not checked")" in *"768 px|skipped: at 375 px the page did not finish loading"*) ;; *) fail "the widths after a hung one should be skipped, saying why: $last" ;; esac
 [ $(( $(date +%s) - s )) -le 20 ] || fail "a hung page took $(( $(date +%s) - s )) s; the other widths should not each wait it out"
 
-# a server from before this version answers no check route: the check needs none
+# a server recorded as newer is kept, and this one answers no check route: the check needs none
 bash "$here/preview.sh" --docroot "$DK" --stop >/dev/null
 mkdir -p "$tmp/old"
 cat > "$tmp/old/serve.py" <<'PY'
