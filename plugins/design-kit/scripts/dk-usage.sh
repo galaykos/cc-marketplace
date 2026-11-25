@@ -1,40 +1,42 @@
 #!/usr/bin/env bash
-# dk-usage.sh — did design-kit earn its place? One row per surface, per project.
-#
-# WHAT IT READS, per project directory given (default: cwd), in $DK =
-# .cc-artifacts/design-kit (else the .design-kit/ plugins before 2026-11-14 wrote):
-#   $DK/usage.jsonl             one line per dk verb: {ts, verb, outcome, artifact}
-#   $DK/decisions.jsonl         one line per board pick: only its ts and consumed are
-#                               read, so a row adds counts and never text of its own
-#   $DK/{decks,boards,artifacts,previews,exports}/  file mtimes
-#   $DK/design-system/DECISIONS.md  the decision ledger, if any (else design-system/);
-#                               component paths come from here alone
-#   git log                     commits touching those paths within 7 days of a decision
-#
-# WHAT EACH COLUMN MEANS
-#   created    pages of that surface that exist
-#   revisited  pages whose mtime moved more than a day after their first version
-#   picked     decision rows (boards) / consumed decision rows (in-codebase)
-#   rendered   scratch verbs with outcome ok (in-codebase only)
-#   exported   export verbs with outcome ok, or .pdf/.png beside a deck or board
-#   shared     share verbs with outcome ok (LAN, pages branch, zip)
-#   followed-by-commit  commits in the 7 days after a decision that touch a path
-#              DECISIONS.md names; `n/a` when it names none — never 0, because
-#              0 would claim a measurement this script did not make
-#
-# WHAT IT CANNOT SEE. Subagent turns; a pick pasted via the clipboard instead of the
-# board's decision route (that is prose in a transcript, not a decision row); a deck
-# opened in a browser (no request log); anything in a project you did not pass.
-# Zero proves nobody used it HERE; non-zero proves it fired, not that it helped.
-#
-# THE VERDICT LINE. The plugin README commits to a kill trigger: 30 days after 0.2.0,
-# at least three projects with a design-kit folder present, followed-by-commit = 0 AND
-# shared = 0 across all of them → retire. This script prints that line with the
-# numbers it measured; it does not decide.
-#
-# Standing: scripts/__tests__/dk-usage.test.sh drives a fabricated project (every
-# column non-zero) and an empty one (all zeros, n/a). Always exits 0.
+# dk-usage.sh [--projects DIR...] [--since DAYS] [--json] — did design-kit earn its place? One table per project (default: the cwd): counts from its usage.jsonl, decisions.jsonl (a row's ts and consumed alone, so a row adds counts and never text of its own), page mtimes, DECISIONS.md and git log. -h: what each column means. It measures; it decides nothing.
+# Misses: subagent turns, a pick pasted from the clipboard, a deck opened in a browser, a project it was not given. Exits 0, 2 on an unknown argument, 1 on a decisions.jsonl line that is not an object.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/dk-usage.sh
 set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+dk-usage.sh [--projects DIR...] [--since DAYS] [--json]
+  Did design-kit earn its place? One table per project (default: the cwd), one row per
+  surface. --since counts only the rows of the last DAYS days; --json prints the numbers.
+
+WHAT IT READS, in $DK = <project>/.cc-artifacts/design-kit (else the .design-kit/ plugins
+before 2026-11-14 wrote):
+  $DK/usage.jsonl             one line per dk verb: {ts, verb, outcome, artifact}
+  $DK/decisions.jsonl         one line per board pick: only its ts and consumed are
+                              read, so a row adds counts and never text of its own
+  $DK/{decks,boards,artifacts,previews,exports}/  file mtimes
+  $DK/design-system/DECISIONS.md  the decision ledger, if any (else design-system/);
+                              component paths come from here alone
+  git log                     commits touching those paths within 7 days of a decision
+
+WHAT EACH COLUMN MEANS
+  created    pages of that surface that exist
+  revisited  pages whose mtime moved more than a day after their first version
+  picked     decision rows (boards) / consumed decision rows (in-codebase)
+  rendered   scratch verbs with outcome ok (in-codebase only)
+  exported   export verbs with outcome ok, or .pdf/.png beside a deck or board
+  shared     share verbs with outcome ok (LAN, pages branch, zip)
+  followed-by-commit  commits in the 7 days after a decision that touch a path
+             DECISIONS.md names; n/a when it names none, never 0, because
+             0 would claim a measurement this script did not make
+
+It cannot see subagent turns, a pick pasted via the clipboard, a deck opened in a browser,
+or a project you did not pass. Zero proves nobody used it HERE; non-zero proves it fired,
+not that it helped. The last lines are the README's kill trigger (30 days after 0.2.0, three
+projects or more, followed-by-commit = 0 and shared = 0: retire) with the numbers measured.
+EOF
+}
 
 projects=(); since=""; json=0
 while [ $# -gt 0 ]; do
@@ -42,7 +44,7 @@ while [ $# -gt 0 ]; do
     --projects) shift; while [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; do projects+=("$1"); shift; done; continue ;;
     --since) since="$2"; shift ;;
     --json) json=1 ;;
-    -h|--help) sed -n '2,33p' "$0"; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
     *) echo "dk-usage.sh: unknown argument $1" >&2; exit 2 ;;
   esac
   shift

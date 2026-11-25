@@ -76,6 +76,14 @@ blank-rendering letters`, `FAIL: the hook named a board with no file under board
 board name over 64 characters`, `FAIL: the hook printed an artboard number out of range`, `FAIL: the hook
 should count the note whose 15-minute lease ran out`. The harness's boards now exist as files.
 
+### 0.20.0, 2026-11-24 — a row without v:2
+
+Until 0.19.3 a page's own script posted the pick, so the line told the session of a choice the user may never have
+made. A pick sent from the viewer is stored with `v: 2`; a latest row without it is now called `unconfirmed pick from
+an older preview page; ask the user before acting on it`, with the clamped board name or a count and no artboard. A
+row planted on disk with `v: 2` reads as confirmed. The number is a literal here, not `picks.VERSION`: the hook loads
+no module of the plugin on a prompt.
+
 ## plugins/design-kit/scripts/dk.sh
 
 Moved verbatim on 2026-10-28 from the body; lines 2-51 stay as they were because `dk --help` prints them (`sed -n '2,51p'`) and an unknown verb prints lines 7-24. The `#` lines inside the python heredocs are code and stay too.
@@ -199,6 +207,149 @@ cwd on purpose: the scaffold reads `package.json`, `artisan` and `vite.config.*`
 monorepo the app's own directory is not the git root. Red against the 0.19.2 script:
 `FAIL: scratch --verify from a subdirectory missed the root's scratch` (`dk.test.sh`).
 
+### 0.20.0, 2026-11-24 — the lock, -I, mktemp, share paths, v:2
+
+- **`.decisions.lock`.** `--consume` read decisions.jsonl, marked rows and wrote the file back with nothing held, while
+  the server appended: a pick posted in between was lost, and a reader could see half a file. Both writers now hold
+  the lock, and the rewrite is put in place in one step. A 0.19.3 session and a host without `fcntl` take no lock.
+- **`-I`.** A python that reads its program from stdin has the cwd on its path, so a project's own `html.py` stood in
+  for the module serve.py imports. `dk bundle`, `share`, `decision`, `notes` and `status` start python isolated.
+- **`mktemp`.** The builders' stderr went to `/tmp/dk-board.$$` and `/tmp/dk-bundle.$$`, names another user of the machine
+  can plant (I6 of the scan of 2026-11-23). It is one `mktemp` file now, gone on every exit.
+- **Share paths.** `dk share` cut `$DK/` off what was typed, so only a path from the project root worked (D5). It finds
+  its page as `dk check` does and refuses, with exit 2, what that refuses; a symlinked page publishes under its
+  target's name, and `zip:` is an absolute path.
+- **`v: 2`.** `dk decision` and the pick of `dk notes` print `picks.pick_line`, clamped again at read, as one escaped JSON
+  line; `confirmed` is true for a row with `v: 2` alone, and a row's own prompt is never printed. `--consume` writes a
+  clamped board into workshop.json, or nothing. Red lines and the rest: the 0.20.0 sections of serve.py and picks.py.
+
+### 0.20.0 review, 2026-11-25 — --lan that shared nothing, and checks that held nothing
+
+`dk share <page> --lan` and `dk serve --lan` printed a 127.0.0.1 URL and logged ok when preview.sh had left a newer
+server as it was: the user was told of a share that did not exist. dk now reads `.preview.bind` after a `--lan` start
+and fails with exit 4, nothing on stdout. Red: `FAIL: dk serve --lan should fail when the server stays on this machine
+alone (rc=0): url=http://127.0.0.1:…/`, the same for share. The two rewrites go through `isolate.replace_file` and the
+report lines through `serve.escape`, the one copy of each; `render-check.resolve` raises, and share prints its own name
+before the reason (it used to say "so it cannot be checked").
+
+Three mutants of the 0.20.0 code had survived `dk.test.sh`; each is red now, run on a copy: `dk notes` without
+`.notes.lock` (`each note is handed out once`, `kept 18 of 20 posts`, 4 runs of 4) and `--reply` without it (`kept 17 of 20
+posts`, 4 of 4), from 20 posts racing three readers and three repliers over a padded file; `--consume` marking every
+board's rows (`consuming b.html's pick marked a.html's read`); `--board` ignored (`--board FILE should print that board's
+pick`).
+
+## plugins/design-kit/scripts/dk-usage.sh
+
+### Header, moved 2026-11-25 (0.20.0)
+
+Moved verbatim from lines 2-36, with only each comment's `# ` leader removed, when the header was cut to three lines. `-h` printed lines 2-33; it prints the same facts from a heredoc now, and the flags with them. One sentence does not hold: a decisions.jsonl line that is not an object ends the script with exit 1.
+
+```text
+dk-usage.sh — did design-kit earn its place? One row per surface, per project.
+
+WHAT IT READS, per project directory given (default: cwd), in $DK =
+.cc-artifacts/design-kit (else the .design-kit/ plugins before 2026-11-14 wrote):
+  $DK/usage.jsonl             one line per dk verb: {ts, verb, outcome, artifact}
+  $DK/decisions.jsonl         one line per board pick: only its ts and consumed are
+                              read, so a row adds counts and never text of its own
+  $DK/{decks,boards,artifacts,previews,exports}/  file mtimes
+  $DK/design-system/DECISIONS.md  the decision ledger, if any (else design-system/);
+                              component paths come from here alone
+  git log                     commits touching those paths within 7 days of a decision
+
+WHAT EACH COLUMN MEANS
+  created    pages of that surface that exist
+  revisited  pages whose mtime moved more than a day after their first version
+  picked     decision rows (boards) / consumed decision rows (in-codebase)
+  rendered   scratch verbs with outcome ok (in-codebase only)
+  exported   export verbs with outcome ok, or .pdf/.png beside a deck or board
+  shared     share verbs with outcome ok (LAN, pages branch, zip)
+  followed-by-commit  commits in the 7 days after a decision that touch a path
+             DECISIONS.md names; `n/a` when it names none — never 0, because
+             0 would claim a measurement this script did not make
+
+WHAT IT CANNOT SEE. Subagent turns; a pick pasted via the clipboard instead of the
+board's decision route (that is prose in a transcript, not a decision row); a deck
+opened in a browser (no request log); anything in a project you did not pass.
+Zero proves nobody used it HERE; non-zero proves it fired, not that it helped.
+
+THE VERDICT LINE. The plugin README commits to a kill trigger: 30 days after 0.2.0,
+at least three projects with a design-kit folder present, followed-by-commit = 0 AND
+shared = 0 across all of them → retire. This script prints that line with the
+numbers it measured; it does not decide.
+
+Standing: scripts/__tests__/dk-usage.test.sh drives a fabricated project (every
+column non-zero) and an empty one (all zeros, n/a). Always exits 0.
+```
+
+## plugins/design-kit/scripts/__tests__/dk-usage.test.sh
+
+### Header, moved 2026-11-25 (0.20.0)
+
+Moved verbatim, with only each comment's `# ` leader removed.
+
+```text
+Drives dk-usage.sh on (a) a fabricated project where every column is non-zero — a
+usage ledger, two decision rows, a DECISIONS.md line naming a component path, a git
+commit touching that path inside the 7-day window, a revisited artifact, a deck with a
+PDF — and (b) an empty project: all zeros and followed-by-commit = n/a. A decision row
+adds counts, never text or a path of its own. Exit is 0 throughout.
+```
+
+## plugins/design-kit/scripts/__tests__/snapshot.test.sh
+
+### Header, moved 2026-11-25 (0.20.0)
+
+Moved verbatim, with only each comment's `# ` leader removed, when the case of sets outside `shots/` was added.
+
+```text
+Drives snapshot.sh: the argument errors (exit 1), the unreachable exit (exit 2,
+NOT MEASURED — never a green), the pairing of two fixture shot sets through
+`review` in BOTH diff-engine branches (Pillow present → a heatmap and a
+percentage; Pillow absent → `no diff engine: install Pillow` and the pair alone,
+forced with a PYTHONPATH stub so the branch runs on a machine that has Pillow),
+the --storage-state checks (a missing, malformed or empty file, one inside a repo
+that git does not ignore, a TRACKED one → exit 1; an ignored one reaches the browser
+layer → exit 2 at a dead URL), a review run from a SUBDIRECTORY landing in the root's
+.cc-artifacts/design-kit/ with a git-ref base read from the toplevel (and one whose shots sit under
+the pre-2026-11-14 .design-kit/), and — only when a
+Chromium-family browser is installed — one real shoot of two routes at two device
+sizes off a throwaway python3 -m http.server, plus a cookie-guarded route shot
+through a state file, where the SERVER logs the cookie and a localStorage beacon,
+and an expired session that must shoot with a WARN naming the login URL.
+
+WHAT THIS DOES NOT PROVE. That a shot LOOKS right: nothing here opens a browser
+at a pixel and judges it, which is the agent-graded half snapshot.sh's header
+claims. The fixture PNGs are flat 4x4 colour fields, so the percentage they
+produce is 0 or 100 and never exercises a partial-page change. That a state file
+SAVED by Playwright replays here — the fixture is hand-written in its shape; the
+save was run by hand once (CHANGELOG 0.5.1). With no browser installed both shoots
+are skipped and this file says so on stdout. Every server start retries on a fresh
+port, but the two dead-URL picks ($port_dead, $port_free) still trust bind-then-close:
+they misfire only if another process binds that exact port AND answers HTTP in the run.
+```
+
+## plugins/design-kit/scripts/__tests__/unread-pick.test.sh
+
+### Header, moved 2026-11-25 (0.20.0)
+
+Moved verbatim, with only each comment's `# ` leader removed.
+
+```text
+Drives hooks/unread-pick.sh: silent without decisions, one line with an unread pick,
+silent once consumed, silent past the decide phase, off-switch honoured, silent with
+no python3, and SPEAKING again once a dead run's sentinel ages past the guard's TTL.
+Notes: a count of open, not-yet-handed-out rows and the command; an instruction-shaped
+note text, selector, page and board name must never reach the line; a board is named only as short
+ASCII naming a file in boards/, an artboard only in 1..99; a note's 15-minute lease runs out.
+A latest row without v:2 is called unconfirmed and gives a clamped board name or a count, nothing else of its own.
+
+CLAUDE_PLUGIN_ROOT is exported because the shared phase guard resolves the hook's lane
+from ${CLAUDE_PLUGIN_ROOT}/lane.tsv — the host sets it for every plugin hook, and
+without it the guard fails open and every phase case below would pass for the wrong
+reason. What this does NOT prove: that the model acts on the line (agent-graded).
+```
+
 ## plugins/design-kit/scripts/snapshot.sh
 
 Moved verbatim on 2026-10-28. The header is what `--help` prints (`usage` echoes line 2 down to `set -euo pipefail`), so it keeps its usage text and loses only the history: the two paragraphs below are as they stood, and the file keeps them minus the session finding, the measurement date and the scattered-dir story. The pointer sits after `set -euo pipefail`, out of the help. The `#` lines inside the python heredocs are code and stay.
@@ -261,6 +412,10 @@ outside the cwd, so run from a subdirectory it never found the root's shots.
 ### 2026-11-13 — the 500 px floor, stated
 
 Measured on Chrome 157: `--headless=new --window-size=390,844 --screenshot` writes a 390x844 PNG of a page laid out with `innerWidth` 500. So `--device mobile` shots are the left 390 px of a 500 px layout. Stated in the header's misses; not reworked (dk check emulates exact widths over DevTools).
+
+### 0.20.0 review, 2026-11-25 — a review shows copies
+
+From 0.20.0 a review page may load images from `shots/` and `reviews/diff/` alone, so one whose sets lie elsewhere (task-runner's walk writes `<docroot>/<group>-before` and `<docroot>/<group>`; `dk snapshot --out`) showed broken images. The rule stays: a PNG outside `shots/` is copied to `reviews/diff/<review>/<side>__<device>__<route>.png` and the page shows the copy; the folder is removed first, so a review written again holds its own copies alone. A PNG that is a symlink is not copied, since the copy would serve what it points to. Sets under `shots/` are shown where they are, the dot folder of a `--base <ref>` (404, older) included. Red: `FAIL: a review page of sets outside shots/ should load every image it shows` (HTTP 404).
 
 ## plugins/design-kit/scripts/codebase-scaffold.sh
 
@@ -630,6 +785,10 @@ The palette is the project's, chosen with the top bar in the mockup the user pic
 
 **Choices.** 2 s of real time after the load event, not a virtual-time budget: on that clock what a scroll reveals never gets its frames. The element is scrolled to first, then the wait, then the outline is placed again. A selector that matches nothing still shoots, and says so on stderr, because the page as it is still says where the note was. The window is the note's own viewport, held to 320 to 3840 by 240 to 2160. The browser runs behind the check's dead proxy, so a host the user allowed is not loaded. With the browser's sandbox off, its line says `dk check: the browser's sandbox is off`, since the two share the class. Misses: the header's.
 
+### 0.20.0 review, 2026-11-25 — one limit
+
+0.19.2 gave the browser 60 s because a cold Chrome ran past 30 s on CI. Over DevTools the first answer was held to `START_S` (30 s) and each later call to 10 s, so the old failure was back. A shot is one page: its calls wait for the run's deadline, 60 s in all, and `Chrome.close` no longer waits `START_S` more for a browser that never answered. The browser lookup, the server's start and the signal handlers, copied here and drifted, are render-check.py's. Red: `FAIL: a browser that starts 11 s late should still shoot`, `FAIL: a later answer that takes 11 s should still be waited for`, `FAIL: a browser that never answers should end at the limit with exit 4`.
+
 ## plugins/design-kit/scripts/note.js (removed in 0.20.0)
 
 The widget ran in the page. Its button, composer and list are the viewer's (viewer.js above), its selector and context are the in-page client's (frame.js), its outline for a shot is note-shot.py's. The text below stays as history; check.js still holds a copy of its selector.
@@ -695,6 +854,14 @@ Each verified in Chrome 157 on a fixture through the runner before the change (2
 ### 0.20.0, 2026-11-24 — the raw page under its own policy
 
 A check opens `?static=1`, which the server sends on to the page's static content URL, so what is measured is the page in an opaque origin under the policy it has in the viewer, with the in-page client first. Three things follow. A load the policy refuses is a finding of its kind and no console error: `E1.external` off the machine, else `E1.resource`, read from the network events or, for a fetch, media, a frame, a WebSocket or a form, which the network says nothing of, from the browser's log line (`REFUSED`, linear, since the page picks the URL). The lines the client adds before a page's own are passed over, so an exception is placed in the file on disk. A content URL opens its page without the LAN key, so none is printed. What a hostile page can still do to a check: the 0.16.0 paragraph below, less its last clause: `POST /_note` and `/_decision` are refused by the page's policy now, and 127.0.0.1 is reachable by navigation (a GET) alone.
+
+### 0.20.0 review, 2026-11-25 — the previous version, sealed
+
+E6 opened an artifact's `.versions/<slug>/v<N-1>.html` from `file://`, with no policy and no sandbox, so the script of a version nobody looks at ran during `dk check` and reached every loopback service. Its bytes are now shown as the server would send the page: `Fetch.fulfillRequest` answers a static content URL of the server's origin with the page's policy (no approved host: a check loads none) and the client first. The tab sits in a browser context of its own whose proxy is the dead one, with `<-loopback>` in the bypass list, and which may save no file (a mutant without that last call survives: Chrome 158 saves nothing from such a context anyway).
+
+Measured in Chrome 158.0.8127.36, one run each, a raw listener on 127.0.0.1 beside a page that tries a POST, a beacon, a WebSocket, an EventSource, an image, a form, a frame, a prefetch, a preconnect, a worker's fetch, TURN over TCP and a navigation. From `file://`: 8 HTTP requests, the navigation's GET and the TURN bytes. Under the policy alone: the navigation's GET, the TURN bytes and 3 empty connections (2 with no navigation), as a preconnect makes. Policy and sealed context: no connection. So a page under check, which has the policy alone, reaches loopback by preconnect and TURN too, not by navigation alone as the paragraph above says. Misses: an artifact three folders deep or more loads no file of its own folder in its previous version. Red: `FAIL: a previous version reached a service of this machine: b'POST /post HTTP/1.1' …`, and `FAIL: a version drawn by its script, under the page's policy, should look like the next one`.
+
+`find_browser`, `start_server` and `exit_on_signals` are the one copy for this script, note-shot.py and the harnesses' browser_lib.py; results.json is written through `isolate.replace_file`.
 
 ### 0.16.0, 2026-11-13 — why the DevTools pipe, and what the runner adds
 
@@ -835,6 +1002,10 @@ rationale/2026-09-25-session-plugin-usage-review.md).
 ## plugins/design-kit/scripts/board-build.py
 
 Moved verbatim on 2026-10-28: the module docstring (quotes removed; `--help` prints argparse's own description) and the history in `_color_to_hsl`'s and `dk_dir`'s docstrings.
+
+### 0.20.0 review, 2026-11-25 — a board outside boards/
+
+The viewer takes a pick from a page under `boards/` alone (decision 11 of the spec), so a board built with `--out` elsewhere opened, let the user pick, and sent nothing without a word. The builder warns on stderr and still builds. Both paths are resolved before they are compared. Red: `FAIL: a board written to b8.html should warn that its picks cannot be sent`.
 
 ### Two to six artboards (2026-11-15, design-kit 0.18.0)
 

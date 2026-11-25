@@ -7,11 +7,9 @@ import argparse
 import base64
 import importlib.util
 import os
-import signal
-import subprocess
 import sys
 import time
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("dkcheck", os.path.join(HERE, "render-check.py"))
@@ -59,8 +57,8 @@ def shoot(ch, url, wh, selector):
     ch.wait_for(sid, "Page.loadEventFired", check.LOAD_S)
     ctx = ch.call("Page.createIsolatedWorld", {"frameId": nav["frameId"], "worldName": check.WORLD}, sid)["executionContextId"]
     drawn = ch.call("Runtime.callFunctionOn", {"functionDeclaration": OUTLINE_JS, "executionContextId": ctx, "arguments": [{"value": selector}, {"value": SETTLE_MS}],
-                                               "awaitPromise": True, "returnByValue": True}, sid, check.TOTAL_S)
-    png = ch.call("Page.captureScreenshot", {"format": "png"}, sid, check.TOTAL_S)
+                                               "awaitPromise": True, "returnByValue": True}, sid)
+    png = ch.call("Page.captureScreenshot", {"format": "png"}, sid)
     return base64.b64decode(png["data"]), drawn["result"].get("value")
 
 
@@ -74,35 +72,20 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
 
-    which = subprocess.run(["bash", os.path.join(HERE, "board-export.sh"), "--which"], capture_output=True, text=True)
-    if which.returncode != 0:
-        die("no Chromium-family browser found (Chrome, Chromium, Edge, Playwright's, or DESIGN_KIT_BROWSER)")
-    up = subprocess.run(["bash", os.path.join(HERE, "preview.sh"), "--docroot", a.docroot], capture_output=True, text=True)
-    for line in (up.stdout + up.stderr).splitlines():
-        if not line.startswith("preview: http"):
-            print(line, file=sys.stderr)
-    try:
-        with open(os.path.join(a.docroot, ".preview.url"), encoding="ascii") as fh:
-            port = urlsplit(fh.read().strip()).port
-    except (OSError, ValueError):
-        port = None
-    if up.returncode != 0 or not port:
+    exe = check.find_browser()[0]
+    if not exe:
+        die(check.NO_BROWSER)
+    origin = check.start_server(a.docroot)
+    if not origin:
         die("the preview server did not start")
-
-    def stop(signum, _frame):
-        raise SystemExit(4)
-    for s in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
-        signal.signal(s, stop)
-
-    exe = which.stdout.strip().splitlines()[-1]
+    check.exit_on_signals()
     try:
-        ch = check.Chrome(exe, deadline)
+        ch = check.Chrome(exe, deadline, check.TOTAL_S)  # the deadline is the only limit of a call: one page, and a cold browser
     except OSError as exc:
         die("could not start %s: %s" % (exe, exc.strerror or exc))
     try:
         try:
-            # 127.0.0.1, not the URL file's host: a LAN server's printed address is not loopback, and only loopback is given a raw page
-            png, matched = shoot(ch, "http://127.0.0.1:%d/%s?static=1" % (port, quote(a.page)), a.size, a.selector)
+            png, matched = shoot(ch, "%s/%s?static=1" % (origin, quote(a.page)), a.size, a.selector)
         finally:
             ch.close()
     except (EOFError, BrokenPipeError):

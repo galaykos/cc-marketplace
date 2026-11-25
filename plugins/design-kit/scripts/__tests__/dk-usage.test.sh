@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Drives dk-usage.sh on (a) a fabricated project where every column is non-zero — a
-# usage ledger, two decision rows, a DECISIONS.md line naming a component path, a git
-# commit touching that path inside the 7-day window, a revisited artifact, a deck with a
-# PDF — and (b) an empty project: all zeros and followed-by-commit = n/a. A decision row
-# adds counts, never text or a path of its own. Exit is 0 throughout.
+# Drives dk-usage.sh on a fabricated project (every column non-zero), the same one in the folders of before 2026-11-14, and an empty one (all zeros, followed-by-commit n/a); -h; a planted decision row adds counts, never text or a path of its own.
+# Misses: a malformed row, two projects in one run, --since.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/__tests__/dk-usage.test.sh
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -60,6 +58,12 @@ printf '%s\n' "$kept" > $d/decisions.jsonl
 o="$tmp/old"; cp -Rp "$p" "$o"; mv "$o/$d/design-system" "$o/design-system"; mv "$o/$d" "$o/.design-kit"; rmdir "$o/.cc-artifacts"
 out3="$(bash "$here/dk-usage.sh" --projects "$o")"
 [ "$(echo "$out3" | grep '^|')" = "$(echo "$out" | grep '^|')" ] && echo "$out3" | grep -q '(design-kit folder present: yes' || fail "the legacy layout reads differently: $out3"
+
+# -h says what each flag, column and file means, and what no column sees
+help="$(bash "$here/dk-usage.sh" -h)"
+for w in --projects --since --json created revisited picked rendered exported shared followed-by-commit n/a usage.jsonl decisions.jsonl DECISIONS.md "cannot see" "kill trigger"; do
+  case "$help" in *"$w"*) ;; *) fail "-h does not say $w: $help" ;; esac
+done
 
 e="$tmp/empty"; mkdir -p "$e"
 out2="$(bash "$here/dk-usage.sh" --projects "$e")"

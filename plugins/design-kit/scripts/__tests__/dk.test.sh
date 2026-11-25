@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route; one escaped JSON line, 20 posts racing --consume, a planted row) → scratch → bundle (its report, a page's hidden characters escaped in it; page, zip and published file against a stored 0.19.3 sample) → share --zip, --pages and --lan by typed path, docroot-relative path and URL → the builders' temp file → export (no-browser path) → status → notes (escaping, lease, print before mark, a pick as one JSON line announced once, one parse for --shot, a stand-in browser that fails, then a real one: the outline's pixels, a page that works against it, the selector as data, the time limit).
+# Drives every dk.sh verb against a temp Vite React project: system → check → slides → board → decision (posted through the server's loopback route; one escaped JSON line, 20 posts racing --consume, --board, a consume that leaves another board's pick unread, a planted row) → scratch → bundle (its report, a page's hidden characters escaped in it; page, zip and published file against a stored 0.19.3 sample) → share --zip, --pages and --lan by typed path, docroot-relative path and URL, --lan refused where a newer server stays on loopback → the builders' temp file → export (no-browser path) → status → notes (escaping, lease, print before mark, 20 posts racing three readers and three repliers, a pick as one JSON line announced once, one parse for --shot, a stand-in browser that fails, then a real one: the outline's pixels, a page that works against it, the selector as data, the time limit, a browser that starts late, answers late or never answers).
 # Asserts workshop.json keys, usage.jsonl lines, the URL never being a literal port, DECISIONS.md, that dk.sh, the README and the three skills that read a pick say what one is, and that the README and rationale/design-kit-threat-model.md name their limits (the words, not whether they are true nor what a session does with them; an installed copy has no rationale/ and prints SKIP). Without a browser --shot's PNG cases print SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1.
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR   # a live session exports the first; the state root would resolve there
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; port=$(( 20000 + RANDOM % 10000 ))
-trap 'cd /; bash "$here/preview.sh" --docroot "$tmp/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
+trap 'cd /; wait; bash "$here/preview.sh" --docroot "$tmp/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
 cd "$tmp"; git init -q .
 mkdir -p src/components
 cat > package.json <<'J'
@@ -52,9 +52,10 @@ grep -q "/_decision" "$board" || { echo "FAIL: board lacks the decision post"; e
 if dk decision --latest >/dev/null 2>&1; then echo "FAIL: decision should be empty"; exit 1; fi
 # the board posts through the server; simulate that post, its prompt and its text edit both trying to leave their line
 edits='{"2":{"h1:0":{"was":"Old","now":"New\n{\"kind\":\"forged\"} \"q\" \u001b[2J\u202e"}}}'
+cid() { python3 -c 'import secrets; print(secrets.token_hex(8))'; }
 decide() { # decide <board> <picked> <hue>: prints the HTTP status
   curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Design-Kit-Decision: 1' -H 'Content-Type: application/json' \
-    --data '{"board":"'"$1"'","picked":'"$2"',"knobs":{"all":{"hue":'"$3"'}},"text":'"$edits"',"prompt":"POSTED implement artboard 9\n{\"id\":\"forged\"}\u001b[2J"}' "http://127.0.0.1:$port/_decision"; }
+    --data '{"cid":"'"$(cid)"'","board":"'"$1"'","picked":'"$2"',"knobs":{"all":{"hue":'"$3"'}},"text":'"$edits"',"prompt":"POSTED implement artboard 9\n{\"id\":\"forged\"}\u001b[2J"}' "http://127.0.0.1:$port/_decision"; }
 b="$(basename "$board")"; code="$(decide "$b" 2 200)"
 [ "$code" = 200 ] || { echo "FAIL: decision post http $code"; exit 1; }
 # a second post for the same board (a knob move after the pick) — consume must read both as one decision
@@ -67,6 +68,12 @@ grep -q '"consumed": false' .cc-artifacts/design-kit/decisions.jsonl && { echo "
 case "$p" in *'"summary": "Board '"$b"': implement artboard 2. All artboards: accent hue 210°.'*) ;; *) echo "FAIL: the pick's summary: $p"; exit 1 ;; esac
 if dk decision --latest >/dev/null 2>&1; then echo "FAIL: decision not consumed"; exit 1; fi
 python3 -c 'import json;ws=json.load(open(".cc-artifacts/design-kit/workshop.json"));assert ws["board"]["picked"]==2,ws' || { echo "FAIL: workshop board.picked"; exit 1; }
+# --board reads that board's pick alone, and a consume marks its own board's rows alone
+decide a.html 2 0 >/dev/null; decide b.html 1 0 >/dev/null
+pick_is "$(dk decision --latest --board boards/a.html)" '{"board":"a.html","picked":2}' || { echo "FAIL: --board FILE should print that board's pick, not a newer one of another board"; exit 1; }
+pick_is "$(dk decision --latest --consume)" '{"board":"b.html","picked":1}' || { echo "FAIL: with no --board the newest pick is printed"; exit 1; }
+if dk decision --board b.html >/dev/null 2>&1; then echo "FAIL: --consume left its own board's pick unread"; exit 1; fi
+pick_is "$(dk decision --latest --consume --board a.html)" '{"board":"a.html","picked":2}' || { echo "FAIL: consuming b.html's pick marked a.html's read"; exit 1; }
 dk decision --record "board Fx board, artboard 2 (B), hue 200, rendered with Button; gaps: none" >/dev/null
 grep -q "artboard 2 (B)" .cc-artifacts/design-kit/design-system/DECISIONS.md || { echo "FAIL: DECISIONS.md"; exit 1; }
 # a line already in the file's `date — …` shape is dated once (doubled until 0.9.4); a
@@ -126,7 +133,7 @@ url='"http://127.0.0.1:$port/artifacts/hidden.html" ] \
 
 # dk notes: rows posted to /_note come back as JSON data, are handed out once, take a reply in place, and end a wait
 case "$(dk --help)" in *"dk notes"*"--wait"*"--reply"*"--shot"*) ;; *) echo "FAIL: dk --help does not document dk notes"; exit 1 ;; esac
-note() { curl -s -X POST -H 'X-Design-Kit-Note: 1' -H 'Content-Type: application/json' --data "$1" "http://127.0.0.1:$port/_note" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'; }
+note() { curl -s -X POST -H 'X-Design-Kit-Note: 1' -H 'Content-Type: application/json' --data "{\"cid\":\"$(cid)\",${1#?}" "http://127.0.0.1:$port/_note" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'; }
 set +e; out="$(dk notes 2>/dev/null)"; rc=$?; set -e
 [ "$rc" = 3 ] && [ -z "$out" ] || { echo "FAIL: dk notes with no note should exit 3 with nothing on stdout (rc=$rc): $out"; exit 1; }
 id1="$(note '{"page":"/boards/x.html","text":"Make the header \"sticky\"","anchor":{"selector":"#hdr","tag":"header","text":"Deals","rect":{"x":0,"y":0,"w":800,"h":64}},"context":{"viewport":{"w":900,"h":700}}}')"
@@ -214,7 +221,7 @@ before, shrank, printed, posting = rows(), [], [], threading.Event()
 def post(n):
     time.sleep(n * 0.015)
     c = http.client.HTTPConnection("127.0.0.1", int(port), timeout=30)
-    c.request("POST", "/_decision", json.dumps({"board": "race-%d.html" % n, "picked": 1}), {"X-Design-Kit-Decision": "1"})
+    c.request("POST", "/_decision", json.dumps({"board": "race-%d.html" % n, "picked": 1, "cid": "%016x" % n}), {"X-Design-Kit-Decision": "1"})
     assert c.getresponse().status == 200
 def consume():
     last = False
@@ -238,9 +245,44 @@ kept = [json.loads(l)["board"] for l in open(path) if "race-" in l]
 assert sorted(kept) == sorted("race-%d.html" % n for n in range(20)) and rows() == before + 20, "kept %d of 20 posts: %s" % (len(kept), kept)
 assert len(set(printed)) == len(printed) > 0, "a pick handed out twice, or none: %s" % printed
 assert not shrank, "a reader saw a half-written file: %s" % shrank[:3]
-assert not glob.glob(os.path.join(os.path.dirname(path), ".decisions-*")), "a temp file stayed"
+assert glob.glob(os.path.join(os.path.dirname(path), ".decisions*")) == [os.path.join(os.path.dirname(path), ".decisions.lock")], "a temp file stayed"
 PY
 rm "$dec"
+# the same for notes: posts, readers and replies at once
+kept=.cc-artifacts/design-kit/notes.jsonl; cp -p "$kept" "$tmp/notes.kept"
+python3 -I - "$here/dk.sh" "$port" "$kept" <<'PY' || { echo "FAIL: 20 note posts racing dk notes and --reply lose no row"; exit 1; }
+import http.client, json, subprocess, sys, threading, time
+dk, port, path = sys.argv[1:]
+with open(path, "w") as fh:
+    for n in range(1700): fh.write(json.dumps({"id": "pad%d" % n, "kind": "note", "status": "addressed", "text": "x" * 900}) + "\n")
+printed, posting, texts = [], threading.Event(), ["race %d" % n for n in range(20)]
+def post(n):
+    time.sleep(n * 0.03)
+    c = http.client.HTTPConnection("127.0.0.1", int(port), timeout=30)
+    c.request("POST", "/_note", json.dumps({"cid": "%016x" % n, "page": "boards/x.html", "text": texts[n]}), {"X-Design-Kit-Note": "1"})
+    assert c.getresponse().status == 200
+def notes(*args):
+    return subprocess.run(["bash", dk, "notes", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.splitlines()
+def read():
+    last = False
+    while not last:  # one run starts after the last post
+        last = posting.is_set()
+        printed.extend(json.loads(l)["text"] for l in notes())
+def reply(n):
+    while not posting.is_set(): notes("--reply", "pad%d" % n, "--status", "dismissed")
+posts = [threading.Thread(target=post, args=(n,)) for n in range(20)]
+rest = [threading.Thread(target=read) for _ in range(3)] + [threading.Thread(target=reply, args=(n,)) for n in range(3)]
+for t in posts + rest: t.start()
+for t in posts: t.join()
+posting.set()
+for t in rest: t.join()
+with open(path) as fh: rows = [json.loads(l) for l in fh]
+kept = [r["text"] for r in rows if r["text"] in texts]
+assert sorted(kept) == sorted(texts) and len(rows) == 1720, "kept %d of 20 posts, %d rows of 1720" % (len(kept), len(rows))
+assert sorted(printed) == sorted(texts), "each note is handed out once: %s" % sorted(printed)
+assert [r["status"] for r in rows[:3]] == ["dismissed"] * 3, "a reply was lost: %s" % rows[:3]
+PY
+mv "$tmp/notes.kept" "$kept"
 # wait re-reads notes.jsonl only when its size or mtime moves
 printf '%s\n' '{"id":"rr01","ts":"t","page":"boards/x.html","kind":"note","anchor":null,"text":"t","context":{},"status":"shut","reply":""}' >> .cc-artifacts/design-kit/notes.jsonl
 ( sleep 1; python3 - .cc-artifacts/design-kit/notes.jsonl <<'PY'
@@ -329,6 +371,34 @@ PY
   [ "$got" = "$outlined" ] || { echo "FAIL: shot PNG has the outline colour at the element edge: want $outlined, got $got"; exit 1; }
   echo "ok: shot PNG has the outline colour at the element edge"
   [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port/.notes/$id.png")" = 404 ] || { echo "FAIL: a note's screenshot is served"; exit 1; }
+  # in the background, beside the shots below: a browser that starts 11 s late, one whose second answer comes 11 s late, and one that never answers, each held to the whole run's limit alone
+  printf '#!/bin/sh\nsleep 11\nexec "%s" "$@"\n' "$exe" > "$tmp/late"
+  cat > "$tmp/slow" <<'EOF'
+#!/usr/bin/env python3
+import json, os, time
+buf, n = b"", 0
+while True:
+    while b"\0" not in buf:
+        chunk = os.read(3, 65536)
+        if not chunk: raise SystemExit(0)
+        buf += chunk
+    raw, buf = buf.split(b"\0", 1); msg = json.loads(raw); n += 1
+    if n == 2: time.sleep(11)
+    said = {"targetId": "T", "sessionId": "S", "frameId": "F", "executionContextId": 1, "result": {"value": True}, "data": "UE5H"}
+    os.write(4, json.dumps({"id": msg["id"], "result": said}).encode() + b"\0")
+    if msg["method"] == "Page.navigate": os.write(4, b'{"method": "Page.loadEventFired", "sessionId": "S", "params": {}}\0')
+    if msg["method"] == "Browser.close": raise SystemExit(0)
+EOF
+  printf '#!/bin/sh\nexec sleep 60\n' > "$tmp/mute"; chmod +x "$tmp/late" "$tmp/slow" "$tmp/mute"; mkdir "$tmp/held-tmp"
+  held() { # held <stand-in> <limit> [START_S]: note-shot.py on it, its output, exit and seconds in $tmp/<stand-in>.held
+    local began=$SECONDS rc=0
+    TMPDIR="$tmp/held-tmp" DESIGN_KIT_BROWSER="$tmp/$1" python3 -I -c 'import importlib.util, sys
+spec = importlib.util.spec_from_file_location("shot", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+m.check.TOTAL_S, m.check.START_S = float(sys.argv[2]), float(sys.argv[3]); sys.exit(m.main(sys.argv[4:]))' "$here/note-shot.py" "$2" "${3:-30}" \
+      --docroot .cc-artifacts/design-kit --page boards/shot.html --selector '#hdr' --size 400x300 --out "$tmp/$1.png" > "$tmp/$1.held" 2>&1 || rc=$?
+    echo "rc=$rc $((SECONDS - began)) s" >> "$tmp/$1.held"
+  }
+  held late 60 1 & held slow 60 1 & held mute 2 &
   # a page whose script answers for the DOM and starts a download, whose rules style every div and scroll smoothly, and whose element comes into place once it is scrolled to
   cat > .cc-artifacts/design-kit/boards/hostile.html <<'EOF'
 <!doctype html><html><head><style>html{scroll-behavior:smooth}body{margin:0}div{margin:9px;padding:30px;opacity:.5;transition:all 1s}
@@ -354,10 +424,17 @@ EOF
   printf '<script>for (;;);</script>' > .cc-artifacts/design-kit/boards/stuck.html; began=$SECONDS
   set +e; out="$(TMPDIR="$tmp/shot-tmp" python3 -I -c 'import importlib.util, sys
 spec = importlib.util.spec_from_file_location("shot", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-m.check.TOTAL_S = m.check.START_S = 3; sys.exit(m.main(sys.argv[2:]))' "$here/note-shot.py" --docroot .cc-artifacts/design-kit --page boards/stuck.html --selector h1 --size 400x300 --out stuck.png 2>&1)"; rc=$?; set -e
+m.check.TOTAL_S = 3; sys.exit(m.main(sys.argv[2:]))' "$here/note-shot.py" --docroot .cc-artifacts/design-kit --page boards/stuck.html --selector h1 --size 400x300 --out stuck.png 2>&1)"; rc=$?; set -e
   [ "$rc" = 4 ] && [ ! -e stuck.png ] && [ $((SECONDS - began)) -lt 19 ] && case "$out" in *"the browser ran past 3 s; no screenshot taken") true ;; *) false ;; esac \
     || { echo "FAIL: a page that never lets go should end at the limit with exit 4 (rc=$rc, $((SECONDS - began)) s): $out"; exit 1; }
   [ -z "$(ls -A "$tmp/shot-tmp")" ] || { echo "FAIL: a shot left its browser's profile: $(ls -A "$tmp/shot-tmp")"; exit 1; }
+  wait
+  got="$(px "$tmp/late.png" $spots)"
+  [ "$got" = "$outlined" ] && case "$(cat "$tmp/late.held")" in *"rc=0 "*) true ;; *) false ;; esac || { echo "FAIL: a browser that starts 11 s late should still shoot: $got: $(cat "$tmp/late.held")"; exit 1; }
+  [ "$(cat "$tmp/slow.png" 2>/dev/null)" = PNG ] || { echo "FAIL: a later answer that takes 11 s should still be waited for: $(cat "$tmp/slow.held")"; exit 1; }
+  case "$(cat "$tmp/mute.held")" in *"the browser ran past 2 s; no screenshot taken"*"rc=4 "*) [ "$(sed -n 's/^rc=4 \(.*\) s$/\1/p' "$tmp/mute.held")" -lt 25 ] ;; *) false ;; esac \
+    || { echo "FAIL: a browser that never answers should end at the limit with exit 4: $(cat "$tmp/mute.held")"; exit 1; }
+  [ -z "$(ls -A "$tmp/held-tmp")" ] || { echo "FAIL: a shot left its browser's profile: $(ls -A "$tmp/held-tmp")"; exit 1; }
 elif [ "${DESIGN_KIT_REQUIRE_BROWSER:-}" = 1 ]; then echo "FAIL: no Chromium-family browser found"; exit 1
 else echo "SKIP: no Chromium-family browser — dk notes --shot ran its no-browser path only"; fi
 
@@ -536,6 +613,15 @@ dk share "$art.html" --pages --push >/dev/null 2>&1 || { echo "FAIL: dk share --
 git fetch -q origin design-kit-pages; git show FETCH_HEAD:artifacts/sample.html > published.html
 same published.html || { echo "FAIL: the published file differs from the 0.19.3 sample"; exit 1; }
 
+# a newer server left running on this machine's own address: nothing was shared, and dk says so
+ver=.cc-artifacts/design-kit/.preview.ver; kept="$(cat "$ver")"; echo "${kept% *} 999999999" > "$ver"
+for args in "serve --lan" "share previews/kit.html --lan"; do
+  set +e; out="$(dk $args 2>"$tmp/err")"; rc=$?; set -e
+  [ "$rc" = 4 ] && [ -z "$out" ] && grep -q "^dk ${args%% *}: nothing was opened to the network" "$tmp/err" && tail -n 1 .cc-artifacts/design-kit/usage.jsonl | grep -q '"verb": "'"${args%% *}"'", "outcome": "fail"' \
+    || { echo "FAIL: dk $args should fail when the server stays on this machine alone (rc=$rc): $out $(cat "$tmp/err")"; exit 1; }
+done
+[ "$(dk serve 2>/dev/null)" = "url=http://127.0.0.1:$port/" ] || { echo "FAIL: dk serve with no --lan should reuse a newer server"; exit 1; }
+echo "$kept" > "$ver"
 # dk share finds its page as dk check does; until 0.20.0 only a path typed from the project root worked
 cp page.html '.cc-artifacts/design-kit/previews/p #1.html'; zip="$tmp/.cc-artifacts/design-kit/previews/p #1.zip"; bad=""
 lan_url() { case "$(dk share "$1" --lan 2>/dev/null || true)" in "url=http://"*":$port/previews/p%20%231.html?key=$(cat "$tmp/.cc-artifacts/design-kit/.preview.key")") ;; *) return 1 ;; esac; }
@@ -551,6 +637,12 @@ grep -qE 'https?://|key=' .cc-artifacts/design-kit/usage.jsonl && { echo "FAIL: 
 set +e; out="$(dk share page.html --zip 2>&1)"; rc=$?; set -e
 [ "$rc" = 2 ] && [ ! -e page.zip ] && [ "$out" = "dk share: no page page.html under .cc-artifacts/design-kit" ] \
   || { echo "FAIL: dk share of a file outside the docroot should exit 2 and write nothing (rc=$rc): $out"; exit 1; }
+# each verb says of a page that is never served only that it is not
+p=.cc-artifacts/design-kit/artifacts/.versions/pg/v1.html
+for args in "share $p --zip" "check $p"; do
+  set +e; out="$(dk $args 2>&1)"; rc=$?; set -e
+  [ "$rc" = 2 ] && [ "$out" = "dk ${args%% *}: $p is never served (a dot path, auth/ or a state file)" ] || { echo "FAIL: dk $args should exit 2 with its own reason (rc=$rc): $out"; exit 1; }
+done
 # a module of the project's own never stands in for a stdlib one
 printf 'raise SystemExit("the project html.py ran")\n' > html.py
 out="$(dk bundle page.html --name pg 2>&1 || true; dk share "$art.html" --zip 2>&1 || true; dk decision 2>&1 || true; dk notes 2>&1 || true; dk status 2>&1 || true)"; rm html.py

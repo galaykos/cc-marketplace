@@ -204,8 +204,9 @@ for k in sys.argv[2].split("."):
     v=v.get(k) if isinstance(v,dict) else None
 print("" if v is None else v)' "$WS" "$1"; }
 url() { cat "$DK/.preview.url" 2>/dev/null || true; }
+lan_bound() { [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ]; }
 # keyed <url>: while the server is LAN-bound every printed URL carries the network address, so it needs serve.py's key
-keyed() { if [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ] && [ -s "$DK/.preview.key" ]; then printf '%s?key=%s' "$1" "$(cat "$DK/.preview.key")"; else printf '%s' "$1"; fi; }
+keyed() { if lan_bound && [ -s "$DK/.preview.key" ]; then printf '%s?key=%s' "$1" "$(cat "$DK/.preview.key")"; else printf '%s' "$1"; fi; }
 ensure_server() { # stdout: the URL only; preview.sh's own lines go to stderr
   local out; out="$(bash "$here/preview.sh" --docroot "$DK" "$@")" || { echo "$out" >&2; return 4; }
   echo "$out" | grep -v '^preview: http' >&2 || true
@@ -213,6 +214,10 @@ ensure_server() { # stdout: the URL only; preview.sh's own lines go to stderr
   echo "$u"
 }
 fail() { log fail "${2:-}"; echo "dk $verb: $1" >&2; exit "${3:-1}"; }
+lan_server() { # lan_server [artifact]: sets base; preview.sh leaves a newer server as it is, then nothing is shared
+  base="$(ensure_server --lan)"
+  lan_bound || fail "nothing was opened to the network, the running server stays on this machine's own address; end it with dk serve --stop, then run this again" "${1:-}" 4
+}
 build() { # build <script> [args]: sets out and rc; the script's stderr follows its exit
   err="$(mktemp)"; trap 'rm -f "$err"' EXIT
   set +e; out="$(python3 "$@" 2>"$err")"; rc=$?; set -e
@@ -227,8 +232,8 @@ except OSError: print("")' "$(ds_file tokens.json)"; }
 case "$verb" in
   serve)
     if [ "${1:-}" = "--stop" ]; then bash "$here/preview.sh" --docroot "$DK" --stop; log ok; exit 0; fi
-    lan=""; [ "${1:-}" = "--lan" ] && lan="--lan"
-    base="$(ensure_server $lan)"; echo "url=$(keyed "$base")"; log ok ;;
+    if [ "${1:-}" = "--lan" ]; then lan_server; else base="$(ensure_server)"; fi
+    echo "url=$(keyed "$base")"; log ok ;;
 
   system)
     target="."; out="$DS"; args=(); rendered=""
@@ -330,7 +335,7 @@ case "$verb" in
     # Values the page wrote: serve.py's rule keeps each on its own line. -I: the cwd's own html.py must not shadow a module serve.py imports.
     printf '%s\n' "$out" | python3 -I -c 'import importlib.util, json, sys
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-def line(tag, text): print(tag, "".join(json.dumps(c)[1:-1] if m._hidden(c) else c for c in text))
+def line(tag, text): print(tag, m.escape(text))
 d = json.load(sys.stdin)
 for n in sorted(set(d.get("network",[]))): line("network:", n)
 for u in sorted(set(d.get("unresolved_links",[]))): line("unresolved-link:", u)
@@ -348,10 +353,10 @@ import importlib.util, sys
 from urllib.parse import quote
 script, dk, page = sys.argv[1:]
 spec = importlib.util.spec_from_file_location("dkcheck", script); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-def die(msg, rc):
-    print("dk share: " + msg, file=sys.stderr); sys.exit(rc)
-m.die = die
-real, rel = m.resolve(dk, page)
+try:
+    real, rel = m.resolve(dk, page)
+except ValueError as exc:
+    print("dk share: %s" % exc, file=sys.stderr); sys.exit(2)
 print(quote(rel)); print(real)
 PY
     }
@@ -361,7 +366,7 @@ PY
     # the first line is the quoted path; the rest, the real path, may hold a newline
     rel="${found%%$'\n'*}"; real="${found#*$'\n'}"
     case "$mode" in
-      --lan) base="$(ensure_server --lan)"; echo "url=$(keyed "$base$rel")"; log ok "$real" ;;
+      --lan) lan_server "$real"; echo "url=$(keyed "$base$rel")"; log ok "$real" ;;
       --pages) bash "$here/artifact-publish.sh" "$real" "$@" || fail "publish failed" "$real" 1; log ok "$real" ;;
       --zip) z="${real%.html}.zip"; python3 -c 'import sys,zipfile,os
 p,z=sys.argv[1:3]
@@ -382,7 +387,7 @@ print("zip:", z)' "$real" "$z"; log ok "$z" ;;
 
   decision)
     python3 -I - "$DEC" "$WS" "$DS" "$here/serve.py" "$@" <<'PY'
-import importlib.util, json, os, re, shutil, sys, tempfile, time
+import importlib.util, json, os, re, shutil, sys, time
 dec, ws_path, ds, serve, *args = sys.argv[1:]
 if args[:1] == ["--record"]:
     line = args[1] if len(args) > 1 else ""
@@ -422,15 +427,8 @@ with m.decisions_lock(dk):
         for r in cands:
             if r.get("board") == row.get("board"):
                 r["consumed"] = True
-        fd, tmp = tempfile.mkstemp(dir=dk, prefix=".decisions-", suffix=".tmp")
-        try:
-            # replace: a row an older server stored may hold a lone surrogate, which UTF-8 cannot write
-            with os.fdopen(fd, "w", encoding="utf-8", errors="replace") as fh:
-                for r in rows: fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-            os.replace(tmp, dec)
-        except BaseException:
-            os.unlink(tmp)
-            raise
+        # "replace": a row an older server stored may hold a lone surrogate, which UTF-8 cannot write
+        m.isolate.replace_file(dec, "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows).encode("utf-8", "replace"))
         if pick["board"]:
             try: ws = json.load(open(ws_path, encoding="utf-8"))
             except Exception: ws = {}
@@ -443,7 +441,7 @@ PY
   notes)
     # Rows are page-originated: printed as escaped JSON, never as prose. Exit 3: nothing to print; 2: bad arguments.
     notes_py() { python3 -I - "$DK" "$here/serve.py" "$@" <<'PY'
-import calendar, contextlib, hashlib, importlib.util, json, os, re, sys, tempfile, time
+import calendar, contextlib, hashlib, importlib.util, json, os, re, sys, time
 dk, serve, *args = sys.argv[1:]
 spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 path = os.path.join(dk, m.NOTES)
@@ -495,14 +493,7 @@ def load():
         entries.append([row if isinstance(row, dict) else None, raw])
     return entries
 def save(entries):
-    fd, tmp = tempfile.mkstemp(dir=dk, prefix=".notes-", suffix=".tmp")
-    try:
-        with os.fdopen(fd, "wb") as fh:
-            for _row, raw in entries: fh.write(raw + b"\n")
-        os.replace(tmp, path)
-    except BaseException:
-        if os.path.exists(tmp): os.unlink(tmp)
-        raise
+    m.isolate.replace_file(path, b"".join(raw + b"\n" for _row, raw in entries))
 def update(entry, **fields):
     entry[0].update(fields); entry[1] = json.dumps(entry[0], ensure_ascii=False).encode("utf-8")
 def handed_at(r):
@@ -611,7 +602,7 @@ dk, serve = sys.argv[1:3]
 spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 import os
 steps = m.flow_steps(os.path.abspath(dk))
-print(" → ".join(f"{l} [{m.show(d)[1:-1]}]" for l, d, s in steps))
+print(" → ".join(f"{l} [{m.escape(d)}]" for l, d, s in steps))
 def alive():
     try:
         pid = int(open(os.path.join(dk, ".preview.pid")).read().strip())

@@ -61,7 +61,7 @@ The first `#` heading is the title; `Brief:` and `Device:` lines before the firs
 
 | Flag | Effect |
 |---|---|
-| `--out <path>` | write here instead of `.cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html` |
+| `--out <path>` | write here instead of `.cc-artifacts/design-kit/boards/YYYY-MM-DD-<slug>.html`; outside `<docroot>/boards/` the builder warns that picks from this page cannot be sent |
 | `--tokens <file>` | DTCG tokens for accent/spacing/radius/font; default `.cc-artifacts/design-kit/design-system/tokens.json`, else an older `design-system/tokens.json`, when present; the path heuristics used are printed to stderr |
 | `--device phone\|tablet\|desktop` | default frame when the spec names none |
 | `--docroot <dir>` | default `.cc-artifacts/design-kit` |

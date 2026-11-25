@@ -434,7 +434,7 @@ html="$DK/reviews/$(slug "$pair").html"
 mkdir -p "$DK/reviews"
 
 python3 - "$base_set" "$current_set" "$html" <<'PY' || die "review page could not be written" 1
-import os, sys
+import os, shutil, sys
 
 base, cur, html = sys.argv[1:4]
 try:
@@ -482,6 +482,21 @@ def diff(a, b, out_png):
     return 100.0 * changed / total if total else 0.0
 
 
+reviews = os.path.dirname(html)
+served = os.path.join(os.path.realpath(os.path.join(os.path.dirname(reviews), "shots")), "")
+copies = os.path.join(reviews, "diff", os.path.basename(html)[:-len(".html")])
+if os.path.isdir(copies):
+    shutil.rmtree(copies)
+
+
+def shown(png, side, dev, route):
+    """png when the page may load it (isolate.py's FOLDER_RULES: shots/ and reviews/diff/), else its copy; a symlink is never copied into the served folder."""
+    if not png or os.path.islink(png) or os.path.realpath(png).startswith(served):
+        return png
+    os.makedirs(copies, exist_ok=True)
+    return shutil.copyfile(png, os.path.join(copies, f"{side}__{dev}__{route}.png"))
+
+
 b_shots, c_shots = collect(base), collect(cur)
 rows = []
 for key in sorted(set(b_shots) | set(c_shots)):
@@ -498,7 +513,7 @@ for key in sorted(set(b_shots) | set(c_shots)):
             status = "changed" if open(before, "rb").read() != open(after, "rb").read() else "same"
     else:
         status = "added" if after else "removed"
-    rows.append((route, dev, pct, status, before, after, heat))
+    rows.append((route, dev, pct, status, shown(before, "before", dev, route), shown(after, "after", dev, route), heat))
 
 rel = lambda p: os.path.relpath(p, os.path.dirname(html) or ".") if p else ""
 cell = lambda p, label: (f'<figure><img src="{rel(p)}" alt="{label}"><figcaption>{label}</figcaption></figure>'

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Drives board-build.py: a JSON spec renders 3 artboards with knobs, pick buttons,
 # meta sizes and no external request; a markdown spec parses; tokens.json steers
-# the accent; six artboards build; the gates reject lorem, external assets, and a 1- or 7-artboard spec.
+# the accent; six artboards build; a board outside boards/ warns; the gates reject lorem, external assets, and a 1- or 7-artboard spec.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -13,7 +13,8 @@ cat > spec.json <<'JSON'
  {"title":"Split view","tradeoff":"Context without leaving the list; needs width","device":"tablet","body":"<div class=\"dk-sidebar\"><nav><a href=\"#\" aria-current=\"page\">Inbox</a><a href=\"#\">Paid</a></nav><div class=\"dk-pad\"><h2>Northwind Traders</h2><p>Invoice 8841 · €1,240.00</p></div></div>"}
 ]}
 JSON
-out="$(python3 "$here/board-build.py" spec.json --docroot .cc-artifacts/design-kit 2>/dev/null)"
+out="$(python3 "$here/board-build.py" spec.json --docroot .cc-artifacts/design-kit 2>err.txt)"
+grep -q 'picks from' err.txt && { echo "FAIL: a board in boards/ drew the no-pick warning"; cat err.txt; exit 1; }
 [ -f "$out" ] || { echo "FAIL: no output file: $out"; exit 1; }
 case "$out" in .cc-artifacts/design-kit/boards/*-invoice-inbox.html) ;; *) echo "FAIL: unexpected path $out"; exit 1 ;; esac
 n="$(grep -c 'class="dk-board"' "$out")"; [ "$n" = 3 ] || { echo "FAIL: expected 3 artboards, got $n"; exit 1; }
@@ -48,6 +49,16 @@ mv -f .cc-artifacts/design-kit/design-system/tokens.json design-system/tokens.js
 python3 "$here/board-build.py" spec.json --out b2o.html >/dev/null 2>&1
 grep -q "<meta name=\"design-kit-tokens\" content=\"$sha " b2o.html || { echo "FAIL: no fallback to design-system/tokens.json"; grep design-kit-tokens b2o.html; exit 1; }
 rm -rf design-system
+# only a page under boards/ may send a pick: a board written elsewhere builds and says so, whatever way its path is typed
+for o in b8.html .cc-artifacts/design-kit/b8.html .cc-artifacts/design-kit/boards/../b8.html .cc-artifacts/design-kit/boards-old/b8.html; do
+  got="$(python3 "$here/board-build.py" spec.json --docroot .cc-artifacts/design-kit --out "$o" 2>err8.txt)" || { echo "FAIL: a board outside boards/ must still build"; cat err8.txt; exit 1; }
+  [ "$got" = "$o" ] && grep -qF "WARN $o is not under .cc-artifacts/design-kit/boards/: picks from this page cannot be sent" err8.txt \
+    || { echo "FAIL: a board written to $o should warn that its picks cannot be sent: $got"; cat err8.txt; exit 1; }
+done
+for o in .cc-artifacts/design-kit/boards/b8.html "$PWD/.cc-artifacts/design-kit/boards/round-2/b8.html"; do
+  python3 "$here/board-build.py" spec.json --docroot .cc-artifacts/design-kit --out "$o" >/dev/null 2>err8.txt
+  grep -q 'picks from' err8.txt && { echo "FAIL: $o is under boards/ and drew the no-pick warning"; cat err8.txt; exit 1; }
+done
 
 # A Tailwind v4 @theme in oklch, through system-extract.py, is the board's own sibling's
 # output; until 0.10.0 the hex-only reader drew it in the default blue (hue 222) with no word.

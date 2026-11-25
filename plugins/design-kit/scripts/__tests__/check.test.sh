@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives `dk check` (render-check.py, check.js in an isolated world, serve.py's /_checks) on fixture pages in a temp docroot: a clean page with no finding, the raw page under its own policy (an opaque origin, its storage, an own folder's font and module, what the policy refuses, no content URL printed), the stored result in the viewer's bar, one page per check tripping that check alone, a deck and a board whose stage is not overflow, E6 in both diff branches, escaped JSON-only output, forged answers and posts, hostile metas, dialogs, downloads, WebRTC, a flood, caps, pruning, an older server, no browser left running.
+# Drives `dk check` (render-check.py, check.js in an isolated world, serve.py's /_checks) on fixture pages in a temp docroot: a clean page with no finding, the raw page under its own policy (an opaque origin, its storage, an own folder's font and module, what the policy refuses, no content URL printed), the stored result in the viewer's bar, one page per check tripping that check alone, a deck and a board whose stage is not overflow, E6 in both diff branches, an artifact's previous version that runs under the page's policy and reaches no listener of this machine, escaped JSON-only output, forged answers and posts, hostile metas, dialogs, downloads, WebRTC, a flood, caps, pruning, an older server, no browser left running.
 # Without a browser: the removed routes, /_checks, never-served findings and the vendored axe-core hash still run; the rest prints SKIP, or FAIL under DESIGN_KIT_REQUIRE_BROWSER=1. Misses: the LAN 404s without a network address; browsers other than Chromium; the page as its frame shows it (viewer.test.sh); an approved host's files; the 60 s bound (timed by hand).
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR DESIGN_KIT_DIR
@@ -402,6 +402,51 @@ printf '<h1>Churn</h1><p>Churn fell to 2.1 percent.</p><p>Retention rose to 97.9
 python3 "$here/artifact-bundle.py" "$tmp/src/churn.html" --out-dir "$DK/artifacts" >/dev/null
 out="$(dk check artifacts/churn.html 2>&1 || true)"
 case "$(notes "$out" change)" in "1280 px|vs v1 (.versions/): "*) ;; *) fail "E6 on a v2 artifact should compare with v1: $out" ;; esac
+
+# that version's script runs, under the page's policy, and reaches nothing: not even a connection to a listener of this machine, and no file saved
+cat > "$tmp/listen.py" <<'PY'
+import os, socket, sys
+s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(50)
+with open(sys.argv[1] + ".new", "w") as fh: fh.write(str(s.getsockname()[1]))
+os.rename(sys.argv[1] + ".new", sys.argv[1])
+with open(sys.argv[2], "wb", buffering=0) as log:
+    while True:
+        c, _ = s.accept(); c.settimeout(0.5)
+        try: data = c.recv(200)
+        except OSError: data = b""
+        log.write(b"%r\n" % data.split(b"\r\n")[0]); c.close()
+PY
+python3 "$tmp/listen.py" "$tmp/lport" "$tmp/reached" & lpid=$!; bgpids="$bgpids $lpid"
+for _ in $(seq 50); do [ -s "$tmp/lport" ] && break; sleep 0.1; done
+at="127.0.0.1:$(cat "$tmp/lport")"
+cat > "$tmp/src/reaches.html" <<H
+<h1>Churn</h1><p id="p"></p><script>
+const at = 'http://$at/', told = self.origin === 'null' && location.pathname.endsWith('.s/artifacts/reaches.html'), go = (f) => { try { f(); } catch (e) { } };
+go(() => fetch(at + 'post', { method: 'POST', mode: 'no-cors', body: 'x' }).catch(() => {}));
+go(() => navigator.sendBeacon(at + 'beacon', 'x'));
+go(() => new WebSocket('ws://$at/ws'));
+go(() => { new Image().src = at + 'img'; });
+go(() => { const f = document.createElement('form'); f.method = 'POST'; f.action = at + 'form'; f.target = 'f'; document.body.append(f); f.submit(); });
+for (const [tag, set] of [['iframe', { src: at + 'frame', name: 'f', hidden: true }], ['link', { rel: 'preconnect', href: at }], ['link', { rel: 'prefetch', href: at + 'pre' }]]) go(() => document.body.append(Object.assign(document.createElement(tag), set)));
+go(() => { const pc = new RTCPeerConnection({ iceServers: [{ urls: 'turn:$at?transport=tcp', username: 'u', credential: 'c' }] }); pc.createDataChannel('x'); pc.createOffer().then((o) => pc.setLocalDescription(o)); });
+go(() => Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob(['x'])), download: 'dk-planted.txt' }).click());
+localStorage.setItem('said', told ? 'Churn fell to 2.1 percent.' : 'not under its policy');
+document.querySelector('#p').textContent = localStorage.getItem('said');
+</script>
+H
+printf '<h1>Churn</h1><p>Churn fell.</p><script>location.href = "http://%s/leaves"</script>\n' "$at" > "$tmp/src/leaves.html"
+for n in reaches leaves; do
+  python3 "$here/artifact-bundle.py" "$tmp/src/$n.html" --out-dir "$DK/artifacts" >/dev/null
+  printf '<h1>Churn</h1><p id="p">Churn fell to 2.1 percent.</p>\n' > "$tmp/src/$n.html"
+  python3 "$here/artifact-bundle.py" "$tmp/src/$n.html" --out-dir "$DK/artifacts" >/dev/null
+  out="$(HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/home/.config" dk check "artifacts/$n.html" --widths 1280 2>&1 || true)"
+  case "$n:$(notes "$out" change)" in "leaves:1280 px|"*v1*) ;; "reaches:1280 px|vs v1 (.versions/): no pixel changed" | "reaches:1280 px|vs v1 (.versions/): same pixels ("*) ;;
+    *) fail "a version drawn by its script, under the page's policy, should look like the next one: $(notes "$out" change)" ;; esac
+done
+sleep 1; kill "$lpid"
+[ ! -s "$tmp/reached" ] || fail "a previous version reached a service of this machine: $(tr '\n' ' ' < "$tmp/reached")"
+[ -z "$(find "$tmp/home" -name 'dk-planted*')" ] || fail "a previous version saved a file: $(find "$tmp/home" -name 'dk-planted*')"
+echo "ok: a previous version reaches nothing"
 
 # a deck and a board: the designed stage is not overflow; a slide past the first is measured too
 printf '# Revenue review\nThird quarter\n\n## Where it grew\n- Berlin led with 1.9 million\n- Lisbon followed\n\n## What comes next\n- Hire two engineers in Lisbon\n' > "$tmp/deck.md"

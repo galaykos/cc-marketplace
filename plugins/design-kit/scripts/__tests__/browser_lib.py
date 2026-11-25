@@ -4,7 +4,6 @@ Misses: browsers outside Chromium; a child frame Chrome keeps in its parent's pr
 import contextlib
 import importlib.util
 import os
-import subprocess
 import sys
 import time
 
@@ -151,11 +150,11 @@ def _no_browser(why):
 @contextlib.contextmanager
 def browser(seconds=120):
     """A Browser for at most that long; where none starts, prints FAIL under DESIGN_KIT_REQUIRE_BROWSER=1, else SKIP, and exits 4."""
-    which = subprocess.run(["bash", os.path.join(SCRIPTS, "board-export.sh"), "--which"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True)
-    if which.returncode != 0:
-        _no_browser("no Chromium-family browser found")
+    exe = check.find_browser()[0]
+    if not exe:
+        _no_browser(check.NO_BROWSER)
     try:
-        chrome = _Driver(which.stdout.strip().splitlines()[-1], time.monotonic() + seconds)
+        chrome = _Driver(exe, time.monotonic() + seconds)
     except OSError as exc:
         _no_browser("the browser did not start: %s" % exc)
     try:

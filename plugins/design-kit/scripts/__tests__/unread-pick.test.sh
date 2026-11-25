@@ -1,16 +1,7 @@
 #!/usr/bin/env bash
-# Drives hooks/unread-pick.sh: silent without decisions, one line with an unread pick,
-# silent once consumed, silent past the decide phase, off-switch honoured, silent with
-# no python3, and SPEAKING again once a dead run's sentinel ages past the guard's TTL.
-# Notes: a count of open, not-yet-handed-out rows and the command; an instruction-shaped
-# note text, selector, page and board name must never reach the line; a board is named only as short
-# ASCII naming a file in boards/, an artboard only in 1..99; a note's 15-minute lease runs out.
-# A latest row without v:2 is called unconfirmed and gives a clamped board name or a count, nothing else of its own.
-#
-# CLAUDE_PLUGIN_ROOT is exported because the shared phase guard resolves the hook's lane
-# from ${CLAUDE_PLUGIN_ROOT}/lane.tsv — the host sets it for every plugin hook, and
-# without it the guard fails open and every phase case below would pass for the wrong
-# reason. What this does NOT prove: that the model acts on the line (agent-graded).
+# Drives hooks/unread-pick.sh: when it speaks and when it stays silent (no decisions, consumed, past the decide phase, a stale or foreign sentinel, switched off, no python3, a subdirectory, the legacy folder), the one line, the 15-minute lease of a note, and that nothing a page wrote reaches the line but the name of a file in boards/ and an artboard of 1 to 99; a row without v:2 reads unconfirmed.
+# Misses: whether the model acts on the line (agent-graded). CLAUDE_PLUGIN_ROOT is exported as the host does: without it the phase guard fails open and each phase case would pass for the wrong reason.
+# Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/__tests__/unread-pick.test.sh
 set -euo pipefail
 unset CLAUDE_PROJECT_DIR   # a live session exports it; the state root would resolve there
 here="$(cd "$(dirname "$0")/../.." && pwd)"; hook="$here/hooks/unread-pick.sh"
