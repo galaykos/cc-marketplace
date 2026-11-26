@@ -86,7 +86,7 @@ BLANKS = ((0x115F, 0x1160), (0x180B, 0x180F), (0x2800, 0x2800), (0x3164, 0x3164)
 BLANK = {c for first, last in BLANKS for c in range(first, last + 1)}
 # What viewer.js goes by, in its document's data-rules; hidden: the inside of a JavaScript character class.
 RULES = json.dumps(dict(picks.LIMITS, hidden="".join([r"\p{%s}" % c for c in HIDDEN] + [r"\u{%X}-\u{%X}" % r for r in BLANKS]), sandbox=isolate.SANDBOX, gallery=GALLERY))
-IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "decisions.jsonl", "usage.jsonl", NOTES}
+IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "workshop.json.bad", "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 DECISION_MAX = 64 * 1024
@@ -121,6 +121,26 @@ def notes_lock(root):
 
 def decisions_lock(root):
     return locked(os.path.join(root, DECISIONS_LOCK))
+
+
+@contextlib.contextmanager
+def workshop(root):
+    """root's workshop.json as a dict to change, under .workshop.lock; put back in one step when changed, a file that does not parse moved to workshop.json.bad first."""
+    path = os.path.join(root, "workshop.json")
+    with locked(os.path.join(root, ".workshop.lock")):
+        broken = False
+        try:
+            with open(path, "rb") as fh:
+                ws = json.loads(fh.read().decode("utf-8"))
+        except FileNotFoundError:
+            ws = {}
+        except (OSError, ValueError, RecursionError):
+            ws, broken = {}, True
+        ws = ws if isinstance(ws, dict) else {}
+        was = json.dumps(ws)
+        yield ws
+        if json.dumps(ws) != was:
+            isolate.replace_file(path, json.dumps(ws, indent=1).encode("utf-8"), path + ".bad" if broken else None)
 
 
 def checks_dir(root):
@@ -449,7 +469,7 @@ def _read_json(path, default):
     try:
         with open(path, "r", encoding="utf-8") as fh:
             return json.load(fh)
-    except (OSError, ValueError):
+    except (OSError, ValueError, RecursionError):
         return default
 
 

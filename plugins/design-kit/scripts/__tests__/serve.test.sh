@@ -139,7 +139,7 @@ def flowed(planted):
     except (OSError, http.client.HTTPException) as exc: return repr(exc)
     finally: os.unlink(os.path.join(root, "workshop.json"))
     return status, b'class="flow"' in body
-eq("a workshop.json value that is not an object reads as nothing recorded, in a gallery that answers", [flowed(p) for p in ("[]", '{"system": "x", "board": "x", "scratch": 5, "artifacts": ["x", 3], "deck": []}')], [(200, False)] * 2)
+eq("a workshop.json value that is not an object, or nested past the parser, reads as nothing recorded, in a gallery that answers", [flowed(p) for p in ("[]", '{"system": "x", "board": "x", "scratch": 5, "artifacts": ["x", 3], "deck": []}', "[" * 200000)], [(200, False)] * 3)
 with open(os.path.join(root, "index.html"), "w") as fh: fh.write("<h1>mine</h1>")
 eq("with an index.html in the docroot / is that page", [viewed(p) for p in ("/", "/index.html")], ["index.html"] * 2)
 gallery("/_gallery")
@@ -250,7 +250,7 @@ rm -f "$tmp.outside.txt"
 # never served: hidden files, auth/, state files, version ledgers, directory listings
 mkdir -p "$tmp/auth" "$tmp/artifacts/.versions/a" "$tmp/shots"
 echo '{"cookies":[{"value":"SECRET"}]}' > "$tmp/auth/walk.json"
-echo '{"s":"SECRET"}' > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
+echo '{"s":"SECRET"}' | tee "$tmp/workshop.json.bad" > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
 echo '<p>SECRET</p>' > "$tmp/artifacts/.versions/a/v1.html"; echo '{"s":"SECRET"}' > "$tmp/artifacts/a.versions.json"
 printf 'PNG' > "$tmp/shots/one.png"; echo 'SECRET' > "$tmp/.preview.key"
 # never_served <path> <leak>: 404 with no body for GET and HEAD, origin-form and absolute-form (http://x//auth/... was 200 once)
@@ -266,7 +266,7 @@ never_served() {
     [ "$c" = 404 ] || { echo "FAIL: HEAD $t should be 404, got $c"; exit 1; }
   done
 }
-for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
+for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /workshop.json.bad /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
   never_served "$probe" "SECRET\|one.png"
 done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }

@@ -43,6 +43,12 @@ chk="$(dk check)"; case "$chk" in "design-system: "*) ;; *) echo "FAIL: check li
 out="$(dk slides outline.md 2>/dev/null)"
 deck="$(echo "$out" | sed -n 's/^deck=//p')"; [ -f "$deck" ] || { echo "FAIL: deck not built: $out"; exit 1; }
 case "$out" in *"url=http://127.0.0.1:$port/decks/"*) ;; *) echo "FAIL: deck url: $out"; exit 1 ;; esac
+# a path holding a double quote or a backslash is recorded as it is
+for name in 'notes "v2".md' 'notes\v2.md'; do
+  cp outline.md "$name"; set +e; out="$(dk slides "$name" 2>&1)"; rc=$?; set -e
+  [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" && python3 -I -c 'import json, sys; assert json.load(open(sys.argv[1]))["deck"]["outline"] == sys.argv[2]' .cc-artifacts/design-kit/workshop.json "$name" \
+    || { echo "FAIL: dk slides $name should record its outline as it is (rc=$rc): $out"; exit 1; }
+done
 
 out="$(dk board spec.json 2>/dev/null)"
 board="$(echo "$out" | sed -n 's/^board=//p')"; [ -f "$board" ] || { echo "FAIL: board not built: $out"; exit 1; }
@@ -163,6 +169,8 @@ said='"http://x/\nsystem [tokens] \u2192 board [w.html \u00b7 picked 9]"'
 [ "$planted" = "server: $said" ] || { echo "FAIL: a planted preview URL should be one JSON string on the server line: $planted"; exit 1; }
 [ "$served" = "preview: already running — $said
 url=$said" ] || { echo "FAIL: dk serve and preview.sh should print a planted preview URL as one JSON string: $served"; exit 1; }
+printf 'http://x/\377\n' > .cc-artifacts/design-kit/.preview.url; set +e; st="$(dk status 2>&1)"; rc=$?; set -e; cp "$tmp/url.kept" .cc-artifacts/design-kit/.preview.url
+[ "$rc" = 0 ] && [ "$(tail -n 1 <<<"$st")" = 'server: "http://x/\ufffd"' ] || { echo "FAIL: a preview URL that is not UTF-8 should print as one JSON string (rc=$rc): $st"; exit 1; }
 
 # gallery flow strip + badge
 gal="$(curl -s "http://127.0.0.1:$port/")"
@@ -599,6 +607,7 @@ lg="$(mktemp -d)"; ( cd "$lg" && git init -q
   [ "$(find .design-kit design-system -exec cksum {} + 2>/dev/null | sort; find .design-kit design-system | sort)" = "$before" ] \
     || { echo "FAIL: the old folders changed"; exit 1; }
 ) || exit 1; rm -rf "$lg"
+deep="$(python3 -I -c 'print("[" * 200000)')"   # nested past what Python's parser takes
 # a row planted by hand or through an older server: of one without v:2, dk status says only a clamped board name, marked unconfirmed
 pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mkdir -p .cc-artifacts/design-kit; n=.cc-artifacts/design-kit; ws="$n/workshop.json"
   plant() { printf '%s\n' "$1" > "$n/decisions.jsonl"; }
@@ -615,10 +624,10 @@ pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mk
     printf '{"deck":{"file":%s,"pdf":true}}' "$file" > "$ws"; set +e; st="$(bash "$dk" status 2>&1)"; rc=$?; set -e
     [ "$rc" = 0 ] && case "$st" in *'deck [(no usable name) · pdf]'*) true ;; *) false ;; esac || { echo "FAIL: a deck file of $file should read as no usable name (rc=$rc): $st"; exit 1; }
   done
-  for planted in '[]' '"x"' '{"system":"x","board":"x","scratch":5,"artifacts":["x",3],"deck":[]}' '{"artifacts":{"a":1},"board":[1]}'; do
+  for planted in '[]' '"x"' '{"system":"x","board":"x","scratch":5,"artifacts":["x",3],"deck":[]}' '{"artifacts":{"a":1},"board":[1]}' "$deep"; do
     printf '%s' "$planted" > "$ws"; set +e; st="$(bash "$dk" status 2>&1)"; rc=$?; set -e
     [ "$rc" = 0 ] && [ "$(head -n 1 <<<"$st")" = "system [not extracted] → board [no board] → scratch [not rendered] → artifact [none] → deck [none]" ] \
-      || { echo "FAIL: a workshop.json of $planted should read as nothing recorded (rc=$rc): $st"; exit 1; }
+      || { echo "FAIL: a workshop.json of ${planted:0:80} should read as nothing recorded (rc=$rc): ${st:0:300}"; exit 1; }
   done
   planted='{"ts":"POSTED","board":"a.html","picked":7,"knobs":{"all":{"hue":9}},"text":{"1":{"h1:0":{"was":"POSTED","now":"POSTED"}}},"prompt":"POSTED","consumed":false}'
   plant "$planted"; printf '%s' '{"board":{"file":"boards/a.html","picked":null}}' > "$ws"
@@ -646,19 +655,61 @@ pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mk
   got="$(filed gone.html "$built" 2)"; [ "$got" = "$n/boards/gone.html None None" ] || { echo "FAIL: a confirmed pick should be filed under its own board, without the other's spec and time: $got"; exit 1; }
   got="$(filed built.html "$built" 2)"; [ "$got" = "boards/built.html built.json T" ] || { echo "FAIL: a pick on the board built last should keep its path, spec and time: $got"; exit 1; }
   got="$(filed gone.html '{}')"; [ "$got" = "gone.html None None" ] || { echo "FAIL: an unconfirmed row with no board recorded should leave its name alone: $got"; exit 1; }
+  got="$(filed gone.html '{"board":{"file":5}}')"; [ "$got" = "gone.html None None" ] || { echo "FAIL: a recorded board file that is no string is no board recorded: $got"; exit 1; }
   # each verb that writes workshop.json reads a value that is no object as absent: no Traceback, and every other key kept
   printf '<!doctype html><title>P</title><p>p</p>' > "$pl/p.html"; export DESIGN_KIT_PORT="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
-  kept() { python3 -I -c 'import json, sys; ws = json.load(open(sys.argv[1])); assert isinstance(ws, dict) and all(ws.get(k) == v for k, v in json.loads(sys.argv[2]).items()), ws' "$ws" "$1" 2>/dev/null; }
-  for shape in '[]' '"x"' '{"brief":"b","system":"s","board":"x","scratch":5,"artifacts":{"a":1},"deck":[1]}' '{"brief":"b","artifacts":["x",3]}'; do
+  # kept <other keys> <own step>: the other keys as they were, and each field of the verb's own step (of artifacts, the last entry) as it wrote it
+  kept() { python3 -I -c 'import json, sys; ws = json.load(open(sys.argv[1])); own = json.loads(sys.argv[3])
+step = lambda k: (ws.get(k) or [None])[-1] if k == "artifacts" else ws.get(k)
+assert isinstance(ws, dict) and all(ws.get(k) == v for k, v in json.loads(sys.argv[2]).items()), ws
+assert all(isinstance(step(k), dict) and step(k).get(f) == v for k, fields in own.items() for f, v in fields.items()), ws' "$ws" "$1" "$2" 2>/dev/null; }
+  for shape in '[]' '"x"' '{"brief":"b","system":"s","board":"x","scratch":5,"artifacts":{"a":1},"deck":[1]}' '{"brief":"b","artifacts":["x",3]}' "$deep"; do
     case "$shape" in '{'*) left='{"brief":"b"}' ;; *) left='{}' ;; esac
     for verb in "decision --latest --consume" "scratch --cleanup" "bundle $pl/p.html --name pw" "board $tmp/spec.json"; do
+      case "$verb" in
+        decision*) own='{"board":{"file":".cc-artifacts/design-kit/boards/real.html","picked":3,"confirmed":true}}' ;;
+        scratch*) own='{"scratch":{"kept":false}}' ;;
+        bundle*) own='{"artifacts":{"slug":"pw"}}' ;;
+        board*) own='{"board":{"picked":null,"spec":"'"$tmp"'/spec.json"}}' ;;
+      esac
       plant '{"v":2,"ts":"t","board":"real.html","picked":3,"consumed":false}'; printf '%s' "$shape" > "$ws"
       set +e; out="$(bash "$dk" $verb 2>&1)"; rc=$?; set -e
-      [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" && kept "$left" || { echo "FAIL: dk $verb over a workshop.json of $shape should take it as absent and keep the rest (rc=$rc): $(cat "$ws") $out"; exit 1; }
+      [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" && kept "$left" "$own" || { echo "FAIL: dk $verb over a workshop.json of ${shape:0:80} should take it as absent, keep the rest and write its own step $own (rc=$rc): $(head -c 300 "$ws") ${out:0:300}"; exit 1; }
     done
   done
+  # a workshop.json that does not parse is moved aside to workshop.json.bad, never overwritten
+  printf '{"brief": "b",' > "$ws"; bash "$dk" scratch --cleanup >/dev/null 2>&1
+  [ "$(cat "$ws.bad" 2>/dev/null)" = '{"brief": "b",' ] && kept '{}' '{"scratch":{"kept":false}}' || { echo "FAIL: a workshop.json that does not parse should be moved to workshop.json.bad and the verb's step written: $(cat "$ws.bad" 2>&1) $(cat "$ws")"; exit 1; }
+  pad() { python3 -I -c 'import json, sys; json.dump({"brief": "b", "scratch": {"kept": True}, "artifacts": [{"slug": "pad%d" % i, "file": "x" * 200} for i in range(100000)]}, open(sys.argv[1], "w"))' "$ws"; }
+  # six verbs at once each keep their entry: the file is padded, so that each read and write takes a while
+  bash "$here/preview.sh" --docroot "$n" >/dev/null; pad
+  for i in 1 2 3 4 5 6; do bash "$dk" bundle "$pl/p.html" --name "race$i" >/dev/null 2>&1 & done; wait
+  python3 -I -c 'import json, sys; a = json.load(open(sys.argv[1]))["artifacts"]; assert len(a) == 100006 and sorted(x["slug"] for x in a[100000:]) == ["race%d" % i for i in range(1, 7)], (len(a), [x["slug"] for x in a[100000:]])' "$ws" \
+    || { echo "FAIL: six dk bundle at once should each keep their artifacts entry"; exit 1; }
+  # a verb killed while it writes leaves the old file whole, or the new one
+  pad; python3 -I - "$dk" "$ws" <<'PY' || { echo "FAIL: a verb killed while it writes workshop.json should leave the old file or the new one whole"; exit 1; }
+import glob, json, os, signal, subprocess, sys
+dk, ws = sys.argv[1:]
+size = os.path.getsize(ws)
+def writing():
+    temps = []
+    for t in glob.glob(os.path.join(os.path.dirname(ws), ".workshop.json.*")):
+        try: temps.append(os.path.getsize(t))
+        except OSError: pass
+    return os.path.getsize(ws) < size or any(temps)
+p = subprocess.Popen(["bash", dk, "scratch", "--cleanup"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+while p.poll() is None and not writing(): pass
+if p.poll() is None: os.killpg(p.pid, signal.SIGKILL)
+p.wait()
+with open(ws) as fh: got = json.load(fh)
+assert len(got["artifacts"]) == 100000 and got["scratch"]["kept"] in (True, False), got.get("scratch")
+PY
   bash "$here/preview.sh" --docroot "$n" --stop >/dev/null
 ) || exit 1; rm -rf "$pl"
+# the first verb in a project whose .design-kit/workshop.json is nested past the parser
+mkdir -p "$tmp/deep-old/.design-kit"; printf '%s' "$deep" > "$tmp/deep-old/.design-kit/workshop.json"
+set +e; out="$(cd "$tmp/deep-old" && git init -q && DESIGN_KIT_IGNORE=off bash "$here/dk.sh" status 2>&1)"; rc=$?; set -e
+[ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" || { echo "FAIL: dk status should read a .design-kit/workshop.json nested past the parser as nothing recorded (rc=$rc): ${out:0:300}"; exit 1; }
 
 # dk system --source rendered: one page load (no dry-run first), and the render's exit code passes through.
 # A stand-in node plays system-render.mjs: it counts its calls and prints one token, or fails as a missing Playwright.
@@ -749,6 +800,13 @@ k=.cc-artifacts/design-kit/.preview.key; cp "$k" "$tmp/key.kept"; printf 'x\nurl
 served="$(dk serve --lan 2>&1)"; cp "$tmp/key.kept" "$k"
 ! grep -qx 'url=http://evil.example/' <<<"$served" && [ "$(grep -cF '?key="x\nurl=http://evil.example/"' <<<"$served")" = 2 ] \
   || { echo "FAIL: dk serve --lan and preview.sh should print a planted key as one JSON string: $served"; exit 1; }
+# a planted address naming a host, not the launcher's http://<IPv4>:<port>/, prints as one JSON string beside the real key
+u=.cc-artifacts/design-kit/.preview.url; cp "$u" "$tmp/url.kept"; printf 'http://evil.example/\n' > "$u"
+served="$(dk serve --lan 2>&1)"; cp "$tmp/url.kept" "$u"
+[ "$(grep -cF '"http://evil.example/"?key=' <<<"$served")" = 2 ] || { echo "FAIL: dk serve --lan and preview.sh should print a planted host name as one JSON string: $served"; exit 1; }
+# a key file ending in CRLF holds the key serve.py uses, and prints as that key
+printf '%s\r\n' "$(cat "$tmp/key.kept")" > "$k"; served="$(dk serve --lan 2>&1)"; cp "$tmp/key.kept" "$k"
+[ "$(grep -cE "\\?key=$(cat "$tmp/key.kept")\$" <<<"$served")" = 2 ] || { echo "FAIL: dk serve --lan and preview.sh should print a key that ends in CRLF as the key: $served"; exit 1; }
 grep -qE 'https?://|key=' .cc-artifacts/design-kit/usage.jsonl && { echo "FAIL: usage.jsonl holds a shared URL, with its port and LAN key"; exit 1; }
 set +e; out="$(dk share page.html --zip 2>&1)"; rc=$?; set -e
 [ "$rc" = 2 ] && [ ! -e page.zip ] && [ "$out" = "dk share: no page page.html under .cc-artifacts/design-kit" ] \
@@ -761,9 +819,15 @@ for args in "share $p --zip" "check $p"; do
 done
 # a module of the project's own never stands in for a stdlib one
 shadow() { for mod in html json re time hashlib shlex zipfile; do printf 'raise SystemExit("the project %s.py ran")\n' "$mod" > "$1/$mod.py"; done; }
+mkdir -p "$tmp/shot-a/desktop" "$tmp/shot-b/desktop"
+python3 -I -c 'import struct, sys, zlib
+chunk = lambda t, d: struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))
+for p in sys.argv[1:]: open(p, "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(b"\0\0\0\0")) + chunk(b"IEND", b""))' "$tmp/shot-a/desktop/index.png" "$tmp/shot-b/desktop/index.png"
+printf '{"cookies":[{"name":"a","value":"b","domain":"127.0.0.1","path":"/"}],"origins":[]}' > .cc-artifacts/design-kit/state.json
 shadow .
 out="$(dk bundle page.html --name pg 2>&1 || true; dk share "$art.html" --zip 2>&1 || true; dk decision 2>&1 || true; dk notes 2>&1 || true; dk status 2>&1 || true
-  dk drift --print-hook 2>&1 || true; dk scratch --create shadow 2>&1 || true; dk system . 2>&1 || true)"
+  dk drift --print-hook 2>&1 || true; dk scratch --create shadow 2>&1 || true; dk system . 2>&1 || true
+  dk snapshot --base-url "http://127.0.0.1:$port/" --storage-state .cc-artifacts/design-kit/state.json --out "$tmp/shot-c" 2>&1 || true; dk review --base "$tmp/shot-a" --current "$tmp/shot-b" 2>&1 || true)"
 rm html.py json.py re.py time.py hashlib.py shlex.py zipfile.py; dk scratch --cleanup >/dev/null
 # and a project's first verb: the .gitignore block, the state moved out of .design-kit/
 mkdir -p "$tmp/sh/.design-kit"; printf '{}' > "$tmp/sh/.design-kit/workshop.json"; shadow "$tmp/sh"
@@ -876,24 +940,30 @@ for name, rows, words in (("threat", threats, re.split("[|\n]", THREATS)), ("res
     if missing: bad.append("FAIL: threat model names every %s: not once %s" % (name, "; ".join(missing)))
     if unnamed: bad.append("FAIL: each %s of the threat model has a word here: none for %s" % (name, "; ".join(unnamed)))
 # what every harness a gate row names must itself name: a row whose gate moved to an unrelated harness fails here
-SUBJECTS = ({"plants a pick": "pick", "steals your press": "600", "reads or rewrites another page": "another page", "to another machine over http": "second server",
-             "gets a host approved": "allow", "another website reads": "origin", "another device on the network": "lan", "takes the tab": "navigat", "goes fullscreen": "fullscreen",
+SUBJECTS = ({"plants a pick": "/_decision", "steals your press": r"\b600 ms\b", "reads or rewrites another page": "another page", "to another machine over http": "second server",
+             "gets a host approved": r"X-Design-Kit-Allow|set_allow\(", "another website reads": "Origin: ", "another device on the network": r"(?<![\w-])--lan\b", "takes the tab": "navigat", "goes fullscreen": "fullscreen",
              "forges or floods": "forge", "svg, xhtml or xml": "svg", "leaves a service worker": "service.?worker", "out of the folder": "symlink", "older page or server left": "v:2",
-             "board file name": "board", "status step": "dk status", "checked or shot": "dk check|--shot", "posts fill the disk": "507"},
+             "board file name": "board", "status step": "dk status", "checked or shot": "dk check|--shot", "posts fill the disk": r"\b507\b"},
             {"any page may start a download": "download", "keyboard focus": "focus", "whoever holds a content url": "/_c/", "planted on disk": "v:2", "1.5 s late": r"1\.5 s",
              "fullscreen": "fullscreen", "another port": "moved from port", "50 ms": "50 ms"})
-for rows, subjects in zip((threats, residuals), SUBJECTS):
+def misnamed(rows, subjects):
+    found = []
     for row in rows:
         if row[-1].partition(":")[0] != "gate": continue
         keys = [w for w in subjects if w in flat(row[0])]
         if len(keys) != 1:
-            bad.append("FAIL: each gate row has one subject here: %s" % row[0]); continue
+            found.append("FAIL: each gate row has one subject here: %s" % row[0]); continue
         for n in sorted(set(re.findall(r"[a-z-]+\.test\.sh", row[-1]))):
             try:
                 with open(os.path.join(sys.argv[2], n), encoding="utf-8") as fh: body = fh.read()
             except OSError:
                 continue  # each gate row names a harness that is there, above
-            if not re.search(subjects[keys[0]], body, re.I): bad.append("FAIL: %s, named as the gate of %r, never names %s" % (n, keys[0], subjects[keys[0]]))
+            if not re.search(subjects[keys[0]], body, re.I): found.append("FAIL: %s, named as the gate of %r, never names %s" % (n, keys[0], subjects[keys[0]]))
+    return found
+for rows, subjects in zip((threats, residuals), SUBJECTS):
+    bad.extend(misnamed(rows, subjects))
+if not misnamed([["Another device on the network reads without the key.", "", "", "gate: frame.test.sh"]], SUBJECTS[0]):
+    bad.append("FAIL: the subject check takes frame.test.sh, which never opens the network, as the gate of the LAN row")
 print("\n".join(bad) or "ok: threat model names every residual")
 sys.exit(1 if bad else 0)
 PY

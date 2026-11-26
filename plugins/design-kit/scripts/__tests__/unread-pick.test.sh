@@ -16,6 +16,10 @@ case "$out" in "design-kit: 2026-09-22-deal.html has an unread pick — artboard
 [ "$(printf '%s' "$out" | wc -l | tr -d ' ')" = 0 ] || { echo "FAIL: more than one line"; exit 1; }
 [ -z "$(payload | CC_REMIND=off bash "$hook")" ] || { echo "FAIL: CC_REMIND=off ignored"; exit 1; }
 [ -z "$(payload | CC_DESIGN_KIT_PICK=off bash "$hook")" ] || { echo "FAIL: CC_DESIGN_KIT_PICK=off ignored"; exit 1; }
+# the hook runs in the project's folder: a module of the project's own never stands in for a stdlib one
+mkdir -p "$tmp/shadow"; for mod in calendar json re time; do printf 'raise SystemExit("the project %s.py ran")\n' "$mod" > "$tmp/shadow/$mod.py"; done
+out="$(cd "$tmp/shadow" && payload | bash "$hook" 2>&1)"
+case "$out" in "design-kit: 2026-09-22-deal.html has an unread pick — artboard 2."*) ;; *) echo "FAIL: a module in the hook's folder stood in for a stdlib one: $out"; exit 1 ;; esac
 
 # no python3 on PATH: silent AND exit 0. rc=127 on every prompt is what `set -e` plus an
 # unguarded interpreter used to buy.

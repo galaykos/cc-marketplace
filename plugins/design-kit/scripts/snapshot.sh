@@ -84,7 +84,7 @@ not_measured() {
 }
 slug() { local s; s="$(printf '%s' "$1" | sed 's/[^A-Za-z0-9]\{1,\}/-/g; s/^-//; s/-$//')"; printf '%s' "${s:-index}"; }
 find_set() { # prints the deepest dir under $1 holding device subdirs with PNGs, or ""
-  python3 - "$1" <<'PY'
+  python3 -I - "$1" <<'PY'
 import os, sys
 found = set()
 for dp, _dns, fns in os.walk(sys.argv[1]):
@@ -102,7 +102,7 @@ check_state() {
     git -C "$dir" check-ignore -q -- "$(basename "$1")" 2>/dev/null \
       || die "REFUSED --storage-state $1: it is inside the git work tree $top and git does not ignore it (or it is tracked). It holds a live session token the next \`git add -A\` would commit. Move it under .cc-artifacts/design-kit/ (dk keeps that ignored) or outside the repo, or gitignore it." 1
   fi
-  python3 - "$1" <<'PY' || die "--storage-state $1 is not a Playwright storageState: want {\"cookies\": [{\"name\", \"value\", \"domain\", …}], \"origins\": [{\"origin\", \"localStorage\": [{\"name\", \"value\"}]}]} holding at least one cookie or localStorage entry" 1
+  python3 -I - "$1" <<'PY' || die "--storage-state $1 is not a Playwright storageState: want {\"cookies\": [{\"name\", \"value\", \"domain\", …}], \"origins\": [{\"origin\", \"localStorage\": [{\"name\", \"value\"}]}]} holding at least one cookie or localStorage entry" 1
 import json, sys
 try:
     st = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -158,7 +158,7 @@ if [ "$mode" = snapshot ]; then
   fi
   rm -f "$hint"
 
-  python3 - "$base_url" <<'PY' || not_measured "the base URL is unreachable — is the dev server running?"
+  python3 -I - "$base_url" <<'PY' || not_measured "the base URL is unreachable — is the dev server running?"
 import sys, urllib.error, urllib.request
 try:
     urllib.request.urlopen(sys.argv[1], timeout=5).read(1)
@@ -190,7 +190,7 @@ PY
   done
 
   if [ -n "$state" ]; then
-    python3 - "$browser" "$state" "${base_url%/}" ${jobs[@]+"${jobs[@]}"} <<'PY' \
+    python3 -I - "$browser" "$state" "${base_url%/}" ${jobs[@]+"${jobs[@]}"} <<'PY' \
       || not_measured "the signed-in shoot stopped before every route was shot"
 import base64, json, os, select, shutil, subprocess, sys, tempfile, time, urllib.parse
 
@@ -411,7 +411,7 @@ else
   rm -rf "$base_root"; mkdir -p "$base_root"
   # git archive refuses a pathspec outside the cwd, so it runs from the toplevel with a toplevel-relative path.
   top="$(git rev-parse --show-toplevel)"
-  shots_rel="$(python3 -c 'import os,sys;print(os.path.relpath(os.path.realpath(sys.argv[1]),os.path.realpath(sys.argv[2])))' "$DK/shots" "$top")"
+  shots_rel="$(python3 -I -c 'import os,sys;print(os.path.relpath(os.path.realpath(sys.argv[1]),os.path.realpath(sys.argv[2])))' "$DK/shots" "$top")"
   git -C "$top" archive "$base" -- "$shots_rel" 2>/dev/null | tar -x -C "$base_root" 2>/dev/null || true
   # a ref from before 2026-11-14 committed its shots under .design-kit/shots: read those when the new path held none
   [ -n "$(ls -A "$base_root")" ] || git -C "$top" archive "$base" -- .design-kit/shots 2>/dev/null | tar -x -C "$base_root" 2>/dev/null || true
@@ -436,7 +436,9 @@ html="$DK/reviews/$(slug "$pair").html"
 mkdir -p "$DK/reviews"
 
 python3 - "$base_set" "$current_set" "$html" <<'PY' || die "review page could not be written" 1
-import os, shutil, sys
+import os, sys
+sys.path[:] = [p for p in sys.path if os.path.abspath(p) != os.getcwd()]  # not -I: a Pillow installed with pip --user must still load
+import shutil
 
 base, cur, html = sys.argv[1:4]
 try:
@@ -567,8 +569,6 @@ PY
 
 out="$(bash "$here/preview.sh" --docroot "$DK" 2>&1)" || { echo "$out" >&2; not_measured "the preview server did not start"; }
 echo "$out" | grep -v '^preview: http' >&2 || true
-url="$(cat "$DK/.preview.url" 2>/dev/null || true)"
+url="$(python3 -I "$here/picks.py" address "$DK" "${html#"$DK"/}")"
 [ -n "$url" ] || not_measured "the preview server did not write its URL"
-url="$(python3 -I "$here/picks.py" url "$url")"
-q=""; if [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ] && [ -s "$DK/.preview.key" ]; then q="?key=$(python3 -I "$here/picks.py" key "$(cat "$DK/.preview.key")")"; fi
-echo "url=${url%/}/${html#"$DK"/}$q"
+echo "url=$url"
