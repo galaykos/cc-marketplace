@@ -869,7 +869,7 @@ for row in threats + residuals:
 THREATS = """plants a pick|steals your press|reads or rewrites another page|to another machine over http|gets a host approved|another website reads|another device on the network|takes the tab|goes fullscreen
 forges or floods|svg, xhtml or xml|leaves a service worker|out of the folder|older page or server left|board file name|status step|checked or shot|posts fill the disk|malware that runs as you"""
 RESIDUALS = """preconnect, webrtc or dns|blocked navigation opens|an approved host|private address|ctrl, shift or middle click|in firefox|keyboard focus|a motion or film recording|any page may start a download|inside its own area|text edits|everything else you confirm|static=1|under dk check|print in the browser's menu|fullscreen
-its own pick strip|another port|0.19.3 session|service worker|dk export|never stops computing|dialog after dialog|1.5 s late|floods the viewer|whoever holds a content url|hard link|swapped|planted on disk|tab reload|last 50 rows|unlocked|50 ms|two launches|plain http|do not travel"""
+its own pick strip|another port|0.19.3 session|service worker|dk export|never stops computing|dialog after dialog|1.5 s late|floods the viewer|whoever holds a content url|hard link|swapped|planted on disk|tab reload|last 50 rows|unlocked|50 ms|two launches|plain http|do not travel|focuses an element on hover|its own global"""
 for name, rows, words in (("threat", threats, re.split("[|\n]", THREATS)), ("residual", residuals, re.split("[|\n]", RESIDUALS))):
     missing = [w for w in words if sum(w in flat(row[0]) for row in rows) != 1]
     unnamed = [row[0] for row in rows if not any(w in flat(row[0]) for w in words)]
