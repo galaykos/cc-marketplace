@@ -250,7 +250,7 @@ rm -f "$tmp.outside.txt"
 # never served: hidden files, auth/, state files, version ledgers, directory listings
 mkdir -p "$tmp/auth" "$tmp/artifacts/.versions/a" "$tmp/shots"
 echo '{"cookies":[{"value":"SECRET"}]}' > "$tmp/auth/walk.json"
-echo '{"s":"SECRET"}' | tee "$tmp/workshop.json.bad" > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
+echo '{"s":"SECRET"}' | tee "$tmp/workshop.json.bad" "$tmp/workshop.json.bad.1" "$tmp/workshop.json.bad.99" > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
 echo '<p>SECRET</p>' > "$tmp/artifacts/.versions/a/v1.html"; echo '{"s":"SECRET"}' > "$tmp/artifacts/a.versions.json"
 printf 'PNG' > "$tmp/shots/one.png"; echo 'SECRET' > "$tmp/.preview.key"
 # never_served <path> <leak>: 404 with no body for GET and HEAD, origin-form and absolute-form (http://x//auth/... was 200 once)
@@ -266,7 +266,7 @@ never_served() {
     [ "$c" = 404 ] || { echo "FAIL: HEAD $t should be 404, got $c"; exit 1; }
   done
 }
-for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /workshop.json.bad /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
+for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /workshop.json.bad /workshop.json.bad.1 /workshop.json.bad.99 /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
   never_served "$probe" "SECRET\|one.png"
 done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }

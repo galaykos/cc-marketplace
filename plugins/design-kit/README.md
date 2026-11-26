@@ -78,8 +78,8 @@ focus, and one that kept taking it stopped Tab in the gallery. The live gallery 
 to the card it was on, and shows a thumbnail that takes it three times in a second as its title.
 Chrome lets no thumbnail take it. The gallery at `?static=1` or in a headless browser has no script,
 so nothing gives the focus back there. Standing: `viewer.test.sh` drives the give-back in Chrome,
-where the gallery's own script makes the thumbnail take the focus — **gate**; a page taking it by
-itself was seen in Firefox by hand — **recorded**.
+where the case's own script makes the take: it lifts `inert`, focuses the frame and restores
+`inert` — **gate**; a page taking it by itself was seen in Firefox by hand — **recorded**.
 
 `--lan` binds every interface so a phone on your network can open it — that is the only way a page
 leaves the machine through the server, and every skill says so before using it. A LAN server asks

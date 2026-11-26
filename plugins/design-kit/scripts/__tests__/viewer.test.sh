@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, a page that takes it from the viewer, and is stopped where it does so again and again from a note (a pointer moved by the system's way, for DevTools' own says nothing of a frame it is over; how much of what is typed such a page got is printed as a NOTE), query, hash and Back, reload (at a save of its own page, its last messages in first), the scroll kept over one, the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, in two tabs too, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a lost stream that is back before its retry, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, what is said of it, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the contract's seven states at 1280 and 375 px (what is where, nothing sideways, axe-core, Tab order, nothing draggable, a strip said once and never focused, a screenshot of each in the temp dir), the strips' order, 40 notes and 12 blocked hosts at 375 px, the bar at its widest from 320 px, Tab into a page with nothing to focus and the ring it draws, in pixels, the LAN viewer at this machine's own address (a SKIP line without one: at a faked peer's then), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the bounce of a top-level framed page and what the LAN viewer asks for; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), a gallery thumbnail's page taking the focus by itself, which Chrome refuses (the gallery's own script takes it for the case), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus, but for a tab in front of it (document.hasFocus is faked, and the viewer kept from hearing of a lost one); a scroll by a scrollbar, which headless Chrome hides.
+# Misses: a hostile page (attack.test.sh), a gallery thumbnail's page taking the focus by itself, which Chrome refuses (the case's own script, run in the gallery, makes the take), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus, but for a tab in front of it (document.hasFocus is faked, and the viewer kept from hearing of a lost one); a scroll by a scrollbar, which headless Chrome hides.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -2057,6 +2057,22 @@ def swapped(b):
     finally:
         server.stop()
         server.start()
+    tab = visit(b, server.url + "/" + name)
+    f = tab.frame()
+    tab.wait(ASKS + ".length", 6)
+    writes(tab, f, "back on the first project")
+    try:
+        reframed(tab, lambda: (server.stop(), server.start(root=second)))
+        marked = tab.evaluate(WHY)
+    finally:
+        reframed(tab, lambda: (server.stop(), server.start()))
+    tab.wait(ASKS + ".length", 6)
+    time.sleep(PACE)
+    unmarked = tab.evaluate(WHY)
+    press(tab, SEND_NOTE)
+    eq("a note written on one project, framed with another's page and then with its own again, is no longer marked, and Send note records it there alone",
+       lambda: [marked, unmarked, tab.wait("!" + WRITING, 4) and said("text"), os.path.exists(os.path.join(second, "notes.jsonl"))],
+       [MOVED, "", ["back on the first project"], False])
 
 PAGE_UNANSWERED = "{ const real = fetch; window.fetch = (at, ...more) => (String(at).startsWith('/_page') ? Promise.reject(new TypeError('held')) : real(at, ...more)); }"
 
@@ -3050,7 +3066,7 @@ def thumbnails(b):
         time.sleep(0.25)
         walked.append(tab.wait(ON_CARD, 0.5) or tab.evaluate(CARD))
     thumbs = "[...document.querySelectorAll('a.card')].filter((a) => /takes-/.test(a.getAttribute('href'))).map((a) => [a.firstElementChild.localName, a.firstElementChild.localName === 'div' ? a.firstElementChild.textContent : ''])"
-    eq("in the gallery a thumbnail that takes the focus (here the gallery's own script makes it take it: Chrome lets no thumbnail's page) gives it back to its card, Tab walks on, and one that takes it 3 times in 1 s is its title",
+    eq("in the gallery a thumbnail that takes the focus (here the case's own script, run in the gallery, makes the take: Chrome lets no thumbnail's page) gives it back to its card, Tab walks on, and one that takes it 3 times in 1 s is its title",
        lambda: [walked, tab.evaluate(thumbs)], [cards[at[0]:at[1] + 2], [["div", "takes-fast"], ["iframe", ""]]])
 
 LAN = own_address()

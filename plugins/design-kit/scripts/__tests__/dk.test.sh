@@ -612,7 +612,7 @@ lg="$(mktemp -d)"; ( cd "$lg" && git init -q
   [ "$(find .design-kit design-system -exec cksum {} + 2>/dev/null | sort; find .design-kit design-system | sort)" = "$before" ] \
     || { echo "FAIL: the old folders changed"; exit 1; }
 ) || exit 1; rm -rf "$lg"
-deep="$(python3 -I -c 'print("[" * 200000)')"   # nested past what Python's parser takes
+nested_past_parser="$(python3 -I -c 'print("[" * 200000)')"
 # a row planted by hand or through an older server: of one without v:2, dk status says only a clamped board name, marked unconfirmed
 pl="$(mktemp -d)"; ( trap 'cd /; bash "$here/preview.sh" --docroot "$pl/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true; rm -rf "$pl"' EXIT
   export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mkdir -p .cc-artifacts/design-kit; n=.cc-artifacts/design-kit; ws="$n/workshop.json"
@@ -630,7 +630,7 @@ pl="$(mktemp -d)"; ( trap 'cd /; bash "$here/preview.sh" --docroot "$pl/.cc-arti
     printf '{"deck":{"file":%s,"pdf":true}}' "$file" > "$ws"; set +e; st="$(bash "$dk" status 2>&1)"; rc=$?; set -e
     [ "$rc" = 0 ] && case "$st" in *'deck [(no usable name) · pdf]'*) true ;; *) false ;; esac || { echo "FAIL: a deck file of $file should read as no usable name (rc=$rc): $st"; exit 1; }
   done
-  for planted in '[]' '"x"' '{"system":"x","board":"x","scratch":5,"artifacts":["x",3],"deck":[]}' '{"artifacts":{"a":1},"board":[1]}' "$deep"; do
+  for planted in '[]' '"x"' '{"system":"x","board":"x","scratch":5,"artifacts":["x",3],"deck":[]}' '{"artifacts":{"a":1},"board":[1]}' "$nested_past_parser"; do
     printf '%s' "$planted" > "$ws"; set +e; st="$(bash "$dk" status 2>&1)"; rc=$?; set -e
     [ "$rc" = 0 ] && [ "$(head -n 1 <<<"$st")" = "system [not extracted] → board [no board] → scratch [not rendered] → artifact [none] → deck [none]" ] \
       || { echo "FAIL: a workshop.json of ${planted:0:80} should read as nothing recorded (rc=$rc): ${st:0:300}"; exit 1; }
@@ -669,7 +669,7 @@ pl="$(mktemp -d)"; ( trap 'cd /; bash "$here/preview.sh" --docroot "$pl/.cc-arti
 step = lambda k: (ws.get(k) or [None])[-1] if k == "artifacts" else ws.get(k)
 assert isinstance(ws, dict) and all(ws.get(k) == v for k, v in json.loads(sys.argv[2]).items()), ws
 assert all(isinstance(step(k), dict) and step(k).get(f) == v for k, fields in own.items() for f, v in fields.items()), ws' "$ws" "$1" "$2" 2>/dev/null; }
-  for shape in '[]' '"x"' '{"brief":"b","system":"s","board":"x","scratch":5,"artifacts":{"a":1},"deck":[1]}' '{"brief":"b","artifacts":["x",3]}' "$deep"; do
+  for shape in '[]' '"x"' '{"brief":"b","system":"s","board":"x","scratch":5,"artifacts":{"a":1},"deck":[1]}' '{"brief":"b","artifacts":["x",3]}' "$nested_past_parser"; do
     case "$shape" in '{'*) left='{"brief":"b"}' ;; *) left='{}' ;; esac
     for verb in "decision --latest --consume" "scratch --cleanup" "bundle $pl/p.html --name pw" "board $tmp/spec.json"; do
       case "$verb" in
@@ -683,9 +683,13 @@ assert all(isinstance(step(k), dict) and step(k).get(f) == v for k, fields in ow
       [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" && kept "$left" "$own" || { echo "FAIL: dk $verb over a workshop.json of ${shape:0:80} should take it as absent, keep the rest and write its own step $own (rc=$rc): $(head -c 300 "$ws") ${out:0:300}"; exit 1; }
     done
   done
-  # a workshop.json that does not parse is moved aside to workshop.json.bad, never overwritten
-  printf '{"brief": "b",' > "$ws"; bash "$dk" scratch --cleanup >/dev/null 2>&1
-  [ "$(cat "$ws.bad" 2>/dev/null)" = '{"brief": "b",' ] && kept '{}' '{"scratch":{"kept":false}}' || { echo "FAIL: a workshop.json that does not parse should be moved to workshop.json.bad and the verb's step written: $(cat "$ws.bad" 2>&1) $(cat "$ws")"; exit 1; }
+  # a workshop.json that does not parse is moved aside to the first free one of workshop.json.bad, .bad.1 …, never overwritten, and the verb names it on stderr
+  find "$n" -maxdepth 1 -name 'workshop.json.bad*' -delete
+  named_aside() { [ "$(grep -cE "^design-kit: .*/workshop\.json did not parse; moved to .*/workshop\.json\.bad$1\$" <<<"$2")" = 1 ]; }
+  printf '{"brief": "b",' > "$ws"; out="$(bash "$dk" scratch --cleanup 2>&1)"
+  [ "$(cat "$ws.bad" 2>/dev/null)" = '{"brief": "b",' ] && kept '{}' '{"scratch":{"kept":false}}' && named_aside '' "$out" || { echo "FAIL: a workshop.json that does not parse should be moved to workshop.json.bad, named on stderr, and the verb's step written: $(cat "$ws.bad" 2>&1) $(cat "$ws") $out"; exit 1; }
+  printf '{"brief": "c",' > "$ws"; out="$(bash "$dk" scratch --cleanup 2>&1)"
+  [ "$(cat "$ws.bad")" = '{"brief": "b",' ] && [ "$(cat "$ws.bad.1" 2>/dev/null)" = '{"brief": "c",' ] && named_aside '\.1' "$out" || { echo "FAIL: a second workshop.json that does not parse should be moved to workshop.json.bad.1, named on stderr, and the first left in workshop.json.bad: $(cat "$ws.bad.1" 2>&1) $out"; exit 1; }
   pad() { python3 -I -c 'import json, sys; json.dump({"brief": "b", "scratch": {"kept": True}, "artifacts": [{"slug": "pad%d" % i, "file": "x" * 200} for i in range(100000)]}, open(sys.argv[1], "w"))' "$ws"; }
   # six verbs at once each keep their entry: the file is padded, so that each read and write takes a while
   bash "$here/preview.sh" --docroot "$n" >/dev/null; pad
@@ -712,7 +716,7 @@ assert len(got["artifacts"]) == 100000 and got["scratch"]["kept"] in (True, Fals
 PY
 ) || exit 1
 # the first verb in a project whose .design-kit/workshop.json is nested past the parser
-mkdir -p "$tmp/deep-old/.design-kit"; printf '%s' "$deep" > "$tmp/deep-old/.design-kit/workshop.json"
+mkdir -p "$tmp/deep-old/.design-kit"; printf '%s' "$nested_past_parser" > "$tmp/deep-old/.design-kit/workshop.json"
 set +e; out="$(cd "$tmp/deep-old" && git init -q && DESIGN_KIT_IGNORE=off bash "$here/dk.sh" status 2>&1)"; rc=$?; set -e
 [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" || { echo "FAIL: dk status should read a .design-kit/workshop.json nested past the parser as nothing recorded (rc=$rc): ${out:0:300}"; exit 1; }
 # the first verb's copy of .design-kit/workshop.json, killed while its paths are rewritten, is left whole

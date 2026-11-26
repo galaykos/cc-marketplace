@@ -248,6 +248,7 @@
       refused.clear();
       failed = {};
       if (note?.project && note.project !== at.project) explain(MOVED);
+      else if (note?.why.textContent === MOVED) explain('');
     }
     [goal, jumped, project] = [scrolled, false, at.project];
     frame.setAttribute('sandbox', RULES.sandbox);

@@ -44,7 +44,7 @@ RELOAD_JS = (
     '(document.body||document.documentElement).appendChild(b);b.textContent="Preview server stopped; retrying"}'
     'd=Math.min(d?d*2:1000,30000);setTimeout(go,d)}}go()})();'
 )
-# The gallery's too: Firefox lets a thumbnail's page take the focus, inert or not, and holds it on the frame for a moment only.
+# The gallery's too. It listens for focus beside its 16 ms poll, which may miss a take held on the frame for a moment: rationale/derivations/plugin-design-kit.md § serve.py, 0.20.2 review
 FOCUS_JS = (
     '(function(){var last=null,held=null,owed=-1e9,takes=new Map();'
     'function took(){var f=document.activeElement,now=performance.now(),t,p;'
@@ -96,7 +96,8 @@ BLANKS = ((0x115F, 0x1160), (0x180B, 0x180F), (0x2800, 0x2800), (0x3164, 0x3164)
 BLANK = {c for first, last in BLANKS for c in range(first, last + 1)}
 # What viewer.js goes by, in its document's data-rules; hidden: the inside of a JavaScript character class.
 RULES = json.dumps(dict(picks.LIMITS, hidden="".join([r"\p{%s}" % c for c in HIDDEN] + [r"\u{%X}-\u{%X}" % r for r in BLANKS]), sandbox=isolate.SANDBOX, gallery=GALLERY))
-IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", "workshop.json.bad", "decisions.jsonl", "usage.jsonl", NOTES}
+WORKSHOP_ASIDE = ["workshop.json.bad"] + ["workshop.json.bad.%d" % i for i in range(1, 100)]
+IGNORED = {".preview.pid", ".preview.url", ".preview.bind", KEY_FILE, "_index.json", "workshop.json", *WORKSHOP_ASIDE, "decisions.jsonl", "usage.jsonl", NOTES}
 PRIVATE_DIRS = {"auth"}
 LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1")
 DECISION_MAX = 64 * 1024
@@ -135,7 +136,7 @@ def decisions_lock(root):
 
 @contextlib.contextmanager
 def workshop(root):
-    """root's workshop.json as a dict to change, under .workshop.lock; put back in one step when changed, a file that does not parse moved to workshop.json.bad first."""
+    """root's workshop.json as a dict to change, under .workshop.lock; put back in one step when changed, a file that does not parse first moved to the first free WORKSHOP_ASIDE name, else the last, and named on stderr."""
     path = os.path.join(root, "workshop.json")
     with locked(os.path.join(root, ".workshop.lock")):
         broken = False
@@ -150,7 +151,11 @@ def workshop(root):
         was = json.dumps(ws)
         yield ws
         if json.dumps(ws) != was:
-            isolate.replace_file(path, json.dumps(ws, indent=1).encode("utf-8"), path + ".bad" if broken else None)
+            names = [os.path.join(root, name) for name in WORKSHOP_ASIDE]
+            aside = next((p for p in names if not os.path.lexists(p)), names[-1]) if broken else None
+            isolate.replace_file(path, json.dumps(ws, indent=1).encode("utf-8"), aside)
+            if aside:
+                print("design-kit: %s did not parse; moved to %s" % (path, aside), file=sys.stderr)
 
 
 def checks_dir(root):
