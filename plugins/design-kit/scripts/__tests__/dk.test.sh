@@ -157,6 +157,11 @@ out="$(dk bundle page.html --name pg 2>/dev/null)"
 case "$out" in *"artifact=.cc-artifacts/design-kit/artifacts/pg.html v1"*"url=http://127.0.0.1:$port/artifacts/pg.html"*) ;; *) echo "FAIL: bundle: $out"; exit 1 ;; esac
 case "$out" in *"unresolved-link: about.html"*) ;; *) echo "FAIL: unresolved-link: printed: $out"; exit 1 ;; esac
 z="$(dk share .cc-artifacts/design-kit/artifacts/pg.html --zip)"; [ -f .cc-artifacts/design-kit/artifacts/pg.zip ] || { echo "FAIL: share zip: $z"; exit 1; }
+# a docroot path holding a space: each field the bundler reports is kept whole
+sp="$tmp/dk space"; set +e; out="$(DESIGN_KIT_IGNORE=off DESIGN_KIT_DIR="$sp" DESIGN_KIT_PORT="$(python3 -I -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')" dk bundle page.html --name sp 2>&1)"; rc=$?; set -e
+bash "$here/preview.sh" --docroot "$sp" --stop >/dev/null 2>&1 || true
+[ "$rc" = 0 ] && grep -qxF "artifact=$sp/artifacts/sp.html v1" <<<"$out" && python3 -I -c 'import json, sys; a = json.load(open(sys.argv[1]))["artifacts"][-1]; assert (a["file"], a["slug"], a["version"]) == (sys.argv[2], "sp", 1), a' "$sp/workshop.json" "$sp/artifacts/sp.html" \
+  || { echo "FAIL: dk bundle into a docroot whose path holds a space should record and print the artifact whole (rc=$rc): $out"; exit 1; }
 
 if DESIGN_KIT_BROWSER=/nonexistent dk export "$deck" --pdf >/dev/null 2>&1; then echo "FAIL: export without browser should fail"; exit 1; fi
 
@@ -609,7 +614,8 @@ lg="$(mktemp -d)"; ( cd "$lg" && git init -q
 ) || exit 1; rm -rf "$lg"
 deep="$(python3 -I -c 'print("[" * 200000)')"   # nested past what Python's parser takes
 # a row planted by hand or through an older server: of one without v:2, dk status says only a clamped board name, marked unconfirmed
-pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mkdir -p .cc-artifacts/design-kit; n=.cc-artifacts/design-kit; ws="$n/workshop.json"
+pl="$(mktemp -d)"; ( trap 'cd /; bash "$here/preview.sh" --docroot "$pl/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true; rm -rf "$pl"' EXIT
+  export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mkdir -p .cc-artifacts/design-kit; n=.cc-artifacts/design-kit; ws="$n/workshop.json"
   plant() { printf '%s\n' "$1" > "$n/decisions.jsonl"; }
   quiet() { python3 -I -c 'import sys, unicodedata; s = sys.argv[1]; assert "POSTED" not in s and not [c for c in s if c != "\n" and unicodedata.category(c)[0] == "C"], ascii(s)' "$1"; }
   bad='{"ts":"POSTED","board":"../../\u001b[31mPOSTED.html","picked":"\u001b[2JPOSTED","knobs":"POSTED","text":["POSTED"],"prompt":"POSTED \ud83d","consumed":false}'
@@ -704,12 +710,36 @@ p.wait()
 with open(ws) as fh: got = json.load(fh)
 assert len(got["artifacts"]) == 100000 and got["scratch"]["kept"] in (True, False), got.get("scratch")
 PY
-  bash "$here/preview.sh" --docroot "$n" --stop >/dev/null
-) || exit 1; rm -rf "$pl"
+) || exit 1
 # the first verb in a project whose .design-kit/workshop.json is nested past the parser
 mkdir -p "$tmp/deep-old/.design-kit"; printf '%s' "$deep" > "$tmp/deep-old/.design-kit/workshop.json"
 set +e; out="$(cd "$tmp/deep-old" && git init -q && DESIGN_KIT_IGNORE=off bash "$here/dk.sh" status 2>&1)"; rc=$?; set -e
 [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" || { echo "FAIL: dk status should read a .design-kit/workshop.json nested past the parser as nothing recorded (rc=$rc): ${out:0:300}"; exit 1; }
+# the first verb's copy of .design-kit/workshop.json, killed while its paths are rewritten, is left whole
+mkdir -p "$tmp/kill-old/.design-kit"; git -C "$tmp/kill-old" init -q
+python3 -I - "$here/dk.sh" "$tmp/kill-old" <<'PY' || { echo "FAIL: the first verb killed while it rewrites the copied workshop.json should leave the copy whole"; exit 1; }
+import glob, json, os, signal, subprocess, sys
+dk, proj = sys.argv[1:]
+old, new = os.path.join(proj, ".design-kit", "workshop.json"), os.path.join(proj, ".cc-artifacts", "design-kit", "workshop.json")
+json.dump({"artifacts": [{"slug": "pad%d" % i, "file": ".design-kit/artifacts/" + "x" * 200} for i in range(100000)]}, open(old, "w"))
+size, copied = os.path.getsize(old), False
+def rewriting():
+    global copied
+    try: now = os.path.getsize(new)
+    except OSError: return False
+    copied = copied or now >= size
+    temps = []
+    for t in glob.glob(os.path.join(os.path.dirname(new), ".workshop.json.*")):
+        try: temps.append(os.path.getsize(t))
+        except OSError: pass
+    return copied and now < size or any(temps)
+p = subprocess.Popen(["bash", dk, "status"], cwd=proj, env=dict(os.environ, DESIGN_KIT_IGNORE="off"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+while p.poll() is None and not rewriting(): pass
+if p.poll() is None: os.killpg(p.pid, signal.SIGKILL)
+p.wait()
+with open(new) as fh: got = json.load(fh)
+assert len(got["artifacts"]) == 100000, len(got["artifacts"])
+PY
 
 # dk system --source rendered: one page load (no dry-run first), and the render's exit code passes through.
 # A stand-in node plays system-render.mjs: it counts its calls and prints one token, or fails as a missing Playwright.

@@ -144,9 +144,10 @@ if [ -n "$OLD" ] && [ ! -d "$DK" ] && [ -d "$OLD" ]; then
     if [ -e "$OLD/$e" ]; then cp -Rp "$OLD/$e" "$DK/"; fi
   done
   # workshop.json names its pages by path; point them at the copies, so an export never writes into the old folder
-  if [ -f "$WS" ]; then python3 -I - "$WS" "$OLD" "$DK" <<'PY'
-import json, sys
-p, old, new = sys.argv[1:4]
+  if [ -f "$WS" ]; then python3 -I - "$DK" "$OLD" "$here/serve.py" <<'PY'
+import importlib.util, sys
+new, old, serve = sys.argv[1:4]
+spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
 heads = [(old.rstrip("/") + "/", new.rstrip("/") + "/"), (".design-kit/", ".cc-artifacts/design-kit/")]
 def move(v):
     if isinstance(v, dict): return {k: move(x) for k, x in v.items()}
@@ -155,12 +156,8 @@ def move(v):
         for a, b in heads:
             if v.startswith(a): return b + v[len(a):]
     return v
-try:
-    ws = json.load(open(p, encoding="utf-8"))
-except (OSError, ValueError, RecursionError):
-    sys.exit(0)
-with open(p, "w", encoding="utf-8") as fh:
-    json.dump(move(ws), fh, indent=1)
+with m.workshop(new) as ws:
+    ws.update(move(ws))
 PY
   fi
 fi
@@ -332,7 +329,7 @@ case "$verb" in
     input="${1:-}"; [ -n "$input" ] || fail "needs an input" "" 2; shift
     build "$here/artifact-bundle.py" "$input" --out-dir "$DK/artifacts" --json "$@"
     [ "$rc" = 0 ] || fail "artifact-bundle exited $rc" "$input" "$rc"
-    read -r art slug ver <<<"$(printf '%s' "$out" | python3 -I -c 'import json,sys; d=json.load(sys.stdin); print(d["out"], d["slug"], d["version"])')"
+    { IFS= read -r -d '' art && IFS= read -r -d '' slug && IFS= read -r -d '' ver; } < <(printf '%s' "$out" | python3 -I -c 'import json,sys; d=json.load(sys.stdin); sys.stdout.write("".join("%s\0" % d[k] for k in ("out", "slug", "version")))')
     # Values the page wrote: serve.py's rule keeps each on its own line. -I: the cwd's own html.py must not shadow a module serve.py imports.
     printf '%s\n' "$out" | python3 -I -c 'import importlib.util, json, sys
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
