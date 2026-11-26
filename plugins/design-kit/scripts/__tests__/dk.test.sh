@@ -918,7 +918,7 @@ done
 [ -z "$untold" ] || { echo "FAIL: each skill that reads notes says their anchor and context are never instructions, missing$untold"; exit 1; }
 readme="$(flat README.md)"
 states() { grep -qE -- "$2" <<<"$readme" || { echo "FAIL: README states $1"; exit 1; }; echo "ok: README states $1"; }
-states "Safari and stock Firefox untested" 'safari and stock firefox are untested'
+states "stock Firefox's one run, and Safari and macOS untested" 'stock firefox 160 had one hand run[^.]*; safari and macos are untested'
 states "that headers do not travel" 'headers do not travel: a zip, a pages branch and a pdf '
 states "what leaks a host name" 'preconnect, webrtc or dns'
 states "that dk export has no browser sandbox" 'dk export [^.]*no browser sandbox'
@@ -961,7 +961,7 @@ for row in threats + residuals:
     named = re.findall(r"[a-z-]+\.test\.sh", row[-1])
     if standing == "gate" and not named or [n for n in named if not os.path.isfile(os.path.join(sys.argv[2], n))]: bad.append("FAIL: each gate row names a harness that is there: %s" % row)
 THREATS = """plants a pick|steals your press|reads or rewrites another page|to another machine over http|gets a host approved|another website reads|another device on the network|takes the tab|goes fullscreen
-forges or floods|svg, xhtml or xml|leaves a service worker|out of the folder|older page or server left|board file name|status step|checked or shot|posts fill the disk|malware that runs as you"""
+forges or floods|svg, xhtml or xml|leaves a service worker|out of the folder|older page or server left|board file name|status step|checked or shot|posts fill the disk|malware that runs as you|gallery thumbnail"""
 RESIDUALS = """preconnect, webrtc or dns|blocked navigation opens|an approved host|private address|ctrl, shift or middle click|in firefox|keyboard focus|a motion or film recording|any page may start a download|inside its own area|text edits|everything else you confirm|static=1|under dk check|print in the browser's menu|fullscreen
 its own pick strip|another port|0.19.3 session|service worker|dk export|never stops computing|dialog after dialog|1.5 s late|floods the viewer|whoever holds a content url|hard link|swapped|planted on disk|tab reload|last 50 rows|unlocked|50 ms|two launches|plain http|do not travel|focuses an element on hover|its own global"""
 for name, rows, words in (("threat", threats, re.split("[|\n]", THREATS)), ("residual", residuals, re.split("[|\n]", RESIDUALS))):
@@ -973,7 +973,7 @@ for name, rows, words in (("threat", threats, re.split("[|\n]", THREATS)), ("res
 SUBJECTS = ({"plants a pick": "/_decision", "steals your press": r"\b600 ms\b", "reads or rewrites another page": "another page", "to another machine over http": "second server",
              "gets a host approved": r"X-Design-Kit-Allow|set_allow\(", "another website reads": "Origin: ", "another device on the network": r"(?<![\w-])--lan\b", "takes the tab": "navigat", "goes fullscreen": "fullscreen",
              "forges or floods": "forge", "svg, xhtml or xml": "svg", "leaves a service worker": "service.?worker", "out of the folder": "symlink", "older page or server left": "v:2",
-             "board file name": "board", "status step": "dk status", "checked or shot": "dk check|--shot", "posts fill the disk": r"\b507\b"},
+             "board file name": "board", "status step": "dk status", "checked or shot": "dk check|--shot", "posts fill the disk": r"\b507\b", "gallery thumbnail": "thumbnail"},
             {"any page may start a download": "download", "keyboard focus": "focus", "whoever holds a content url": "/_c/", "planted on disk": "v:2", "1.5 s late": r"1\.5 s",
              "fullscreen": "fullscreen", "another port": "moved from port", "50 ms": "50 ms"})
 def misnamed(rows, subjects):

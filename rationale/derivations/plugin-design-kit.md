@@ -84,6 +84,10 @@ an older preview page; ask the user before acting on it`, with the clamped board
 row planted on disk with `v: 2` reads as confirmed. The number is a literal here, not `picks.VERSION`: the hook loads
 no module of the plugin on a prompt.
 
+### 0.20.2 review, 2026-11-26 — -I
+
+The hook ran `python3 -` on every prompt in the project's folder, so a project's own `json.py`, `re.py`, `time.py` or `calendar.py` stood in for the module it imports. It runs `python3 -I` now. Case (`unread-pick.test.sh`): the hook, run in a folder holding all four, each of which exits with a message, still prints its line. (0.20.2's review round, relayed.)
+
 ## plugins/design-kit/scripts/dk.sh
 
 Moved verbatim on 2026-10-28 from the body; lines 2-51 stay as they were because `dk --help` prints them (`sed -n '2,51p'`) and an unknown verb prints lines 7-24. The `#` lines inside the python heredocs are code and stay too.
@@ -252,6 +256,15 @@ Two checks of `dk.test.sh` held nothing. The time limit of `dk notes --shot` was
 - **The recorded board.** 0.20.1 kept the recorded board's path when an unconfirmed row named a board that is neither it nor a regular file in `boards/`, and still wrote the row's `picked`, `confirmed` and time over that board. Such a row leaves the entry as it is now; with no board recorded its name is filed as before. The case compares the whole file, not the path alone.
 - **`-I`** on every python3 that dk.sh runs from inline code, and on the `python3 -c` of the hook `drift --print-hook` prints; 0.20.0 had it on five verbs. Case: a project with its own `html.py`, `json.py`, `re.py`, `time.py`, `hashlib.py`, `shlex.py` and `zipfile.py`, each of which exits with a message, under eight verbs and a project's first one (the `.gitignore` block, the move out of `.design-kit/`).
 - **Prose gates in `dk.test.sh`.** The pick sentences of dk.sh, the README and the design, in-codebase and artifact skills are matched whole, so a phrase inside a sentence that says the opposite no longer passes. Each gate row of the threat model must name harnesses that contain its subject word (a table of 18 threats and 8 residuals), so a row whose gate moved to an unrelated harness fails. (0.20.2's workers, relayed.)
+
+### 0.20.2 review, 2026-11-26 — workshop.json under a lock, values as given, one address
+
+- **The lock and one rename.** `ws_set` and `--consume` wrote `workshop.json` in place with nothing held: a kill or a full disk mid-write left it empty, and the next verb kept only its own key; two verbs at once lost an artifacts entry. Both, and the first verb's copy of an older `.design-kit/workshop.json`, go through serve.py's `workshop()` now (serve.py below). Cases: six `dk bundle` at once over a file padded to 100,000 entries keep all six; a verb, and the first verb's copy, killed while they write leave a whole file.
+- **Values as given.** `ws_set` took a JSON text built by shell interpolation, so a path or slug holding a double quote or a backslash stopped it with a traceback. It takes `name=text` and `name:=json` fields now, and a path is stored as it is (case: `dk slides` on `notes "v2".md` and `notes\v2.md`). `dk bundle` reads the bundler's three fields NUL-separated, so a docroot whose path holds a space is kept whole (case: `$tmp/dk space`).
+- **The recorded board.** A `board.file` that is not a non-empty string counted as a board, so an unconfirmed pick never updated `workshop.json`; it counts as none now, and `left_alone` names what `b = None` meant. The wrong-shape cases also check that each verb wrote its own step.
+- **One address.** `url` and `keyed` are gone: every `url=` line is `picks.py address` (picks.py below). `dk status` reads `.preview.url` through `state_text`, so bytes that are not UTF-8 print as U+FFFD inside the quotes; a planted `\xff` stopped it before.
+- **The subject check** of the threat model matched loose substrings: `check.test.sh` passed as the LAN row's gate through `lang="en"`. Its patterns are now tokens only the right harness holds (`/_decision`, `600 ms` and `507` as whole words, `X-Design-Kit-Allow` or `set_allow(`, `Origin: `, `--lan` as an argument), and a negative case fails when `frame.test.sh` would pass as the LAN row's gate. The texts pass added the gallery-thumbnail threat row, with its word and its subject, `thumbnail`.
+- **Cases for 0.20.2's -I:** `dk snapshot --storage-state` and `dk review` now run beside the shadowing modules, and `drift.test.sh` runs the pasted hook in a folder whose `json.py` must not load. (0.20.2's review round, relayed.)
 
 ## plugins/design-kit/scripts/dk-usage.sh
 
@@ -441,6 +454,11 @@ The help said that shots outside the docroot open from disk and are 404 through 
 - `--base <ref>` reads the committed shots into `shots/_base-<ref>/` at their path in the repository, so `.cc-artifacts/` (or `.design-kit/`, for a ref from before 2026-11-14) lies on the way. The server serves no dot folder, so the review page showed them as 404, which the 0.20.0 review's section above records. `shown()` copies a shot with a dot folder on its way under `shots/` into `reviews/diff/`, as it copies one outside `shots/`.
 - Case (`snapshot.test.sh`): the review page of a git-ref base loads every image it shows, with the shots committed under the new path and under `.design-kit/shots`.
 - The `url=` line printed `.preview.url` and the LAN key as they stood; both go through `picks.py`, so a planted `shots=forged` line stays inside one JSON string (two cases).
+
+### 0.20.2 review, 2026-11-26 — -I, and the address
+
+- The inline python3 of `find_set`, `check_state`, the base-URL probe, the signed-in shoot and the `--base` path run with `-I`: a project's own `json.py` at the root ran under `dk snapshot --storage-state` and `dk review`. The review-page writer is the exception: it drops the cwd, `''` included, from `sys.path` instead, so a Pillow installed with `pip --user`, and `PYTHONPATH`, still load. `dk.test.sh`'s shadow case runs both verbs.
+- The `url=` line is `picks.py address` with the review's path (picks.py above). (0.20.2's review round, relayed.)
 
 ## plugins/design-kit/scripts/codebase-scaffold.sh
 
@@ -761,6 +779,12 @@ The review showed `POST /_check` let any same-origin script plant findings and a
 - **Another project (C5).** Run with two docroots in Chrome on 2026-11-26: once project B's server had the port, Send from A's open viewer recorded a confirmed row in B and none in A. A POST whose `project` is not `_project()`, 12 hex of the SHA-256 of the docroot's real path, is 409 "this address serves another project now; nothing was recorded"; one with no `project` is taken as before, so a 0.20.1 viewer still writes. The viewer's half: viewer.js below.
 - **The rest.** `SERVER_VERSION` is 4, so a 0.20.1 server is restarted. The viewer's and the gallery's documents carry `<link rel="icon" href="data:,">`: Firefox logged a policy error for `/favicon.ico` on each. A dangling `.notes.lock` symlink already made no file at its far end; a case now posts a note and a pick through one. (0.20.2's workers, relayed.)
 
+### 0.20.2 review, 2026-11-26 — workshop.json, and the gallery's focus
+
+- **`workshop(root)`** is the one writer of `workshop.json`: it holds `.workshop.lock` (`locked()`, so none on a host without `fcntl`), hands the file's object to change, and writes it back through `isolate.replace_file`, in one step, 0600, only when it changed. A file that does not parse, or is nested past the parser (`RecursionError`, which `_read_json` catches now too), is moved to `workshop.json.bad`, which is in `IGNORED`: never served, and no reload. A file nested that deep reads as nothing recorded: the gallery answers 200 and `dk status` exits 0 (cases in serve.test.sh and dk.test.sh, 200,000 `[`).
+- **The gallery's focus.** Stock Firefox 160, run by hand on 2026-11-26 (relayed): with a page that keeps calling `focus()` loaded as a thumbnail, the gallery card lost the focus within about 70 ms and Tab never moved again while it was loaded; `inert` does not stop Firefox. `FOCUS_JS`, in the gallery's one inline script beside the reload client and allowed by the same hash, listens for focus and looks every 16 ms: for 200 ms after a thumbnail's frame takes the focus it is put back on the last card, and a frame that takes it three times in 1 s is replaced by its title, `aria-hidden`. The gallery at `?static=1` or in a headless browser carries no script, so no give-back.
+- Chrome lets no thumbnail's page take the focus (tried with `inert` removed, with fresh frames and with frames focused once), so `viewer.test.sh`'s case makes the take itself: it lifts `inert`, focuses the frame and restores `inert`. A page taking it by itself is proven by hand only, in Playwright's Firefox 157: before the change Tab never reached the next card; after it Tab walked all six cards, a page taking it every 50 ms became its title, and the takes of one taking it every 600 ms were given back in 2 to 11 ms. (0.20.2's review round, relayed.)
+
 ## plugins/design-kit/scripts/isolate.py
 
 ### 0.20.0, 2026-11-24 — tokens, policies, files, hosts
@@ -813,9 +837,15 @@ What 0.20.0 left open by choice (a board's name quoted nowhere) is closed by the
 
 ### 0.20.2, 2026-11-26 — one rule for an address or a key read back
 
-- `URL` and `KEY` are the forms the launcher writes to `.preview.url` and serve.py to `.preview.key`; `shown()` prints a text of its form as it stands and any other through `quoted_name`, and `picks.py url|key TEXT` does that for the shell. serve.py's `_lan_key` reads the key through `KEY` too.
-- 0.20.1 quoted the address in `dk status` alone. dk.sh's `url` and `keyed`, preview.sh's "already running" line and its `?key=`, and snapshot.sh's review URL print through `shown()` now, so a planted second line stays inside one JSON string.
+- `URL` and `KEY` are the forms the launcher writes to `.preview.url` and serve.py to `.preview.key`; `shown()` prints a text of its form as it stands and any other through `quoted_name`, and `picks.py address DOCROOT [PATH]` prints, for the shell, the whole address of a path (the review round below). serve.py's `_lan_key` reads the key through `KEY` too.
+- 0.20.1 quoted the address in `dk status` alone. Every `url=` line of dk.sh, preview.sh's lines and snapshot.sh's review URL print through `shown()` now, so a planted second line stays inside one JSON string.
 - Cases: a `.preview.url` of `http://x/` and a status line, and a key of `x` and a `url=` line, in `dk status`, `dk serve` and `dk serve --lan` (`dk.test.sh`), and in `dk review` with `shots=forged` lines (`snapshot.test.sh`). `picks.test.sh` lost its section banners.
+
+### 0.20.2 review, 2026-11-26 — one mode that prints the address
+
+- `URL` took any host and no port, so a planted `http://evil.example/` printed raw beside the real LAN key. It is the launcher's own form now, `http://<IPv4>:<port>/`, and the header names what still passes: an address of that form naming another machine.
+- The address was put together in three scripts, dk.sh, preview.sh and snapshot.sh, each adding its own `?key=`. `address(docroot, path)` is the one place now: the recorded URL as `shown` gives it, the path after it (after the closing quote of a quoted one), and the key while `.preview.bind` says `0.0.0.0`; `picks.py address DOCROOT [PATH]` runs it for the shell. `state_text` reads a state file as UTF-8, U+FFFD for the rest, and the key is stripped before it is matched, as serve.py strips it, so a key file that ends in CRLF prints as the key.
+- Cases (`dk.test.sh`): `http://evil.example/` prints as one JSON string beside the real key, in `dk serve --lan` and the launcher's line; a key that ends in CRLF prints as the key; a `.preview.url` of `http://x/\xff` prints as `"http://x/\ufffd"`. (0.20.2's review round, relayed.)
 
 ## plugins/design-kit/scripts/frame.js
 
@@ -889,6 +919,13 @@ Chrome 158; 25 mutants, 3 survived, two got cases and one redundant check went. 
 - **Teeth.** Mutants that survived `viewer.test.sh` have a case each: a text path of 200 characters shown and one of 201 not, an artboard below 1 read as none, Send held after the strips scroll, Updated kept when the newer report repeats, Keep blocked for one page only, the retry after 1 s and then 2, the 256 KB cap to the character, a sixth console line refused. `frame.test.sh` has a parent of another origin that hears nothing; frame.js already posted to the viewer's origin alone.
 - **Not reproduced, or left.** Shift+Tab from the tab strip of Playwright's Firefox 157 into a note did not reach the page; Chrome's toolbar cannot be driven over DevTools and stays untested. Left by the owner on 2026-11-26: a page that focuses an element on hover is stopped when the pointer sweeps across it while a note on one of its elements is open, since each hover is a take given back and ten in 500 ms meet the stop rule (Reload page brings it back); and frame.js's `anchorOf` adds the page's own `scrollX` and `scrollY`, so a page that defines them breaks notes on itself (frame.js has 1 byte left of 12,288, and a page can already say any position).
 - **Not the viewer's.** In Playwright's Firefox a framed dark page shows its own light scrollbar track, about 12 px at the right edge, as in any iframe; the page's own `scrollbar-color` removes it. (0.20.2's workers, relayed.)
+
+### 0.20.2 review, 2026-11-26 — the project of each write, the LAN key, the lows
+
+- **The project of each write.** `post()` sent the project of whatever was framed when it posted: once project B had the port, the retry about 1 s later framed B's page, and a note half typed on A's page, or an Allow for A's host, was written into B with "Sent." (`swapped` held the retry 60 s, so no case reached it). A pick takes its project when the page reports it, a note when its composer opens, a blocked host when it is refused, and the post names that one; one made before `/_page` ever answered names none. When `build()` frames a page of another project it clears the refused hosts and the last Allow failure and marks a half-typed note "This address serves another project now: this note is not recorded here"; the pick's key in the tab holds the project, so the old pick is hidden and kept. Cases: `swapped` lets the retry run; `before_any_page`.
+- **The LAN key.** A LAN viewer whose key was replaced got 403 from `/_page` and retried with no word; it shows "This address needs its new key: open the URL dk serve --lan prints" (case `rekeyed`).
+- **Lows.** A second Allow that fails as the first did is read out again, since `refusal` is emptied at each press; a notes row whose `anchor.tag` is no string is drawn as `String(tag)`, where `drawn()` threw and the list never redrew; a link clicked while an Allow is pending survives the rebuild its answer starts (`reframedByAllow`; case `link_over_allow`, answered 0.5 s later); a same-origin link whose HEAD check was in flight when the frame was replaced is dropped (`link_of_replaced`). The header's miss says a held key is done late, or not at all where the frame is replaced or stopped meanwhile. The comments over viewer.test.sh's stand-in scripts became their names.
+- **Stock Firefox 160**, one hand run, headless over Marionette, on 2026-11-26 (relayed; nothing edited): Send pick and the Sent line, a note on an element, the scroll kept over a save (1200), the dark scheme (the bar stays light and the frame follows; a 12 px white scrollbar track on a dark page that sets no `color-scheme`), the gallery's Tab walk, no favicon policy error, the focus stop (the page got 1, 0 and 0 of 26; stopped in 3 of 3), a link offered while a Send was pending, and a change of project answered "Not recorded: …" with no row in either project, about 1 s by hand. Firefox logs "Permissions Policy: Skipping unsupported feature name clipboard-write" at every page load. The defect it found in the gallery: serve.py above.
 
 ## plugins/design-kit/scripts/viewer.css
 
@@ -1094,9 +1131,13 @@ proves a browser rendered.
 
 ### 0.20.2, 2026-11-26 — the printed address, and port 8123
 
-- The "already running" line printed `.preview.url`, and on a LAN server the key, as they stood, so a planted second line read as a line of the launcher's; both go through `picks.py url|key` now (picks.py above).
+- The "already running" line printed `.preview.url`, and on a LAN server the key, as they stood, so a planted second line read as a line of the launcher's; both go through `picks.py address DOCROOT [PATH]` now (picks.py above).
 - `SERVER_VERSION` is 4 in serve.py, so a 0.20.1 server, recorded as 3, is restarted on its own port and bind at the first launch; `preview.test.sh` restarts one recorded as 3 by that number.
 - The README said that port 8123 is never used here. With neither `DESIGN_KIT_PORT` nor `--port` the search never tries it, a last port of 8123 included; either one set to 8123 starts there. The code is as it was; the README says so now.
+
+### 0.20.2 review, 2026-11-26 — the address from picks.py
+
+The launcher's two printed addresses, "already running" and the one after a start, are `picks.py address` now, and `keyq` is gone. A server found running with no `.preview.url` prints `http://127.0.0.1:<port>/` with no key; a LAN start whose host is not an IPv4 address prints it quoted. `preview.test.sh`'s stand-in `python3`, which says it serves and binds nothing, hands a call with `-I` to the real one, since the launcher runs picks.py through it. (0.20.2's review round, relayed.)
 
 ## plugins/design-kit/scripts/artifact-bundle.py
 

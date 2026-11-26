@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """design-kit preview server — one localhost URL for every design-kit surface.
 
-Serves a docroot's pages in the viewer, each framed at a signed, sandboxed content URL (isolate.py), the gallery, live streams and three loopback write routes. Refuses a foreign Host, a path or link out of the docroot or to a state file, a post from a page or another site, a LAN peer without the key, a service worker's script.
-Misses: whoever holds the keyed URL, or a page's content URL, reads what it opens, over plain HTTP; a hard link to a never-served file; a raw page opened by hand (?static=1) has no viewer around it; a host without fcntl writes unlocked. The rest: rationale/design-kit-threat-model.md.
+Serves a docroot's pages in the viewer, each framed at a signed, sandboxed content URL (isolate.py), the gallery, which gives back the keyboard focus a thumbnail's page takes, live streams and three loopback write routes. Refuses a foreign Host, a path or link out of the docroot or to a state file, a post from a page or another site, a LAN peer without the key, a service worker's script.
+Misses: whoever holds the keyed URL, or a page's content URL, reads what it opens, over plain HTTP; a hard link to a never-served file; a raw page opened by hand (?static=1) has no viewer around it, and the gallery at ?static=1 or in a headless browser no give-back; a host without fcntl writes unlocked. The rest: rationale/design-kit-threat-model.md.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/serve.py
 """
 import argparse

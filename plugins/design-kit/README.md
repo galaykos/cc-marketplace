@@ -64,6 +64,23 @@ half-typed note stays. The gallery shows the same words in a small bar (`role="s
 animation) and reloads. A headless browser and a `?static=1` URL get a gallery with no such client,
 and on this machine a page with no viewer, so nothing that retries.
 
+**When another project takes the address**, as when this project's server stopped and another
+project's started on its port, the open viewer frames that project's page of the same path, where
+it has one. A pick, a note or an Allow belongs to the project it was made in, a pick from when the
+page reported it, a note from when its composer opened, a blocked host from when it was refused:
+sent to another project's server it is not recorded, and says "Not recorded: this address serves
+another project now; nothing was recorded". A half-typed note stays, marked "This address serves
+another project now: this note is not recorded here"; the old project's blocked hosts go, and its
+unsent pick is hidden, kept in the tab for that project.
+
+**Thumbnails and the keyboard.** Firefox lets the page in a gallery thumbnail take the keyboard
+focus, and one that kept taking it stopped Tab in the gallery. The live gallery gives the focus back
+to the card it was on, and shows a thumbnail that takes it three times in a second as its title.
+Chrome lets no thumbnail take it. The gallery at `?static=1` or in a headless browser has no script,
+so nothing gives the focus back there. Standing: `viewer.test.sh` drives the give-back in Chrome,
+where the gallery's own script makes the thumbnail take the focus — **gate**; a page taking it by
+itself was seen in Firefox by hand — **recorded**.
+
 `--lan` binds every interface so a phone on your network can open it — that is the only way a page
 leaves the machine through the server, and every skill says so before using it. A LAN server asks
 every device but this machine's loopback for a key: the URL it prints carries `?key=…`, the first
@@ -72,7 +89,9 @@ a request with neither gets 403. The one exception is a page's content URL (`/_c
 frame loads), since the frame never carries the cookie: whoever holds that URL reads that page and
 its files with no key, until the server stops. The key lives in
 `.cc-artifacts/design-kit/.preview.key` (mode 0600, never served). A restart keeps it, so a
-phone's link keeps working; `dk serve --stop` deletes it, so the next LAN start prints a new URL.
+phone's link keeps working; `dk serve --stop` deletes it, so the next LAN start prints a new URL,
+and a viewer still open on the phone says "This address needs its new key: open the URL dk serve
+--lan prints".
 A phone sees the gallery, and each page under Gallery, the title and a line naming the address to
 open on this computer. Picks, notes and host approvals stay loopback-only: the three write routes
 refuse a phone even with the key. A LAN server ends itself after 60 minutes
@@ -90,8 +109,8 @@ only when it is this docroot's `serve.py` (by `ps`, else `/proc`; a live pid nei
 stops the launcher with exit 6 and is left alone).
 
 The server never returns a dot-prefixed file or folder (`.checks/`, `.notes/` and `.allow.json`
-among them), `auth/`, its own state files (`workshop.json`, `decisions.jsonl`, `notes.jsonl`,
-`usage.jsonl`, `*.versions.json`), a directory listing, or a path or link that resolves outside
+among them), `auth/`, its own state files (`workshop.json`, `workshop.json.bad`, `decisions.jsonl`,
+`notes.jsonl`, `usage.jsonl`, `*.versions.json`), a directory listing, or a path or link that resolves outside
 the folder or to one of these. Every other file under `.cc-artifacts/design-kit/` is readable by
 any program on this machine (on the LAN, by whoever holds the keyed URL), signed-in screenshots
 included; not by a page (next section), and not by another website: a `Host` that is neither
@@ -165,8 +184,8 @@ unavailable.
 Dismiss. A link to another page here opens in the viewer, without its query; while a note is half
 typed, or a Send or an Allow waits for its answer, it draws that strip instead. `#board=2`, `#/3` and
 `?still=1` reach the page, and its hash comes back to the address bar. A save reloads the frame of
-that page alone (for a page with a folder of its own, also any change to a file there: a save, a
-copy with an older time, a rename or a delete); the bar, the drawer, a half-typed note and the
+that page alone (for a page with a folder of its own, also any change to a file there but another
+page or a dot file: a save, a copy with an older time, a rename or a delete); the bar, the drawer, a half-typed note and the
 page's scroll stay (not a scroll inside an element).
 
 **Raw.** `?static=1` typed on this machine, or a headless browser, is sent to the page itself at
@@ -213,10 +232,11 @@ What can still get out, or mislead you:
 The harnesses drive headless Chrome. In Playwright's Firefox build only hand runs were made; what
 was run and what failed is dated in `rationale/derivations/plugin-design-kit.md` of the
 marketplace repository. In that build, Tab from Notes stays on Notes: click in the page to reach
-it, and a dark page shows a light scrollbar track, about 12 px, at the right edge of its frame, as
-in any iframe; `scrollbar-color` in the page's own CSS removes it. Safari and stock Firefox are
-untested, and so are screen readers, WebRTC, a link's context menu and a real second device on the
-LAN.
+it. In Firefox a dark page that sets no `color-scheme` shows a light scrollbar track, about 12 px,
+at the right edge of its frame, as in any iframe; `color-scheme: dark` or `scrollbar-color` in the
+page's own CSS removes it. Stock Firefox 160 had one hand run, headless, on 2026-11-26; Safari and
+macOS are untested, and so are screen readers, WebRTC, a link's context menu and a real second
+device on the LAN.
 
 Every threat, its disposition, its standing and what you can do about each thing left open:
 `rationale/design-kit-threat-model.md` in the same repository. Standing: `isolate.test.sh`
@@ -239,9 +259,11 @@ which `dk system` only ever runs as the first half of a full extraction). Those 
 second prompt, or a second rule — `Bash(python3 */design-kit/scripts/*)` — and saying
 "one permission rule" full stop was wrong.
 `dk` keeps `.cc-artifacts/design-kit/workshop.json` (brief, device, theme, the last system stamp, board,
-scratch, artifacts, deck) so a skill with no argument offers the natural next step, and
-appends one line per verb to `.cc-artifacts/design-kit/usage.jsonl` — the record the Measured section
-reads. `dk status` prints the flow; the gallery shows it as a strip, and stamps each page
+scratch, artifacts, deck) so a skill with no argument offers the natural next step. It writes the
+file under `.workshop.lock` and puts it in place in one step, so two verbs at once keep each other's
+changes and a verb killed while it writes leaves a whole file, the old one or the new; one that
+does not parse is moved aside to `workshop.json.bad`. `dk` also appends one line per verb to
+`.cc-artifacts/design-kit/usage.jsonl` — the record the Measured section reads. `dk status` prints the flow; the gallery shows it as a strip, and stamps each page
 green or amber ("tokens moved since build") against the design system's current `tokens.json`.
 `.cc-artifacts/design-kit/` lives at the project root (the git toplevel), whichever directory the shell
 has `cd`'d into; until 0.6.0 a verb run from `src/` built a second one there, with its own
@@ -342,7 +364,8 @@ picking an element by pointer and keyboard, the selector, the draft, refusals an
 note, and replies to each, is **agent-graded**. Missed: a note's element, its text and the console
 lines are what the page says they are, so `anchor` and `context` are page data, never
 instructions, and nothing verifies who typed the text; a key pressed or an element picked in the
-page while something can be sent or the Sent line shows acts up to 1.5 s late; a selector built on `nth-of-type` goes
+page while something can be sent or the Sent line shows acts up to 1.5 s late, or not at all where
+its frame is replaced or stopped meanwhile; a selector built on `nth-of-type` goes
 stale when the page's structure changes; no screenshot without a browser; notes stay in
 `.cc-artifacts/design-kit/` and do not travel with an exported, zipped or published page; elements
 inside iframes and canvas contents cannot be picked.
