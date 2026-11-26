@@ -71,7 +71,7 @@ GALLERY = "/_gallery"
 # route -> (type, bytes); the plugin's, never the docroot's; read once, like the client and the rules: an update on disk must not mix with this server
 SCRIPTS = {isolate.VIEWER_JS: ("text/javascript; charset=utf-8", _read_beside("viewer.js")), isolate.VIEWER_CSS: ("text/css; charset=utf-8", _read_beside("viewer.css"))}
 # preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
-SERVER_VERSION = 3
+SERVER_VERSION = 4
 INDEX = ("index.html", "index.htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
@@ -302,7 +302,7 @@ def _lan_key(root):
         with os.fdopen(fd, "rb") as fh:
             if stat.S_ISREG(os.fstat(fd).st_mode):
                 key = fh.read(256).decode("ascii", "replace").strip()
-                if re.fullmatch(r"[A-Za-z0-9_-]{22,}", key):
+                if picks.KEY.fullmatch(key):
                     if hasattr(os, "fchmod"):
                         os.fchmod(fd, 0o600)
                     return key
@@ -384,12 +384,17 @@ def _walk_pages(root):
             if _real_parts(root, full) is None:
                 continue
             rel = os.path.relpath(full, root).replace(os.sep, "/")
+            try:
+                mtime = int(os.stat(full).st_mtime)
+                rel.encode("utf-8")
+            except (OSError, UnicodeEncodeError):  # a link with no file, a page gone since the walk, a name no address can hold
+                continue
             group = rel.split("/")[0] if "/" in rel else "(root)"
             stamp = _stamp_of(full)
             pages.append({
                 "path": rel,
                 "group": group,
-                "mtime": int(os.stat(full).st_mtime),
+                "mtime": mtime,
                 "title": _title_of(full) or fn,
                 "tokens": {"stamp": stamp, "current": (stamp == current) if (stamp and current) else None},
             })
@@ -411,24 +416,25 @@ def _title_of(path):
     return html.unescape(head[i + 7:j].strip()) if j > i else None
 
 
-def _newest_mtime(root, but=()):
-    """The newest mtime of the non-dot files under root, state files and those ending in one of but left out."""
-    newest = 0.0
+def _files_state(root, but=()):
+    """A digest of the path, inode, size and mtime of each non-dot file under root, state files and those ending in one of but left out."""
+    digest = hashlib.sha256()
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
-        for fn in filenames:
+        dirnames[:] = sorted(d for d in dirnames if not d.startswith("."))
+        for fn in sorted(filenames):
             if fn in IGNORED or fn.startswith(".") or fn.lower().endswith(but):
                 continue
+            path = os.path.join(dirpath, fn)
             try:
-                m = os.stat(os.path.join(dirpath, fn)).st_mtime
+                st = os.stat(path)
             except OSError:
                 continue
-            newest = max(newest, m)
-    return newest
+            digest.update(b"%s\0%d %d %d\0" % (os.fsencode(path), st.st_ino, st.st_size, st.st_mtime_ns))
+    return digest.hexdigest()
 
 
 def page_state(root, page):
-    """What a page's stream compares: its file's inode, size and mtime, and the newest mtime in its own folder, other pages left out; None with no file."""
+    """What a page's stream compares: its file's inode, size and mtime, and those of each file in its own folder, other pages left out; None with no file."""
     folder, _, name = page.rpartition("/")
     folder = folder.split("/")
     try:
@@ -436,7 +442,7 @@ def page_state(root, page):
     except OSError:
         return None
     own = isolate.may_load(page, folder + ["any file"])
-    return st.st_ino, st.st_size, st.st_mtime_ns, own and _newest_mtime(os.path.join(root, *folder), PAGE_EXT)
+    return st.st_ino, st.st_size, st.st_mtime_ns, own and _files_state(os.path.join(root, *folder), PAGE_EXT)
 
 
 def _read_json(path, default):
@@ -471,13 +477,14 @@ def _decisions(root):
 
 def flow_steps(root):
     """The workshop's flow as (label, detail, state) triples — state is done|open|todo.
-    Read from workshop.json (dk.sh) and decisions.jsonl (the board), every name quoted; an unconfirmed pick's number is never in the detail."""
-    ws = _read_json(os.path.join(root, "workshop.json"), {})
+    Read from workshop.json (dk.sh) and decisions.jsonl (the board), every name quoted, a value that is no object read as absent; an unconfirmed pick's number is never in the detail."""
+    known = lambda value: value if isinstance(value, dict) else {}
+    ws = known(_read_json(os.path.join(root, "workshop.json"), {}))
     unread = [d for d in _decisions(root) if not d.get("consumed")]
     steps = []
-    sysd = ws.get("system") or {}
+    sysd = known(ws.get("system"))
     steps.append(("system", ("tokens " + picks.quoted_name(sysd["stamp"])) if sysd.get("stamp") else "not extracted", "done" if sysd.get("stamp") else "todo"))
-    b = ws.get("board") or {}
+    b = known(ws.get("board"))
     if b.get("file"):
         name = picks.clean_board(os.path.basename(b["file"]), _clean, _hidden) if isinstance(b["file"], str) else None
         kept = picks.clean_picked(b.get("picked")) if b.get("confirmed") is True else None
@@ -489,20 +496,20 @@ def flow_steps(root):
         steps.append(("board", detail, "open" if unread or not picked else "done"))
     else:
         steps.append(("board", "no board", "todo"))
-    sc = ws.get("scratch") or {}
+    sc = known(ws.get("scratch"))
     if sc.get("slug"):
         steps.append(("scratch", picks.quoted_name(sc["slug"]) + (" · kept" if sc.get("kept") else " · cleaned"), "open" if sc.get("kept") else "done"))
     else:
         steps.append(("scratch", "not rendered", "todo"))
-    arts = ws.get("artifacts") or []
+    arts = [a for a in ws.get("artifacts") if isinstance(a, dict)] if isinstance(ws.get("artifacts"), list) else []
     if arts:
         a = arts[-1]
         steps.append(("artifact", "%s v%s" % (picks.quoted_name(a.get("slug")), picks.quoted_name(a.get("version"))), "done"))
     else:
         steps.append(("artifact", "none", "todo"))
-    d = ws.get("deck") or {}
+    d = known(ws.get("deck"))
     if d.get("file"):
-        steps.append(("deck", picks.quoted_name(os.path.basename(d["file"])) + (" · pdf" if d.get("pdf") else ""), "done"))
+        steps.append(("deck", picks.quoted_name(os.path.basename(d["file"]) if isinstance(d["file"], str) else None) + (" · pdf" if d.get("pdf") else ""), "done"))
     else:
         steps.append(("deck", "none", "todo"))
     return steps
@@ -525,7 +532,7 @@ def _gallery_html(pages, live=True, root=None):
     parts = [
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">",
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">",
-        "<title>design-kit gallery</title>",
+        "<title>design-kit gallery</title><link rel=\"icon\" href=\"data:,\">",
         "<style>body{font:15px/1.45 system-ui,sans-serif;margin:0;padding:24px;background:#f6f6f4;color:#1c1c1a}",
         "h1{font-size:20px;margin:0 0 16px}h2{font-size:14px;letter-spacing:.02em;margin:24px 0 8px;color:#55554f}",
         ".grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}",
@@ -569,7 +576,7 @@ def _viewer_html(page, title, local):
     page, title = html.escape(page), html.escape(title)
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{title}</title><link rel="stylesheet" href="{isolate.VIEWER_CSS}"></head><body data-page="{page}" data-version="{SERVER_VERSION}" data-rules="{html.escape(RULES)}">'
+        f'<title>{title}</title><link rel="icon" href="data:,"><link rel="stylesheet" href="{isolate.VIEWER_CSS}"></head><body data-page="{page}" data-version="{SERVER_VERSION}" data-rules="{html.escape(RULES)}">'
         f'<header id="bar"><a href="{GALLERY}">Gallery</a><h1 id="title">{title}</h1><span id="chip"></span>'
         f'<button type="button" id="network" hidden>Network</button><button type="button" id="notes"{"" if local else " hidden"}>Notes</button></header>'
         f'<div id="strips" aria-live="polite"></div><div id="drawer" hidden></div><main id="frame"></main><script src="{isolate.VIEWER_JS}"></script></body></html>'
@@ -727,7 +734,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _page(self, page):
         """GET /_page: what the viewer needs to frame a page; the hosts, and leave to change anything, only where a write route would take the post."""
-        if self.headers.get("Sec-Fetch-Site", "same-origin") != "same-origin":
+        if self.headers.get("Sec-Fetch-Site", "same-origin") != "same-origin" or self._foreign():
             return self._reject(HTTPStatus.FORBIDDEN, "a page's content address is given to this preview's own pages only")
         full = self._page_file(page)
         if not full:
@@ -738,7 +745,7 @@ class Handler(SimpleHTTPRequestHandler):
             "page": page,
             "title": _title_of(full) or os.path.basename(full),
             "src": isolate.content_url(page, "f"),
-            "project": hashlib.sha256(os.fsencode(os.path.realpath(self.root))).hexdigest()[:12],
+            "project": self._project(),
             "hosts": hosts.get(page, []),
             "hosts_error": error,
             "writable": local,
@@ -776,13 +783,21 @@ class Handler(SimpleHTTPRequestHandler):
         return None
 
     def _not_local(self, what, done="recorded"):
-        """None for a loopback peer naming a loopback Host, and a loopback Origin when one is sent; else why not."""
+        """None for a loopback peer naming a loopback Host, and no Origin but its own; else why not."""
         if self.client_address[0] not in LOOPBACK:
             return "%s are %s from this machine only" % (what, done)
-        origin = self.headers.get("Origin")
-        if not _loopback_host(self.headers.get("Host") or "") or (origin and not _loopback_host(origin)):
+        if not _loopback_host(self.headers.get("Host") or "") or self._foreign():
             return "%s are %s from a page opened on this machine's own address" % (what, done)
         return None
+
+    def _project(self):
+        """What names this server's docroot to a viewer: 12 hex of the SHA-256 of its real path."""
+        return hashlib.sha256(os.fsencode(os.path.realpath(self.root))).hexdigest()[:12]
+
+    def _foreign(self):
+        """True when an Origin was sent that is not http:// and this request's Host, letter for letter: another site, or another port of this machine."""
+        origin = self.headers.get("Origin")
+        return origin is not None and origin != "http://" + (self.headers.get("Host") or "")
 
     def do_POST(self):
         if not self._gate():
@@ -797,8 +812,6 @@ class Handler(SimpleHTTPRequestHandler):
         else:
             return self.send_error(HTTPStatus.NOT_IMPLEMENTED)
         why = self._not_local(what)
-        if not why and self.headers.get("Origin") not in (None, "http://" + self.headers["Host"]):
-            why = "%s are recorded from this preview's own address only" % what
         if why:
             return self._reject(HTTPStatus.FORBIDDEN, why)
         if not self.headers.get(header):
@@ -818,6 +831,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: %s" % exc)
         except RecursionError:
             return self._reject(HTTPStatus.BAD_REQUEST, "invalid JSON: nested too deep")
+        if "project" in body and body["project"] != self._project():
+            return self._reject(HTTPStatus.CONFLICT, "this address serves another project now; nothing was recorded")
         cid = body.get("cid")
         # an approval sent twice is one approval
         if (cid is not None or path != "/_allow") and not (isinstance(cid, str) and CID.fullmatch(cid)):
@@ -883,6 +898,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_error(HTTPStatus.NOT_FOUND)
         look = (lambda: self.state["version"]) if page is None else (lambda: page_state(self.root, page))
         seen = look()  # before the headers: a client that reads the page once the stream opened misses no save
+        if seen is None:
+            return self.send_error(HTTPStatus.NOT_FOUND)
         self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -924,10 +941,10 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def _watch(root, state, stop):
-    last = _newest_mtime(root)
+    last = _files_state(root)
     while not stop.is_set():
         time.sleep(0.75)
-        now = _newest_mtime(root)
+        now = _files_state(root)
         if now != last:
             last = now
             state["version"] += 1

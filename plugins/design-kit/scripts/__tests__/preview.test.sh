@@ -256,6 +256,7 @@ stale() { c="$1 is replaced on its port"; outdate; [ -z "$2" ] || printf '%s\n' 
 mkdir -p "$tmp/p5"; echo '<h1>p5</h1>' > "$tmp/p5/index.html"; own="$(free_port)"; other="$(free_port)"
 stale "a server with no version record" ""
 stale "a server of a lower version" "PID $(( version - 1 ))"
+stale "a 0.20.1 server (version 3)" "PID 3"
 stale "version record for another pid is ignored and the server" "1PID $version"
 stale "a server whose version record is no number" "PID ${version}x"
 stale "a server whose version record is past any integer" "PID 99999999999999999999"

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """note-shot.py - `dk notes --shot ID`: a note's raw page at its static content URL, headless and at the note's size, its element centred and outlined, 2 s after the load, as the PNG whose path it prints; exit 0, 2 bad arguments, 4 no PNG (no browser, no server, over 60 s). The selector is page data: an argument of a function run over DevTools in render-check.py's isolated world, whose DOM page script cannot replace; one that matches nothing shoots the page as it is and says so on stderr.
-Misses: what comes after those 2 s; an element hidden, or inside an iframe or a shadow root; an outline below a modal dialog, under a rule that styles every div !important, or taken out by the page; a page that is gone is shot as the server's 404, one that leaves within the 2 s not at all.
+Misses: what comes after those 2 s; an element hidden, or inside an iframe or a shadow root; an outline below a modal dialog, under a rule that styles every div !important, or taken out by the page; a page that is gone is shot as the server's 404; one that has not loaded in 10 s, or leaves before its load or within the 2 s, not at all.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/note-shot.py
 """
 import argparse
@@ -54,7 +54,10 @@ def shoot(ch, url, wh, selector):
     nav = ch.call("Page.navigate", {"url": url}, sid)
     if nav.get("errorText"):
         raise RuntimeError("it could not open the page: " + nav["errorText"])
-    ch.wait_for(sid, "Page.loadEventFired", check.LOAD_S)
+    if not ch.wait_for(sid, "Page.loadEventFired", check.LOAD_S):
+        raise RuntimeError("the page did not finish loading in %g s" % check.LOAD_S)
+    if ch.call("Page.getFrameTree", {}, sid)["frameTree"]["frame"].get("loaderId") != nav.get("loaderId"):
+        raise RuntimeError("the page left for another address before it loaded")
     ctx = ch.call("Page.createIsolatedWorld", {"frameId": nav["frameId"], "worldName": check.WORLD}, sid)["executionContextId"]
     drawn = ch.call("Runtime.callFunctionOn", {"functionDeclaration": OUTLINE_JS, "executionContextId": ctx, "arguments": [{"value": selector}, {"value": SETTLE_MS}],
                                                "awaitPromise": True, "returnByValue": True}, sid)

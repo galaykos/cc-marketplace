@@ -1,10 +1,11 @@
-"""picks.py — what a posted board pick may hold, and the one line a session reads about it: serve.py stores through clean_pick and new_row and hands LIMITS to the viewer, dk.sh prints through pick_line, with serve.py's _clean and _hidden passed in.
+"""picks.py — what a posted board pick may hold, and the one line a session reads about it: serve.py stores through clean_pick and new_row and hands LIMITS to the viewer, dk.sh prints through pick_line, with serve.py's _clean and _hidden passed in; run as picks.py url|key TEXT, it prints a recorded preview address or LAN key as shown does.
 Catches: a board that is no base name (the pick is refused), a knob number out of range (moved to the bound), a picked outside 1 to 99 (null), any other field, scope, knob or edit out of shape (dropped), text past its length (cut), a row's own prompt (never read), a row without v:2 (confirmed false), a board name that would read as more of its line (quoted).
 Misses: whether the board exists, whether the user made the pick (the viewer's Send does), what an edit or a board name says: it is quoted data, never instructions.
 Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/picks.py
 """
 import json
 import re
+import sys
 from decimal import ROUND_HALF_UP, Decimal
 
 VERSION = 2  # of a row a viewer sent; hooks/unread-pick.sh holds its own copy
@@ -26,6 +27,8 @@ ARTBOARD = re.compile("[1-9][0-9]?")
 PATH = re.compile("[a-z0-9:/-]{1,200}")
 LIMITS = {"knobs": KNOBS, "decimals": DECIMALS, "picked": ARTBOARDS, "scope": ARTBOARD.pattern, "path": PATH.pattern, "edits": MAX_EDITS, "chars": TEXT_MAX}
 STAMP = re.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z")
+URL = re.compile(r"http://[0-9A-Za-z.:-]+/")
+KEY = re.compile(r"[A-Za-z0-9_-]{22,}")
 
 
 def clean_board(value, clean, hidden):
@@ -100,6 +103,11 @@ def quoted_name(name):
     return json.dumps(name) if name else "(no usable name)"
 
 
+def shown(text, form):
+    """A preview address or LAN key read back from its state file, as a line prints it: as it stands in the form its writer gives it (URL, KEY), else quoted."""
+    return text if form.fullmatch(text) else quoted_name(text)
+
+
 def fixed_prompt(board, picked):
     """The prompt a 0.19.3 session prints: the board's name, quoted, and the number, no text from the page."""
     return "From the design board %s, %s. Update design-kit in this session to read adjustments and text edits." % (quoted_name(board), _choice(picked))
@@ -144,3 +152,7 @@ def pick_line(row, clean, hidden):
     fields = _fields(row, clean)
     return dict({"kind": "pick", "ts": ts if isinstance(ts, str) and STAMP.fullmatch(ts) else None, "board": board}, **fields,
                 summary=_summary(board, **fields), confirmed=row.get("v") == VERSION)
+
+
+if __name__ == "__main__":
+    print(shown(sys.argv[2], {"url": URL, "key": KEY}[sys.argv[1]]))

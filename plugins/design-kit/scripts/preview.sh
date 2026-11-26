@@ -67,7 +67,7 @@ if [ "$stop" = 1 ]; then
   fi
   exit 0
 fi
-keyq() { if [ -s "$keyfile" ]; then printf '?key=%s' "$(cat "$keyfile")"; fi; }
+keyq() { if [ -s "$keyfile" ]; then printf '?key=%s' "$(python3 -I "$here/picks.py" key "$(cat "$keyfile")")"; fi; }
 
 command -v python3 >/dev/null || { echo "preview.sh: python3 3.8+ is required (or open the .html files directly)" >&2; exit 3; }
 mkdir -p "$docroot"
@@ -93,7 +93,7 @@ if [ "$rc" = 0 ]; then
     rm -f "${state[@]}"
   else
     q=""; [ "$running" = "0.0.0.0" ] && q="$(keyq)"
-    echo "preview: already running — $(cat "$urlfile" 2>/dev/null || echo "http://127.0.0.1:$at/")$q"
+    echo "preview: already running — $(python3 -I "$here/picks.py" url "$(cat "$urlfile" 2>/dev/null || echo "http://127.0.0.1:$at/")")$q"
     if [ "$recorded" -gt "$version" ]; then echo "preview: a newer server is running; left as it is."; fi
     if [ "$bind" = "0.0.0.0" ] && [ "$running" != "0.0.0.0" ]; then echo "preview: --lan not used"; fi
     not_used

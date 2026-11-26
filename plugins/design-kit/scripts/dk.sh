@@ -91,10 +91,10 @@ case "$verb" in -h|--help|"") sed -n '2,57p' "$0"; exit 0 ;; esac
 
 # drift --print-hook writes nothing either: it prints the PostToolUse snippet for the user to paste, and installs nothing.
 if [ "$verb" = drift ] && [ "${1:-}" = "--print-hook" ]; then
-  python3 - "$here/handoff-drift.py" <<'PY'
+  python3 -I - "$here/handoff-drift.py" <<'PY'
 import json, shlex, sys
 drift = shlex.quote(sys.argv[1])
-cmd = ("f=$(python3 -c 'import json,sys; print((json.load(sys.stdin).get(\"tool_input\") or {}).get(\"file_path\") or \"\")' 2>/dev/null); "
+cmd = ("f=$(python3 -I -c 'import json,sys; print((json.load(sys.stdin).get(\"tool_input\") or {}).get(\"file_path\") or \"\")' 2>/dev/null); "
        '[ -n "$f" ] || exit 0; '
        f'out=$(python3 {drift} --scan --ci --repo "${{CLAUDE_PROJECT_DIR:-.}}" "$f" 2>/dev/null); '
        '[ $? -eq 1 ] || exit 0; printf \'%s\\n\' "$out" | head -n 40 >&2; exit 2')
@@ -121,7 +121,7 @@ ensure_ignored() {
   [ -n "$(git -C "$root" ls-files -- "$rel" "__design-kit__" 2>/dev/null)" ] && return 0
   # the block once named .design-kit/, which may hold a signed-in session under auth/: rewriting it must keep that folder ignored
   if [ -n "$OLD" ] && [ -d "$OLD" ]; then legacy=(".design-kit/"); fi
-  python3 - "$root/.gitignore" "$rel/" "__design-kit__/" ${legacy[@]+"${legacy[@]}"} <<'PY'
+  python3 -I - "$root/.gitignore" "$rel/" "__design-kit__/" ${legacy[@]+"${legacy[@]}"} <<'PY'
 import sys, re
 p, *pats = sys.argv[1:]
 start, end = "# >>> design-kit scratch (managed by design-kit dk.sh) >>>", "# <<< design-kit scratch <<<"
@@ -144,7 +144,7 @@ if [ -n "$OLD" ] && [ ! -d "$DK" ] && [ -d "$OLD" ]; then
     if [ -e "$OLD/$e" ]; then cp -Rp "$OLD/$e" "$DK/"; fi
   done
   # workshop.json names its pages by path; point them at the copies, so an export never writes into the old folder
-  if [ -f "$WS" ]; then python3 - "$WS" "$OLD" "$DK" <<'PY'
+  if [ -f "$WS" ]; then python3 -I - "$WS" "$OLD" "$DK" <<'PY'
 import json, sys
 p, old, new = sys.argv[1:4]
 heads = [(old.rstrip("/") + "/", new.rstrip("/") + "/"), (".design-kit/", ".cc-artifacts/design-kit/")]
@@ -168,7 +168,7 @@ mkdir -p "$DK"
 
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 log() { # log <outcome> [artifact]
-  python3 - "$USAGE" "$verb" "$1" "${2:-}" <<'PY'
+  python3 -I - "$USAGE" "$verb" "$1" "${2:-}" <<'PY'
 import json, sys, time
 p, verb, outcome, artifact = sys.argv[1:5]
 with open(p, "a", encoding="utf-8") as fh:
@@ -176,7 +176,7 @@ with open(p, "a", encoding="utf-8") as fh:
 PY
 }
 ws_set() { # ws_set <key> <json-value>   (a dotted key sets one nested field; a bare key replaces)
-  python3 - "$WS" "$1" "$2" <<'PY'
+  python3 -I - "$WS" "$1" "$2" <<'PY'
 import json, os, sys
 p, key, val = sys.argv[1:4]
 try:
@@ -196,17 +196,17 @@ with open(p, "w", encoding="utf-8") as fh:
     json.dump(ws, fh, indent=1)
 PY
 }
-ws_get() { python3 -c 'import json,sys
+ws_get() { python3 -I -c 'import json,sys
 try: ws=json.load(open(sys.argv[1]))
 except Exception: ws={}
 v=ws
 for k in sys.argv[2].split("."):
     v=v.get(k) if isinstance(v,dict) else None
 print("" if v is None else v)' "$WS" "$1"; }
-url() { cat "$DK/.preview.url" 2>/dev/null || true; }
+url() { local u; u="$(cat "$DK/.preview.url" 2>/dev/null || true)"; [ -z "$u" ] || python3 -I "$here/picks.py" url "$u"; }
 lan_bound() { [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ]; }
 # keyed <url>: while the server is LAN-bound every printed URL carries the network address, so it needs serve.py's key
-keyed() { if lan_bound && [ -s "$DK/.preview.key" ]; then printf '%s?key=%s' "$1" "$(cat "$DK/.preview.key")"; else printf '%s' "$1"; fi; }
+keyed() { if lan_bound && [ -s "$DK/.preview.key" ]; then printf '%s?key=%s' "$1" "$(python3 -I "$here/picks.py" key "$(cat "$DK/.preview.key")")"; else printf '%s' "$1"; fi; }
 ensure_server() { # stdout: the URL only; preview.sh's own lines go to stderr
   local out; out="$(bash "$here/preview.sh" --docroot "$DK" "$@")" || { echo "$out" >&2; return 4; }
   echo "$out" | grep -v '^preview: http' >&2 || true
@@ -225,7 +225,7 @@ build() { # build <script> [args]: sets out and rc; the script's stderr follows 
 }
 # ds_file <name>: $DS/<name>, else the design-system/<name> plugins before 2026-11-14 wrote, while $DS lacks it.
 ds_file() { if [ ! -f "$DS/$1" ] && [ -f "design-system/$1" ]; then printf 'design-system/%s' "$1"; else printf '%s/%s' "$DS" "$1"; fi; }
-tokens_sha() { python3 -c 'import hashlib,sys
+tokens_sha() { python3 -I -c 'import hashlib,sys
 try: print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest()[:12])
 except OSError: print("")' "$(ds_file tokens.json)"; }
 
@@ -331,7 +331,7 @@ case "$verb" in
     input="${1:-}"; [ -n "$input" ] || fail "needs an input" "" 2; shift
     build "$here/artifact-bundle.py" "$input" --out-dir "$DK/artifacts" --json "$@"
     [ "$rc" = 0 ] || fail "artifact-bundle exited $rc" "$input" "$rc"
-    read -r art slug ver <<<"$(printf '%s' "$out" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["out"], d["slug"], d["version"])')"
+    read -r art slug ver <<<"$(printf '%s' "$out" | python3 -I -c 'import json,sys; d=json.load(sys.stdin); print(d["out"], d["slug"], d["version"])')"
     # Values the page wrote: serve.py's rule keeps each on its own line. -I: the cwd's own html.py must not shadow a module serve.py imports.
     printf '%s\n' "$out" | python3 -I -c 'import importlib.util, json, sys
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
@@ -368,7 +368,7 @@ PY
     case "$mode" in
       --lan) lan_server "$real"; echo "url=$(keyed "$base$rel")"; log ok "$real" ;;
       --pages) bash "$here/artifact-publish.sh" "$real" "$@" || fail "publish failed" "$real" 1; log ok "$real" ;;
-      --zip) z="${real%.html}.zip"; python3 -c 'import sys,zipfile,os
+      --zip) z="${real%.html}.zip"; python3 -I -c 'import sys,zipfile,os
 p,z=sys.argv[1:3]
 with zipfile.ZipFile(z,"w",zipfile.ZIP_DEFLATED) as zf: zf.write(p, os.path.basename(p))
 print("zip:", z)' "$real" "$z"; log ok "$z" ;;
@@ -438,10 +438,13 @@ with m.decisions_lock(dk):
                 if pick["confirmed"] or os.path.isfile(own) and m._real_parts(dk, own) == ["boards", pick["board"]]:
                     file = own
                     for key in ("spec", "at"): b.pop(key, None)  # the last built board's
+                elif file:
+                    b = None  # an unconfirmed row of a board not in boards/ leaves the recorded board's pick alone
                 else:
-                    file = file or pick["board"]
-            b.update(picked=pick["picked"], file=file, decided_at=pick["ts"], confirmed=pick["confirmed"])
-            json.dump(ws, open(ws_path, "w", encoding="utf-8"), indent=1)
+                    file = pick["board"]
+            if b is not None:
+                b.update(picked=pick["picked"], file=file, decided_at=pick["ts"], confirmed=pick["confirmed"])
+                json.dump(ws, open(ws_path, "w", encoding="utf-8"), indent=1)
 PY
     rc=$?; [ "$rc" = 0 ] && log ok || log skip; exit "$rc" ;;
 
@@ -607,7 +610,7 @@ PY
 import importlib.util, sys
 dk, serve = sys.argv[1:3]
 spec = importlib.util.spec_from_file_location("dkserve", serve); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-import os, re
+import os
 steps = m.flow_steps(os.path.abspath(dk))
 print(" → ".join(f"{l} [{m.escape(d)}]" for l, d, s in steps))
 def alive():
@@ -620,7 +623,7 @@ def alive():
     except (OSError, ValueError):
         return False
 u = open(os.path.join(dk, ".preview.url")).read().strip() if alive() and os.path.exists(os.path.join(dk, ".preview.url")) else ""
-print("server: " + (u if re.fullmatch(r"http://[0-9A-Za-z.:-]+/", u) else m.picks.quoted_name(u) if u else "not running"))
+print("server: " + (m.picks.shown(u, m.picks.URL) if u else "not running"))
 PY
     log ok ;;
 

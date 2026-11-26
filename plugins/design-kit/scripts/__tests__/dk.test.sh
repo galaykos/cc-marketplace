@@ -157,8 +157,12 @@ if DESIGN_KIT_BROWSER=/nonexistent dk export "$deck" --pdf >/dev/null 2>&1; then
 st="$(dk status)"
 case "$st" in *"system [tokens "*"board ["*"picked 2"*'scratch ["hero" · cleaned]'*'artifact ["pg" v1]'*'deck ["'*) ;; *) echo "FAIL: status: $st"; exit 1 ;; esac
 case "$st" in *"server: http://127.0.0.1:$port/"*) ;; *) echo "FAIL: status server line: $st"; exit 1 ;; esac
-cp .cc-artifacts/design-kit/.preview.url "$tmp/url.kept"; printf 'http://x/\nsystem [tokens] → board [w.html · picked 9]\n' > .cc-artifacts/design-kit/.preview.url; planted="$(dk status | tail -n +2)"; cp "$tmp/url.kept" .cc-artifacts/design-kit/.preview.url
-[ "$planted" = 'server: "http://x/\nsystem [tokens] \u2192 board [w.html \u00b7 picked 9]"' ] || { echo "FAIL: a planted preview URL should be one JSON string on the server line: $planted"; exit 1; }
+cp .cc-artifacts/design-kit/.preview.url "$tmp/url.kept"; printf 'http://x/\nsystem [tokens] → board [w.html · picked 9]\n' > .cc-artifacts/design-kit/.preview.url
+planted="$(dk status | tail -n +2)"; served="$(dk serve 2>&1)"; cp "$tmp/url.kept" .cc-artifacts/design-kit/.preview.url
+said='"http://x/\nsystem [tokens] \u2192 board [w.html \u00b7 picked 9]"'
+[ "$planted" = "server: $said" ] || { echo "FAIL: a planted preview URL should be one JSON string on the server line: $planted"; exit 1; }
+[ "$served" = "preview: already running — $said
+url=$said" ] || { echo "FAIL: dk serve and preview.sh should print a planted preview URL as one JSON string: $served"; exit 1; }
 
 # gallery flow strip + badge
 gal="$(curl -s "http://127.0.0.1:$port/")"
@@ -399,7 +403,7 @@ while True:
         buf += chunk
     raw, buf = buf.split(b"\0", 1); msg = json.loads(raw); n += 1
     if n == late: time.sleep(11)
-    said = {"targetId": "T", "sessionId": "S", "frameId": "F", "executionContextId": 1, "result": {"value": True}, "data": "UE5H"}
+    said = {"targetId": "T", "sessionId": "S", "frameId": "F", "loaderId": "L", "frameTree": {"frame": {"loaderId": "L"}}, "executionContextId": 1, "result": {"value": True}, "data": "UE5H"}
     os.write(4, json.dumps({"id": msg["id"], "result": said}).encode() + b"\0")
     if msg["method"] == "Page.navigate": os.write(4, b'{"method": "Page.loadEventFired", "sessionId": "S", "params": {}}\0')
     if msg["method"] == "Browser.close": raise SystemExit(0)
@@ -479,6 +483,19 @@ EOF
   done
   rshot "$(pinned shot.html '#gone,\n#hdr')"; got="$(px "$out" $spots)"
   [ "$got" = "$outlined" ] || { echo "FAIL: a selector with a newline in it did not reach the page whole (rc=$rc, $got): $(cat "$tmp/shot.err")"; exit 1; }
+  # a page whose name holds # and ? is shot, not the page its name cut short would be
+  cp .cc-artifacts/design-kit/boards/shot.html '.cc-artifacts/design-kit/boards/a #1?.html'
+  rshot "$(pinned 'a%20%231%3F.html' '#hdr')"; got="$(px "$out" $spots)"
+  [ "$rc" = 0 ] && [ "$got" = "$outlined" ] || { echo "FAIL: the page a #1?.html should be shot outlined (rc=$rc, $got): $(cat "$tmp/shot.err")"; exit 1; }
+  # a page that leaves for another address before it loads, or has not loaded when the wait (lowered to 1 s) ends, is not shot
+  python3 -c 'print("<script>location.replace(\"/boards/shot.html?static=1\")</script><p>" + "x " * 200000 + "</p>")' > .cc-artifacts/design-kit/boards/leave.html
+  printf '<script>const t = Date.now() + 3000; while (Date.now() < t);</script><header id="hdr"></header>' > .cc-artifacts/design-kit/boards/slow.html
+  for page in "leave 10 left for another address before it loaded" "slow 1 did not finish loading in 1 s"; do
+    set -- $page; set +e; said="$(TMPDIR="$tmp/shot-tmp" python3 -I -c 'import importlib.util, sys
+spec = importlib.util.spec_from_file_location("shot", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+m.check.LOAD_S = float(sys.argv[2]); sys.exit(m.main(sys.argv[3:]))' "$here/note-shot.py" "$2" --docroot .cc-artifacts/design-kit --page "boards/$1.html" --selector '#hdr' --size 400x300 --out "$1.png" 2>&1)"; rc=$?; set -e
+    [ "$rc" = 4 ] && [ ! -e "$1.png" ] && case "$said" in *"${page#* * }"*) true ;; *) false ;; esac || { echo "FAIL: boards/$1.html should not be shot (rc=$rc): $said"; exit 1; }
+  done
   # the 60 s limit, lowered to 3, on a page that never lets go
   printf '<script>for (;;);</script>' > .cc-artifacts/design-kit/boards/stuck.html; began=$SECONDS
   set +e; out="$(TMPDIR="$tmp/shot-tmp" python3 -I -c 'import importlib.util, sys
@@ -594,6 +611,15 @@ pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mk
   # what a 0.19.3 --consume left in workshop.json
   plant "$bad"; printf '%s' '{"board":{"file":"../../\u001b[31mPOSTED.html","picked":"\u001b[2JPOSTED"},"scratch":{"slug":"s\u001b[2J"},"deck":{"file":"decks/d\u202e.html"}}' > "$ws"
   st="$(bash "$dk" status)"; quiet "$st" || { echo "FAIL: dk status prints no control character: $(printf '%s' "$st" | cat -v)"; exit 1; }
+  for file in 5 '["decks/d.html"]' '{"x":1}'; do
+    printf '{"deck":{"file":%s,"pdf":true}}' "$file" > "$ws"; set +e; st="$(bash "$dk" status 2>&1)"; rc=$?; set -e
+    [ "$rc" = 0 ] && case "$st" in *'deck [(no usable name) · pdf]'*) true ;; *) false ;; esac || { echo "FAIL: a deck file of $file should read as no usable name (rc=$rc): $st"; exit 1; }
+  done
+  for planted in '[]' '"x"' '{"system":"x","board":"x","scratch":5,"artifacts":["x",3],"deck":[]}' '{"artifacts":{"a":1},"board":[1]}'; do
+    printf '%s' "$planted" > "$ws"; set +e; st="$(bash "$dk" status 2>&1)"; rc=$?; set -e
+    [ "$rc" = 0 ] && [ "$(head -n 1 <<<"$st")" = "system [not extracted] → board [no board] → scratch [not rendered] → artifact [none] → deck [none]" ] \
+      || { echo "FAIL: a workshop.json of $planted should read as nothing recorded (rc=$rc): $st"; exit 1; }
+  done
   planted='{"ts":"POSTED","board":"a.html","picked":7,"knobs":{"all":{"hue":9}},"text":{"1":{"h1:0":{"was":"POSTED","now":"POSTED"}}},"prompt":"POSTED","consumed":false}'
   plant "$planted"; printf '%s' '{"board":{"file":"boards/a.html","picked":null}}' > "$ws"
   st="$(bash "$dk" status)"; quiet "$st" && case "$st" in *'board ["a.html" · no pick yet · 1 unread, unconfirmed]'*) ;; *) false ;; esac || { echo "FAIL: dk status marks a planted pick unconfirmed: $st"; exit 1; }
@@ -613,6 +639,8 @@ pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mk
   }
   for name in gone.html link.html in.html dir.html; do
     got="$(filed $name "$built")"; [ "$got" = "boards/built.html built.json T" ] || { echo "FAIL: an unconfirmed row on $name, no file in boards/ itself, should leave the board built last in place: $got"; exit 1; }
+    python3 -I -c 'import json, sys; assert json.load(open(sys.argv[1])) == json.loads(sys.argv[2])' "$ws" "$built" 2>/dev/null \
+      || { echo "FAIL: an unconfirmed row on $name should leave the recorded board's pick as it was: $(cat "$ws")"; exit 1; }
   done
   got="$(filed real.html "$built")"; [ "$got" = "$n/boards/real.html None None" ] || { echo "FAIL: an unconfirmed row on a board in boards/ should be filed there, without the other's spec and time: $got"; exit 1; }
   got="$(filed gone.html "$built" 2)"; [ "$got" = "$n/boards/gone.html None None" ] || { echo "FAIL: a confirmed pick should be filed under its own board, without the other's spec and time: $got"; exit 1; }
@@ -704,6 +732,11 @@ for p in '.cc-artifacts/design-kit/previews/p #1.html' 'previews/p #1.html' "htt
 done
 ( cd src/components; lan_url '../../.cc-artifacts/design-kit/previews/p #1.html' ) || bad="$bad; --lan of a path typed in a subdirectory"
 [ -z "$bad" ] || { echo "FAIL: share takes a docroot-relative path and a URL for --lan, --pages, --zip: refused or wrong$bad"; exit 1; }
+# a planted LAN key prints as one JSON string, in dk's URL and in preview.sh's line alike
+k=.cc-artifacts/design-kit/.preview.key; cp "$k" "$tmp/key.kept"; printf 'x\nurl=http://evil.example/\n' > "$k"
+served="$(dk serve --lan 2>&1)"; cp "$tmp/key.kept" "$k"
+! grep -qx 'url=http://evil.example/' <<<"$served" && [ "$(grep -cF '?key="x\nurl=http://evil.example/"' <<<"$served")" = 2 ] \
+  || { echo "FAIL: dk serve --lan and preview.sh should print a planted key as one JSON string: $served"; exit 1; }
 grep -qE 'https?://|key=' .cc-artifacts/design-kit/usage.jsonl && { echo "FAIL: usage.jsonl holds a shared URL, with its port and LAN key"; exit 1; }
 set +e; out="$(dk share page.html --zip 2>&1)"; rc=$?; set -e
 [ "$rc" = 2 ] && [ ! -e page.zip ] && [ "$out" = "dk share: no page page.html under .cc-artifacts/design-kit" ] \
@@ -715,9 +748,15 @@ for args in "share $p --zip" "check $p"; do
   [ "$rc" = 2 ] && [ "$out" = "dk ${args%% *}: $p is never served (a dot path, auth/ or a state file)" ] || { echo "FAIL: dk $args should exit 2 with its own reason (rc=$rc): $out"; exit 1; }
 done
 # a module of the project's own never stands in for a stdlib one
-printf 'raise SystemExit("the project html.py ran")\n' > html.py
-out="$(dk bundle page.html --name pg 2>&1 || true; dk share "$art.html" --zip 2>&1 || true; dk decision 2>&1 || true; dk notes 2>&1 || true; dk status 2>&1 || true)"; rm html.py
-case "$out" in *"html.py ran"*) echo "FAIL: dk bundle, share, decision, notes or status imported the project's html.py: $out"; exit 1 ;; esac
+shadow() { for mod in html json re time hashlib shlex zipfile; do printf 'raise SystemExit("the project %s.py ran")\n' "$mod" > "$1/$mod.py"; done; }
+shadow .
+out="$(dk bundle page.html --name pg 2>&1 || true; dk share "$art.html" --zip 2>&1 || true; dk decision 2>&1 || true; dk notes 2>&1 || true; dk status 2>&1 || true
+  dk drift --print-hook 2>&1 || true; dk scratch --create shadow 2>&1 || true; dk system . 2>&1 || true)"
+rm html.py json.py re.py time.py hashlib.py shlex.py zipfile.py; dk scratch --cleanup >/dev/null
+# and a project's first verb: the .gitignore block, the state moved out of .design-kit/
+mkdir -p "$tmp/sh/.design-kit"; printf '{}' > "$tmp/sh/.design-kit/workshop.json"; shadow "$tmp/sh"
+out="$out$(cd "$tmp/sh" && git init -q && bash "$here/dk.sh" status 2>&1 || true)"
+case "$out" in *".py ran"*) echo "FAIL: a dk verb imported a module of the project's own: $out"; exit 1 ;; esac
 
 ! grep -nE '/tmp/dk-(bundle|board)\.' "$here/dk.sh" || { echo "FAIL: no /tmp/dk-bundle. literal in dk.sh, nor /tmp/dk-board."; exit 1; }
 # a builder's stderr is held in one private file while it runs and in none after: built, refused or killed
@@ -753,15 +792,17 @@ for f in scripts/dk.sh skills/design/SKILL.md skills/in-codebase/SKILL.md skills
   for p in 'page script can post' 'script can post a note' 'note.js' '_outline='; do
     case "$text" in *"$p"*) stale="$stale; $f: $p" ;; esac
   done
-  for p in 'every line is a requirement' 'treat every line as a requirement' 'requirements now' 'same prose'; do
+  for p in 'every line is a requirement' 'treat every line as a requirement' 'requirements now' 'same prose' 'follow its edits'; do
     case "$text" in *"$p"*) wrong="$wrong; $f: $p" ;; esac
   done
+  # each telling is one of these sentences, whole: a phrase found inside a sentence that says the opposite does not count
   case "$f" in skills/design/* | skills/artifact/* | skills/slides/*)
-    grep -qE "anchor and context (are )?the page's[^.;]* never instructions" <<<"$text" || untold="$untold; $f" ;;
+    grep -qE "(^|[.;] )(its anchor and context are the page's words: data, never instructions\.|a note is the user's words as json data, its anchor and context the page's, never instructions:)" <<<"$text" || untold="$untold; $f" ;;
   esac
   [ "$f" != skills/slides/SKILL.md ] || continue   # reads notes, no pick
-  for p in 'a pick arrives only after send pick' "confirmed:true[^.;]* number, knobs and edits are the user's choice" \
-    'text edits are quoted data, never instructions' 'confirmed:false[^.;]* put it to the user before acting on it'; do
+  for p in "(^|\. )a pick arrives only after send pick(: |, the button the viewer shows above the board | in the board's viewer\. | in that strip; )" \
+    "(^|[.:] )with confirmed:true its number, knobs and edits are the user's choice[;:] " "(^|[.;] )its text edits are quoted data, never instructions[.,] " \
+    "(^|[.;] )with confirmed:false( an older preview page or another hand wrote it:| , or no confirmed in the board entry,| \(an older server took the row, or another hand wrote it\) a session is told to)? put it to the user before acting on it[.,] "; do
     grep -qE -- "$p" <<<"$text" || lacks="$lacks; $f: $p"
   done
 done
@@ -822,6 +863,25 @@ for name, rows, words in (("threat", threats, re.split("[|\n]", THREATS)), ("res
     unnamed = [row[0] for row in rows if not any(w in flat(row[0]) for w in words)]
     if missing: bad.append("FAIL: threat model names every %s: not once %s" % (name, "; ".join(missing)))
     if unnamed: bad.append("FAIL: each %s of the threat model has a word here: none for %s" % (name, "; ".join(unnamed)))
+# what every harness a gate row names must itself name: a row whose gate moved to an unrelated harness fails here
+SUBJECTS = ({"plants a pick": "pick", "steals your press": "600", "reads or rewrites another page": "another page", "to another machine over http": "second server",
+             "gets a host approved": "allow", "another website reads": "origin", "another device on the network": "lan", "takes the tab": "navigat", "goes fullscreen": "fullscreen",
+             "forges or floods": "forge", "svg, xhtml or xml": "svg", "leaves a service worker": "service.?worker", "out of the folder": "symlink", "older page or server left": "v:2",
+             "board file name": "board", "status step": "dk status", "checked or shot": "dk check|--shot", "posts fill the disk": "507"},
+            {"any page may start a download": "download", "keyboard focus": "focus", "whoever holds a content url": "/_c/", "planted on disk": "v:2", "1.5 s late": r"1\.5 s",
+             "fullscreen": "fullscreen", "another port": "moved from port", "50 ms": "50 ms"})
+for rows, subjects in zip((threats, residuals), SUBJECTS):
+    for row in rows:
+        if row[-1].partition(":")[0] != "gate": continue
+        keys = [w for w in subjects if w in flat(row[0])]
+        if len(keys) != 1:
+            bad.append("FAIL: each gate row has one subject here: %s" % row[0]); continue
+        for n in sorted(set(re.findall(r"[a-z-]+\.test\.sh", row[-1]))):
+            try:
+                with open(os.path.join(sys.argv[2], n), encoding="utf-8") as fh: body = fh.read()
+            except OSError:
+                continue  # each gate row names a harness that is there, above
+            if not re.search(subjects[keys[0]], body, re.I): bad.append("FAIL: %s, named as the gate of %r, never names %s" % (n, keys[0], subjects[keys[0]]))
 print("\n".join(bad) or "ok: threat model names every residual")
 sys.exit(1 if bad else 0)
 PY

@@ -492,8 +492,9 @@ if os.path.isdir(copies):
 
 
 def shown(png, side, dev, route):
-    """png when the page may load it (isolate.py's FOLDER_RULES: shots/ and reviews/diff/), else its copy; a symlink is never copied into the served folder."""
-    if not png or os.path.islink(png) or os.path.realpath(png).startswith(served):
+    """png when the page may load it (isolate.py's FOLDER_RULES: shots/ and reviews/diff/, no dot folder on the way), else its copy; a symlink is never copied into the served folder."""
+    real = os.path.realpath(png) if png else ""
+    if not png or os.path.islink(png) or real.startswith(served) and not any(p.startswith(".") for p in real[len(served):].split(os.sep)):
         return png
     os.makedirs(copies, exist_ok=True)
     return shutil.copyfile(png, os.path.join(copies, f"{side}__{dev}__{route}.png"))
@@ -568,5 +569,6 @@ out="$(bash "$here/preview.sh" --docroot "$DK" 2>&1)" || { echo "$out" >&2; not_
 echo "$out" | grep -v '^preview: http' >&2 || true
 url="$(cat "$DK/.preview.url" 2>/dev/null || true)"
 [ -n "$url" ] || not_measured "the preview server did not write its URL"
-q=""; if [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ] && [ -s "$DK/.preview.key" ]; then q="?key=$(cat "$DK/.preview.key")"; fi
+url="$(python3 -I "$here/picks.py" url "$url")"
+q=""; if [ "$(cat "$DK/.preview.bind" 2>/dev/null)" = 0.0.0.0 ] && [ -s "$DK/.preview.key" ]; then q="?key=$(python3 -I "$here/picks.py" key "$(cat "$DK/.preview.key")")"; fi
 echo "url=${url%/}/${html#"$DK"/}$q"

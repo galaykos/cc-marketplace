@@ -196,6 +196,11 @@ rm "$dkd/walk-before/desktop/gone.png" "$dkd/walk/desktop/link.png"
 review_fresh run review --base "$dkd/walk-before" --current "$dkd/walk"
 [ "$(cd "$copies" && ls | tr '\n' ' ')" = "after__desktop__index.png after__mobile__index.png before__desktop__index.png before__mobile__index.png " ] \
   || fail "a review written again should hold its own copies alone: $(ls "$copies" 2>&1)"
+# a planted preview address prints as one JSON string, never as a line of its own
+cp "$dkd/.preview.url" "$tmp/url.kept"; printf 'http://x/\nshots=forged\n' > "$dkd/.preview.url"
+rc_of run review --base "$dkd/walk-before" --current "$dkd/walk"; cp "$tmp/url.kept" "$dkd/.preview.url"
+[ "$rc" = 0 ] && ! grep -qx 'shots=forged' <<<"$out" && grep -qxF 'url="http://x/\nshots=forged"/reviews/walk-vs-walk-before.html' <<<"$out" \
+  || fail "a planted preview address should print as one JSON string (rc=$rc): $out"
 
 # The no-engine branch, forced: a PIL that raises on import is what a machine
 # without Pillow looks like to this script.
@@ -225,6 +230,8 @@ git -C "$repo" add -f .cc-artifacts/design-kit/shots/aaa111 && git -C "$repo" -c
 rc_of bash -c "cd '$repo/app/Models' && bash '$snap' review --base HEAD --current '$rsets/bbb222'"
 [ "$rc" = 0 ] && grep -q '| index | desktop | .* | changed |' <<<"$out" \
   || fail "a git-ref base read from a subdirectory should pair the committed shots, got $rc: $out"
+got="$(loaded "$(sed -n 's/^url=//p' <<<"$out")" 2>&1)" || true
+[ "$got" = "$((2 + has_pillow))" ] || fail "a review page of a git-ref base should load every image it shows: $got"
 # a ref from before 2026-11-14 committed its shots under .design-kit/shots: read there when the new path holds none
 mkdir -p "$repo/.design-kit/shots"; cp -R "$rsets/aaa111" "$repo/.design-kit/shots/aaa111"
 git -C "$repo" rm -r -q --cached .cc-artifacts/design-kit/shots/aaa111 && git -C "$repo" add -f .design-kit/shots/aaa111 \
@@ -232,6 +239,8 @@ git -C "$repo" rm -r -q --cached .cc-artifacts/design-kit/shots/aaa111 && git -C
 rc_of bash -c "cd '$repo/app/Models' && bash '$snap' review --base HEAD --current '$rsets/bbb222'"
 [ "$rc" = 0 ] && grep -q '| index | desktop | .* | changed |' <<<"$out" \
   || fail "a git-ref base holding only .design-kit/shots should pair those, got $rc: $out"
+got="$(loaded "$(sed -n 's/^url=//p' <<<"$out")" 2>&1)" || true
+[ "$got" = "$((2 + has_pillow))" ] || fail "a review page of a git-ref base under .design-kit/shots should load every image it shows: $got"
 bash "$here/preview.sh" --docroot "$repo/.cc-artifacts/design-kit" --stop >/dev/null 2>&1 || true; unset DESIGN_KIT_PORT
 
 # --- the real surface: a throwaway server, a real browser, two devices ----------
