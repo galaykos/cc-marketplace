@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the viewer in headless Chrome on a served temp docroot: every kind of page framed with frame.js first and a null origin, the files an own-folder, a review and a deck page load, framed and raw, the bar, its frame's focus, a page that takes it from the viewer, and is stopped where it does so again and again from a note (a pointer moved by the system's way, for DevTools' own says nothing of a frame it is over; how much of what is typed such a page got is printed as a NOTE), query, hash and Back, reload (at a save of its own page, its last messages in first), the scroll kept over one, the messages it acts on, copy, download and print in a frame, what a page stores, where it stays and who sees it, in two tabs too, a full browser, a frame that left or stopped answering, the deleted and server-lost strips, a lost stream that is back before its retry, a restart, also with a draft, a board's pick from its report to its row (the strip's words, what survives what, one row a send whatever becomes of the answer, what is said of it, the 600 ms in which Send pick and Discard do nothing, a flooding page), a note from the page or the viewer to its row (keys, what a draft survives, refusals, the list, where the drawer stands), a blocked host from its strip to the page's policy and back (Network's list, Keep blocked, refusals, an unreadable approvals file, hosts a page makes up; the policy header is the proof, nothing is loaded), the two panels, a link of each kind, over a draft and not, the 600 ms in which Allow and Open do nothing either, the contract's seven states at 1280 and 375 px (what is where, nothing sideways, axe-core, Tab order, nothing draggable, a strip said once and never focused, a screenshot of each in the temp dir), the strips' order, 40 notes and 12 blocked hosts at 375 px, the bar at its widest from 320 px, Tab into a page with nothing to focus and the ring it draws, in pixels, the LAN viewer at this machine's own address (a SKIP line without one: at a faked peer's then), the gallery, a worker an older server left, and, with the peer's address faked and its Sec-Fetch headers dropped as plain HTTP drops them, the bounce of a top-level framed page and what the LAN viewer asks for; browser_lib.py's exit 4 where no browser starts.
-# Misses: a hostile page (attack.test.sh), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus, but for a tab in front of it (document.hasFocus is faked, and the viewer kept from hearing of a lost one); a scroll by a scrollbar, which headless Chrome hides.
+# Misses: a hostile page (attack.test.sh), a gallery thumbnail's page taking the focus by itself, which Chrome refuses (the gallery's own script takes it for the case), what an allowed host's file does, a real second device, what a screen reader says, a page behind an open alert() or print dialog, a page that never stops computing, browsers outside Chromium; a window that really loses and gets the focus, but for a tab in front of it (document.hasFocus is faked, and the viewer kept from hearing of a lost one); a scroll by a scrollbar, which headless Chrome hides.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
@@ -959,11 +959,11 @@ def looks(b):
 
 @contextlib.contextmanager
 def catching(b):
-    """caught(tab, do, stage, method, meanwhile), and the requests it still holds: the POST that do() sends to a write route is held before it leaves (Request) or before its answer arrives (Response), then let go by a Fetch command."""
+    """caught(tab, do, stage, method, meanwhile, routes), and the requests it still holds: the request that do() sends to a write route, or to one of routes, is held before it leaves (Request) or before its answer arrives (Response), then let go by a Fetch command."""
     paused, keep = [], b.chrome.keep
     b.chrome.keep = lambda e: paused.append(e["params"]["requestId"]) if e["method"] == "Fetch.requestPaused" else keep(e)
-    def caught(tab, do, stage, method, meanwhile=lambda: None, **params):
-        b.chrome.call("Fetch.enable", {"patterns": [{"urlPattern": at, "requestStage": stage} for at in ("*/_decision", "*/_note", "*/_allow")]}, tab.sid)
+    def caught(tab, do, stage, method, meanwhile=lambda: None, routes=("*/_decision", "*/_note", "*/_allow"), **params):
+        b.chrome.call("Fetch.enable", {"patterns": [{"urlPattern": at, "requestStage": stage} for at in routes]}, tab.sid)
         do()
         until = time.monotonic() + 3
         while not paused and time.monotonic() < until:
@@ -1632,6 +1632,9 @@ def lists(b):
     tab = seen(dict(row(1), anchor=dict(row(1)["anchor"], tag="b" + chr(0x202e) + "x")))
     press(tab, "#notes")
     eq("a tag the page named is listed as the composer shows it, a character that draws nothing as its number", lambda: [tab.wait("!!document.querySelector('#drawer li b')"), tab.evaluate("(({ textContent, children }) => [textContent, [...children].map((e) => e.localName)])(document.querySelector('#drawer li b'))")][1], ["<bU+202Ex>", ["bdi"]])
+    tab = seen(dict(row(1), anchor=dict(row(1)["anchor"], tag=5)))
+    press(tab, "#notes")
+    eq("a tag that is not a string is listed as its text", lambda: [tab.wait("!!document.querySelector('#drawer li b')"), tab.evaluate("document.querySelector('#drawer li b').textContent")][1], "<5>")
     boxes = "(() => { const at = (s) => document.querySelector(s).getBoundingClientRect(), d = at('#drawer'), f = at('iframe'), e = document.querySelector('#drawer'); return { drawer: [d.left, d.right, d.top === at('#strips').bottom], frame: [f.left, f.right, f.bottom], meet: innerWidth > 600 ? f.right === d.left && f.top === d.top : f.top === d.bottom, high: d.height <= innerHeight * .6, scrolls: e.scrollHeight > e.clientHeight, sideways: document.documentElement.scrollWidth, chip: %s, check: [%s, document.querySelector('#check').textContent] }; })()" % (SHOWN % "#chip", SHOWN % "#check")
     for w in (1280, 375):
         tab = seen(*[row(n) for n in range(1, 26)], w=w)
@@ -1788,6 +1791,12 @@ def refuses(b):
         caught(tab, lambda: press(tab, ALLOW), "Request", "failRequest", meanwhile, errorReason="ConnectionReset")
     lost = asks(CDN, "scripts, styles", "The preview server did not answer")
     eq("a lost answer is said, and Allow acts again", lambda: [becomes(tab, ASKS, [lost, of_images]), tab.evaluate("document.querySelector('%s').ariaDisabled" % ALLOW)], [[lost, of_images], None])
+    tab.evaluate("rewrites = 0")
+    time.sleep(ACTS)
+    with catching(b) as (caught, _):
+        caught(tab, lambda: press(tab, ALLOW), "Request", "failRequest", errorReason="ConnectionReset")
+    said_again = CDN + ": The preview server did not answer"
+    eq("a second failure the same as the one before is said again", lambda: [becomes(tab, "document.querySelector('#drawer section:last-child [role=status]').textContent", said_again), tab.evaluate("rewrites > 0")], [said_again, True])
     approved("{")
     reframed(tab, lambda: loads("unreadable"))
     broken = "Approvals file unreadable; all hosts blocked"
@@ -1988,9 +1997,11 @@ def guards(b):
     forget()
     approved()
 
-# the viewer's retry of a lost stream a minute late: past the case
-SWAP = "{ const real = setTimeout; window.setTimeout = (fn, ms) => real(fn, ms === 1000 ? 60000 : ms); }"
+RETRY_A_MINUTE_LATE = "{ const real = setTimeout; window.setTimeout = (fn, ms) => real(fn, ms === 1000 ? 60000 : ms); }"
 ELSEWHERE = "Not recorded: this address serves another project now; nothing was recorded"
+MOVED = "This address serves another project now: this note is not recorded here"
+NEW_KEY = "This address needs its new key: open the URL dk serve --lan prints"
+LOAD_NEVER_ENDS = "<script>stop()</script>"
 
 def swapped(b):
     forget()
@@ -2001,8 +2012,8 @@ def swapped(b):
     second = os.path.join(os.path.dirname(ROOT), "swapped")
     os.makedirs(os.path.join(second, "boards"), exist_ok=True)
     with open(os.path.join(second, name), "w") as fh:
-        fh.write("<!doctype html><title>second</title><h1>second</h1>")
-    tab = visit(b, server.url + "/" + name, source=SWAP)
+        fh.write("<!doctype html><title>second</title><h1>second</h1>" + LOAD_NEVER_ENDS)
+    tab = visit(b, server.url + "/" + name, source=RETRY_A_MINUTE_LATE)
     f = tab.frame()
     tab.wait(ASKS + ".length", 6)
     tab.evaluate("window.kinds = []; new MutationObserver((all) => { for (const one of all) for (const el of one.addedNodes) kinds.push(el.dataset.kind); }).observe(document.querySelector('#strips'), { childList: true }); 1")
@@ -2026,6 +2037,40 @@ def swapped(b):
     finally:
         server.stop()
         server.start()
+    tab = visit(b, server.url + "/" + name)
+    f = tab.frame()
+    tab.wait(ASKS + ".length", 6)
+    writes(tab, f, "on the first project")
+    try:
+        reframed(tab, lambda: (server.stop(), server.start(root=second)))
+        time.sleep(PACE)
+        marked = tab.evaluate(WHY)
+        press(tab, SEND_NOTE)
+        refused_note = tab.wait("%s === %s" % (WHY, json.dumps(ELSEWHERE)), 4) and tab.evaluate(WHY)
+        time.sleep(PACE)
+        allow_left = tab.evaluate("!!document.querySelector('%s')" % ALLOW)
+        if allow_left:
+            press(tab, ALLOW)
+        eq("once the page of the project that took the port is framed, a note written before it is marked and not recorded on Send note, and the blocked host of the one before is not offered, in either project",
+           lambda: [marked, refused_note, allow_left, [time.sleep(0.5), [os.path.exists(os.path.join(at, one)) for at in (ROOT, second) for one in ("notes.jsonl", ".allow.json")]][1]],
+           [MOVED, ELSEWHERE, False, [False] * 4])
+    finally:
+        server.stop()
+        server.start()
+
+PAGE_UNANSWERED = "{ const real = fetch; window.fetch = (at, ...more) => (String(at).startsWith('/_page') ? Promise.reject(new TypeError('held')) : real(at, ...more)); }"
+
+def before_any_page(b):
+    forget("notes.jsonl")
+    tab = visit(b, server.url + "/" + NOTED, source=PAGE_UNANSWERED)
+    tab.wait(STRIPS + ".length", 4)
+    press(tab, "#notes")
+    press(tab, ON_PAGE)
+    types(tab, "before any answer")
+    time.sleep(ACTS)
+    press(tab, SEND_NOTE)
+    eq("a note sent before /_page ever answered is recorded as a server that checks no project records it", lambda: [tab.wait("!" + WRITING, 4), said("text")], [True, ["before any answer"]])
+    forget("notes.jsonl")
 
 def underway(b):
     forget()
@@ -2068,6 +2113,42 @@ def underway(b):
         server.stop()
         server.start()
 
+def link_over_allow(b):
+    approved()
+    name = "artifacts/link-over-allow.html"
+    page(name, body='<a id="next" href="/decks/old.htm">next</a><script src="https://%s/a.js"></script><img src="https://%s/i.png" alt="">' % (CDN, IMAGES))
+    tab = visit(b, server.url + "/" + name)
+    f = tab.frame()
+    tab.wait(ASKS + ".length === 2", 8)
+    time.sleep(ACTS)
+    def clicked():
+        fitted(tab, f)
+        tab.click(*f.at("#next"))
+        time.sleep(0.5)
+    try:
+        with catching(b) as (held, _):
+            tab.evaluate(MARK)
+            held(tab, lambda: press(tab, ALLOW), "Request", "continueRequest", clicked)
+        offers = "[...document.querySelectorAll('%s > *')].map((e) => e.textContent)" % LINK
+        eq("a page link clicked while an Allow is pending, answered 0.5 s later, is offered on the page framed anew", lambda: [tab.wait(NEW, 8), becomes(tab, offers, [server.url + "/decks/old.htm", "Open", "Dismiss"], 5), tab.evaluate("document.body.dataset.page")],
+           [True, [server.url + "/decks/old.htm", "Open", "Dismiss"], name])
+    finally:
+        approved()
+
+def link_of_replaced(b):
+    name = "artifacts/link-of-replaced.html"
+    body = '<a id="next" href="/decks/old.htm">next</a>'
+    page(name, body=body)
+    tab = visit(b, server.url + "/" + name)
+    f = tab.frame()
+    tab.wait(FOCUS + " === 'iframe'")
+    def click():
+        fitted(tab, f)
+        tab.click(*f.at("#next"))
+    with catching(b) as (held, _):
+        held(tab, click, "Request", "continueRequest", lambda: reframed(tab, lambda: page(name, title="saved", body=body)), routes=("*/decks/old.htm",))
+    eq("a page link whose check was under way when its frame was replaced is neither followed nor offered", lambda: [time.sleep(PACE), tab.evaluate("[document.body.dataset.page, !!document.querySelector('%s')]" % LINK)][1], [name, False])
+
 def capped(b):
     name = "artifacts/capped.html"
     put(".allow.json", json.dumps({name: [ALLOWED]}))
@@ -2081,12 +2162,11 @@ def capped(b):
     eq("Remove of that one lists it among them, and the next frame's 120 add none", lambda: [time.sleep(3.5), becomes(tab, NETWORK, "Network (101)")][1], "Network (101)")
     approved()
 
-# what the viewer hears of a context: the first one, lost
-LOSES = "window.lost = 0; addEventListener('message', (e) => { if (e.data && e.data.t === 'context' && !lost++) e.stopImmediatePropagation(); });"
+FIRST_CONTEXT_LOST = "window.lost = 0; addEventListener('message', (e) => { if (e.data && e.data.t === 'context' && !lost++) e.stopImmediatePropagation(); });"
 
 def asked_anew(b):
     forget("notes.jsonl")
-    tab = visit(b, server.url + "/" + NOTED, source=LOSES)
+    tab = visit(b, server.url + "/" + NOTED, source=FIRST_CONTEXT_LOST)
     f = tab.frame()
     opens(tab, f)
     press(tab, ON_PAGE)
@@ -2128,11 +2208,10 @@ def keyed(b):
         tab.key("Alt+n")
     eq("two Alt+N in the page while what can be sent holds them are both done, late", lambda: [time.sleep(PACE + 0.3), tab.evaluate("[expanded, %s]" % DRAWN)][1], [["false", "true"], False])
 
-# requestAnimationFrame's callbacks not run yet
-FRAMES = "window.pending = 0; { const real = requestAnimationFrame; window.requestAnimationFrame = (fn) => { pending++; return real((t) => { pending--; fn(t); }); }; }"
+PENDING_FRAMES_COUNTED = "window.pending = 0; { const real = requestAnimationFrame; window.requestAnimationFrame = (fn) => { pending++; return real((t) => { pending--; fn(t); }); }; }"
 
 def hidden_tab(b):
-    tab = visit(b, server.url + "/" + BOARD, source=FRAMES)
+    tab = visit(b, server.url + "/" + BOARD, source=PENDING_FRAMES_COUNTED)
     tab.frame()
     other = b.page("about:blank")
     time.sleep(3)
@@ -2173,17 +2252,16 @@ def kept_here(b):
     blocked(tab.frame(), CDN)
     eq("Keep blocked on one page leaves another page of the tab asking for that host", lambda: becomes(tab, ASKS, [asks(CDN, "scripts")]), [asks(CDN, "scripts")])
 
-# EventSource streams opened, by when; the first one dropped while the server still answers
-STREAMS = "window.opened = []; { const real = EventSource; window.EventSource = class extends real { constructor(...at) { super(...at); opened.push(performance.now()); } }; }"
-DROPS = "{ const real = EventSource; let first = true; window.EventSource = class extends real { constructor(...at) { super(...at); if (first) { first = false; setTimeout(() => this.onerror(new Event('error')), 500); } } }; }"
+STREAMS_OPENED_AT = "window.opened = []; { const real = EventSource; window.EventSource = class extends real { constructor(...at) { super(...at); opened.push(performance.now()); } }; }"
+FIRST_STREAM_DROPPED = "{ const real = EventSource; let first = true; window.EventSource = class extends real { constructor(...at) { super(...at); if (first) { first = false; setTimeout(() => this.onerror(new Event('error')), 500); } } }; }"
 
 def stream_drops(b):
     name = "decks/streams.html"
     page(name)
-    tab = visit(b, server.url + "/" + name, source=LATE + DROPS)
+    tab = visit(b, server.url + "/" + name, source=LATE + FIRST_STREAM_DROPPED)
     tab.frame()
     eq("a stream that drops while the server answers shows no server-lost strip", lambda: [tab.wait("streams === 1"), time.sleep(1.2), tab.evaluate(STRIPS)][2], [])
-    tab = visit(b, server.url + "/" + name, source=STREAMS)
+    tab = visit(b, server.url + "/" + name, source=STREAMS_OPENED_AT)
     tab.frame()
     server.stop()
     try:
@@ -2931,6 +3009,50 @@ def far(b):
     eq("and no notes: no list, no composer, nothing asked of the server", lambda: [time.sleep(0.4), tab.evaluate("[%s, document.querySelector('#drawer').childElementCount]" % DRAWN), [p for p in asked if p.startswith("/_notes")]][1:], [[False, 0], []])
     srv.shutdown()
 
+def rekeyed(b):
+    class Keyed(Far):
+        key = "first-key"
+    srv = threaded(Keyed)
+    port = srv.server_port
+    tab = visit(b, "http://127.0.0.1:%d/%s?key=first-key" % (port, BOARD))
+    tab.wait("document.body.dataset.page === '%s' && !!document.querySelector('iframe')" % BOARD, 10)
+    srv.shutdown()
+    srv.server_close()
+    Keyed.key = "second-key"
+    srv = threaded(Keyed, port)
+    with open(os.path.join(ROOT, BOARD), encoding="utf-8") as fh:
+        board = fh.read()
+    try:
+        put(BOARD, board)
+        line = leave_it(port, BOARD)
+        eq("a LAN viewer whose key was replaced says where the new one is", lambda: becomes(tab, STRIPS, [NEW_KEY, line]), [NEW_KEY, line])
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+TAKERS = {"artifacts/takes-fast.html": 50, "artifacts/takes-slow.html": 600}
+for name, ms in TAKERS.items():
+    page(name, title=name[10:-5], body='<input id="i"><script>setInterval(() => document.querySelector("#i").focus(), %d)</script>' % ms)
+TAKES = "for (const [at, ms] of %s) { const f = document.querySelector('a.card[href=\"/' + at + '\"] iframe'); setInterval(() => { if (f.isConnected) { f.inert = false; f.focus(); f.inert = true; } }, ms); } 1"
+CARD = "(document.activeElement.getAttribute('href') || document.activeElement.localName)"
+ON_CARD = "document.activeElement.matches('a.card') && document.activeElement.getAttribute('href')"
+
+def thumbnails(b):
+    tab = visit(b, server.url + "/_gallery")
+    cards = tab.evaluate("[...document.querySelectorAll('a.card')].map((a) => a.getAttribute('href'))")
+    at = sorted(cards.index("/" + name) for name in TAKERS)
+    tab.evaluate(TAKES % json.dumps(list(TAKERS.items())))
+    tab.evaluate("document.querySelectorAll('a.card')[%d].focus(); 1" % at[0])
+    time.sleep(1.3)
+    walked = [tab.wait(ON_CARD, 0.5) or tab.evaluate(CARD)]
+    for _ in range(at[1] - at[0] + 1):
+        tab.key("Tab")
+        time.sleep(0.25)
+        walked.append(tab.wait(ON_CARD, 0.5) or tab.evaluate(CARD))
+    thumbs = "[...document.querySelectorAll('a.card')].filter((a) => /takes-/.test(a.getAttribute('href'))).map((a) => [a.firstElementChild.localName, a.firstElementChild.localName === 'div' ? a.firstElementChild.textContent : ''])"
+    eq("in the gallery a thumbnail that takes the focus (here the gallery's own script makes it take it: Chrome lets no thumbnail's page) gives it back to its card, Tab walks on, and one that takes it 3 times in 1 s is its title",
+       lambda: [walked, tab.evaluate(thumbs)], [cards[at[0]:at[1] + 2], [["div", "takes-fast"], ["iframe", ""]]])
+
 LAN = own_address()
 if LAN:
     browser_lib.check.NO_NETWORK[:] = [flag + ", EXCLUDE " + LAN if "resolver" in flag else flag for flag in browser_lib.check.NO_NETWORK] + ["--proxy-bypass-list=" + LAN]  # the browser's only way to it
@@ -2946,7 +3068,7 @@ server = Server(ROOT)
 server.start()
 try:
     with browser_lib.browser(2000) as b:
-        run(b, kinds, files, bar, reload, bridge, scrolls, place, copies, prints, stops, hangs, keeps, shares, full, drops, gone, lost, regains, stream_drops, picks, values, looks, once, tells, updates, consent, notes, drafts, sends, late, asked_anew, lists, approves, kept_here, refuses, capped, panels, links, guards, left_behind, keyed, swapped, underway, hidden_tab, walk, ordered, tabs, crowds, lan, gallery, worker, far)
+        run(b, kinds, files, bar, reload, bridge, scrolls, place, copies, prints, stops, hangs, keeps, shares, full, drops, gone, lost, regains, stream_drops, picks, values, looks, once, tells, updates, consent, notes, drafts, sends, late, asked_anew, lists, approves, kept_here, refuses, capped, panels, links, guards, left_behind, keyed, swapped, before_any_page, underway, link_over_allow, link_of_replaced, hidden_tab, walk, ordered, tabs, crowds, lan, gallery, thumbnails, worker, far, rekeyed)
     browser_lib.check.NO_NETWORK.append("--enable-gpu-benchmarking")  # point()'s
     with browser_lib.browser(600) as b:
         run(b, steals)

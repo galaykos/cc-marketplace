@@ -44,8 +44,18 @@ RELOAD_JS = (
     '(document.body||document.documentElement).appendChild(b);b.textContent="Preview server stopped; retrying"}'
     'd=Math.min(d?d*2:1000,30000);setTimeout(go,d)}}go()})();'
 )
-GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + '</script>'
-RELOAD_SHA = base64.b64encode(hashlib.sha256(RELOAD_JS.encode()).digest()).decode()
+# The gallery's too: Firefox lets a thumbnail's page take the focus, inert or not, and holds it on the frame for a moment only.
+FOCUS_JS = (
+    '(function(){var last=null,held=null,owed=-1e9,takes=new Map();'
+    'function took(){var f=document.activeElement,now=performance.now(),t,p;'
+    'if(f!==held&&f&&f.localName==="iframe"){t=(takes.get(f)||[]).filter(function(at){return at>now-1000});t.push(now);takes.set(f,t);owed=now;'
+    'if(t.length>=3){p=document.createElement("div");p.className="still";p.setAttribute("aria-hidden","true");p.textContent=f.title;f.replaceWith(p)}}'
+    'held=f;return now<owed+200&&f!==last&&last&&last.isConnected}'
+    'document.addEventListener("focusin",function(e){if(e.target.matches("a.card"))last=e.target});'
+    'document.addEventListener("focus",took,true);setInterval(function(){if(took())last.focus({preventScroll:true})},16)})();'
+)
+GALLERY_SNIPPET = '<script data-design-kit-reload>' + RELOAD_JS + FOCUS_JS + '</script>'
+GALLERY_SHA = base64.b64encode(hashlib.sha256((RELOAD_JS + FOCUS_JS).encode()).digest()).decode()
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -557,7 +567,7 @@ def _gallery_html(pages, live=True, root=None):
         "h1{font-size:20px;margin:0 0 16px}h2{font-size:14px;letter-spacing:.02em;margin:24px 0 8px;color:#55554f}",
         ".grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}",
         "a.card{display:block;background:#fff;border:1px solid #dedcd6;border-radius:8px;overflow:hidden;text-decoration:none;color:inherit}",
-        "a.card iframe{width:100%;height:160px;border:0;pointer-events:none;background:#fff}",
+        "a.card iframe,a.card .still{width:100%;height:160px;border:0;pointer-events:none;background:#fff}a.card .still{display:grid;place-items:center;color:#77756e}",
         "a.card .t{padding:8px 10px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
         "a.card .p{padding:0 10px 8px;font-size:12px;color:#77756e}",
         ".empty{color:#77756e}",
@@ -687,7 +697,7 @@ class Handler(SimpleHTTPRequestHandler):
         query = split_target(self.path)[1]
         if path == GALLERY or path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
             text = _gallery_html(_walk_pages(self.root), live=not self._wants_raw(query), root=self.root)
-            return self._control_document(text, isolate.gallery_policy(self.headers["Host"], RELOAD_SHA))
+            return self._control_document(text, isolate.gallery_policy(self.headers["Host"], GALLERY_SHA))
         parts = _parts(path)
         if not _servable(parts):
             self.send_error(HTTPStatus.NOT_FOUND)
