@@ -1,5 +1,5 @@
-// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, hands the scroll it answers with to the page's next frame, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed, and says that it was sent or why not; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted and no note is half typed; on another device has no pick, approval or note to send and says where they are; shows the last dk check, focuses the frame on load and by Tab, gives back the focus the page takes from a control of the viewer, and stops a page that took it from a text box ten times in 500 ms, or three times in 1 s, each within 500 ms of a key (while the pointer is over the page, or the viewer was last touched by a finger, each also after another key), forgets what deleted pages stored, and unregisters service workers.
-// Misses: a page that takes the focus gets what is typed until it is given back, a character or two, and all of it where nothing was typed for 500 ms and the pointer rests on the page or was last a finger; one that takes it more seldom, or from a button, is never stopped, and one that takes it as the pointer moves over it is, while a note on an element is open; the focus a screen reader, the browser's find or toolbar or a finger after a mouse moves into the page from a control of the viewer, given back too; a scroll inside an element of the page, or at a tab reload; until a second after the load, a page's own scroll, and a user's made with no wheel, key or press; the place in a page that reaches its height later; a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a kind of file a host is refused 300 ms or more after its first, said with the host again; the ring of a frame reached by Tab, there until the focus is back in the viewer; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent or the Sent line shows, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys, and by writes at one instant pass its 256 KB; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; the board's server swapped for another project's in the second before a Send; a page drawing a bar of its own inside the frame.
+// viewer.js — serve.py's /_viewer.js: the bar around a page's sandboxed frame. Asks /_page where the page is and frames it at the address's query and hash, seeded with what the page stored in this browser (its 0.19.3 board state moved in once); keeps the frame's hash, writes and print key, pings it, hands the scroll it answers with to the page's next frame, and says when it stops answering or left; frames it again, once its last messages are in, when the page's own /_events says so or a lost server is back; shows a board's reported pick in a strip, clamped as picks.py clamps it, until this tab sends or discards it, one row a send, by a press made 600 ms or more after the strips, the drawer or the window last changed, and says that it was sent or why not; asks in a strip for each host the page was refused, at most 10, posts an approval to /_allow and frames the page again, and lists the hosts allowed and blocked in a drawer; there too lists the page's newest 20 notes and has one typed, on an element picked in the page or on the page itself, and sent as a pick is; offers a link in a strip, or goes to it when it is a page here, the user acted, no note is half typed and no Send or Allow is pending; on another device has no pick, approval or note to send and says where they are; shows the last dk check, focuses the frame on load and by Tab, gives back the focus the page takes from a control of the viewer, and stops a page that took it from a text box ten times in 500 ms, or three times in 1 s, each within 500 ms of a key (while the pointer is over the page, or the viewer was last touched by a finger, each also after another key), forgets what deleted pages stored, and unregisters service workers.
+// Misses: a page that takes the focus gets what is typed until it is given back, a character or two, and all of it where nothing was typed for 500 ms and the pointer rests on the page or was last a finger; one that takes it more seldom, or from a button, is never stopped, and one that takes it as the pointer moves over it is, while a note on an element is open; the focus a screen reader, the browser's find or toolbar or a finger after a mouse moves into the page from a control of the viewer, given back too; a scroll inside an element of the page, or at a tab reload; until a second after the load, a page's own scroll, and a user's made with no wheel, key or press; the place in a page that reaches its height later; a host that an allowed one redirects to, which a browser reports under the allowed one's name; a host a page makes up, asked for like one it was refused; a host refused more than a second after a reload, off the list until then; an approval another tab made, until the next load; a kind of file a host is refused 300 ms or more after its first, said with the host again; the ring of a frame reached by Tab, there until the focus is back in the viewer; a note half typed at a tab reload; what a page says a note is on; the end of a long note, where what the page says of it leaves too little of the server's 8 KiB; a key or an element picked in the page while something can be sent or the Sent line shows, done up to 1.5 s late; messages of a frame that takes over 300 ms to answer; two tabs of one page overwrite each other's keys, and by writes at one instant pass its 256 KB; a frame that opened a blank page or a file of its own folder reads as one that does not answer; a page that never stops computing may block its own reload, which gets the same process; a page that floods it with messages slows the viewer too, and one that opens dialog after dialog keeps its Send and Discard from acting; a window that lost the focus for under 100 ms; a page drawing a bar of its own inside the frame.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/viewer.js
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -13,11 +13,15 @@
   const isObject = (o) => Object.prototype.toString.call(o) === '[object Object]';
 
   // the time from which a press of a consent control counts
-  let actsFrom = 0, holds = 0;
+  let actsFrom = 0, holds = 0, painting = 0;
   function hold() {
-    const mine = ++holds;
+    holds++;
     actsFrom = Infinity;
-    requestAnimationFrame(() => setTimeout(() => { if (mine === holds) actsFrom = performance.now() + 600; })); // what changed is painted by then
+    painting ||= requestAnimationFrame(() => { // one at a time: a hidden tab runs none
+      painting = 0;
+      const mine = holds;
+      setTimeout(() => { if (mine === holds) actsFrom = performance.now() + 600; }); // what changed is painted by then
+    });
   }
   /** Makes control one that records or grants: act runs on a click, Enter or Space made 600 ms or more after what the last hold() was for was painted. */
   function guard(control, act) {
@@ -54,6 +58,10 @@
   function bring(kind, draw) {
     due.set(kind, draw);
     settle();
+  }
+  /** Drops what the page in the frame brought and is not drawn yet; a pick, a blocked host and storage are of the page, not of its frame. */
+  function dropBrought() {
+    for (const kind of ['note', 'link', 'drawer']) due.delete(kind);
   }
   function settle() {
     if (!due.size || document.querySelector('[data-consent], [data-kind="sent"]') && performance.now() < changed + 1500) return;
@@ -141,7 +149,7 @@
   const costs = new Map(), unsaved = new Set();
   // a name may hold the ":" that ends it in an entry
   const coded = (name) => name.replace(/[%:]/g, encodeURIComponent), decoded = (name) => name.replace(/%25|%3A/g, decodeURIComponent);
-  const entries = (start) => Object.keys(localStorage).filter((name) => name.startsWith(start));
+  const entries = (start) => { try { return Object.keys(localStorage).filter((name) => name.startsWith(start)); } catch (e) { return []; } }; // none where the browser keeps no site data
   function count(k, cost) {
     used += cost - (costs.get(k) || 0);
     if (cost) costs.set(k, cost); else costs.delete(k);
@@ -167,7 +175,7 @@
       if (stale) recount();
       if (cost && used - (costs.get(k) || 0) + cost > CAP) return false;
       if (v === null) localStorage.removeItem(prefix + k); else localStorage.setItem(prefix + k, v);
-    } catch (e) { return false; }
+    } catch (e) { return v === null; } // a browser that keeps no site data has nothing to remove
     count(k, cost);
     return true;
   }
@@ -231,6 +239,7 @@
   function build(at) {
     const left = frame, was = focused(), mine = frame = document.createElement('iframe');
     takes = counted = [];
+    dropBrought();
     if (jumped || at.project !== project) scrolled = null;
     [goal, jumped, project] = [scrolled, false, at.project];
     frame.setAttribute('sandbox', RULES.sandbox);
@@ -240,6 +249,7 @@
     frame.src = at.src + (query && '?' + query) + location.hash;
     frame.onload = () => {
       rescroll();
+      if (note?.asked) tell('ask'); // a frame replaced before it answered
       setTimeout(() => { if (mine === frame) { goal = null; unlist(); } }, 1000);
     };
     strip('storage', null);
@@ -277,6 +287,7 @@
   function stop(why) {
     const left = frame, was = focused(), text = make('p', `Page stopped: ${why}.`, { tabIndex: -1 }), acts = make('div'), area = make('div');
     frame = null;
+    dropBrought();
     watch(); say({ hung: false });
     const held = !was.isConnected || [left, document.body].includes(was);
     if (!held) area.setAttribute('role', 'alert');
@@ -352,7 +363,7 @@
   /** Posts body to a write route: what it said, why it is not recorded, '' once it is (taken says which answer says so), and whether the same again would be refused too. */
   async function post(route, header, body, taken = (said) => said?.recorded === true) {
     try {
-      const r = await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json', [header]: '1' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+      const r = await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json', [header]: '1' }, body: JSON.stringify({ ...body, project }), signal: AbortSignal.timeout(10000) });
       const said = await r.json().catch(() => null);
       return { said, why: r.ok && taken(said) ? '' : 'Not recorded: ' + (said?.error || 'the server answered ' + r.status), refused: REFUSALS.includes(r.status) };
     } catch (e) {
@@ -450,7 +461,7 @@
   const refusal = make('p', null, { className: 'why', role: 'status' });
   function refuse({ host: given, kind }) {
     const host = given.toLowerCase(), { kinds = new Set() } = refused.get(host) || {};
-    if (hosts.includes(host) || !refused.has(host) && refused.size === 100) return; // a page may name any number
+    if (hosts.includes(host) || !refused.has(host) && refused.size >= 100) return; // a page may name any number
     refused.set(host, { kinds: kinds.add(kind), frame });
     setTimeout(() => bring('blocked', drawHosts), 300); // the refusals of one load come one by one, and are said once
   }
@@ -525,7 +536,8 @@
         ...group('Blocked', [...refused].map(([host, { kinds }]) => [drawn(host), ...(kinds.size ? [make('span', words(kinds))] : []), permitting('Allow', host, true)])),
       );
     }
-    refusal.textContent = failed.why ? `${drawn(failed.host).textContent}: ${failed.why}` : '';
+    const why = failed.why ? `${drawn(failed.host).textContent}: ${failed.why}` : '';
+    if (refusal.textContent !== why) refusal.textContent = why; // a status written again is read out again
     if (listing.isEqualNode(now)) return;
     const at = focused(), held = listing.contains(at) && at.dataset.host;
     listing.replaceWith(now);
@@ -593,9 +605,11 @@
     const rows = await json(ask('/_notes', path));
     if (!rows) return;
     $('notes').textContent = rows.length ? `Notes (${rows.length})` : 'Notes';
-    const now = notesList(rows.length ? rows.slice(-20).reverse().map(({ status, anchor, text, reply }) => [
-      make('span', status, { className: 'st ' + status }), ' ', make('b', anchor?.tag ? `<${anchor.tag}>` : 'Page'), make('div', text), ...(reply ? [make('div', 'Reply: ' + reply, { className: 'reply' })] : []),
-    ]) : [['No notes on this page yet.']]);
+    const now = notesList(rows.length ? rows.slice(-20).reverse().map(({ status, anchor, text, reply }) => {
+      const on = make('b', anchor?.tag ? '<' : 'Page');
+      if (anchor?.tag) on.append(drawn(anchor.tag), '>');
+      return [make('span', status, { className: 'st ' + status }), ' ', on, make('div', text), ...(reply ? [make('div', 'Reply: ' + reply, { className: 'reply' })] : [])];
+    }) : [['No notes on this page yet.']]);
     if (listed.isEqualNode(now)) return;
     listed.replaceWith(now);
     listed = now;
@@ -624,6 +638,7 @@
   }
   function explain(why, label = 'Send note') {
     if (!label && focused() === note.send) take(note.text);
+    note.text.ariaInvalid = 'false';
     note.why.textContent = why;
     note.send.textContent = label;
     note.send.hidden = !label;
@@ -641,6 +656,7 @@
     const mine = note, body = { page: path, text: mine.text.value.trim(), anchor: mine.anchor, context: { ...mine.context, console: [...mine.context.console] } };
     if (!body.text) {
       explain('A note needs text');
+      mine.text.ariaInvalid = 'true';
       return mine.text.focus();
     }
     const over = () => new TextEncoder().encode(JSON.stringify(body)).length > 8000;
@@ -672,10 +688,10 @@
     const active = () => !!navigator.userActivation?.isActive;
     if (to.origin === location.origin) {
       to.search = '';
-      if (!drafted()) {
+      if (!busy()) {
         const there = active() && await fetch(to.href, { method: 'HEAD', cache: 'no-store' }).catch(() => null);
         if (!active()) return;
-        if (there?.ok && /^text\/html\b/.test(there.headers.get('Content-Type')) && !drafted()) return location.assign(to.href);
+        if (there?.ok && /^text\/html\b/.test(there.headers.get('Content-Type')) && !busy()) return location.assign(to.href);
       }
     }
     bring('link', () => offer(to));
@@ -684,7 +700,8 @@
   /** A key of the page: pressed there only while the page has the focus, by right, and done while it still has. */
   function pressed(act) {
     const there = () => { watchFocus(); return document.activeElement === frame && !holder; };
-    if (there()) bring('drawer', () => { if (there()) act(); });
+    const before = due.get('drawer');
+    if (there()) bring('drawer', () => { before?.(); if (there()) act(); });
   }
   const KEYS = new Map([
     ['print', () => tell('print')],
@@ -754,6 +771,7 @@
   }
 
   const drafted = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim());
+  const busy = () => drafted() || !!pick?.sending || asking.size > 0; // what a reload of the viewer would lose
 
   let turn = 0, pruned = false;
   async function show() {
@@ -769,8 +787,8 @@
     say({ gone: false });
     if (frame) await emptied();
     if (mine !== turn) return;
-    if (String(at.version) !== version && !drafted()) return location.reload();
-    document.title = $('title').textContent = at.title;
+    if (String(at.version) !== version && !busy()) return location.reload();
+    document.title = $('title').textContent = $('title').title = at.title;
     unstash(at);
     build(at);
     admit(at);
@@ -797,7 +815,7 @@
     const r = await ask('/_page').catch(() => null);
     if (mine !== turn) return;
     const deleted = r?.status === 404; // a deleted page has no stream
-    strip('server', deleted ? null : { text: 'Preview server stopped; retrying' });
+    strip('server', r ? null : { text: 'Preview server stopped; retrying' });
     if (deleted) say({ gone: true });
   }
 
