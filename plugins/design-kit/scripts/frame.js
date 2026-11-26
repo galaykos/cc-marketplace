@@ -1,19 +1,19 @@
-// frame.js — injected first into every page under /_c/: stands in for localStorage, sessionStorage, an image's src and a POST to /_decision; framed, sends the viewer what its bridge takes.
+// frame.js — first in every page under /_c/: stands in for localStorage, sessionStorage, an image's src and a POST to /_decision; framed, sends the viewer what its bridge takes.
 // Misses: a page can undo or imitate all of it (the viewer is the boundary); window.open, navigation by script; img in markup, iframes, closed shadow roots; a write as the page unloads, or in the last 100 ms before the viewer drops the frame unpinged.
 // Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/frame.js
 (function () {
   if (window.__designKitFrame) return; window.__designKitFrame = true;
   const at = /^(\/_c\/[\w-]{22}\.[\w-]+(\.s)?)\//.exec(location.pathname);
   if (!at) return;
-  const own = at[1], framed = !at[2], viewer = parent;
+  const own = at[1], framed = !at[2], viewer = parent, home = location.origin;
   if (framed && viewer === window) {
-    stop(); // ends the parser: no page script runs meanwhile
-    return location.replace(location.origin + location.pathname.slice(own.length) + location.search + location.hash);
+    stop(); // ends the parser: no page script runs
+    return location.replace(home + location.pathname.slice(own.length) + location.search + location.hash);
   }
-  const later = setTimeout.bind(window), cancel = clearTimeout.bind(window);
+  const [later, cancel, go, fetched] = [setTimeout, clearTimeout, scrollTo, fetch].map((f) => f.bind(window));
   const on = (types, fn) => { for (const t of types.split(' ')) addEventListener(t, fn, true); };
-  const url = (s) => { try { return new URL(s, document.baseURI); } catch (e) { return {}; } };
-  const send = (t, data) => framed && viewer.postMessage({ dk: 1, t, ...data }, location.origin);
+  const url = (s) => { try { return new URL(s, document.baseURI); } catch { return {}; } };
+  const send = (t, data) => framed && viewer.postMessage({ dk: 1, t, ...data }, home);
 
   function storage(map, changed) {
     const short = (k) => String(k).split(own).join('');
@@ -50,11 +50,11 @@
   }
 
   const saved = new Map(), waiting = new Map();
-  let cleared, leaving, timer = 0, told = location.hash;
+  let cleared, leaving, moved = false, timer = 0, told = location.hash;
   try {
     const from = JSON.parse(window.name);
     if (from.dk === 1) for (const [k, v] of Object.entries(from.store)) if (typeof v === 'string') saved.set(k, v);
-  } catch (e) { /* no seed */ }
+  } catch { /* no seed */ }
   const hash = () => (/^#?[\w/=&.%-]{0,128}$/.test(location.hash) ? location.hash || '#' : '');
   function flush() {
     cancel(timer); timer = 0;
@@ -75,25 +75,24 @@
   }));
   stand('sessionStorage', storage(new Map(), () => {}));
 
-  const fetched = fetch.bind(window);
   window.fetch = (input, init) => {
     const u = url(input instanceof Request ? input.url : input);
-    if (u.origin !== location.origin || u.pathname !== '/_decision' || !/^post$/i.test(init?.method || input.method)) return fetched(input, init);
+    if (u.origin !== home || u.pathname !== '/_decision' || !/^post$/i.test(init?.method || input.method)) return fetched(input, init);
     return new Request(input, init).text().then((body) => {
       const { picked, knobs, text } = JSON.parse(body);
       send('pick', { picked, knobs, text });
     }).catch(() => {}).then(() => Response.json({ recorded: false }, { status: 409 }));
   };
-  // a server image would taint this opaque origin's canvas
+  // a server image taints an opaque origin's canvas
   const img = HTMLImageElement.prototype, { set } = Object.getOwnPropertyDescriptor(img, 'src'), lent = new WeakSet();
   Object.defineProperty(img, 'src', { set(v) {
-    const to = url(v).origin === location.origin ? 'anonymous' : null;
+    const to = url(v).origin === home ? 'anonymous' : null;
     if (to ? this.crossOrigin === null && lent.add(this) : lent.delete(this)) this.crossOrigin = to;
     set.call(this, v);
   } });
   if (!framed) return;
 
-  // beforeunload too: the viewer drops Chrome's pagehide messages, which name no source
+  // beforeunload too: Chrome's pagehide messages name no source
   on('beforeunload pagehide', () => { leaving = true; flush(); later(() => { leaving = false; }, 1000); });
   for (const name of ['pushState', 'replaceState']) {
     const H = History.prototype, native = H[name];
@@ -117,7 +116,7 @@
   const asText = (x) => (x instanceof Error ? String(x.message) : Object(x) === x ? {}.toString.call(x) : String(x));
   const errors = [], logError = console.error, root = document.documentElement;
   function keep(say) {
-    try { errors.push(cut(say(), 300)); } catch (e) { /* lost */ }
+    try { errors.push(cut(say(), 300)); } catch { /* lost */ }
     if (errors.length > 5) errors.shift();
   }
   console.error = (...args) => { keep(() => args.map(asText).join(' ')); logError.apply(console, args); };
@@ -133,12 +132,12 @@
       if (n.id && all('#' + esc(n.id)).length === 1) { parts.unshift('#' + esc(n.id)); break; }
       let seg = esc(n.localName);
       const data = [...n.attributes].find((a) => /^data-(?!design-kit|original|bound)/.test(a.name) && a.value.length <= 64);
-      if (data) seg += '[' + esc(data.name) + '="' + esc(data.value) + '"]';
+      if (data) seg += `[${esc(data.name)}="${esc(data.value)}"]`;
       const same = [...n.parentNode.children].filter((c) => c.localName === n.localName);
-      if (same.length > 1) seg += ':nth-of-type(' + (same.indexOf(n) + 1) + ')';
+      if (same.length > 1) seg += `:nth-of-type(${same.indexOf(n) + 1})`;
       parts.unshift(seg);
       const hits = all(parts.join(' > '));
-      if (hits.length === 1 && hits[0] === el) break;
+      if (!hits[1] && hits[0] === el) break;
     }
     return parts.join(' > ');
   }
@@ -161,7 +160,7 @@
       const m = getComputedStyle(n).backgroundColor.match(/[\d.]+/g);
       if (m && (m.length < 4 || m[3] > 0)) return (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 < 0.5 ? 'dark' : 'light';
     }
-    const cs = getComputedStyle(root).colorScheme || '';
+    const cs = getComputedStyle(root).colorScheme;
     if (/dark/.test(cs)) return /light/.test(cs) && !matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark';
     return '';
   }
@@ -177,10 +176,10 @@
     target = el;
     if (isPage(el)) return outline.remove();
     const r = el.getBoundingClientRect();
-    outline.style.cssText = 'all:initial;position:fixed;box-sizing:border-box;pointer-events:none;z-index:2147483647;border:2px solid #1a56db;background:rgba(26,86,219,.08);'
-      + `border-radius:3px;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
+    outline.style.cssText = `all:initial;position:fixed;box-sizing:border-box;pointer-events:none;z-index:2147483647;border:2px solid #1a56db;background:#1a56db14;border-radius:3px;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px`;
     if (!outline.isConnected) root.append(outline);
   }
+  on('wheel keydown pointerdown', () => { moved = true; });
   on('mousemove focusin', (e) => picking && show(e.target));
   on('scroll', () => picking && show(target));
   on('pointerdown mousedown pointerup mouseup dblclick auxclick click', (e) => {
@@ -192,12 +191,12 @@
 
   function link(e) {
     const to = (n) => n.href && (n.href.baseVal ?? n.href);
-    const a = e.composedPath().find((n) => /^(a|area)$/.test(n.localName) && to(n)), u = url(a && to(a)), here = u.origin === location.origin;
+    const a = e.composedPath().find((n) => /^(a|area)$/.test(n.localName) && to(n)), u = url(a && to(a)), here = u.origin === home;
     if (!a || !u.href || a.isContentEditable || e.button > 1 || u.protocol === 'javascript:' || u.href.startsWith(location.href.split('#')[0] + '#')) return;
     const href = here ? u.href.replace(own + '/', '/') : u.href;
     const report = () => /^(https?|mailto):/.test(href) && href.length <= 2048 && send('link', { href });
     if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) { e.preventDefault(); return report(); } // a tab in Chrome, sandbox or not
-    // the page's handlers decide first; the sandbox refuses the new window
+    // the page's handlers decide first; the sandbox refuses a window
     const was = a.getAttribute('target');
     a.setAttribute('target', '_blank');
     later(() => {
@@ -209,7 +208,7 @@
   on('keydown', (e) => {
     if (!e.isTrusted) return;
     const el = e.composedPath()[0], mod = e.ctrlKey || e.metaKey, tell = (name) => send('key', { name });
-    // in a field Alt+N is typing (macOS: the dead key for ñ)
+    // in a field Alt+N is typing (macOS: ñ's dead key)
     if (e.altKey && !mod && e.code === 'KeyN' && !el.isContentEditable && !/^(input|textarea|select)$/.test(el.localName)) { eat(e); tell('notes'); }
     else if (mod && !e.altKey && !e.shiftKey && /^p$/i.test(e.key)) { eat(e); tell('print'); }
     else if (e.key === 'Escape') { if (picking) eat(e); tell('escape'); }
@@ -218,10 +217,11 @@
 
   on('message', (e) => {
     const m = e.data;
-    if (!e.isTrusted || e.source !== viewer || !m || m.dk !== 1) return;
+    if (!e.isTrusted || e.source !== viewer || m?.dk !== 1) return;
     e.stopImmediatePropagation();
-    if (m.t === 'ping') { if (timer) flush(); send('pong', { n: m.n }); }
+    if (m.t === 'ping') { if (timer) flush(); send('pong', { n: m.n, moved, left: +pageXOffset, top: +pageYOffset }); }
     else if (m.t === 'notes') { picking = m.on === true; show(null); }
+    else if (m.t === 'scroll' && !moved) go(m);
     else if (m.t === 'print') print();
     else if (m.t === 'ask') send('context', { context: context() });
     else if (m.t === 'storefull' && saved.has(m.k)) waiting.set(m.k, saved.get(m.k));

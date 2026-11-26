@@ -57,8 +57,10 @@
 # lays a page out no narrower than 500 px, so --device mobile is laid out 500 wide and its PNG
 # cut to 390 (dk check emulates exact widths). A pixel counts as changed
 # when any channel moves by more than 10, so antialiasing and font hinting differences
-# between two machines count as change. Shots written outside the preview docroot
-# (an --out elsewhere) open from disk but 404 through the server.
+# between two machines count as change. The review page loads PNGs from shots/ and reviews/diff/
+# alone: review copies each shot it shows from anywhere else (an --out elsewhere) to
+# reviews/diff/<review>/, emptied at every run, and shows the copy. A shot there that is a symlink
+# is not copied, and the served page cannot show it.
 #
 # Standing: **gate** for the exit codes, the pairing and the --storage-state refusals —
 # scripts/__tests__/snapshot.test.sh drives the argument errors, a missing, malformed

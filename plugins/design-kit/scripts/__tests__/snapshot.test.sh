@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives snapshot.sh: the argument errors (1), the unreachable exits (2, NOT MEASURED), the --storage-state refusals, review over fixture sets in both diff-engine branches (no Pillow: forced by a stub), from a subdirectory, against a git ref (its shots in the new folder or the old one) and over sets outside shots/ (copies the page's own policy lets it load, no symlink's, none left of a route that is gone); with a Chromium-family browser, two routes at two sizes, a cookie-guarded one through a state file (the server logs the cookie and the localStorage beacon), an expired session's WARN, and the review page's images drawn.
+# Drives snapshot.sh: the argument errors (1), the unreachable exits (2, NOT MEASURED), the --storage-state refusals, review over fixture sets in both diff-engine branches (no Pillow: forced by a stub), from a subdirectory, against a git ref (its shots in the new folder or the old one) and over sets outside shots/ (copies the page's own policy lets it load, where the help says, no symlink's, none left of a route that is gone); with a Chromium-family browser, two routes at two sizes, a cookie-guarded one through a state file (the server logs the cookie and the localStorage beacon), an expired session's WARN, and the review page's images drawn.
 # Misses: that a shot looks right; a change of part of a page (the fixtures are 4x4 colour fields, 0 or 100%); a state file Playwright saved (hand-written here); without a browser the shoots, and it says so; the two dead-URL picks ($port_dead, $port_free) trust bind-then-close.
 # Why, limits, history: rationale/derivations/plugin-design-kit.md § plugins/design-kit/scripts/__tests__/snapshot.test.sh
 set -euo pipefail
@@ -175,6 +175,8 @@ got="$(loaded "$walk_url" 2>&1)" || true
 [ "$got" = "$((5 + heats))" ] || fail "a review page of sets outside shots/ should load every image it shows: $got"
 grep -q "base <code>$dkd/walk-before</code> → current <code>$dkd/walk</code>" "$dkd/reviews/walk-vs-walk-before.html" || fail "the review page should still name the sets it compares"
 ! grep -rq SECRET "$dkd/reviews" || fail "what a symlink in a set points to was copied into the served folder"
+said="$(run --help | grep -oE 'reviews/[a-z]+/<review>/' | head -n 1)" || true
+[ -n "$said" ] && [ -f "$dkd/${said/<review>/walk-vs-walk-before}before__desktop__index.png" ] || fail "the help should name the folder these copies are in, it names: ${said:-none}"
 if [ "$have_browser" = 1 ]; then
   set +e; seen="$(python3 - "$here/__tests__" "$walk_url?static=1" <<'PY'
 import sys

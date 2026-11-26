@@ -78,15 +78,21 @@ def nofollow(path, flags):
     return os.open(path, flags | getattr(os, "O_NOFOLLOW", 0))
 
 
-def replace_file(path, data):
-    """Puts data, bytes, at path in one step and 0600, a symlink there replaced; when that fails path is as it was and nothing is left beside it."""
+def replace_file(path, data, aside=None):
+    """Puts data, bytes, at path in one step and 0600, a symlink there replaced; with aside, what path held is moved there once data is written. When that fails path is as it was and nothing is left beside it."""
     # a dot name: never served, never listed, never a reload
     fd, tmp = tempfile.mkstemp(prefix="." + os.path.basename(path).lstrip(".") + ".", dir=os.path.dirname(path))
+    moved = False
     try:
         with os.fdopen(fd, "wb") as fh:
             fh.write(data)
+        if aside:
+            os.replace(path, aside)
+            moved = True
         os.replace(tmp, path)
     except BaseException:
+        if moved:
+            os.replace(aside, path)
         os.unlink(tmp)
         raise
 
@@ -268,7 +274,7 @@ def set_allow(root, page, host, allow, exists, lock):
     with lock(os.path.join(root, ".allow.lock")):
         entries, broken = read_allow(root)
         if broken and not allow:
-            return [], None
+            return None, broken + "; nothing removed until .allow.json is repaired or deleted"
         entries = {p: hosts for p, hosts in entries.items() if hosts and exists(p)}
         hosts = [h for h in entries.pop(page, []) if h != host]
         if allow and len(hosts) >= ALLOW_HOSTS:
@@ -279,7 +285,5 @@ def set_allow(root, page, host, allow, exists, lock):
             hosts.append(host)
         if hosts:
             entries[page] = hosts
-        if broken:
-            os.replace(path, path + ".bad")
-        replace_file(path, json.dumps(entries, indent=1).encode("ascii"))
+        replace_file(path, json.dumps(entries, indent=1).encode("ascii"), path + ".bad" if broken else None)
     return hosts, None

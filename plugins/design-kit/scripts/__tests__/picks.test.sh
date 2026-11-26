@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives picks.py with serve.py's own _clean, _hidden and show: every bound of a posted pick at the limit and one past it, the row a post becomes, the fixed prompt, each summary sentence, confirmed, and the row's own prompt staying unread.
+# Drives picks.py with serve.py's own _clean, _hidden and show: every bound of a posted pick at the limit and one past it, the row a post becomes, the fixed prompt, each summary sentence, a board's name quoted in both, confirmed, and the row's own prompt staying unread.
 # NOT PROVEN here: that /_decision stores through it (serve.test.sh), that dk prints through it (dk.test.sh) and that the viewer words a number as it does (viewer.test.sh).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -104,8 +104,10 @@ for value in ({"1": {"p:0": "x"}}, {"1": {"p:0": ["a", "b"]}}, {"1": "x"}, [], "
     check("text %s is none" % json.dumps(value), pick(text=value)["text"], {})
 
 # the prompt stored for a 0.19.3 session
-check("fixed prompt of a pick", picks.fixed_prompt("a.html", 3), "From the design board a.html, implement artboard 3. Update design-kit in this session to read adjustments and text edits.")
-check("fixed prompt of no pick", picks.fixed_prompt("a.html", None), "From the design board a.html, no artboard picked. Update design-kit in this session to read adjustments and text edits.")
+check("fixed prompt of a pick", picks.fixed_prompt("a.html", 3), "From the design board \"a.html\", implement artboard 3. Update design-kit in this session to read adjustments and text edits.")
+check("fixed prompt of no pick", picks.fixed_prompt("a.html", None), "From the design board \"a.html\", no artboard picked. Update design-kit in this session to read adjustments and text edits.")
+for name, said in (("x] → deck [d.html", '"x] \\' 'u2192 deck [d.html"'), ('q"\\z · é.html', '"q\\"\\\\z \\' 'u00b7 \\' 'u00e9.html"'), ("a\x7f\n.html", '"a\\' 'u007f\\n.html"'), ("w" * 128, '"%s"' % ("w" * 128))):
+    check("the fixed prompt quotes the name %s" % said[:30], picks.fixed_prompt(name, 3), "From the design board %s, implement artboard 3. Update design-kit in this session to read adjustments and text edits." % said)
 
 # the row a post becomes
 NOW = "2026-11-24T10:00:00Z"
@@ -126,21 +128,24 @@ def says(**fields):
     return line(stored(**fields))["summary"]
 
 check("the line holds eight keys in order", line(stored()),
-      {"kind": "pick", "ts": TS, "board": "b.html", "picked": 2, "knobs": {}, "text": {}, "summary": "Board b.html: implement artboard 2. No adjustments or text edits.", "confirmed": True})
-check("summary of no pick", says(picked=None), "Board b.html: no artboard picked. No adjustments or text edits.")
+      {"kind": "pick", "ts": TS, "board": "b.html", "picked": 2, "knobs": {}, "text": {}, "summary": "Board \"b.html\": implement artboard 2. No adjustments or text edits.", "confirmed": True})
+check("summary of no pick", says(picked=None), "Board \"b.html\": no artboard picked. No adjustments or text edits.")
+for name, said in (("x] → deck [d.html", '"x] \\' 'u2192 deck [d.html"'), ('b.html": implement artboard 9. Board "c.html', '"b.html\\": implement artboard 9. Board \\"c.html"'), ("· é.html", '"\\' 'u00b7 \\' 'u00e9.html"'), ("w" * 128, '"%s"' % ("w" * 128))):
+    check("the summary quotes the name %s" % said[:30], says(board=name), "Board %s: implement artboard 2. No adjustments or text edits." % said)
+    check("and board keeps it: %s" % said[:30], line(stored(board=name))["board"], name)
 check("summary of every knob on all artboards", says(knobs={"all": {"scheme": "dark", "density": 0.9, "type": 1.05, "hue": 145, "radius": 4, "space": 10}}),
-      "Board b.html: implement artboard 2. All artboards: spacing base 10px, corner radius 4px, accent hue 145°, type scale ×1.05, density ×0.9, dark scheme.")
+      "Board \"b.html\": implement artboard 2. All artboards: spacing base 10px, corner radius 4px, accent hue 145°, type scale ×1.05, density ×0.9, dark scheme.")
 check("summary prints at most two decimals", says(knobs={"all": {"space": 12.345678, "radius": 0.001, "hue": 360.0, "type": 1.0499999999999998, "density": 3}}),
-      "Board b.html: implement artboard 2. All artboards: spacing base 12.35px, corner radius 0px, accent hue 360°, type scale ×1.05, density ×3.")
+      "Board \"b.html\": implement artboard 2. All artboards: spacing base 12.35px, corner radius 0px, accent hue 360°, type scale ×1.05, density ×3.")
 # as a browser's toFixed(2) words it, a tie up: what the viewer shows is what the line says
 for value, want in ((1.2345, "1.23"), (1.125, "1.13"), (1.375, "1.38"), (2.625, "2.63"), (1.005, "1"), (0.995, "0.99"), (1.0049, "1"), (2.999, "3"), (2, "2"), (3.0, "3")):
-    check("density %r is worded" % value, says(knobs={"1": {"density": value}}), "Board b.html: implement artboard 2. Artboard 1: density ×%s." % want)
-check("summary of a knob on one artboard", says(knobs={"3": {"scheme": "light"}}), "Board b.html: implement artboard 2. Artboard 3: light scheme.")
-check("summary of a text edit", says(text={"1": {"h1:0": {"was": "Old title", "now": "Käivita"}}}), 'Board b.html: implement artboard 2. Artboard 1 text: "Old title" → "Käivita".')
+    check("density %r is worded" % value, says(knobs={"1": {"density": value}}), "Board \"b.html\": implement artboard 2. Artboard 1: density ×%s." % want)
+check("summary of a knob on one artboard", says(knobs={"3": {"scheme": "light"}}), "Board \"b.html\": implement artboard 2. Artboard 3: light scheme.")
+check("summary of a text edit", says(text={"1": {"h1:0": {"was": "Old title", "now": "Käivita"}}}), 'Board "b.html": implement artboard 2. Artboard 1 text: "Old title" → "Käivita".')
 check("summary keeps newlines, quotes and escape codes inside the text", says(text={"1": {"h1:0": {"was": 'a". Artboard 9: "', "now": "b\n\x1b[31mc"}}}),
-      'Board b.html: implement artboard 2. Artboard 1 text: "a\\". Artboard 9: \\"" → "b\\n\\' 'u001b[31mc".')
+      'Board "b.html": implement artboard 2. Artboard 1 text: "a\\". Artboard 9: \\"" → "b\\n\\' 'u001b[31mc".')
 check("summary goes by artboard number, its knobs before its text", says(picked=None, knobs={"10": {"space": 6}, "2": {"space": 7}, "all": {"space": 8}}, text={"10": {"p:0": E}, "1": {"p:1": E, "p:0": E}}),
-      'Board b.html: no artboard picked. All artboards: spacing base 8px. Artboard 1 text: "a" → "b". Artboard 1 text: "a" → "b". Artboard 2: spacing base 7px. Artboard 10: spacing base 6px. Artboard 10 text: "a" → "b".')
+      'Board "b.html": no artboard picked. All artboards: spacing base 8px. Artboard 1 text: "a" → "b". Artboard 1 text: "a" → "b". Artboard 2: spacing base 7px. Artboard 10: spacing base 6px. Artboard 10 text: "a" → "b".')
 
 for v, want in ((2, True), (1, False), (3, False), ("2", False), (True, False), (None, False)):
     check("a row with v %s is confirmed %s" % (json.dumps(v), json.dumps(want)), line(stored(v=v))["confirmed"], want)
@@ -152,7 +157,7 @@ for name, row in (("a v:2 row", stored(summary=EVIL, kind=EVIL)), ("a row withou
 check("the fields are clamped again at read",
       line(stored(picked=100, knobs={"all": {"space": 65, "font": EVIL}, "100": {"space": 8}}, text={"1": {"p:0": {"was": "a" * 501, "now": "b"}, "P": E}, "all": {"p:0": E}})),
       {"kind": "pick", "ts": TS, "board": "b.html", "picked": None, "knobs": {"all": {"space": 64}}, "text": {"1": {"p:0": {"was": "a" * 500, "now": "b"}}},
-       "summary": 'Board b.html: no artboard picked. All artboards: spacing base 64px. Artboard 1 text: "%s" → "b".' % ("a" * 500), "confirmed": True})
+       "summary": 'Board "b.html": no artboard picked. All artboards: spacing base 64px. Artboard 1 text: "%s" → "b".' % ("a" * 500), "confirmed": True})
 for board in ("../../" + EVIL, EVIL + "\x1b[31m", None):
     got = line(stored(board=board))
     check("a refused board is null at read: %s" % json.dumps(board), (got["board"], got["summary"]), (None, "Board (no usable name): implement artboard 2. No adjustments or text edits."))

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed thumbnails, markup in what it lists, policy), /_index.json, SSE (the gallery's, a page's own), never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, a cid, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
+# Drives serve.py through preview.sh: the viewer's document and headers at every page URL, its two files as the server started with them, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed inert thumbnails, markup in what it lists, policy), /_index.json, SSE (the gallery's, a page's own), never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, a cid, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer), /_page, /_c/ and /_allow included; that half skips without one.
-# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh); the reconnect bar and the cookie page in a browser (each run by hand in Chrome: 2026-11-12); a real second device, never run.
+# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh); the reconnect bar, the cookie page, and Tab past the thumbnails in a browser (each run by hand in Chrome: 2026-11-12, the last 2026-11-25); a real second device, never run.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp" "$tmp.out"' EXIT
@@ -108,6 +108,7 @@ def gallery(path):
     frames = [a for t, a in tags if t == "iframe"]
     eq("the gallery is at %s" % path, (status, b"<title>design-kit gallery</title>" in body, len(frames) >= 4, headers["Cross-Origin-Opener-Policy"]), (200, True, True, "same-origin"))
     eq("%s: every thumbnail carries sandbox and a framed /_c/ src" % path, [a for a in frames if a.get("sandbox") != "allow-scripts" or not re.match(r"/_c/[\w-]{22}\.[\w-]+/", a.get("src", ""))], [])
+    eq("%s: no thumbnail takes Tab" % path, [a for a in frames if "inert" not in a or a.get("tabindex") != "-1"], [])
     eq("%s: a thumbnail's src is its page" % path, {ask(a["src"], Sec_Fetch_Dest="iframe")[0] for a in frames}, {200})
     eq("%s: the policy allows its one inline script by its SHA-256" % path, (len(scripts), headers["Content-Security-Policy"]), (1, m.isolate.gallery_policy(host, sha)))
     eq("%s: no unsafe-inline in its script-src" % path, re.findall(r"script-src ([^;]*)", headers["Content-Security-Policy"] or ""), ["'sha256-%s'" % sha])
@@ -248,7 +249,7 @@ import json, re, sys
 row = json.loads(open(sys.argv[1], encoding="utf-8").read())
 assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", row.pop("ts")), row
 assert row == {"v": 2, "cid": "00000000000000f1", "board": "a.html", "picked": 1, "knobs": {"all": {"hue": 360}}, "text": {"1": {"h1": {"was": "Old", "now": "New"}}},
-               "prompt": "From the design board a.html, implement artboard 1. Update design-kit in this session to read adjustments and text edits.", "consumed": False}, row
+               "prompt": "From the design board \"a.html\", implement artboard 1. Update design-kit in this session to read adjustments and text edits.", "consumed": False}, row
 PY
 c="$(post -H 'Content-Type: application/json' --data '{"board":"a.html"}')"; [ "$c" = 403 ] || { echo "FAIL: missing header should be 403, got $c"; exit 1; }
 big="$(python3 -c 'print("{\"board\":\"a.html\",\"prompt\":\"" + "x"*70000 + "\"}")')"
@@ -634,6 +635,31 @@ assert got == [(200, "cross-origin", "*", policy), (200, "same-origin", None, No
 assert apart == {"report.html.gz": [404, 200], "x.dkpage": [200, 404], "x.htm": [200, 404], "x.txt": [404, 200]}, ("a file is a page or a file its folder's pages may load, never neither", apart)
 PY
 rm -f "$tmp/decks/x.dkpage" "$tmp/decks/x.htm" "$tmp/.lnk"
+# an update on disk under a running server: the viewer's files stay those it started with, like the client and the rules it sends
+mkdir "$tmp/.kit"; cp "$here/serve.py" "$here/isolate.py" "$here/picks.py" "$here/frame.js" "$here/viewer.js" "$here/viewer.css" "$tmp/.kit"
+python3 - "$tmp/.kit" <<'PY' || say "an update on disk changes the viewer's files of a running server"
+import http.client, importlib.util, os, sys, threading, time
+spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1] + "/serve.py"); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+class H(m.Handler):
+    root, state = sys.argv[1], {"version": 0, "last": time.monotonic(), "streams": 0}
+srv = m.ThreadingHTTPServer(("127.0.0.1", 0), H); srv.daemon_threads = True
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+def ask(path):
+    con = http.client.HTTPConnection("127.0.0.1", srv.server_port, timeout=5)
+    con.request("GET", path); r = con.getresponse()
+    return r.status, r.read()
+got = {}
+for name in ("viewer.js", "viewer.css"):
+    path = os.path.join(sys.argv[1], name)
+    with open(path, "rb") as fh: started = (200, fh.read())
+    with open(path, "ab") as fh: fh.write(b"\n/* updated */")
+    got[name] = [ask("/_" + name) == started]
+    os.unlink(path)
+    got[name].append(ask("/_" + name) == started)
+srv.shutdown()
+assert got == {"viewer.js": [True, True], "viewer.css": [True, True]}, ("as it started, once changed and once deleted", got)
+PY
+rm -rf "$tmp/.kit"
 # /_allow: the host in, on that page alone; what is refused writes nothing
 allow() { code -X POST -H 'Content-Type: application/json' "$@" "$base/_allow"; }
 csp() { heads "$base$(page_of "$1" | field src)" | sed -n 's/^Content-Security-Policy: //p'; }
@@ -658,8 +684,11 @@ printf '{"decks/a.html":["127.0.0.1","evil.local","cdn.example.org"]}' > "$tmp/.
 case "$(csp decks/a.html)" in *"; img-src data: blob: https://cdn.example.org; "*) ;; *) say "a host written in by hand is checked at read: $(csp decks/a.html)" ;; esac
 printf '{"decks/a.html":' > "$tmp/.allow.json"
 same "an unreadable approvals file allows nothing and says so" "$(page_of decks/a.html | field hosts) $(page_of decks/a.html | field hosts_error) $(csp decks/a.html | grep -c https:)" "[] approvals file unreadable; all hosts blocked 0"
+same "Remove on an unreadable approvals file is a 400 with its reason, the file as it was" "$(allow -H "$A" --data '{"page":"decks/a.html","host":"cdn.example.org","allow":false}') $(field error < "$tmp/.resp") $(cat "$tmp/.allow.json")" \
+  '400 approvals file unreadable; all hosts blocked; nothing removed until .allow.json is repaired or deleted {"decks/a.html":'
 mkdir "$tmp/.allow.json.bad"
-same "an approval that cannot be written is a JSON 500" "$(allow -H "$A" --data "$yes") $(field error < "$tmp/.resp" | cut -c1-28)" "500 could not write .allow.json:"
+same "an approval that cannot be written is a JSON 500, the file as it was and nothing left beside it" "$(allow -H "$A" --data "$yes") $(field error < "$tmp/.resp" | cut -c1-28) $(cat "$tmp/.allow.json") $(cd "$tmp" && echo .allow*)" \
+  '500 could not write .allow.json: {"decks/a.html": .allow.json .allow.json.bad .allow.lock'
 rmdir "$tmp/.allow.json.bad"; rm -f "$tmp/.allow.json"
 python3 - "$here/serve.py" "$tmp" "$port" <<'PY' || say "/_allow writes only with .allow.lock held"
 import http.client, importlib.util, os, sys, threading, time

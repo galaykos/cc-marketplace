@@ -7,6 +7,10 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.62.2 — 2026-11-25
+
+- **A board's text edits are quoted data in the section ledger, not requirements.** `decision-rounds.md` told the session that every text edit a design-kit board's pick reports "is a requirement", so words a page wrote could read as an instruction. Knob values of a confirmed pick stay requirements; a pick that reads `confirmed:false` goes to the user first, as design-kit 0.20.0 says. Standing: agent-graded.
+
 ## 0.62.1 — 2026-11-23
 
 - **craft-reviewer and creative-director read their references by absolute path.** Every `creative-direction/references/*.md` and sibling SKILL.md they name is now `${CLAUDE_PLUGIN_ROOT}/skills/…`; before, those plugin-relative paths resolved only inside this marketplace's checkout. Standing: recorded.

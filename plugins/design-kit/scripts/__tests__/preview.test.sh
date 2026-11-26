@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives preview.sh and serve.py's lifecycle: idempotent start, the port choice (8124 busy, the recorded port, an explicit port, a full range, the moved-port line), a python3 that is late (its port another project's, a second launch meanwhile, a launcher killed, a bind that never comes), the version record (an older server replaced on its port and bind, a newer one kept), --stop, --lan restarting a loopback server, a recorded pid that is not serve.py or cannot be named (exit 6),
+# Drives preview.sh and serve.py's lifecycle: idempotent start, the port choice (8124 busy, the recorded port, an explicit port, a full range, a port that answers though a server starts on it, one that takes no more connects, the moved-port line), a python3 that is late (its port another project's, a second launch meanwhile, one that waits too long, a launcher killed, a bind that never comes), the version record (an older server replaced on its port and bind, a newer one kept), --stop, --lan restarting a loopback server, a recorded pid that is not serve.py or cannot be named (exit 6),
 # state files gone after a self-exit, kept when they name another server, dk status on a dead server, the LAN and idle limits (DESIGN_KIT_LAN_MINUTES, DESIGN_KIT_IDLE_MINUTES in both modes, 0 = off; 403s do not count, an open stream of the gallery or of a page does).
 # Misses: whether a browser tab's stream really holds the server open; the LAN half skips with no network address; two launches that both find nothing recorded.
 set -euo pipefail
@@ -160,10 +160,17 @@ def take(port):
     try: s.bind(("127.0.0.1", port)); s.listen()
     except OSError: return None
     return s
+def silent(port):  # bound, answers no connect
+    s = socket.socket(); s.bind(("127.0.0.1", port))
+    return s
+def full(port):  # listens, takes no more connects
+    s = take(port); s.listen(0); waiting = [socket.socket() for _ in range(4)]
+    for c in waiting: c.setblocking(False); c.connect_ex(("127.0.0.1", port))
+    return s, waiting
 if sys.argv[1] == "first":
     print(next(p for p in range(int(sys.argv[2]), 8200) if take(p)))
 else:
-    held = [take(int(p)) for p in sys.argv[2:]]
+    held = [{"": take, "silent": silent, "full": full}[kind](int(p)) for kind, _, p in (a.rpartition(":") for a in sys.argv[2:])]
     open(sys.argv[1], "w").close(); time.sleep(60)
 PY
 first_free() { python3 "$tmp/ports.py" first "$1"; }
@@ -295,7 +302,7 @@ started="$out"; launch "$tmp/p7/.dk" --stop; kill -0 "$theirs" 2>/dev/null || fa
 mkdir -p "$tmp/late" "$tmp/p8" "$tmp/p9" "$tmp/pa"; echo '<h1>p8</h1>' | tee "$tmp/p9/index.html" "$tmp/pa/index.html" > "$tmp/p8/index.html"
 printf '#!/bin/sh\n"%s" "$LATE"\nexec "%s" "$@"\n' "$(command -v sleep)" "$(command -v python3)" > "$tmp/late/python3"; chmod +x "$tmp/late/python3"
 late() { local s="$1"; shift; LATE="$s" PATH="$tmp/late:$PATH" launch "$@"; }
-during() { local d="$1"; shift; LATE=0.8 PATH="$tmp/late:$PATH" bash "$here/preview.sh" --docroot "$d" "$@" > "$tmp/first" 2>&1 & first=$!
+during() { local d="$1"; shift; LATE=0.8 PATH="${with:-$tmp/late}:$PATH" bash "$here/preview.sh" --docroot "$d" "$@" > "$tmp/first" 2>&1 & first=$!
   for _ in $(seq 100); do [ -s "$d/.preview.pid" ] && { extra="$extra $(cat "$d/.preview.pid")"; return; }; sleep 0.02; done; fail "$c: no pid file: $(cat "$tmp/first")"; }
 servers() { ps -ww -eo args= > "$tmp/ps"; grep -cF "serve.py --docroot $(cd "$1" && pwd -P) --port " "$tmp/ps" || true; }
 none() { [ ! -e "$1/.preview.pid" ] && [ ! -e "$1/.preview.ver" ] && [ ! -e "$1/.preview.url" ]; }
@@ -307,6 +314,36 @@ echo "$own" > "$tmp/p8/.preview.port"; want="$(first_free 8124)"; late 0.6 "$tmp
 [ "$rc" = 0 ] && [ "$(url_of "$tmp/p8")" = "http://127.0.0.1:$want/" ] && kill -0 "$(pid_of "$tmp/p8")" || fail "$c: wanted the next free port $want, got exit $rc, url $(url_of "$tmp/p8"): $out"
 case "$(curl -sL "http://127.0.0.1:$want/index.html?static=1")" in *"</script><h1>p8</h1>") ;; *) fail "$c: port $want does not serve this docroot" ;; esac
 launch "$tmp/p8" --stop
+c="a late server on a port that is taken and answers nothing is not this docroot's either"; quiet="$(free_port)"; hold "silent:$quiet"; late 0.6 "$tmp/p8" --port "$quiet"; release
+[ "$rc $out" = "4 preview.sh: server did not start (port $quiet busy?)" ] && none "$tmp/p8" || fail "$c: exit $rc, url $(url_of "$tmp/p8"): $out"
+
+c="a port that answers is skipped, though a server would start beside the one there"; mkdir -p "$tmp/beside" "$tmp/pb"; busy="$(free_port)"; hold "$busy"
+# a python3 that says it serves and binds nothing stands for the bind that macOS and BSD allow there
+printf '#!/bin/sh\necho "design-kit: serving $3 on http://127.0.0.1:$5/"\nexec "%s" 30\n' "$(command -v sleep)" > "$tmp/beside/python3"; chmod +x "$tmp/beside/python3"
+beside() { PATH="$tmp/beside:$PATH" launch "$tmp/pb" "$@"; extra="$extra $(pid_of "$tmp/pb")"; }
+beside --port "$busy"; [ "$rc $out" = "4 preview.sh: server did not start (port $busy busy?)" ] && none "$tmp/pb" || fail "$c: exit $rc, url $(url_of "$tmp/pb"): $out"
+echo "$busy" > "$tmp/pb/.preview.port"; want="$(first_free 8124)"; beside
+[ "$rc" = 0 ] && [ "$(url_of "$tmp/pb")" = "http://127.0.0.1:$want/" ] || fail "$c: recorded, wanted the next free port $want, got exit $rc, url $(url_of "$tmp/pb"): $out"
+release; echo "$busy" > "$tmp/pb/.preview.port"; beside
+[ "$rc" = 0 ] && [ "$(url_of "$tmp/pb")" = "http://127.0.0.1:$busy/" ] || fail "the recorded port is not tried first once nothing answers on it: exit $rc, url $(url_of "$tmp/pb"): $out"
+
+c="a port whose server takes no more connects does not hold a launch"; hung="$(free_port)"; hold "full:$hung"
+echo "$hung" > "$tmp/p8/.preview.port"; want="$(first_free 8124)"; s=$SECONDS; launch "$tmp/p8"; s=$(( SECONDS - s )); release
+[ "$rc" = 0 ] && [ "$s" -le 20 ] && [ "$out" = "$(printf 'preview: http://127.0.0.1:%s/\npreview: moved from port %s; saved knobs and page data stay on the old address' "$want" "$hung")" ] || fail "$c: after $s s exit $rc: $out"
+launch "$tmp/p8" --stop
+
+c="a second launch waits while the first still looks at a port that hangs"; hung="$(free_port)"; hold "full:$hung"; echo "$hung" > "$tmp/p9/.preview.port"
+bash "$here/preview.sh" --docroot "$tmp/p9" > "$tmp/first" 2>&1 & first=$!
+for _ in $(seq 200); do [ -s "$tmp/p9/.preview.ver" ] && break; sleep 0.02; done; early="$(ver_of "$tmp/p9")"; launch "$tmp/p9"; second="$rc $out"; rc=0; wait "$first" || rc=$?; release
+[ "$early" = "- $version starting $first" ] && [ "$rc" = 0 ] && [ "$second" = "0 preview: already running — $(url_of "$tmp/p9")" ] && [ "$(servers "$tmp/p9")" = 1 ] || fail "$c: record $early, $(servers "$tmp/p9") servers; the first: exit $rc, $(cat "$tmp/first"); the second: exit $second"
+launch "$tmp/p9" --stop; rm -f "$tmp/p9/.preview.port"
+
+c="--stop waits for a launch that still looks at a port that hangs, then stops its server"; hung="$(free_port)"; hold "full:$hung"; echo "$hung" > "$tmp/p9/.preview.port"; want="$(first_free 8124)"
+bash "$here/preview.sh" --docroot "$tmp/p9" > "$tmp/first" 2>&1 & first=$!
+for _ in $(seq 200); do [ -s "$tmp/p9/.preview.ver" ] && break; sleep 0.02; done; early="$(ver_of "$tmp/p9")"; launch "$tmp/p9" --stop; second="$rc $out"; rc=0; wait "$first" || rc=$?; release
+[ "$early" = "- $version starting $first" ] && [ "$rc $(cat "$tmp/first")" = "$(printf '0 preview: http://127.0.0.1:%s/\npreview: moved from port %s; saved knobs and page data stay on the old address' "$want" "$hung")" ] && [ "$second" = "0 preview: stopped" ] \
+  && none "$tmp/p9" && [ "$(servers "$tmp/p9")" = 0 ] || fail "$c: record $early, then $(servers "$tmp/p9") servers, pid file $(pid_of "$tmp/p9"), record $(ver_of "$tmp/p9"); the launch: exit $rc, $(cat "$tmp/first"); --stop: exit $second"
+rm -f "$tmp/p9/.preview.port"
 
 for args in "--port $other" ""; do
   c="a second launch takes the server the first one waits for (${args:-its recorded port busy})"
@@ -324,18 +361,35 @@ kill -9 "$first"; wait "$first" 2>/dev/null || true; pid="$(pid_of "$tmp/pa")"; 
   || fail "$c: after $s s exit $rc, $(servers "$tmp/pa") servers, pid file $(pid_of "$tmp/pa") (was $pid), record $(ver_of "$tmp/pa"): $out"
 launch "$tmp/pa" --stop
 
-c="a server that does not bind in time is ended"; mkdir -p "$tmp/quick" "$tmp/never"; printf '#!/bin/sh\n' > "$tmp/quick/sleep"
-printf '#!/bin/sh\necho $$ > "%s"\nexec "%s" 30\n' "$tmp/hung" "$(command -v sleep)" > "$tmp/never/python3"; chmod +x "$tmp/quick/sleep" "$tmp/never/python3"
+# quick: a sleep that takes no time, for a launch's own waits
+c="a second launch that waited 15 s stops nothing"; mkdir -p "$tmp/quick" "$tmp/gate" "$tmp/pc"; printf '#!/bin/sh\n' > "$tmp/quick/sleep"
+printf '#!/bin/sh\nwhile [ ! -e "%s" ]; do "%s" 0.05; done\nexec "%s" "$@"\n' "$tmp/go" "$(command -v sleep)" "$(command -v python3)" > "$tmp/gate/python3"; chmod +x "$tmp/quick/sleep" "$tmp/gate/python3"
+waited="waited 15 s for another launch (pid PID) that is still starting the server; stopped nothing. Try again; if no such launch runs, --stop clears its record"
+with="$tmp/gate" during "$tmp/pc" --port "$other"; PATH="$tmp/quick:$PATH" launch "$tmp/pc"; second="$rc $out"; : > "$tmp/go"; rc=0; wait "$first" || rc=$?; pid="$(pid_of "$tmp/pc")"
+[ "$second" = "4 preview.sh: ${waited/PID/$first}" ] && [ "$rc" = 0 ] && kill -0 "$pid" && [ "$(url_of "$tmp/pc")" = "http://127.0.0.1:$other/" ] && [ "$(ver_of "$tmp/pc")" = "$pid $version" ] && [ "$(servers "$tmp/pc")" = 1 ] \
+  || fail "$c: $(servers "$tmp/pc") servers, pid file $pid, record $(ver_of "$tmp/pc"); the first: exit $rc, $(cat "$tmp/first"); the second: exit $second"
+launch "$tmp/pc" --stop
+c="a record whose launcher's pid is another process by now is cleared by --stop"; sleep 30 & decoy=$!; extra="$extra $decoy"; echo "1 $version starting $decoy" > "$tmp/pc/.preview.ver"
+PATH="$tmp/quick:$PATH" launch "$tmp/pc"; [ "$rc $out" = "4 preview.sh: ${waited/PID/$decoy}" ] || fail "$c: exit $rc: $out"
+PATH="$tmp/quick:$PATH" launch "$tmp/pc" --stop; launch "$tmp/pc"; [ "$rc" = 0 ] && [ "$(ver_of "$tmp/pc")" = "$(pid_of "$tmp/pc") $version" ] || fail "$c: exit $rc, record $(ver_of "$tmp/pc"): $out"
+launch "$tmp/pc" --stop
+
+c="a server that does not bind in time is ended"; mkdir -p "$tmp/never"
+printf '#!/bin/sh\necho $$ > "%s"\nexec "%s" 30\n' "$tmp/hung" "$(command -v sleep)" > "$tmp/never/python3"; chmod +x "$tmp/never/python3"
 PATH="$tmp/quick:$tmp/never:$PATH" launch "$tmp/pa"; pid="$(cat "$tmp/hung")"; extra="$extra $pid"
 [ "$rc $out" = "4 preview.sh: the server did not bind port $other in 10 s; ended it" ] && none "$tmp/pa" || fail "$c: exit $rc, pid file $(pid_of "$tmp/pa"): $out"
 for _ in $(seq 30); do kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done; ! kill -0 "$pid" 2>/dev/null || fail "$c: it still runs"
 
 # The order, with a python3 that only records the port it was given and dies: nothing is bound, 8123 and the whole default range included.
 mkdir -p "$tmp/fake"; printf '#!/bin/sh\necho "$5" >> "%s"\nexit 1\n' "$tmp/tried" > "$tmp/fake/python3"
-printf '#!/bin/sh\nwhile kill -0 "$(cat "%s")" 2>/dev/null; do :; done\n' "$tmp/p4/.preview.pid" > "$tmp/fake/sleep"; chmod +x "$tmp/fake/python3" "$tmp/fake/sleep"
-# order <recorded> <ports> <last>: what a start with no port tries, and the message when all of it fails
-order() { local got; : > "$tmp/tried"; printf '%s\n' "$1" > "$tmp/p4/.preview.port"; PATH="$tmp/fake:$PATH" launch "$tmp/p4"; got="$(tr '\n' ' ' < "$tmp/tried")"
-  [ "$got$rc $out" = "$2 4 preview.sh: no free port from 8124 to $3" ] || fail "candidate ports with ${1:-nothing} recorded: tried $got, exit $rc: $out; wanted $2 up to $3"; }
+printf '#!/bin/sh\nwhile kill -0 "$(cat "%s" 2>/dev/null)" 2>/dev/null; do :; done\n' "$tmp/p4/.preview.pid" > "$tmp/fake/sleep"; chmod +x "$tmp/fake/python3" "$tmp/fake/sleep"
+# order <recorded> <ports> <last>: what a start with no port tries, less the ports something on this machine answers on, and the message when all of it fails
+taken=" $(python3 -c 'import socket, sys
+for p in sys.argv[1:]:
+    with socket.socket() as s:
+        if s.connect_ex(("127.0.0.1", int(p))) == 0: print(p, end=" ")' 1024 9000 65535 $(seq 8124 8139))"
+order() { local got want="" p; for p in $2; do case "$taken" in *" $p "*) ;; *) want="$want$p " ;; esac; done; : > "$tmp/tried"; printf '%s\n' "$1" > "$tmp/p4/.preview.port"; PATH="$tmp/fake:$PATH" launch "$tmp/p4"; got="$(tr '\n' ' ' < "$tmp/tried")"
+  [ "$got$rc $out" = "${want}4 preview.sh: no free port from 8124 to $3" ] || fail "candidate ports with ${1:-nothing} recorded: tried $got, exit $rc: $out; wanted $want up to $3"; }
 export DESIGN_KIT_PORT_LAST=8126
 for r in "" abc 8124x 08126 8123 1023 65536 99999999999999999999; do order "$r" "8124 8125 8126" 8126; done
 for r in 1024 9000 65535; do order "$r" "$r 8124 8125 8126" 8126; done

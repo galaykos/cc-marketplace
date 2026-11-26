@@ -205,9 +205,9 @@ def close(b, ids):
             pass
 
 
-def visit(b, url, w=1280, h=800, source=""):
-    """The one open tab, at url, with a person's user agent: a headless one is sent to the raw page, and each viewer left open keeps one of the six connections Chrome gives a host; source before any script of a document."""
-    old = tabs(b)
+def visit(b, url, w=1280, h=800, source="", beside=False):
+    """The one open tab, or one beside those open, at url, with a person's user agent: a headless one is sent to the raw page, and each viewer left open keeps one of the six connections Chrome gives a host; source before any script of a document."""
+    old = () if beside else tabs(b)
     tab = b.page("about:blank", w, h)
     close(b, old)
     b.chrome.call("Emulation.setUserAgentOverride", {"userAgent": UA}, tab.sid)

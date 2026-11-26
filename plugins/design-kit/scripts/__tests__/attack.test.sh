@@ -160,7 +160,7 @@ for (const [route, header, body] of [['/_decision', 'X-Design-Kit-Decision', { c
 // every type of the bridge, both ways, and some of none
 const X = '<img src=x onerror=top.secret>', said = { viewport: { w: 1, h: 1 }, theme: X, console: [X] };
 const FORGED = [
-  { t: 'ready', hash: '#' + X }, { t: 'ready', hash: '#/9' }, { t: 'pong', n: -1 }, { t: 'pong', n: 1e9 }, { t: 'hash', hash: '//out.example' }, { t: 'hash', hash: '?static=1' }, { t: 'hash', hash: '#/9' },
+  { t: 'ready', hash: '#' + X }, { t: 'ready', hash: '#/9' }, { t: 'pong', n: -1 }, { t: 'pong', n: 1e9 }, { t: 'pong', n: 1, moved: true, left: 1e308, top: -1e308 }, { t: 'pong', n: 1, moved: X, left: X, top: X }, { t: 'scroll', left: 1e308, top: 0 }, { t: 'hash', hash: '//out.example' }, { t: 'hash', hash: '?static=1' }, { t: 'hash', hash: '#/9' },
   { t: 'store', items: [['secret', 'forged'], ['dk-pick:x', X], ['__proto__', X], ['..:/:x', X]] }, { t: 'store', items: [['big', 'x'.repeat(300000)]] }, { t: 'store', clear: true },
   { t: 'pick', picked: 1, knobs: { all: { space: 12, evil: X } }, text: { 1: { 'h1:0': { was: X, now: X } } }, board: '../forged.html', prompt: X, cid: 'f'.repeat(16) }, { t: 'pick', picked: X, knobs: X, text: X },
   { t: 'blocked', host: X, kind: 'script' }, { t: 'blocked', host: 'forged.example', kind: 'script' }, { t: 'blocked', host: 'forged.example', kind: 'connect' }, { t: 'allow', page: 'boards/attack.html', host: 'forged.example', allow: true },

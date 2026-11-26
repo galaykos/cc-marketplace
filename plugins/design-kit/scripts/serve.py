@@ -57,17 +57,21 @@ def _beside(name):
     return module
 
 
+def _read_beside(name):
+    with open(os.path.join(HERE, name), "rb") as fh:
+        return fh.read()
+
+
 isolate = _beside("isolate")
 picks = _beside("picks")
-with open(os.path.join(HERE, "frame.js"), "rb") as _fh:
-    FRAME_TAG = b"<script data-design-kit-frame>" + _fh.read() + b"</script>"
+FRAME_TAG = b"<script data-design-kit-frame>" + _read_beside("frame.js") + b"</script>"
 CONTENT, PAGE_EXT = isolate.CONTENT, isolate.PAGE_EXT  # render-check.py reads both from here
 FRAME_WAIT_S = 0.05
 GALLERY = "/_gallery"
-# route -> (file, type); served from the plugin, never from the docroot
-SCRIPTS = {isolate.VIEWER_JS: ("viewer.js", "text/javascript; charset=utf-8"), isolate.VIEWER_CSS: ("viewer.css", "text/css; charset=utf-8")}
+# route -> (type, bytes); the plugin's, never the docroot's; read once, like the client and the rules: an update on disk must not mix with this server
+SCRIPTS = {isolate.VIEWER_JS: ("text/javascript; charset=utf-8", _read_beside("viewer.js")), isolate.VIEWER_CSS: ("text/css; charset=utf-8", _read_beside("viewer.css"))}
 # preview.sh reads this line with sed and restarts a running server of a lower version: raise it when one must not stay up after an update.
-SERVER_VERSION = 2
+SERVER_VERSION = 3
 INDEX = ("index.html", "index.htm")
 KEY_FILE = ".preview.key"
 KEY_COOKIE = "design_kit_key"  # not "key": cookies ignore the port, and taskmaster's server shares the host
@@ -211,7 +215,7 @@ def check_status(root, page):
     if not isinstance(r, dict):
         return {"page": page, "checked": False}
     try:
-        moved = os.stat(os.path.join(root, *_parts(page))).st_mtime_ns != r.get("mtime_ns")
+        moved = os.stat(os.path.join(root, *page.split("/"))).st_mtime_ns != r.get("mtime_ns")
     except OSError:
         moved = True
     return {"page": page, "checked": True, "ts": _clip(r.get("ts"), 32), "findings": _num(r.get("findings")),
@@ -467,19 +471,19 @@ def _decisions(root):
 
 def flow_steps(root):
     """The workshop's flow as (label, detail, state) triples — state is done|open|todo.
-    Read from workshop.json (dk.sh) and decisions.jsonl (the board); an unconfirmed pick's number is never in the detail."""
+    Read from workshop.json (dk.sh) and decisions.jsonl (the board), every name quoted; an unconfirmed pick's number is never in the detail."""
     ws = _read_json(os.path.join(root, "workshop.json"), {})
     unread = [d for d in _decisions(root) if not d.get("consumed")]
     steps = []
     sysd = ws.get("system") or {}
-    steps.append(("system", ("tokens " + sysd["stamp"]) if sysd.get("stamp") else "not extracted", "done" if sysd.get("stamp") else "todo"))
+    steps.append(("system", ("tokens " + picks.quoted_name(sysd["stamp"])) if sysd.get("stamp") else "not extracted", "done" if sysd.get("stamp") else "todo"))
     b = ws.get("board") or {}
     if b.get("file"):
         name = picks.clean_board(os.path.basename(b["file"]), _clean, _hidden) if isinstance(b["file"], str) else None
         kept = picks.clean_picked(b.get("picked")) if b.get("confirmed") is True else None
         latest = picks.pick_line(unread[-1], _clean, _hidden) if unread else {}
         picked = kept or latest.get("confirmed") and latest["picked"]
-        detail = (name or "(no usable name)") + (" · picked %d" % picked if picked else " · unconfirmed pick" if b.get("picked") else " · no pick yet")
+        detail = picks.quoted_name(name) + (" · picked %d" % picked if picked else " · unconfirmed pick" if b.get("picked") else " · no pick yet")
         if unread:
             detail += " · %d unread" % len(unread) + ("" if latest["confirmed"] else ", unconfirmed")
         steps.append(("board", detail, "open" if unread or not picked else "done"))
@@ -487,18 +491,18 @@ def flow_steps(root):
         steps.append(("board", "no board", "todo"))
     sc = ws.get("scratch") or {}
     if sc.get("slug"):
-        steps.append(("scratch", sc["slug"] + (" · kept" if sc.get("kept") else " · cleaned"), "open" if sc.get("kept") else "done"))
+        steps.append(("scratch", picks.quoted_name(sc["slug"]) + (" · kept" if sc.get("kept") else " · cleaned"), "open" if sc.get("kept") else "done"))
     else:
         steps.append(("scratch", "not rendered", "todo"))
     arts = ws.get("artifacts") or []
     if arts:
         a = arts[-1]
-        steps.append(("artifact", "%s v%s" % (a.get("slug"), a.get("version")), "done"))
+        steps.append(("artifact", "%s v%s" % (picks.quoted_name(a.get("slug")), picks.quoted_name(a.get("version"))), "done"))
     else:
         steps.append(("artifact", "none", "todo"))
     d = ws.get("deck") or {}
     if d.get("file"):
-        steps.append(("deck", os.path.basename(d["file"]) + (" · pdf" if d.get("pdf") else ""), "done"))
+        steps.append(("deck", picks.quoted_name(os.path.basename(d["file"])) + (" · pdf" if d.get("pdf") else ""), "done"))
     else:
         steps.append(("deck", "none", "todo"))
     return steps
@@ -552,7 +556,7 @@ def _gallery_html(pages, live=True, root=None):
             elif tok.get("current") is False:
                 badge = "<span class=\"badge stale\" title=\"design-system/tokens.json changed after this page was built — rebuild it\">tokens moved since build</span>"
             parts.append(
-                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" sandbox=\"allow-scripts\" src=\"{isolate.content_url(p['path'], 'f')}\" title=\"{html.escape(p['title'])}\"></iframe>"
+                f"<a class=\"card\" href=\"{href}\"><iframe loading=\"lazy\" inert tabindex=\"-1\" sandbox=\"allow-scripts\" src=\"{isolate.content_url(p['path'], 'f')}\" title=\"{html.escape(p['title'])}\"></iframe>"
                 f"<div class=\"t\">{html.escape(p['title'])}{badge}</div><div class=\"p\">{html.escape(p['path'])} · {when}</div></a>"
             )
         parts.append("</div>")
@@ -650,13 +654,7 @@ class Handler(SimpleHTTPRequestHandler):
         if path.startswith(CONTENT):
             return self._content()
         if path in SCRIPTS:
-            name, ctype = SCRIPTS[path]
-            try:
-                with open(os.path.join(HERE, name), "rb") as fh:
-                    script = fh.read()
-            except OSError:
-                self.send_error(HTTPStatus.NOT_FOUND)
-                return None
+            ctype, script = SCRIPTS[path]
             self._head(len(script), ctype)
             return io.BytesIO(script)
         query = split_target(self.path)[1]
