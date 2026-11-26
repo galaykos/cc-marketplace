@@ -55,10 +55,9 @@ def host_ok(value):
 
 def inside(root, path):
     """True when path, every symlink followed, is root or lies under it."""
-    try:
-        root, path = os.path.realpath(root), os.path.realpath(path)
-    except ValueError:  # a NUL byte
+    if "\0" in root + path:  # Python 3.8's realpath keeps a NUL that a later one refuses
         return False
+    root, path = os.path.realpath(root), os.path.realpath(path)
     return path == root or path.startswith(os.path.join(root, ""))
 
 

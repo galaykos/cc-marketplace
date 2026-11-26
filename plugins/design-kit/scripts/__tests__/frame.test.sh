@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Drives frame.js in headless Chrome: fixture pages under isolate.py's own segments, policy and injection, framed by a fixture parent that keeps every message the viewer would get. Storage, the pick stand-in, images read off a canvas, hash, blocked hosts, links, note mode, commands, the scroll it says and takes, a static page, the top-level bounce; browser_lib.py's exit 4 where no browser starts.
+# Drives frame.js in headless Chrome: fixture pages under isolate.py's own segments, policy and injection, framed by a fixture parent that keeps every message the viewer would get, and by one of another origin, which gets none. Storage, the pick stand-in, images read off a canvas, hash, blocked hosts, links, note mode, commands, the scroll it says and takes, a static page, the top-level bounce; browser_lib.py's exit 4 where no browser starts.
 # Misses: serve.py and the viewer (serve.test.sh, viewer.test.sh); Firefox and Safari; a hostile page, which frame.js cannot hold (attack.test.sh).
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -103,8 +103,12 @@ class Fixture(http.server.BaseHTTPRequestHandler):
             body = ("<!doctype html><html lang=\"en\"><head>" + PAGES[rest]).encode()
             body = body if urlsplit(self.path).query == "bare" else iso.inject(body, CLIENT)
             policy = iso.page_policy(opened[0], rest, seg, [], host)
+            if urlsplit(self.path).query == "anywhere":
+                policy = "; ".join(one for one in policy.split("; ") if not one.startswith("frame-ancestors"))
         elif path == "/saved.html":
             body, policy = b"<!doctype html><head>" + CLIENT, ""
+        elif path == "/anywhere":
+            policy = ""
         elif path != "/parent":
             body, policy = "<!doctype html><title>page URL</title>", ""
         body = body.encode() if isinstance(body, str) else body
@@ -361,6 +365,18 @@ def elsewhere(b):
     tab = b.page(BASE + "/saved.html")
     eq("a saved copy outside the content path changes nothing", lambda: tab.evaluate("localStorage.setItem('dk', '1'); [%s, localStorage.constructor === Storage, /native code/.test(fetch), self.origin !== 'null']" % native), [True, True, True, True])
 
+def foreign(b):
+    other = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Fixture)
+    threading.Thread(target=other.serve_forever, daemon=True).start()
+    try:
+        tab = b.page("http://127.0.0.1:%d/anywhere" % other.server_address[1])
+        tab.evaluate("show(%s, {})" % json.dumps(BASE + iso.content_url(STATE, "f") + "?anywhere"))
+        f = tab.frame()
+        eq("a parent of another origin that the page's policy let frame it hears nothing from the client", lambda: [f.evaluate("[location.origin === %s, window.__designKitFrame]" % json.dumps(BASE)), time.sleep(0.5), tab.evaluate("[location.origin !== %s, got.length]" % json.dumps(BASE))][::2], [[True, True], [True, 0]])
+    finally:
+        other.shutdown()
+        other.server_close()
+
 DRAWN = """(async () => {
   const read = (i) => { const c = document.createElement('canvas').getContext('2d'); try { c.drawImage(i, 0, 0); return c.getImageData(0, 0, 1, 1).data.length; } catch (e) { return e.name; } };
   const loaded = (i) => new Promise((done, fail) => { i.onload = () => done(i); i.onerror = () => fail(new Error('not loaded: ' + i.src)); });
@@ -401,7 +417,7 @@ if bad:
     sys.exit(1)
 try:
     with browser_lib.browser() as b:
-        for part in (storage, sends, hashes, blocked, links, notes, scrolls, elsewhere, draws, bounce):
+        for part in (storage, sends, hashes, blocked, links, notes, scrolls, elsewhere, foreign, draws, bounce):
             try:
                 part(b)
             except Exception as exc:

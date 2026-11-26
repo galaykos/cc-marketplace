@@ -130,8 +130,9 @@ print(e["command"])
 PY
 )" || fail "--print-hook stdout is not the expected settings.json JSON"
 payload() { printf '{"tool_name":"Edit","tool_input":{"file_path":"%s"}}' "$1"; }
-run_hook() { # run_hook <project> <stdin> -> sets hrc, hout (stdout), herr (stderr)
-  set +e; hout="$(printf '%s' "$2" | CLAUDE_PROJECT_DIR="$1" sh -c "$hookcmd" 2>"$tmp/hook.err")"; hrc=$?; set -e
+mkdir -p "$tmp/shadow"; printf 'open("%s/json.ran", "w").close()\nraise SystemExit("the project json.py ran")\n' "$tmp" > "$tmp/shadow/json.py"
+run_hook() { # run_hook <project> <stdin> -> sets hrc, hout (stdout), herr (stderr); run in a folder whose json.py must never be imported
+  set +e; hout="$(cd "$tmp/shadow" && printf '%s' "$2" | CLAUDE_PROJECT_DIR="$1" sh -c "$hookcmd" 2>"$tmp/hook.err")"; hrc=$?; set -e
   herr="$(cat "$tmp/hook.err")"
 }
 run_hook "$repo" "$(payload "$repo/src/components/Dirty.tsx")"
@@ -146,5 +147,6 @@ run_hook "$empty" "$(payload "$repo/src/components/Dirty.tsx")"
 [ "$hrc" = 0 ] && [ -z "$hout$herr" ] || fail "a project with no tokens must stay silent in the hook (rc=$hrc): $herr"
 run_hook "$repo" 'not json'
 [ "$hrc" = 0 ] && [ -z "$hout$herr" ] || fail "a malformed payload must stay silent (rc=$hrc): $herr"
+[ ! -e "$tmp/json.ran" ] || fail "the pasted hook imported the json.py of the folder it ran in"
 
 echo "PASS drift.test.sh"

@@ -67,7 +67,6 @@ if [ "$stop" = 1 ]; then
   fi
   exit 0
 fi
-keyq() { if [ -s "$keyfile" ]; then printf '?key=%s' "$(cat "$keyfile")"; fi; }
 
 command -v python3 >/dev/null || { echo "preview.sh: python3 3.8+ is required (or open the .html files directly)" >&2; exit 3; }
 mkdir -p "$docroot"
@@ -92,8 +91,8 @@ if [ "$rc" = 0 ]; then
     if ours "$pid"; then echo "preview.sh: pid $pid on port $at did not stop; kept the state files" >&2; exit 4; fi
     rm -f "${state[@]}"
   else
-    q=""; [ "$running" = "0.0.0.0" ] && q="$(keyq)"
-    echo "preview: already running — $(cat "$urlfile" 2>/dev/null || echo "http://127.0.0.1:$at/")$q"
+    said="$(python3 -I "$here/picks.py" address "$docroot")"
+    echo "preview: already running — ${said:-http://127.0.0.1:$at/}"
     if [ "$recorded" -gt "$version" ]; then echo "preview: a newer server is running; left as it is."; fi
     if [ "$bind" = "0.0.0.0" ] && [ "$running" != "0.0.0.0" ]; then echo "preview: --lan not used"; fi
     not_used
@@ -144,13 +143,12 @@ if [ -z "$started" ]; then
   exit 4
 fi
 host="127.0.0.1"; [ "$bind" = "0.0.0.0" ] && host="$(ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}' || echo 127.0.0.1)"
-q=""
 if [ "$bind" = "0.0.0.0" ]; then
   for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$keyfile" ] && break; sleep 0.1; done
-  q="$(keyq)"; [ -n "$q" ] || echo "preview.sh: the LAN server wrote no $keyfile; other devices will get 403" >&2
+  [ -s "$keyfile" ] || echo "preview.sh: the LAN server wrote no $keyfile; other devices will get 403" >&2
 fi
 echo "http://$host:$port/" > "$urlfile"; echo "$bind" > "$bindfile"; echo "$port" > "$portfile"; record "$pid $version"
-echo "preview: http://$host:$port/$q"
+echo "preview: $(python3 -I "$here/picks.py" address "$docroot")"
 [ -z "$old" ] || [ "$old" = "$port" ] || echo "preview: moved from port $old; saved knobs and page data stay on the old address"
 [ -z "$unused" ] || echo "$unused"
 [ "$bind" = "0.0.0.0" ] && echo "preview: LAN mode — any device on this network with this keyed URL can open it while the server runs; a pick made from another device is not recorded (loopback only)"

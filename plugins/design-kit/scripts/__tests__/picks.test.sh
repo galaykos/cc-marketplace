@@ -29,7 +29,6 @@ def post(body):
 def pick(**fields):
     return post(dict({"board": "a.html"}, **fields))[0]
 
-# board
 for name, board in (("1 character", "a"), ("128 characters", "b" * 128), ("spaces and letters outside ASCII", "a b-ü.html")):
     check("board of " + name + " is kept", post({"board": board})[0], {"board": board, "picked": None, "knobs": {}, "text": {}})
 REFUSED = (("empty", ""), ("129 characters", "b" * 129), ("a slash", "boards/a.html"), ("a backslash", "boards\\a.html"), ("a newline", "a\n.html"),
@@ -45,13 +44,11 @@ check("an accepted pick has no reason", post({"board": "a.html"})[1], None)
 check("a pick keeps board, picked, knobs and text only", pick(v=2, ts="t", cid="c", prompt="p", consumed=True, kind="k"),
       {"board": "a.html", "picked": None, "knobs": {}, "text": {}})
 
-# picked
 for value in (1, 99):
     check("picked %d is kept" % value, pick(picked=value)["picked"], value)
 for value in (0, 100, -1, 10 ** 30, True, False, 2.0, "2", [2], None):
     check("picked %s is null" % json.dumps(value), pick(picked=value)["picked"], None)
 
-# knobs
 def knob(name, value):
     return pick(knobs={"all": {name: value}})["knobs"].get("all", {}).get(name)
 
@@ -74,7 +71,6 @@ for scope in BAD_SCOPES:
 for value in ({"1": {}}, {"1": {"font": 1}}, {"1": "x"}, {"1": [8]}, [], "x", 7, None):
     check("knobs %s are none" % json.dumps(value), pick(knobs=value)["knobs"], {})
 
-# text edits
 E = {"was": "a", "now": "b"}
 def edits(n):
     return {"p:%d" % i: E for i in range(n)}

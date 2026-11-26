@@ -126,7 +126,7 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
 sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
 cc_phase_guard 'design-kit:unread-pick' || exit 0
 
-python3 - "$dec" "$notes" <<'PY'
+python3 -I - "$dec" "$notes" <<'PY'
 import calendar, json, os, re, sys, time
 def rows(p):
     out = []

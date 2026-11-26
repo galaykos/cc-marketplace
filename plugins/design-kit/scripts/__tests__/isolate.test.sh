@@ -6,6 +6,7 @@ here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 python3 - "$here/isolate.py" "$tmp" <<'PY' || { echo "FAIL: isolate.py units"; exit 1; }
 import _markupbase, base64, contextlib, hashlib, hmac, html.parser, importlib.util, json, mimetypes, os, re, resource, stat, sys
+from http.server import SimpleHTTPRequestHandler
 
 def load():
     spec = importlib.util.spec_from_file_location("dkisolate", sys.argv[1]); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
@@ -62,7 +63,6 @@ check("scriptable", [[v] for v in ("text/xml", "application/xml", "image/svg+xml
 check("scriptable", [[v] for v in ("", "text/html", "text/plain", "image/png", "application/pdf", "application/octet-stream", "application/xml-dtd",
                                    "text/plain; x=+xml")], False)
 
-# tokens
 HOSTILE, A, B = "motion/a;b, c ü/index.html", "decks/a.html", "decks/b.html"
 b64 = lambda raw: base64.urlsafe_b64encode(raw).decode().rstrip("=")
 for mode, end in (("f", ""), ("s", ".s")):
@@ -87,7 +87,6 @@ for name, forge in (("nothing", lambda s: ""), ("a dot", lambda s: "."), ("a new
                     ("a lone base64 character", lambda s: s[:23] + "A"), ("+ in the page", lambda s: s[:23] + "+" + s[24:]), ("a letter outside ASCII", lambda s: s + "é"), ("a path", lambda s: s + "/decks/a.html")):
     eq("a malformed segment opens nothing: " + name, lambda: m.open_segment(forge(m.segment(A, "f"))), None)
 
-# policies
 AT = "127.0.0.1:8124"
 def policy(mode, page, hosts=()):
     return m.page_policy(mode, page, "SEG", list(hosts), AT)
@@ -115,9 +114,14 @@ CONTROL = ("default-src 'none'; script-src %s; style-src %s; connect-src 'self';
 eq("viewer policy", lambda: m.viewer_policy(AT), CONTROL % ("http://127.0.0.1:8124/_viewer.js", "http://127.0.0.1:8124/_viewer.css"))
 eq("gallery policy", lambda: m.gallery_policy(AT, "c2hh"), CONTROL % ("'sha256-c2hh'", "'unsafe-inline'"))
 
-# same-server files
 mimetypes.add_type("text/html", ".dkpage"); mimetypes.add_type("text/plain", ".htm")
-check("is_page", [[v] for v in ("a.html", "A.HTM", "decks/a.html", ".html", "a.dkpage", "a.DKPAGE", "data:,a.dkpage", "a.html.br")], True)
+check("is_page", [[v] for v in ("a.html", "A.HTM", "decks/a.html", ".html")], True)
+# A page is what serve.py's handler sends as text/html: Python 3.8 types by a table copied at import, which knows neither a type added later nor .br
+TYPED = ("a.dkpage", "a.DKPAGE", "data:,a.dkpage", "a.html.br")
+served_html = lambda name: SimpleHTTPRequestHandler.guess_type(SimpleHTTPRequestHandler, "/" + name) == "text/html"
+eq("is_page is what the server sends as text/html", lambda: [m.is_page(v) for v in TYPED], [served_html(v) for v in TYPED])
+if sys.version_info >= (3, 9):
+    eq("from 3.9 the server sends a type added later and .html.br as text/html", lambda: [served_html(v) for v in TYPED], [True] * 4)
 check("is_page", [[v] for v in ("report.html.gz", "motion/x/report.html.gz", "a.png", "a.html.txt", "a.xhtml", "html", "a.html/x", "noext", "")], False)
 def loads(page, paths, want):
     for path in paths:
@@ -128,7 +132,9 @@ for page in ("boards/a.html", "decks/a.html", "artifacts/a.html", "previews/kit.
     loads(page, ELSEWHERE + [page], False)
 for page, own in (("motion/x/index.html", "motion/x"), ("film/x/index.html", "film/x"), ("film/x/comp/a.htm", "film/x/comp"), ("previews/x/a.html", "previews/x")):
     loads(page, [own + "/" + f for f in ("a.js", "data.json", "a.svg", "a.xhtml", "noext", "fonts/deep/a.woff2", "a.html.txt", "report.html.gz", "a b;c.png")], True)
-    loads(page, [own + "/" + f for f in ("index.html", "other.html", "sub/index.htm", "OTHER.HTML", "a.Htm", "a.html.br", "data:,a.dkpage", "a.DKPAGE", ".frames/1.png", ".env", "sub/.git/config", "sub/..", "sub/../a.js", "./a.js", "sub//a.js", "")]
+    for f in TYPED:
+        loads(page, [own + "/" + f], not served_html(f))
+    loads(page, [own + "/" + f for f in ("index.html", "other.html", "sub/index.htm", "OTHER.HTML", "a.Htm", ".frames/1.png", ".env", "sub/.git/config", "sub/..", "sub/../a.js", "./a.js", "sub//a.js", "")]
           + [own, own + "y/a.js", own.rsplit("/", 1)[0] + "/a.js", own.rsplit("/", 1)[0] + "/y/a.js", own.upper() + "/a.js", ".checks/results.json", "../" + own + "/a.js", own + "/../y/a.js"], False)
     loads(page, [own.split("/") + [p] for p in ("../y/a.js", "s/../../../decks/a.png", "s\\..\\..\\..\\..\\decks\\a.png", "a.js\0.png", "/a.js")] + [[own, "a.js"], [], [""]], False)
 loads("film/x/comp/a.htm", ["film/x/a.js"], False)
@@ -185,7 +191,6 @@ for name, before, after in (
         ("a head past the first 64 KiB", b"<!doctype html>", b" " * 65536 + b"<head>")):
     lands("inject stops before " + name, before, after)
 
-# hosts
 for value in ("cdn.jsdelivr.net", "a.io", "3.a-b.xn--p1ai", "a" * 63 + ".net", "a." * 125 + "net", "notlocal.example", "local.example", "internal.example"):
     eq("allowed_host takes %s" % value[:40], lambda: m.allowed_host(value), value)
 eq("allowed_host answers lower case", lambda: m.allowed_host("CDN.jsDelivr.NET"), "cdn.jsdelivr.net")
@@ -196,7 +201,6 @@ check("allowed_host", [[v] for v in (
     "http://cdn.jsdelivr.net", "https://cdn.jsdelivr.net", "//cdn.jsdelivr.net", "cdn.jsdelivr.net/x", "x@cdn.jsdelivr.net", "cdn.jsdelivr.net?x", "cdn.jsdelivr.net; script-src *", "cdn.jsdelivr.net,a.io",
     "a.io b.io", "'self'", "-a.net", "a-.net", "a_b.net", "a.b", "ab.c", "a.1net", "a.net-", "ü.net", "cdn.jsdelivr.nét", "a" * 64 + ".net", "a." * 125 + "info")], None)
 
-# approvals
 base = os.path.join(tmp, "allow"); root = os.path.join(base, "root"); os.makedirs(root)
 FILE, BAD = os.path.join(root, ".allow.json"), os.path.join(root, ".allow.json.bad")
 CDN = "cdn.jsdelivr.net"

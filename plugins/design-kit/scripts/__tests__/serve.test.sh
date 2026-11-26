@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Drives serve.py through preview.sh: the viewer's document and headers at every page URL, its two files as the server started with them, the raw page's 303 (query, Sec-Fetch-Site, headless, ?static=1), the gallery (its address, reconnect client, sandboxed inert thumbnails, markup in what it lists, policy), /_index.json, SSE (the gallery's, a page's own), never-served paths (GET and HEAD, origin- and absolute-form), the Host rule, symlinks leaving the docroot or to a never-served file, the headers of every answer, SVG/XHTML/XML policy, /_decision (stored through picks.py with the server's own prompt), /_note (clamps, text required), both: body limits, lone surrogates, a cid, one row per cid under the file's lock, the 2 MiB cap, no symlink, a failed write; /_page, /_c/ (what a segment opens, the injected client, the policy on every file, links, 303, static), /_allow, the Origin of every POST; /_notes, token badges, stop.
 # LAN key: lan_gate and without_key as a unit, a symlinked key file, then end to end from this machine's own network address (a non-loopback peer), /_page, /_c/ and /_allow included; that half skips without one.
-# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh); the reconnect bar, the cookie page, and Tab past the thumbnails in a browser (each run by hand in Chrome: 2026-11-12, the last 2026-11-25); a real second device, never run.
+# Misses: what a browser does with a /_c/ answer (viewer.test.sh, attack.test.sh); the reconnect bar and the cookie page in a browser (run by hand in Chrome on 2026-11-12); Tab past the thumbnails and the gallery's give-back of the focus a thumbnail takes (viewer.test.sh; a page taking it by itself only in Firefox, by hand); a real second device, never run.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 tmp="$(mktemp -d)"; trap 'bash "$here/preview.sh" --docroot "$tmp" --stop >/dev/null 2>&1 || true; rm -rf "$tmp" "$tmp.out"' EXIT
@@ -43,7 +43,7 @@ def parsed(body):
     P().feed(body.decode())
     return tags, texts
 def document(page, *notes):
-    return [("html", {"lang": "en"}), ("head", {}), ("meta", {"charset": "utf-8"}), ("meta", {"name": "viewport", "content": "width=device-width,initial-scale=1"}), ("title", {}), ("link", {"rel": "stylesheet", "href": "/_viewer.css"}),
+    return [("html", {"lang": "en"}), ("head", {}), ("meta", {"charset": "utf-8"}), ("meta", {"name": "viewport", "content": "width=device-width,initial-scale=1"}), ("title", {}), ("link", {"rel": "icon", "href": "data:,"}), ("link", {"rel": "stylesheet", "href": "/_viewer.css"}),
             ("body", {"data-page": page, "data-version": str(m.SERVER_VERSION), "data-rules": m.RULES}), ("header", {"id": "bar"}), ("a", {"href": "/_gallery"}), ("h1", {"id": "title"}), ("span", {"id": "chip"}),
             ("button", {"type": "button", "id": "network", "hidden": None}), ("button", dict({"type": "button", "id": "notes"}, **{n: None for n in notes})),
             ("div", {"id": "strips", "aria-live": "polite"}), ("div", {"id": "drawer", "hidden": None}), ("main", {"id": "frame"}), ("script", {"src": "/_viewer.js"})]
@@ -109,6 +109,7 @@ def gallery(path):
     eq("the gallery is at %s" % path, (status, b"<title>design-kit gallery</title>" in body, len(frames) >= 4, headers["Cross-Origin-Opener-Policy"]), (200, True, True, "same-origin"))
     eq("%s: every thumbnail carries sandbox and a framed /_c/ src" % path, [a for a in frames if a.get("sandbox") != "allow-scripts" or not re.match(r"/_c/[\w-]{22}\.[\w-]+/", a.get("src", ""))], [])
     eq("%s: no thumbnail takes Tab" % path, [a for a in frames if "inert" not in a or a.get("tabindex") != "-1"], [])
+    eq("%s: its icon is one its policy allows, so no browser asks for /favicon.ico" % path, [a for t, a in tags if t == "link"], [{"rel": "icon", "href": "data:,"}])
     eq("%s: a thumbnail's src is its page" % path, {ask(a["src"], Sec_Fetch_Dest="iframe")[0] for a in frames}, {200})
     eq("%s: the policy allows its one inline script by its SHA-256" % path, (len(scripts), headers["Content-Security-Policy"]), (1, m.isolate.gallery_policy(host, sha)))
     eq("%s: no unsafe-inline in its script-src" % path, re.findall(r"script-src ([^;]*)", headers["Content-Security-Policy"] or ""), ["'sha256-%s'" % sha])
@@ -123,6 +124,22 @@ eq("a folder, a file, a title and a flow step holding markup are text in the gal
 for name in ("<u>dir/<u>file.html", "workshop.json"): os.unlink(os.path.join(root, name))
 os.rmdir(os.path.join(root, "<u>dir"))
 eq("HEAD of the gallery answers its headers", [(ask(p, "HEAD")[0], ask(p, "HEAD")[1]["Content-Length"]) for p in ("/", "/_gallery")], [(200, str(len(ask("/")[2])))] * 2)
+os.symlink("gone.html", os.path.join(root, "decks", "dangling.html"))
+unnamed = os.path.join(os.fsencode(root), b"decks", b"un\xffutf8.html")
+with open(unnamed, "wb") as fh: fh.write(b"<title>unutf8</title>")
+def listed(path):
+    try: status, _, body = ask(path)
+    except (OSError, http.client.HTTPException) as exc: return repr(exc)
+    return status, b"dangling" in body, b"unutf8" in body
+eq("a page link with no file and a name that is not UTF-8 are left out of a gallery that answers", [listed(p) for p in ("/_gallery", "/_index.json")], [(200, False, False)] * 2)
+os.unlink(os.path.join(root, "decks", "dangling.html")); os.unlink(unnamed)
+def flowed(planted):
+    with open(os.path.join(root, "workshop.json"), "w") as fh: fh.write(planted)
+    try: status, _, body = ask("/_gallery")
+    except (OSError, http.client.HTTPException) as exc: return repr(exc)
+    finally: os.unlink(os.path.join(root, "workshop.json"))
+    return status, b'class="flow"' in body
+eq("a workshop.json value that is not an object, or nested past the parser, reads as nothing recorded, in a gallery that answers", [flowed(p) for p in ("[]", '{"system": "x", "board": "x", "scratch": 5, "artifacts": ["x", 3], "deck": []}', "[" * 200000)], [(200, False)] * 3)
 with open(os.path.join(root, "index.html"), "w") as fh: fh.write("<h1>mine</h1>")
 eq("with an index.html in the docroot / is that page", [viewed(p) for p in ("/", "/index.html")], ["index.html"] * 2)
 gallery("/_gallery")
@@ -200,13 +217,28 @@ eq("an inode, a size or an mtime alone, and a file below the page's own folder, 
    {"decks/ino.html": "reload", "decks/size.html": "reload", "decks/time.html": "reload", "motion/x/index.html": "reload", "decks/b.html": "gone"})
 put("decks/b.html", "<html><body>back</body></html>")
 eq("a page that returns reloads, after one gone", heard("decks/b.html").get("decks/b.html"), ["reload"])
+put("motion/x/logo.svg", "<svg/>", like=10 ** 18)
+eq("a file copied into a page's own folder with an older mtime reloads that page and the gallery", heard("motion/x/index.html", None, more=TWO_POLLS), {"motion/x/index.html": ["reload"], None: ["reload"]})
+class Racing(m.Handler):
+    def _page_file(self, page):
+        found = super()._page_file(page)
+        if found: os.unlink(found)  # the page goes between the check and the first look
+        return found
+Racing.root, Racing.state = root, {"version": 0, "last": time.monotonic(), "streams": 0}
+put("decks/racing.html", "<p>r</p>")
+racing = m.ThreadingHTTPServer(("127.0.0.1", 0), Racing); threading.Thread(target=racing.serve_forever, daemon=True).start()
+con = http.client.HTTPConnection("127.0.0.1", racing.server_port, timeout=5); con.request("GET", "/_events?page=decks/racing.html")
+try: got = con.getresponse().status
+except (OSError, http.client.HTTPException) as exc: got = repr(exc)
+con.close(); racing.shutdown(); racing.server_close()
+eq("a page deleted between the check and the first look is 404, not a stream that never says gone", got, 404)
 eq("no stream for what is not a page", {q: answer(q).status for q in ("?page=decks/none.html", "?page=", "?page=motion/x", "?page=motion/x/style.css", "?page=../serve.py", "?page=/decks/a.html")}, dict.fromkeys(("?page=decks/none.html", "?page=", "?page=motion/x", "?page=motion/x/style.css", "?page=../serve.py", "?page=/decks/a.html"), 404))
 walked, walk = [], os.walk
-m.os.walk = lambda top, **more: (walked.append(os.path.relpath(top, root)), walk(top, **more))[1]
+m.os.walk = lambda top, *rest, **more: (walked.append(os.path.relpath(top, root)), walk(top, *rest, **more))[1]  # Python 3.8's walk calls itself, positionally, for each folder below
 m.page_state(root, "decks/a.html"); m.page_state(root, "reviews/r.html")
 eq("a page with no folder of its own walks nothing", walked, [])
 m.page_state(root, "motion/x/index.html")
-eq("a page with one walks that folder alone", walked, ["motion/x"])
+eq("a page with one walks that folder alone", [p for p in walked if not p.startswith("motion/x/")], ["motion/x"])
 sys.exit(1 if failed else 0)
 PY
 rm -rf "$tmp/motion" "$tmp/decks/ino.html" "$tmp/decks/size.html" "$tmp/decks/time.html"
@@ -218,7 +250,7 @@ rm -f "$tmp.outside.txt"
 # never served: hidden files, auth/, state files, version ledgers, directory listings
 mkdir -p "$tmp/auth" "$tmp/artifacts/.versions/a" "$tmp/shots"
 echo '{"cookies":[{"value":"SECRET"}]}' > "$tmp/auth/walk.json"
-echo '{"s":"SECRET"}' > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
+echo '{"s":"SECRET"}' | tee "$tmp/workshop.json.bad" "$tmp/workshop.json.bad.1" "$tmp/workshop.json.bad.99" > "$tmp/workshop.json"; echo '{"s":"SECRET"}' > "$tmp/usage.jsonl"
 echo '<p>SECRET</p>' > "$tmp/artifacts/.versions/a/v1.html"; echo '{"s":"SECRET"}' > "$tmp/artifacts/a.versions.json"
 printf 'PNG' > "$tmp/shots/one.png"; echo 'SECRET' > "$tmp/.preview.key"
 # never_served <path> <leak>: 404 with no body for GET and HEAD, origin-form and absolute-form (http://x//auth/... was 200 once)
@@ -234,7 +266,7 @@ never_served() {
     [ "$c" = 404 ] || { echo "FAIL: HEAD $t should be 404, got $c"; exit 1; }
   done
 }
-for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
+for probe in /auth/walk.json /auth/ /AUTH/walk.json /workshop.json /workshop.json.bad /workshop.json.bad.1 /workshop.json.bad.99 /usage.jsonl /.preview.pid /.preview.url /.preview.key /artifacts/.versions/a/v1.html /artifacts/a.versions.json /shots/ /decks/; do
   never_served "$probe" "SECRET\|one.png"
 done
 [ "$(curl -s "http://127.0.0.1:$port/shots/one.png")" = PNG ] || { echo "FAIL: an ordinary asset is no longer served"; exit 1; }
@@ -434,14 +466,19 @@ rm -f "$tmp/notes.jsonl" "$tmp.target.jsonl"; mkdir "$tmp/notes.jsonl"
 c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/decks/a.html","text":"into a folder"}')")"
 [ "$c" = 500 ] || { echo "FAIL: an append that fails (notes.jsonl is a folder) should answer 500, got $c"; exit 1; }
 rmdir "$tmp/notes.jsonl"; mv "$tmp/.keep" "$tmp/notes.jsonl"
+# a lock file that is a symlink to nothing is not followed: the post goes on unlocked and makes no file at the far end
+ln -sfn "$tmp.lock-target" "$tmp/.notes.lock"; ln -sfn "$tmp.lock-target" "$tmp/.decisions.lock"
+c="$(npost -H 'X-Design-Kit-Note: 1' --data "$(with_cid '{"page":"/decks/a.html","text":"lock link"}')") $(post -H 'X-Design-Kit-Decision: 1' --data "$(with_cid '{"board":"a.html","picked":1}')")"
+[ "$c" = "200 200" ] && [ ! -e "$tmp.lock-target" ] || { echo "FAIL: a dangling lock symlink should make no target (got $c, $(ls -l "$tmp.lock-target" 2>&1))"; rm -f "$tmp.lock-target"; exit 1; }
+rm -f "$tmp/.notes.lock" "$tmp/.decisions.lock"
 # a note or its lock must not reload every open page (a half-typed note on another tab would be lost)
 python3 - "$here/serve.py" "$tmp" <<'PY' || { echo "FAIL: writing notes.jsonl or .notes.lock moves the reload clock"; exit 1; }
 import importlib.util, os, sys, time
 spec = importlib.util.spec_from_file_location("dkserve", sys.argv[1]); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-before = m._newest_mtime(sys.argv[2]); later = time.time() + 60
+before = m._files_state(sys.argv[2]); later = time.time() + 60
 for name in ("notes.jsonl", ".notes.lock", ".notes.jsonl.tmp"):
     p = os.path.join(sys.argv[2], name); open(p, "a").close(); os.utime(p, (later, later))
-assert m._newest_mtime(sys.argv[2]) == before
+assert m._files_state(sys.argv[2]) == before
 os.unlink(os.path.join(sys.argv[2], ".notes.jsonl.tmp"))
 PY
 
@@ -716,6 +753,23 @@ for r in decision note allow; do
   same "an empty Origin was sent: /_$r" "$(code -X POST -H "$h" -H 'Origin;' --data "$b" "$base/_$r")" 403
   [ "$(cat "$tmp/decisions.jsonl" "$tmp/notes.jsonl" | wc -l)" = "$n" ] && [ ! -e "$tmp/.allow.json" ] || say "a refused Origin writes nothing: /_$r"
   same "the server's own Origin passes: /_$r" "$(code -X POST -H "$h" -H "Origin: http://localhost:$port" --data "$b" "http://localhost:$port/_$r")" 200
+done
+# and on the routes that read them back
+for r in "_notes?page=decks/a.html" "_checks?page=decks/a.html" "_page?page=decks/a.html"; do
+  for o in "http://127.0.0.1:1" "http://localhost:$port" "https://127.0.0.1:$port" "$base/" "http://127.0.0.1" null http://attacker.example; do
+    same "a sent Origin must equal http:// and the Host: /$r from $o" "$(code -H "Origin: $o" "$base/$r")" 403
+  done
+  same "an empty Origin was sent: /$r" "$(code -H 'Origin;' "$base/$r")" 403
+  same "the server's own Origin passes: /$r" "$(code -H "Origin: http://localhost:$port" "http://localhost:$port/$r")" 200
+done
+# a post that names another project (a viewer left open while another project's server took this port) records nothing; one with none is as before
+mine="$(curl -s "$base/_page?page=decks/a.html" | python3 -c 'import json,sys; print(json.load(sys.stdin)["project"])')"
+for r in decision note allow; do
+  case "$r" in decision) h='X-Design-Kit-Decision: 1' b="$(with_cid '{"board":"a.html","picked":7}')" ;; note) h='X-Design-Kit-Note: 1' b="$(with_cid '{"page":"decks/a.html","text":"project"}')" ;; allow) h="$A" b="$yes" ;; esac
+  rm -f "$tmp/.allow.json"; n="$(cat "$tmp/decisions.jsonl" "$tmp/notes.jsonl" | wc -l)"
+  same "a post naming another project is 409: /_$r" "$(code -X POST -H "$h" --data "${b%\}},\"project\":\"000000000000\"}" "$base/_$r") $(answer)" "409 {\"recorded\":false,\"error\":\"thisaddressservesanotherprojectnow;nothingwasrecorded\"}"
+  [ "$(cat "$tmp/decisions.jsonl" "$tmp/notes.jsonl" | wc -l)" = "$n" ] && [ ! -e "$tmp/.allow.json" ] || say "a post naming another project writes nothing: /_$r"
+  same "a post naming this project passes: /_$r" "$(code -X POST -H "$h" --data "${b%\}},\"project\":\"$mine\"}" "$base/_$r")" 200
 done
 [ -z "$bad" ] || exit 1
 rm -rf "$tmp.out" "$tmp/motion" "$tmp/decks/folder.html" "$tmp/decks/out.html" "$tmp/decks/linked.html" "$tmp/decks/turn.html" "$tmp/shots/m.js"

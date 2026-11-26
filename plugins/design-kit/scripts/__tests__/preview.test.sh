@@ -256,6 +256,7 @@ stale() { c="$1 is replaced on its port"; outdate; [ -z "$2" ] || printf '%s\n' 
 mkdir -p "$tmp/p5"; echo '<h1>p5</h1>' > "$tmp/p5/index.html"; own="$(free_port)"; other="$(free_port)"
 stale "a server with no version record" ""
 stale "a server of a lower version" "PID $(( version - 1 ))"
+stale "a 0.20.1 server (version 3)" "PID 3"
 stale "version record for another pid is ignored and the server" "1PID $version"
 stale "a server whose version record is no number" "PID ${version}x"
 stale "a server whose version record is past any integer" "PID 99999999999999999999"
@@ -319,7 +320,7 @@ c="a late server on a port that is taken and answers nothing is not this docroot
 
 c="a port that answers is skipped, though a server would start beside the one there"; mkdir -p "$tmp/beside" "$tmp/pb"; busy="$(free_port)"; hold "$busy"
 # a python3 that says it serves and binds nothing stands for the bind that macOS and BSD allow there
-printf '#!/bin/sh\necho "design-kit: serving $3 on http://127.0.0.1:$5/"\nexec "%s" 30\n' "$(command -v sleep)" > "$tmp/beside/python3"; chmod +x "$tmp/beside/python3"
+printf '#!/bin/sh\ncase "$1" in -I) exec "%s" "$@" ;; esac\necho "design-kit: serving $3 on http://127.0.0.1:$5/"\nexec "%s" 30\n' "$(command -v python3)" "$(command -v sleep)" > "$tmp/beside/python3"; chmod +x "$tmp/beside/python3"
 beside() { PATH="$tmp/beside:$PATH" launch "$tmp/pb" "$@"; extra="$extra $(pid_of "$tmp/pb")"; }
 beside --port "$busy"; [ "$rc $out" = "4 preview.sh: server did not start (port $busy busy?)" ] && none "$tmp/pb" || fail "$c: exit $rc, url $(url_of "$tmp/pb"): $out"
 echo "$busy" > "$tmp/pb/.preview.port"; want="$(first_free 8124)"; beside
