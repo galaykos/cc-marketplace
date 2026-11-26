@@ -183,13 +183,16 @@ try:
     ws = json.load(open(p, encoding="utf-8"))
 except (OSError, ValueError):
     ws = {}
+ws = ws if isinstance(ws, dict) else {}  # a value of another shape, as in any step below, is read as absent
 val = json.loads(val)
 parts = key.split(".")
 node = ws
 for k in parts[:-1]:
-    node = node.setdefault(k, {}) if isinstance(node.get(k), dict) or k not in node else node[k]
+    if not isinstance(node.get(k), dict): node[k] = {}
+    node = node[k]
 if parts[-1] == "artifacts+":
-    node.setdefault("artifacts", []).append(val)
+    if not isinstance(node.get("artifacts"), list): node["artifacts"] = []
+    node["artifacts"].append(val)
 else:
     node[parts[-1]] = val
 with open(p, "w", encoding="utf-8") as fh:
@@ -432,7 +435,9 @@ with m.decisions_lock(dk):
         if pick["board"]:
             try: ws = json.load(open(ws_path, encoding="utf-8"))
             except Exception: ws = {}
-            b = ws.setdefault("board", {}); file = b.get("file")
+            if not isinstance(ws, dict): ws = {}
+            if not isinstance(ws.get("board"), dict): ws["board"] = {}
+            b = ws["board"]; file = b.get("file")
             if not isinstance(file, str) or os.path.basename(file) != pick["board"]:
                 own = os.path.join(dk, "boards", pick["board"])  # a viewer sends picks from boards/ alone
                 if pick["confirmed"] or os.path.isfile(own) and m._real_parts(dk, own) == ["boards", pick["board"]]:

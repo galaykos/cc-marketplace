@@ -646,6 +646,18 @@ pl="$(mktemp -d)"; ( export DESIGN_KIT_IGNORE=off; cd "$pl" && git init -q && mk
   got="$(filed gone.html "$built" 2)"; [ "$got" = "$n/boards/gone.html None None" ] || { echo "FAIL: a confirmed pick should be filed under its own board, without the other's spec and time: $got"; exit 1; }
   got="$(filed built.html "$built" 2)"; [ "$got" = "boards/built.html built.json T" ] || { echo "FAIL: a pick on the board built last should keep its path, spec and time: $got"; exit 1; }
   got="$(filed gone.html '{}')"; [ "$got" = "gone.html None None" ] || { echo "FAIL: an unconfirmed row with no board recorded should leave its name alone: $got"; exit 1; }
+  # each verb that writes workshop.json reads a value that is no object as absent: no Traceback, and every other key kept
+  printf '<!doctype html><title>P</title><p>p</p>' > "$pl/p.html"; export DESIGN_KIT_PORT="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
+  kept() { python3 -I -c 'import json, sys; ws = json.load(open(sys.argv[1])); assert isinstance(ws, dict) and all(ws.get(k) == v for k, v in json.loads(sys.argv[2]).items()), ws' "$ws" "$1" 2>/dev/null; }
+  for shape in '[]' '"x"' '{"brief":"b","system":"s","board":"x","scratch":5,"artifacts":{"a":1},"deck":[1]}' '{"brief":"b","artifacts":["x",3]}'; do
+    case "$shape" in '{'*) left='{"brief":"b"}' ;; *) left='{}' ;; esac
+    for verb in "decision --latest --consume" "scratch --cleanup" "bundle $pl/p.html --name pw" "board $tmp/spec.json"; do
+      plant '{"v":2,"ts":"t","board":"real.html","picked":3,"consumed":false}'; printf '%s' "$shape" > "$ws"
+      set +e; out="$(bash "$dk" $verb 2>&1)"; rc=$?; set -e
+      [ "$rc" = 0 ] && ! grep -q Traceback <<<"$out" && kept "$left" || { echo "FAIL: dk $verb over a workshop.json of $shape should take it as absent and keep the rest (rc=$rc): $(cat "$ws") $out"; exit 1; }
+    done
+  done
+  bash "$here/preview.sh" --docroot "$n" --stop >/dev/null
 ) || exit 1; rm -rf "$pl"
 
 # dk system --source rendered: one page load (no dry-run first), and the render's exit code passes through.

@@ -201,6 +201,11 @@ cp "$dkd/.preview.url" "$tmp/url.kept"; printf 'http://x/\nshots=forged\n' > "$d
 rc_of run review --base "$dkd/walk-before" --current "$dkd/walk"; cp "$tmp/url.kept" "$dkd/.preview.url"
 [ "$rc" = 0 ] && ! grep -qx 'shots=forged' <<<"$out" && grep -qxF 'url="http://x/\nshots=forged"/reviews/walk-vs-walk-before.html' <<<"$out" \
   || fail "a planted preview address should print as one JSON string (rc=$rc): $out"
+# and so does a planted LAN key, on a server opened to the network
+bash "$here/preview.sh" --docroot "$dkd" --lan >/dev/null; printf 'x\nshots=forged\n' > "$dkd/.preview.key"
+rc_of run review --base "$dkd/walk-before" --current "$dkd/walk"; bash "$here/preview.sh" --docroot "$dkd" --stop >/dev/null
+[ "$rc" = 0 ] && ! grep -qx 'shots=forged' <<<"$out" && [ "$(grep -cF '?key="x\nshots=forged"' <<<"$out")" = 2 ] \
+  || fail "a planted LAN key should print as one JSON string (rc=$rc): $out"
 
 # The no-engine branch, forced: a PIL that raises on import is what a machine
 # without Pillow looks like to this script.
