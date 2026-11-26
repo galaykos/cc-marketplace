@@ -3046,7 +3046,7 @@ def rekeyed(b):
         srv.shutdown()
         srv.server_close()
 
-TAKERS = {"artifacts/takes-fast.html": 50, "artifacts/takes-slow.html": 600}
+TAKERS = {"artifacts/takes-fast.html": 50, "artifacts/takes-slow.html": 1500}
 for name, ms in TAKERS.items():
     page(name, title=name[10:-5], body='<input id="i"><script>setInterval(() => document.querySelector("#i").focus(), %d)</script>' % ms)
 TAKES = "for (const [at, ms] of %s) { const f = document.querySelector('a.card[href=\"/' + at + '\"] iframe'); setInterval(() => { if (f.isConnected) { f.inert = false; f.focus(); f.inert = true; } }, ms); } 1"
